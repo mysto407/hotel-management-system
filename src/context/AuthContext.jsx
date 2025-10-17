@@ -1,4 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+// src/context/AuthContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase, signIn as supabaseSignIn, signOut as supabaseSignOut, getCurrentUser } from '../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -10,31 +12,81 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (username, password) => {
-    const users = {
-      admin: { username: 'admin', password: 'admin123', role: 'Admin', name: 'Admin User' },
-      frontdesk: { username: 'frontdesk', password: 'front123', role: 'Front Desk', name: 'Front Desk User' },
-      accounts: { username: 'accounts', password: 'acc123', role: 'Accounts', name: 'Accounts User' }
-    };
+  useEffect(() => {
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
 
-    const foundUser = Object.values(users).find(
-      u => u.username === username && u.password === password
-    );
+    // Listen for changes on auth state (sign in, sign out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
 
-    if (foundUser) {
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      return true;
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadUserProfile = async (authId) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', authId)
+        .single();
+
+      if (error) throw error;
+      setUser(data);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    } finally {
+      setLoading(false);
     }
-    return false;
   };
 
-  const logout = () => setUser(null);
+  const login = async (email, password) => {
+    try {
+      const { data, error } = await supabaseSignIn(email, password);
+      
+      if (error) {
+        console.error('Login error:', error);
+        return false;
+      }
+
+      if (data.user) {
+        await loadUserProfile(data.user.id);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabaseSignOut();
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

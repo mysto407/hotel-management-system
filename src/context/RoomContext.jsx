@@ -1,4 +1,16 @@
-import { createContext, useContext, useState } from 'react';
+// src/context/RoomContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  getRoomTypes,
+  createRoomType as createRoomTypeAPI,
+  updateRoomType as updateRoomTypeAPI,
+  deleteRoomType as deleteRoomTypeAPI,
+  getRooms,
+  createRoom as createRoomAPI,
+  updateRoom as updateRoomAPI,
+  deleteRoom as deleteRoomAPI,
+  updateRoomStatus as updateRoomStatusAPI
+} from '../lib/supabase';
 
 const RoomContext = createContext();
 
@@ -9,56 +21,113 @@ export const useRooms = () => {
 };
 
 export const RoomProvider = ({ children }) => {
-  const [roomTypes, setRoomTypes] = useState([
-    { id: 1, name: 'Single Room', basePrice: 2500, capacity: 1, amenities: 'AC, TV, WiFi', description: 'Comfortable single occupancy room' },
-    { id: 2, name: 'Double Room', basePrice: 4000, capacity: 2, amenities: 'AC, TV, WiFi, Mini Bar', description: 'Spacious room with double bed' },
-    { id: 3, name: 'Deluxe Suite', basePrice: 8000, capacity: 3, amenities: 'AC, TV, WiFi, Mini Bar, Balcony, Jacuzzi', description: 'Luxurious suite with premium amenities' }
-  ]);
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [rooms, setRooms] = useState([
-    { id: 1, roomNumber: '101', floor: 1, roomTypeId: 1, status: 'Available' },
-    { id: 2, roomNumber: '102', floor: 1, roomTypeId: 1, status: 'Occupied' },
-    { id: 3, roomNumber: '103', floor: 1, roomTypeId: 2, status: 'Available' },
-    { id: 4, roomNumber: '201', floor: 2, roomTypeId: 2, status: 'Maintenance' },
-    { id: 5, roomNumber: '202', floor: 2, roomTypeId: 3, status: 'Available' },
-    { id: 6, roomNumber: '301', floor: 3, roomTypeId: 3, status: 'Blocked' },
-    { id: 7, roomNumber: '104', floor: 1, roomTypeId: 1, status: 'Available' },
-    { id: 8, roomNumber: '105', floor: 1, roomTypeId: 2, status: 'Available' }
-  ]);
+  useEffect(() => {
+    loadRoomTypes();
+    loadRooms();
+  }, []);
 
-  const addRoomType = (roomType) => {
-    setRoomTypes([...roomTypes, { ...roomType, id: Date.now() }]);
+  const loadRoomTypes = async () => {
+    const { data, error } = await getRoomTypes();
+    if (error) {
+      console.error('Error loading room types:', error);
+    } else {
+      setRoomTypes(data || []);
+    }
   };
 
-  const updateRoomType = (id, updatedType) => {
-    setRoomTypes(roomTypes.map(rt => rt.id === id ? { ...rt, ...updatedType } : rt));
+  const loadRooms = async () => {
+    const { data, error } = await getRooms();
+    if (error) {
+      console.error('Error loading rooms:', error);
+    } else {
+      setRooms(data || []);
+    }
+    setLoading(false);
   };
 
-  const deleteRoomType = (id) => {
+  const addRoomType = async (roomType) => {
+    const { data, error } = await createRoomTypeAPI(roomType);
+    if (error) {
+      console.error('Error creating room type:', error);
+      return null;
+    }
+    setRoomTypes([...roomTypes, data[0]]);
+    return data[0];
+  };
+
+  const updateRoomType = async (id, updatedType) => {
+    const { data, error } = await updateRoomTypeAPI(id, updatedType);
+    if (error) {
+      console.error('Error updating room type:', error);
+      return;
+    }
+    setRoomTypes(roomTypes.map(rt => rt.id === id ? data[0] : rt));
+  };
+
+  const deleteRoomType = async (id) => {
+    const { error } = await deleteRoomTypeAPI(id);
+    if (error) {
+      console.error('Error deleting room type:', error);
+      alert('Cannot delete room type. It may be in use by rooms.');
+      return;
+    }
     setRoomTypes(roomTypes.filter(rt => rt.id !== id));
   };
 
-  const addRoom = (room) => {
-    setRooms([...rooms, { ...room, id: Date.now() }]);
+  const addRoom = async (room) => {
+    const { data, error } = await createRoomAPI(room);
+    if (error) {
+      console.error('Error creating room:', error);
+      return null;
+    }
+    await loadRooms(); // Reload to get with relations
+    return data[0];
   };
 
-  const updateRoom = (id, updatedRoom) => {
-    setRooms(rooms.map(r => r.id === id ? { ...r, ...updatedRoom } : r));
+  const updateRoom = async (id, updatedRoom) => {
+    const { error } = await updateRoomAPI(id, updatedRoom);
+    if (error) {
+      console.error('Error updating room:', error);
+      return;
+    }
+    await loadRooms(); // Reload to get with relations
   };
 
-  const deleteRoom = (id) => {
+  const deleteRoom = async (id) => {
+    const { error } = await deleteRoomAPI(id);
+    if (error) {
+      console.error('Error deleting room:', error);
+      alert('Cannot delete room. It may have reservations.');
+      return;
+    }
     setRooms(rooms.filter(r => r.id !== id));
   };
 
-  const updateRoomStatus = (id, status) => {
+  const updateRoomStatus = async (id, status) => {
+    const { error } = await updateRoomStatusAPI(id, status);
+    if (error) {
+      console.error('Error updating room status:', error);
+      return;
+    }
     setRooms(rooms.map(r => r.id === id ? { ...r, status } : r));
   };
 
   return (
     <RoomContext.Provider value={{
-      roomTypes, rooms,
-      addRoomType, updateRoomType, deleteRoomType,
-      addRoom, updateRoom, deleteRoom, updateRoomStatus
+      roomTypes,
+      rooms,
+      loading,
+      addRoomType,
+      updateRoomType,
+      deleteRoomType,
+      addRoom,
+      updateRoom,
+      deleteRoom,
+      updateRoomStatus
     }}>
       {children}
     </RoomContext.Provider>

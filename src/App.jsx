@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/App.jsx
-// ==========================================
+// src/App.jsx
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { RoomProvider } from './context/RoomContext';
 import { ReservationProvider } from './context/ReservationContext';
@@ -12,7 +10,16 @@ import Login from './pages/auth/Login';
 import './styles/App.css';
 
 function AppContent() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Login />;
