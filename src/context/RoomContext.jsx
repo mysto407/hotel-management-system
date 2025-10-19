@@ -26,94 +26,245 @@ export const RoomProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadRoomTypes();
-    loadRooms();
+    loadInitialData();
   }, []);
 
+  const loadInitialData = async () => {
+    setLoading(true);
+    await Promise.all([loadRoomTypes(), loadRooms()]);
+    setLoading(false);
+  };
+
   const loadRoomTypes = async () => {
-    const { data, error } = await getRoomTypes();
-    if (error) {
-      console.error('Error loading room types:', error);
-    } else {
+    try {
+      const { data, error } = await getRoomTypes();
+      if (error) throw error;
       setRoomTypes(data || []);
+    } catch (error) {
+      console.error('Error loading room types:', error);
+      alert('Failed to load room types: ' + error.message);
     }
   };
 
   const loadRooms = async () => {
-    const { data, error } = await getRooms();
-    if (error) {
-      console.error('Error loading rooms:', error);
-    } else {
+    try {
+      const { data, error } = await getRooms();
+      if (error) throw error;
       setRooms(data || []);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+      alert('Failed to load rooms: ' + error.message);
     }
-    setLoading(false);
   };
 
+  // Room Type Operations
   const addRoomType = async (roomType) => {
-    const { data, error } = await createRoomTypeAPI(roomType);
-    if (error) {
+    try {
+      // Ensure all field names are in snake_case
+      const roomTypeData = {
+        name: roomType.name,
+        base_price: parseFloat(roomType.base_price),
+        capacity: parseInt(roomType.capacity),
+        amenities: roomType.amenities || '',
+        description: roomType.description || ''
+      };
+
+      const { data, error } = await createRoomTypeAPI(roomTypeData);
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setRoomTypes([...roomTypes, data[0]]);
+        return data[0];
+      }
+      return null;
+    } catch (error) {
       console.error('Error creating room type:', error);
+      alert('Failed to create room type: ' + error.message);
       return null;
     }
-    setRoomTypes([...roomTypes, data[0]]);
-    return data[0];
   };
 
   const updateRoomType = async (id, updatedType) => {
-    const { data, error } = await updateRoomTypeAPI(id, updatedType);
-    if (error) {
+    try {
+      // Ensure all field names are in snake_case
+      const roomTypeData = {
+        name: updatedType.name,
+        base_price: parseFloat(updatedType.base_price),
+        capacity: parseInt(updatedType.capacity),
+        amenities: updatedType.amenities || '',
+        description: updatedType.description || ''
+      };
+
+      const { data, error } = await updateRoomTypeAPI(id, roomTypeData);
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setRoomTypes(roomTypes.map(rt => rt.id === id ? data[0] : rt));
+        return data[0];
+      }
+      return null;
+    } catch (error) {
       console.error('Error updating room type:', error);
-      return;
+      alert('Failed to update room type: ' + error.message);
+      return null;
     }
-    setRoomTypes(roomTypes.map(rt => rt.id === id ? data[0] : rt));
   };
 
   const deleteRoomType = async (id) => {
-    const { error } = await deleteRoomTypeAPI(id);
-    if (error) {
+    try {
+      const { error } = await deleteRoomTypeAPI(id);
+      if (error) {
+        // Check if it's a foreign key constraint error
+        if (error.code === '23503' || error.message.includes('foreign key')) {
+          alert('Cannot delete room type. It is being used by existing rooms.');
+        } else {
+          throw error;
+        }
+        return false;
+      }
+      
+      setRoomTypes(roomTypes.filter(rt => rt.id !== id));
+      return true;
+    } catch (error) {
       console.error('Error deleting room type:', error);
-      alert('Cannot delete room type. It may be in use by rooms.');
-      return;
+      alert('Failed to delete room type: ' + error.message);
+      return false;
     }
-    setRoomTypes(roomTypes.filter(rt => rt.id !== id));
   };
 
+  // Room Operations
   const addRoom = async (room) => {
-    const { data, error } = await createRoomAPI(room);
-    if (error) {
+    try {
+      // Ensure all field names are in snake_case and types are correct
+      const roomData = {
+        room_number: room.room_number,
+        floor: parseInt(room.floor),
+        room_type_id: room.room_type_id,
+        status: room.status || 'Available'
+      };
+
+      const { data, error } = await createRoomAPI(roomData);
+      if (error) throw error;
+      
+      // Reload rooms to get with relations
+      await loadRooms();
+      
+      if (data && data.length > 0) {
+        return data[0];
+      }
+      return null;
+    } catch (error) {
       console.error('Error creating room:', error);
+      
+      // Check for duplicate room number
+      if (error.code === '23505' || error.message.includes('duplicate')) {
+        alert('Room number already exists. Please use a different number.');
+      } else {
+        alert('Failed to create room: ' + error.message);
+      }
       return null;
     }
-    await loadRooms(); // Reload to get with relations
-    return data[0];
   };
 
   const updateRoom = async (id, updatedRoom) => {
-    const { error } = await updateRoomAPI(id, updatedRoom);
-    if (error) {
+    try {
+      // Ensure all field names are in snake_case and types are correct
+      const roomData = {
+        room_number: updatedRoom.room_number,
+        floor: parseInt(updatedRoom.floor),
+        room_type_id: updatedRoom.room_type_id,
+        status: updatedRoom.status
+      };
+
+      const { error } = await updateRoomAPI(id, roomData);
+      if (error) throw error;
+      
+      // Reload rooms to get updated data with relations
+      await loadRooms();
+      return true;
+    } catch (error) {
       console.error('Error updating room:', error);
-      return;
+      
+      // Check for duplicate room number
+      if (error.code === '23505' || error.message.includes('duplicate')) {
+        alert('Room number already exists. Please use a different number.');
+      } else {
+        alert('Failed to update room: ' + error.message);
+      }
+      return false;
     }
-    await loadRooms(); // Reload to get with relations
   };
 
   const deleteRoom = async (id) => {
-    const { error } = await deleteRoomAPI(id);
-    if (error) {
+    try {
+      const { error } = await deleteRoomAPI(id);
+      if (error) {
+        // Check if it's a foreign key constraint error
+        if (error.code === '23503' || error.message.includes('foreign key')) {
+          alert('Cannot delete room. It has existing reservations.');
+        } else {
+          throw error;
+        }
+        return false;
+      }
+      
+      setRooms(rooms.filter(r => r.id !== id));
+      return true;
+    } catch (error) {
       console.error('Error deleting room:', error);
-      alert('Cannot delete room. It may have reservations.');
-      return;
+      alert('Failed to delete room: ' + error.message);
+      return false;
     }
-    setRooms(rooms.filter(r => r.id !== id));
   };
 
   const updateRoomStatus = async (id, status) => {
-    const { error } = await updateRoomStatusAPI(id, status);
-    if (error) {
+    try {
+      const { error } = await updateRoomStatusAPI(id, status);
+      if (error) throw error;
+      
+      // Update local state immediately for better UX
+      setRooms(rooms.map(r => r.id === id ? { ...r, status } : r));
+      return true;
+    } catch (error) {
       console.error('Error updating room status:', error);
-      return;
+      alert('Failed to update room status: ' + error.message);
+      return false;
     }
-    setRooms(rooms.map(r => r.id === id ? { ...r, status } : r));
+  };
+
+  // Helper functions
+  const getRoomById = (roomId) => {
+    return rooms.find(r => r.id === roomId);
+  };
+
+  const getRoomTypeById = (roomTypeId) => {
+    return roomTypes.find(rt => rt.id === roomTypeId);
+  };
+
+  const getRoomsByType = (roomTypeId) => {
+    return rooms.filter(r => r.room_type_id === roomTypeId);
+  };
+
+  const getRoomsByStatus = (status) => {
+    return rooms.filter(r => r.status === status);
+  };
+
+  const getRoomsByFloor = (floor) => {
+    return rooms.filter(r => r.floor === floor);
+  };
+
+  const getAvailableRooms = () => {
+    return rooms.filter(r => r.status === 'Available');
+  };
+
+  const getRoomStats = () => {
+    return {
+      total: rooms.length,
+      available: rooms.filter(r => r.status === 'Available').length,
+      occupied: rooms.filter(r => r.status === 'Occupied').length,
+      maintenance: rooms.filter(r => r.status === 'Maintenance').length,
+      blocked: rooms.filter(r => r.status === 'Blocked').length
+    };
   };
 
   return (
@@ -127,7 +278,14 @@ export const RoomProvider = ({ children }) => {
       addRoom,
       updateRoom,
       deleteRoom,
-      updateRoomStatus
+      updateRoomStatus,
+      getRoomById,
+      getRoomTypeById,
+      getRoomsByType,
+      getRoomsByStatus,
+      getRoomsByFloor,
+      getAvailableRooms,
+      getRoomStats
     }}>
       {children}
     </RoomContext.Provider>
