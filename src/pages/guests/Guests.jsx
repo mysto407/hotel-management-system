@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/pages/guests/Guests.jsx
-// ==========================================
+// src/pages/guests/Guests.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, Eye, Star, Award, Briefcase, TrendingUp, Users } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
@@ -36,35 +34,35 @@ const Guests = () => {
     name: '',
     email: '',
     phone: '',
-    idProofType: 'AADHAR',
-    idProofNumber: '',
+    id_proof_type: 'AADHAR',
+    id_proof_number: '',
     address: '',
     city: '',
     state: '',
     country: 'India',
-    dateOfBirth: '',
-    guestType: 'Regular',
+    date_of_birth: '',
+    guest_type: 'Regular',
     preferences: '',
     notes: ''
   });
 
   // Filter guests
   const filteredGuests = guests
-    .filter(guest => filterType === 'all' || guest.guestType === filterType)
+    .filter(guest => filterType === 'all' || guest.guest_type === filterType)
     .filter(guest =>
       guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guest.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      guest.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       guest.phone.includes(searchTerm)
     );
 
   const returningGuests = getReturningGuests();
   const topGuests = getTopGuests(5);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (editingGuest) {
-      updateGuest(editingGuest.id, formData);
+      await updateGuest(editingGuest.id, formData);
     } else {
-      addGuest(formData);
+      await addGuest(formData);
     }
     resetForm();
   };
@@ -74,14 +72,14 @@ const Guests = () => {
       name: '',
       email: '',
       phone: '',
-      idProofType: 'AADHAR',
-      idProofNumber: '',
+      id_proof_type: 'AADHAR',
+      id_proof_number: '',
       address: '',
       city: '',
       state: '',
       country: 'India',
-      dateOfBirth: '',
-      guestType: 'Regular',
+      date_of_birth: '',
+      guest_type: 'Regular',
       preferences: '',
       notes: ''
     });
@@ -91,7 +89,21 @@ const Guests = () => {
 
   const handleEdit = (guest) => {
     setEditingGuest(guest);
-    setFormData(guest);
+    setFormData({
+      name: guest.name,
+      email: guest.email || '',
+      phone: guest.phone,
+      id_proof_type: guest.id_proof_type,
+      id_proof_number: guest.id_proof_number,
+      address: guest.address || '',
+      city: guest.city || '',
+      state: guest.state || '',
+      country: guest.country || 'India',
+      date_of_birth: guest.date_of_birth || '',
+      guest_type: guest.guest_type,
+      preferences: guest.preferences || '',
+      notes: guest.notes || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -107,10 +119,7 @@ const Guests = () => {
   };
 
   const getGuestBookings = (guestId) => {
-    const guest = guests.find(g => g.id === guestId);
-    return reservations.filter(r => 
-      r.guestPhone === guest?.phone || r.guestEmail === guest?.email
-    );
+    return reservations.filter(r => r.guest_id === guestId);
   };
 
   const getGuestTypeIcon = (type) => {
@@ -182,7 +191,7 @@ const Guests = () => {
               <p className="stat-label">Returning Guests</p>
               <p className="stat-value">{returningGuests.length}</p>
               <small style={{ color: '#6b7280' }}>
-                {((returningGuests.length / guests.length) * 100).toFixed(0)}% retention
+                {guests.length > 0 ? ((returningGuests.length / guests.length) * 100).toFixed(0) : 0}% retention
               </small>
             </div>
             <div className="stat-icon" style={{ backgroundColor: '#10b981' }}>
@@ -239,7 +248,7 @@ const Guests = () => {
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <strong>{guest.name}</strong>
-                    {guest.guestType !== 'Regular' && getGuestTypeIcon(guest.guestType)}
+                    {guest.guest_type !== 'Regular' && getGuestTypeIcon(guest.guest_type)}
                   </div>
                   <small style={{ color: '#6b7280' }}>{guest.city}, {guest.state}</small>
                 </td>
@@ -249,19 +258,19 @@ const Guests = () => {
                   <small style={{ color: '#6b7280' }}>{guest.email}</small>
                 </td>
                 <td>
-                  <span className={`guest-type-badge ${getGuestTypeBadgeClass(guest.guestType)}`}>
-                    {guest.guestType}
+                  <span className={`guest-type-badge ${getGuestTypeBadgeClass(guest.guest_type)}`}>
+                    {guest.guest_type}
                   </span>
                 </td>
-                <td><strong>{guest.totalBookings}</strong></td>
-                <td>₹{guest.totalSpent.toLocaleString()}</td>
+                <td><strong>{guest.total_bookings || 0}</strong></td>
+                <td>₹{(guest.total_spent || 0).toLocaleString()}</td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Award size={16} color="#f59e0b" />
-                    <strong>{guest.loyaltyPoints}</strong>
+                    <strong>{guest.loyalty_points || 0}</strong>
                   </div>
                 </td>
-                <td>{guest.lastVisit || 'Never'}</td>
+                <td>{guest.last_visit || 'Never'}</td>
                 <td>
                   <div className="action-buttons">
                     <button 
@@ -294,10 +303,10 @@ const Guests = () => {
               <div className="top-guest-rank">#{index + 1}</div>
               <div className="top-guest-info">
                 <strong>{guest.name}</strong>
-                <p>{guest.totalBookings} bookings</p>
+                <p>{guest.total_bookings || 0} bookings</p>
               </div>
               <div className="top-guest-amount">
-                ₹{guest.totalSpent.toLocaleString()}
+                ₹{(guest.total_spent || 0).toLocaleString()}
               </div>
             </div>
           ))}
@@ -343,15 +352,15 @@ const Guests = () => {
             <label>Date of Birth</label>
             <input
               type="date"
-              value={formData.dateOfBirth}
-              onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+              value={formData.date_of_birth}
+              onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
             />
           </div>
           <div className="form-group">
             <label>ID Proof Type *</label>
             <select
-              value={formData.idProofType}
-              onChange={(e) => setFormData({...formData, idProofType: e.target.value})}
+              value={formData.id_proof_type}
+              onChange={(e) => setFormData({...formData, id_proof_type: e.target.value})}
             >
               {idProofTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
@@ -362,8 +371,8 @@ const Guests = () => {
             <label>ID Proof Number *</label>
             <input
               type="text"
-              value={formData.idProofNumber}
-              onChange={(e) => setFormData({...formData, idProofNumber: e.target.value})}
+              value={formData.id_proof_number}
+              onChange={(e) => setFormData({...formData, id_proof_number: e.target.value})}
               placeholder="AADHAR-1234"
             />
           </div>
@@ -406,8 +415,8 @@ const Guests = () => {
           <div className="form-group">
             <label>Guest Type</label>
             <select
-              value={formData.guestType}
-              onChange={(e) => setFormData({...formData, guestType: e.target.value})}
+              value={formData.guest_type}
+              onChange={(e) => setFormData({...formData, guest_type: e.target.value})}
             >
               {guestTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
@@ -455,21 +464,21 @@ const Guests = () => {
             <div className="guest-details-header">
               <div>
                 <h2>{selectedGuest.name}</h2>
-                <span className={`guest-type-badge ${getGuestTypeBadgeClass(selectedGuest.guestType)}`}>
-                  {selectedGuest.guestType}
+                <span className={`guest-type-badge ${getGuestTypeBadgeClass(selectedGuest.guest_type)}`}>
+                  {selectedGuest.guest_type}
                 </span>
               </div>
               <div className="guest-stats-mini">
                 <div>
-                  <strong>{selectedGuest.totalBookings}</strong>
+                  <strong>{selectedGuest.total_bookings || 0}</strong>
                   <p>Bookings</p>
                 </div>
                 <div>
-                  <strong>₹{selectedGuest.totalSpent.toLocaleString()}</strong>
+                  <strong>₹{(selectedGuest.total_spent || 0).toLocaleString()}</strong>
                   <p>Total Spent</p>
                 </div>
                 <div>
-                  <strong>{selectedGuest.loyaltyPoints}</strong>
+                  <strong>{selectedGuest.loyalty_points || 0}</strong>
                   <p>Points</p>
                 </div>
               </div>
@@ -479,27 +488,27 @@ const Guests = () => {
               <div className="info-section">
                 <h4>Contact Information</h4>
                 <p><strong>Phone:</strong> {selectedGuest.phone}</p>
-                <p><strong>Email:</strong> {selectedGuest.email}</p>
-                <p><strong>Date of Birth:</strong> {selectedGuest.dateOfBirth || 'Not provided'}</p>
+                <p><strong>Email:</strong> {selectedGuest.email || 'N/A'}</p>
+                <p><strong>Date of Birth:</strong> {selectedGuest.date_of_birth || 'Not provided'}</p>
               </div>
 
               <div className="info-section">
                 <h4>ID Proof</h4>
-                <p><strong>Type:</strong> {selectedGuest.idProofType}</p>
-                <p><strong>Number:</strong> {selectedGuest.idProofNumber}</p>
+                <p><strong>Type:</strong> {selectedGuest.id_proof_type}</p>
+                <p><strong>Number:</strong> {selectedGuest.id_proof_number}</p>
               </div>
 
               <div className="info-section">
                 <h4>Address</h4>
-                <p>{selectedGuest.address}</p>
+                <p>{selectedGuest.address || 'N/A'}</p>
                 <p>{selectedGuest.city}, {selectedGuest.state}</p>
                 <p>{selectedGuest.country}</p>
               </div>
 
               <div className="info-section">
                 <h4>Guest Stats</h4>
-                <p><strong>Member Since:</strong> {selectedGuest.createdAt}</p>
-                <p><strong>Last Visit:</strong> {selectedGuest.lastVisit || 'Never'}</p>
+                <p><strong>Member Since:</strong> {selectedGuest.created_at?.split('T')[0]}</p>
+                <p><strong>Last Visit:</strong> {selectedGuest.last_visit || 'Never'}</p>
               </div>
             </div>
 
@@ -531,15 +540,15 @@ const Guests = () => {
                 </thead>
                 <tbody>
                   {getGuestBookings(selectedGuest.id).map(booking => {
-                    const room = rooms.find(r => r.id === booking.roomId);
+                    const room = rooms.find(r => r.id === booking.room_id);
                     return (
                       <tr key={booking.id}>
-                        <td>{room?.roomNumber || 'N/A'}</td>
-                        <td>{booking.checkInDate}</td>
-                        <td>{booking.checkOutDate}</td>
-                        <td>₹{booking.totalAmount}</td>
+                        <td>{room?.room_number || 'N/A'}</td>
+                        <td>{booking.check_in_date}</td>
+                        <td>{booking.check_out_date}</td>
+                        <td>₹{booking.total_amount}</td>
                         <td>
-                          <span className={`status-badge status-${booking.status.toLowerCase()}`}>
+                          <span className={`status-badge status-${booking.status?.toLowerCase()}`}>
                             {booking.status}
                           </span>
                         </td>

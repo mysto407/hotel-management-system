@@ -22,21 +22,20 @@ const Billing = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [formData, setFormData] = useState({
-    reservationId: '',
-    guestName: '',
-    roomNumber: '',
-    billType: 'Room',
-    items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
-    subtotal: 0,
-    tax: 0,
-    discount: 0,
-    total: 0,
-    paidAmount: 0,
-    balance: 0,
-    paymentStatus: 'Pending',
-    notes: ''
-  });
+
+const [formData, setFormData] = useState({
+  reservation_id: '',        // Changed from reservationId
+  bill_type: 'Room',         // Changed from billType
+  items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+  subtotal: 0,
+  tax: 0,
+  discount: 0,
+  total: 0,
+  paid_amount: 0,           // Changed from paidAmount
+  balance: 0,
+  payment_status: 'Pending', // Changed from paymentStatus
+  notes: ''
+});
 
   const [paymentAmount, setPaymentAmount] = useState(0);
 
@@ -46,14 +45,14 @@ const Billing = () => {
   ];
 
   const handleReservationChange = (reservationId) => {
-    const reservation = reservations.find(r => r.id === parseInt(reservationId));
+    const reservation = reservations.find(r => r.id === reservationId);
     if (reservation) {
-      const room = rooms.find(r => r.id === reservation.roomId);
+      const room = rooms.find(r => r.id === reservation.room_id);
       setFormData({
         ...formData,
-        reservationId: reservation.id,
-        guestName: reservation.guestName,
-        roomNumber: room?.roomNumber || ''
+        reservation_id: reservation.id,  // Changed from reservationId
+        guestName: reservation.guests?.name || 'Unknown',
+        roomNumber: room?.room_number || ''
       });
     }
   };
@@ -99,11 +98,25 @@ const Billing = () => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const billData = {
+      reservation_id: formData.reservation_id,
+      bill_type: formData.bill_type,
+      subtotal: formData.subtotal,
+      tax: formData.tax,
+      discount: formData.discount,
+      total: formData.total,
+      paid_amount: formData.paid_amount,
+      balance: formData.balance,
+      payment_status: formData.payment_status,
+      notes: formData.notes,
+      items: formData.items  // Will be handled by context
+    };
+  
     if (editingBill) {
-      updateBill(editingBill.id, formData);
+      await updateBill(editingBill.id, billData);
     } else {
-      addBill(formData);
+      await addBill(billData);
     }
     resetForm();
   };
@@ -168,12 +181,12 @@ const Billing = () => {
   };
 
   const filteredBills = bills
-    .filter(b => filterStatus === 'all' || b.paymentStatus === filterStatus)
-    .filter(b => 
-      b.guestName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.roomNumber.includes(searchTerm) ||
-      b.billType.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  .filter(b => filterStatus === 'all' || b.payment_status === filterStatus)
+  .filter(b => 
+    b.reservations?.guests?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    b.reservations?.rooms?.room_number?.includes(searchTerm) ||
+    b.bill_type?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
@@ -226,27 +239,27 @@ const Billing = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredBills.map(bill => (
-              <tr key={bill.id}>
-                <td><strong>#{bill.id}</strong></td>
-                <td>{bill.guestName}</td>
-                <td>{bill.roomNumber}</td>
-                <td>
-                  <span className="bill-type-badge">{bill.billType}</span>
-                </td>
-                <td>{bill.createdAt}</td>
-                <td>₹{bill.total.toFixed(2)}</td>
-                <td>₹{bill.paidAmount.toFixed(2)}</td>
-                <td>₹{bill.balance.toFixed(2)}</td>
-                <td>
-                  <span className={`status-badge ${
-                    bill.paymentStatus === 'Paid' ? 'status-available' :
-                    bill.paymentStatus === 'Partial' ? 'status-maintenance' :
-                    'status-blocked'
-                  }`}>
-                    {bill.paymentStatus}
-                  </span>
-                </td>
+  {filteredBills.map(bill => (
+    <tr key={bill.id}>
+      <td><strong>#{bill.id}</strong></td>
+      <td>{bill.reservations?.guests?.name || 'Unknown'}</td>
+      <td>{bill.reservations?.rooms?.room_number || 'N/A'}</td>
+      <td>
+        <span className="bill-type-badge">{bill.bill_type}</span>
+      </td>
+      <td>{bill.created_at?.split('T')[0]}</td>
+      <td>₹{bill.total.toFixed(2)}</td>
+      <td>₹{bill.paid_amount.toFixed(2)}</td>
+      <td>₹{bill.balance.toFixed(2)}</td>
+      <td>
+        <span className={`status-badge ${
+          bill.payment_status === 'Paid' ? 'status-available' :
+          bill.payment_status === 'Partial' ? 'status-maintenance' :
+          'status-blocked'
+        }`}>
+          {bill.payment_status}
+        </span>
+      </td>
                 <td>
                   <div className="action-buttons">
                     {bill.balance > 0 && (
@@ -322,28 +335,28 @@ const Billing = () => {
           <div className="form-group">
             <label>Reservation *</label>
             <select
-              value={formData.reservationId}
-              onChange={(e) => handleReservationChange(e.target.value)}
-              disabled={editingBill}
-            >
-              <option value="">Select Reservation</option>
-              {reservations.filter(r => r.status === 'Checked-in' || r.status === 'Checked-out').map(r => (
-                <option key={r.id} value={r.id}>
-                  {r.guestName} - Room {rooms.find(room => room.id === r.roomId)?.roomNumber}
-                </option>
-              ))}
-            </select>
+  value={formData.reservation_id}
+  onChange={(e) => handleReservationChange(e.target.value)}
+  disabled={editingBill}
+>
+  <option value="">Select Reservation</option>
+  {reservations.filter(r => r.status === 'Checked-in' || r.status === 'Checked-out').map(r => (
+    <option key={r.id} value={r.id}>
+      {r.guests?.name || 'Unknown'} - Room {rooms.find(room => room.id === r.room_id)?.room_number}
+    </option>
+  ))}
+</select>
           </div>
           <div className="form-group">
             <label>Bill Type *</label>
             <select
-              value={formData.billType}
-              onChange={(e) => setFormData({...formData, billType: e.target.value})}
-            >
-              {billTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+  value={formData.bill_type}
+  onChange={(e) => setFormData({...formData, bill_type: e.target.value})}
+>
+  {billTypes.map(type => (
+    <option key={type} value={type}>{type}</option>
+  ))}
+</select>
           </div>
         </div>
 

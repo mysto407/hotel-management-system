@@ -1,7 +1,12 @@
-// ==========================================
-// FILE: src/context/GuestContext.jsx
-// ==========================================
-import { createContext, useContext, useState } from 'react';
+// src/context/GuestContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  getGuests,
+  getGuestByPhone as getGuestByPhoneAPI,
+  createGuest as createGuestAPI,
+  updateGuest as updateGuestAPI,
+  deleteGuest as deleteGuestAPI
+} from '../lib/supabase';
 
 const GuestContext = createContext();
 
@@ -12,96 +17,57 @@ export const useGuests = () => {
 };
 
 export const GuestProvider = ({ children }) => {
-  const [guests, setGuests] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-      phone: '9876543210',
-      idProofType: 'AADHAR',
-      idProofNumber: 'AADHAR-1234',
-      address: '123 Main Street, Mumbai',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      country: 'India',
-      dateOfBirth: '1985-05-15',
-      guestType: 'Regular',
-      preferences: 'Early check-in preferred, Room with city view',
-      notes: 'Returning guest, prefers non-smoking rooms',
-      totalBookings: 3,
-      totalSpent: 45000,
-      lastVisit: '2025-10-14',
-      createdAt: '2024-06-10',
-      loyaltyPoints: 450
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      phone: '9876543211',
-      idProofType: 'PAN',
-      idProofNumber: 'PAN-5678',
-      address: '456 Park Avenue, Delhi',
-      city: 'Delhi',
-      state: 'Delhi',
-      country: 'India',
-      dateOfBirth: '1990-08-22',
-      guestType: 'VIP',
-      preferences: 'Vegan meals, Late checkout',
-      notes: 'VIP guest, corporate bookings',
-      totalBookings: 8,
-      totalSpent: 128000,
-      lastVisit: '2025-10-18',
-      createdAt: '2023-03-15',
-      loyaltyPoints: 1280
-    },
-    {
-      id: 3,
-      name: 'Robert Wilson',
-      email: 'robert@company.com',
-      phone: '9876543212',
-      idProofType: 'Passport',
-      idProofNumber: 'P-9876543',
-      address: '789 Business District, Bangalore',
-      city: 'Bangalore',
-      state: 'Karnataka',
-      country: 'India',
-      dateOfBirth: '1982-12-10',
-      guestType: 'Corporate',
-      preferences: 'Business center access, Early breakfast',
-      notes: 'Corporate account - TechCorp Ltd',
-      totalBookings: 12,
-      totalSpent: 180000,
-      lastVisit: '2025-09-25',
-      createdAt: '2022-11-20',
-      loyaltyPoints: 1800
-    }
-  ]);
+  const [guests, setGuests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const idProofTypes = ['AADHAR', 'PAN', 'Passport', 'Driving License', 'Voter ID'];
   const guestTypes = ['Regular', 'VIP', 'Corporate'];
 
-  const addGuest = (guest) => {
-    const newGuest = {
-      ...guest,
-      id: Date.now(),
-      totalBookings: 0,
-      totalSpent: 0,
-      lastVisit: null,
-      createdAt: new Date().toISOString().split('T')[0],
-      loyaltyPoints: 0
-    };
-    setGuests([...guests, newGuest]);
-    return newGuest;
+  useEffect(() => {
+    loadGuests();
+  }, []);
+
+  const loadGuests = async () => {
+    setLoading(true);
+    const { data, error } = await getGuests();
+    if (error) {
+      console.error('Error loading guests:', error);
+    } else {
+      setGuests(data || []);
+    }
+    setLoading(false);
   };
 
-  const updateGuest = (id, updatedGuest) => {
+  const addGuest = async (guest) => {
+    const { data, error } = await createGuestAPI(guest);
+    if (error) {
+      console.error('Error creating guest:', error);
+      alert('Failed to create guest: ' + error.message);
+      return null;
+    }
+    setGuests([data[0], ...guests]);
+    return data[0];
+  };
+
+  const updateGuest = async (id, updatedGuest) => {
+    const { error } = await updateGuestAPI(id, updatedGuest);
+    if (error) {
+      console.error('Error updating guest:', error);
+      alert('Failed to update guest: ' + error.message);
+      return;
+    }
     setGuests(guests.map(guest => 
       guest.id === id ? { ...guest, ...updatedGuest } : guest
     ));
   };
 
-  const deleteGuest = (id) => {
+  const deleteGuest = async (id) => {
+    const { error } = await deleteGuestAPI(id);
+    if (error) {
+      console.error('Error deleting guest:', error);
+      alert('Cannot delete guest: ' + error.message);
+      return;
+    }
     setGuests(guests.filter(guest => guest.id !== id));
   };
 
@@ -110,41 +76,41 @@ export const GuestProvider = ({ children }) => {
   };
 
   const getGuestByEmail = (email) => {
-    return guests.find(guest => guest.email.toLowerCase() === email.toLowerCase());
+    return guests.find(guest => guest.email?.toLowerCase() === email.toLowerCase());
   };
 
-  const updateGuestStats = (guestId, bookingAmount) => {
-    setGuests(guests.map(guest => {
-      if (guest.id === guestId) {
-        return {
-          ...guest,
-          totalBookings: guest.totalBookings + 1,
-          totalSpent: guest.totalSpent + bookingAmount,
-          lastVisit: new Date().toISOString().split('T')[0],
-          loyaltyPoints: guest.loyaltyPoints + Math.floor(bookingAmount / 100)
-        };
-      }
-      return guest;
-    }));
+  const updateGuestStats = async (guestId, bookingAmount) => {
+    const guest = guests.find(g => g.id === guestId);
+    if (!guest) return;
+
+    const updatedData = {
+      total_bookings: guest.total_bookings + 1,
+      total_spent: guest.total_spent + bookingAmount,
+      last_visit: new Date().toISOString().split('T')[0],
+      loyalty_points: guest.loyalty_points + Math.floor(bookingAmount / 100)
+    };
+
+    await updateGuest(guestId, updatedData);
   };
 
   const getGuestsByType = (type) => {
-    return guests.filter(guest => guest.guestType === type);
+    return guests.filter(guest => guest.guest_type === type);
   };
 
   const getReturningGuests = () => {
-    return guests.filter(guest => guest.totalBookings > 1);
+    return guests.filter(guest => guest.total_bookings > 1);
   };
 
   const getTopGuests = (limit = 5) => {
     return [...guests]
-      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .sort((a, b) => b.total_spent - a.total_spent)
       .slice(0, limit);
   };
 
   return (
     <GuestContext.Provider value={{
       guests,
+      loading,
       idProofTypes,
       guestTypes,
       addGuest,

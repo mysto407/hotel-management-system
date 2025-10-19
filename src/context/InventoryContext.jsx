@@ -1,7 +1,13 @@
-// ==========================================
-// FILE: src/context/InventoryContext.jsx
-// ==========================================
-import { createContext, useContext, useState } from 'react';
+// src/context/InventoryContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  getInventoryItems,
+  createInventoryItem as createInventoryItemAPI,
+  updateInventoryItem as updateInventoryItemAPI,
+  deleteInventoryItem as deleteInventoryItemAPI,
+  getInventoryTransactions,
+  createInventoryTransaction as createInventoryTransactionAPI
+} from '../lib/supabase';
 
 const InventoryContext = createContext();
 
@@ -12,172 +18,94 @@ export const useInventory = () => {
 };
 
 export const InventoryProvider = ({ children }) => {
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      name: 'Bed Sheets',
-      category: 'Linen',
-      department: 'Housekeeping',
-      unit: 'Pieces',
-      currentStock: 45,
-      minStock: 20,
-      maxStock: 100,
-      unitPrice: 500,
-      supplier: 'Linen World',
-      lastUpdated: '2025-10-15'
-    },
-    {
-      id: 2,
-      name: 'Towels',
-      category: 'Linen',
-      department: 'Housekeeping',
-      unit: 'Pieces',
-      currentStock: 12,
-      minStock: 30,
-      maxStock: 80,
-      unitPrice: 150,
-      supplier: 'Linen World',
-      lastUpdated: '2025-10-14'
-    },
-    {
-      id: 3,
-      name: 'Rice',
-      category: 'Food',
-      department: 'Kitchen',
-      unit: 'Kg',
-      currentStock: 150,
-      minStock: 50,
-      maxStock: 300,
-      unitPrice: 60,
-      supplier: 'Food Suppliers Ltd',
-      lastUpdated: '2025-10-16'
-    },
-    {
-      id: 4,
-      name: 'Whiskey',
-      category: 'Alcohol',
-      department: 'Bar',
-      unit: 'Bottles',
-      currentStock: 8,
-      minStock: 10,
-      maxStock: 50,
-      unitPrice: 2500,
-      supplier: 'Beverage Distributors',
-      lastUpdated: '2025-10-13'
-    },
-    {
-      id: 5,
-      name: 'Shampoo',
-      category: 'Toiletries',
-      department: 'Housekeeping',
-      unit: 'Bottles',
-      currentStock: 25,
-      minStock: 15,
-      maxStock: 60,
-      unitPrice: 120,
-      supplier: 'Hotel Supplies Co',
-      lastUpdated: '2025-10-15'
-    },
-    {
-      id: 6,
-      name: 'Massage Oil',
-      category: 'Spa Products',
-      department: 'Spa',
-      unit: 'Bottles',
-      currentStock: 18,
-      minStock: 10,
-      maxStock: 40,
-      unitPrice: 800,
-      supplier: 'Spa Essentials',
-      lastUpdated: '2025-10-14'
-    }
-  ]);
-
-  const [transactions, setTransactions] = useState([
-    {
-      id: 1,
-      itemId: 2,
-      itemName: 'Towels',
-      type: 'Issue',
-      quantity: 20,
-      department: 'Housekeeping',
-      issuedTo: 'Room Service',
-      notes: 'For room 201-210',
-      date: '2025-10-14',
-      performedBy: 'Admin User'
-    },
-    {
-      id: 2,
-      itemId: 4,
-      itemName: 'Whiskey',
-      type: 'Issue',
-      quantity: 5,
-      department: 'Bar',
-      issuedTo: 'Bar Staff',
-      notes: 'Weekend stock',
-      date: '2025-10-13',
-      performedBy: 'Admin User'
-    },
-    {
-      id: 3,
-      itemId: 3,
-      itemName: 'Rice',
-      type: 'Receive',
-      quantity: 100,
-      department: 'Kitchen',
-      supplier: 'Food Suppliers Ltd',
-      notes: 'Monthly stock',
-      date: '2025-10-16',
-      performedBy: 'Admin User'
-    }
-  ]);
+  const [items, setItems] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const departments = ['Housekeeping', 'Kitchen', 'Bar', 'Spa', 'Restaurant', 'Laundry', 'Maintenance', 'Front Desk'];
-  
   const categories = ['Linen', 'Toiletries', 'Food', 'Beverages', 'Alcohol', 'Cleaning Supplies', 'Spa Products', 'Office Supplies', 'Maintenance', 'Other'];
-
   const units = ['Pieces', 'Kg', 'Liters', 'Bottles', 'Boxes', 'Packets', 'Sets', 'Units'];
 
-  const addItem = (item) => {
-    const newItem = {
-      ...item,
-      id: Date.now(),
-      lastUpdated: new Date().toISOString().split('T')[0]
-    };
-    setItems([...items, newItem]);
-    return newItem;
+  useEffect(() => {
+    loadInventoryItems();
+    loadTransactions();
+  }, []);
+
+  const loadInventoryItems = async () => {
+    setLoading(true);
+    const { data, error } = await getInventoryItems();
+    if (error) {
+      console.error('Error loading inventory items:', error);
+    } else {
+      setItems(data || []);
+    }
+    setLoading(false);
   };
 
-  const updateItem = (id, updatedItem) => {
+  const loadTransactions = async () => {
+    const { data, error } = await getInventoryTransactions();
+    if (error) {
+      console.error('Error loading transactions:', error);
+    } else {
+      setTransactions(data || []);
+    }
+  };
+
+  const addItem = async (item) => {
+    const { data, error } = await createInventoryItemAPI(item);
+    if (error) {
+      console.error('Error creating item:', error);
+      alert('Failed to create item: ' + error.message);
+      return null;
+    }
+    setItems([...items, data[0]]);
+    return data[0];
+  };
+
+  const updateItem = async (id, updatedItem) => {
+    const { error } = await updateInventoryItemAPI(id, updatedItem);
+    if (error) {
+      console.error('Error updating item:', error);
+      alert('Failed to update item: ' + error.message);
+      return;
+    }
     setItems(items.map(item => 
       item.id === id 
-        ? { ...item, ...updatedItem, lastUpdated: new Date().toISOString().split('T')[0] }
+        ? { ...item, ...updatedItem, updated_at: new Date().toISOString() }
         : item
     ));
   };
 
-  const deleteItem = (id) => {
+  const deleteItem = async (id) => {
+    const { error } = await deleteInventoryItemAPI(id);
+    if (error) {
+      console.error('Error deleting item:', error);
+      alert('Cannot delete item: ' + error.message);
+      return;
+    }
     setItems(items.filter(item => item.id !== id));
-    setTransactions(transactions.filter(t => t.itemId !== id));
+    setTransactions(transactions.filter(t => t.item_id !== id));
   };
 
-  const addTransaction = (transaction, performedBy) => {
-    const item = items.find(i => i.id === transaction.itemId);
+  const addTransaction = async (transaction, performedBy) => {
+    const item = items.find(i => i.id === transaction.item_id);
     if (!item) return;
 
-    const newTransaction = {
+    const transactionData = {
       ...transaction,
-      id: Date.now(),
-      itemName: item.name,
-      department: item.department,
-      date: new Date().toISOString().split('T')[0],
-      performedBy
+      performed_by: performedBy, // This should be the user's UUID from auth
+      created_at: new Date().toISOString()
     };
 
-    setTransactions([newTransaction, ...transactions]);
+    const { data, error } = await createInventoryTransactionAPI(transactionData);
+    if (error) {
+      console.error('Error creating transaction:', error);
+      alert('Failed to record transaction: ' + error.message);
+      return;
+    }
 
     // Update stock
-    let newStock = item.currentStock;
+    let newStock = item.current_stock;
     if (transaction.type === 'Receive') {
       newStock += transaction.quantity;
     } else if (transaction.type === 'Issue') {
@@ -186,11 +114,12 @@ export const InventoryProvider = ({ children }) => {
       newStock = transaction.quantity;
     }
 
-    updateItem(item.id, { currentStock: newStock });
+    await updateItem(item.id, { current_stock: newStock });
+    await loadTransactions(); // Reload to get with relations
   };
 
   const getLowStockItems = () => {
-    return items.filter(item => item.currentStock < item.minStock);
+    return items.filter(item => item.current_stock < item.min_stock);
   };
 
   const getItemsByDepartment = (department) => {
@@ -198,23 +127,24 @@ export const InventoryProvider = ({ children }) => {
   };
 
   const getTransactionsByItem = (itemId) => {
-    return transactions.filter(t => t.itemId === itemId);
+    return transactions.filter(t => t.item_id === itemId);
   };
 
   const getTotalInventoryValue = () => {
-    return items.reduce((total, item) => total + (item.currentStock * item.unitPrice), 0);
+    return items.reduce((total, item) => total + (item.current_stock * item.unit_price), 0);
   };
 
   const getDepartmentValue = (department) => {
     return items
       .filter(item => item.department === department)
-      .reduce((total, item) => total + (item.currentStock * item.unitPrice), 0);
+      .reduce((total, item) => total + (item.current_stock * item.unit_price), 0);
   };
 
   return (
     <InventoryContext.Provider value={{
       items,
       transactions,
+      loading,
       departments,
       categories,
       units,

@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/pages/dashboard/Dashboard.jsx
-// ==========================================
+// src/pages/dashboard/Dashboard.jsx
 import { Card } from '../../components/common/Card';
 import { useRooms } from '../../context/RoomContext';
 import { useReservations } from '../../context/ReservationContext';
@@ -11,7 +9,7 @@ const Dashboard = () => {
   
   const todayReservations = reservations.filter(r => {
     const today = new Date().toISOString().split('T')[0];
-    return r.checkInDate === today || r.checkOutDate === today;
+    return r.check_in_date === today || r.check_out_date === today;
   });
 
   const stats = [
@@ -47,9 +45,9 @@ const Dashboard = () => {
               {todayReservations.map(r => (
                 <div key={r.id} className="reservation-item">
                   <div>
-                    <strong>{r.guestName}</strong>
+                    <strong>{r.guests?.name || 'Unknown'}</strong>
                     <p style={{fontSize: '13px', color: '#6b7280'}}>
-                      {r.checkInDate === new Date().toISOString().split('T')[0] ? 'Check-in' : 'Check-out'}
+                      {r.check_in_date === new Date().toISOString().split('T')[0] ? 'Check-in' : 'Check-out'}
                     </p>
                   </div>
                   <span className={`status-badge status-${r.status.toLowerCase()}`}>{r.status}</span>
@@ -67,8 +65,8 @@ const Dashboard = () => {
               {reservations.slice(0, 5).map(r => (
                 <div key={r.id} className="reservation-item">
                   <div>
-                    <strong>{r.guestName}</strong>
-                    <p style={{fontSize: '13px', color: '#6b7280'}}>{r.checkInDate} - {r.checkOutDate}</p>
+                    <strong>{r.guests?.name || 'Unknown'}</strong>
+                    <p style={{fontSize: '13px', color: '#6b7280'}}>{r.check_in_date} - {r.check_out_date}</p>
                   </div>
                   <span className={`status-badge status-${r.status.toLowerCase()}`}>{r.status}</span>
                 </div>

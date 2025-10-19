@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/pages/rooms/RoomStatus.jsx
-// ==========================================
+// src/pages/rooms/RoomStatus.jsx
 import { useState } from 'react';
 import { Card } from '../../components/common/Card';
 import { useRooms } from '../../context/RoomContext';
@@ -64,12 +62,12 @@ const RoomStatus = () => {
             style={{borderLeft: `4px solid ${statusColors[room.status]}`}}
           >
             <div className="room-card-header">
-              <h4>Room {room.roomNumber}</h4>
+              <h4>Room {room.room_number}</h4>
               <span className={`status-badge status-${room.status.toLowerCase()}`}>
                 {room.status}
               </span>
             </div>
-            <p className="room-type">{getRoomTypeName(room.roomTypeId)}</p>
+            <p className="room-type">{getRoomTypeName(room.room_type_id)}</p>
             <p className="room-floor">Floor {room.floor}</p>
             <div className="room-actions">
               <select

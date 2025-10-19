@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/pages/reservations/ReservationCalendar.jsx
-// ==========================================
+// src/pages/reservations/ReservationCalendar.jsx
 import { useState } from 'react';
 import { Card } from '../../components/common/Card';
 import { useReservations } from '../../context/ReservationContext';
@@ -14,14 +12,14 @@ const ReservationCalendar = () => {
   const getRoomInfo = (roomId) => {
     const room = rooms.find(r => r.id === roomId);
     if (!room) return { number: 'Unknown', type: 'Unknown' };
-    const roomType = roomTypes.find(rt => rt.id === room.roomTypeId);
-    return { number: room.roomNumber, type: roomType?.name || 'Unknown' };
+    const roomType = roomTypes.find(rt => rt.id === room.room_type_id);
+    return { number: room.room_number, type: roomType?.name || 'Unknown' };
   };
 
   const getReservationsForDate = (date) => {
     return reservations.filter(r => {
-      const checkIn = new Date(r.checkInDate);
-      const checkOut = new Date(r.checkOutDate);
+      const checkIn = new Date(r.check_in_date);
+      const checkOut = new Date(r.check_out_date);
       const current = new Date(date);
       return current >= checkIn && current <= checkOut && (r.status === 'Upcoming' || r.status === 'Checked-in');
     });
@@ -63,7 +61,7 @@ const ReservationCalendar = () => {
         ) : (
           <div className="reservation-list">
             {currentReservations.map(r => {
-              const roomInfo = getRoomInfo(r.roomId);
+              const roomInfo = getRoomInfo(r.room_id);
               return (
                 <div key={r.id} className="reservation-item">
                   <div className="reservation-info">
@@ -71,8 +69,8 @@ const ReservationCalendar = () => {
                     <p>{roomInfo.type}</p>
                   </div>
                   <div className="reservation-guest">
-                    <strong>{r.guestName}</strong>
-                    <p>{r.checkInDate} to {r.checkOutDate}</p>
+                    <strong>{r.guests?.name || 'Unknown'}</strong>
+                    <p>{r.check_in_date} to {r.check_out_date}</p>
                   </div>
                   <span className={`status-badge ${r.status === 'Checked-in' ? 'status-occupied' : 'status-maintenance'}`}>
                     {r.status}

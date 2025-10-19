@@ -1,7 +1,4 @@
-
-// ==========================================
-// FILE: src/pages/rooms/Rooms.jsx
-// ==========================================
+// src/pages/rooms/Rooms.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
@@ -12,26 +9,33 @@ const Rooms = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [formData, setFormData] = useState({
-    roomNumber: '',
+    room_number: '',
     floor: '',
-    roomTypeId: '',
+    room_type_id: '',
     status: 'Available'
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const roomData = {
+      room_number: formData.room_number,
+      floor: parseInt(formData.floor),
+      room_type_id: formData.room_type_id,
+      status: formData.status
+    };
+
     if (editingRoom) {
-      updateRoom(editingRoom.id, formData);
+      await updateRoom(editingRoom.id, roomData);
     } else {
-      addRoom(formData);
+      await addRoom(roomData);
     }
     resetForm();
   };
 
   const resetForm = () => {
     setFormData({
-      roomNumber: '',
+      room_number: '',
       floor: '',
-      roomTypeId: '',
+      room_type_id: '',
       status: 'Available'
     });
     setEditingRoom(null);
@@ -40,12 +44,23 @@ const Rooms = () => {
 
   const handleEdit = (room) => {
     setEditingRoom(room);
-    setFormData(room);
+    setFormData({
+      room_number: room.room_number,
+      floor: room.floor,
+      room_type_id: room.room_type_id,
+      status: room.status
+    });
     setIsModalOpen(true);
   };
 
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this room?')) {
+      await deleteRoom(id);
+    }
+  };
+
   const getRoomTypeName = (typeId) => {
-    const type = roomTypes.find(t => t.id === parseInt(typeId));
+    const type = roomTypes.find(t => t.id === typeId);
     return type ? type.name : 'Unknown';
   };
 
@@ -72,9 +87,9 @@ const Rooms = () => {
           <tbody>
             {rooms.map(room => (
               <tr key={room.id}>
-                <td><strong>{room.roomNumber}</strong></td>
+                <td><strong>{room.room_number}</strong></td>
                 <td>Floor {room.floor}</td>
-                <td>{getRoomTypeName(room.roomTypeId)}</td>
+                <td>{getRoomTypeName(room.room_type_id)}</td>
                 <td>
                   <span className={`status-badge status-${room.status.toLowerCase()}`}>
                     {room.status}
@@ -85,7 +100,7 @@ const Rooms = () => {
                     <button onClick={() => handleEdit(room)} className="btn-icon btn-edit">
                       <Edit2 size={16} />
                     </button>
-                    <button onClick={() => deleteRoom(room.id)} className="btn-icon btn-delete">
+                    <button onClick={() => handleDelete(room.id)} className="btn-icon btn-delete">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -106,8 +121,8 @@ const Rooms = () => {
             <label>Room Number</label>
             <input
               type="text"
-              value={formData.roomNumber}
-              onChange={(e) => setFormData({...formData, roomNumber: e.target.value})}
+              value={formData.room_number}
+              onChange={(e) => setFormData({...formData, room_number: e.target.value})}
               placeholder="101"
             />
           </div>
@@ -123,8 +138,8 @@ const Rooms = () => {
           <div className="form-group">
             <label>Room Type</label>
             <select
-              value={formData.roomTypeId}
-              onChange={(e) => setFormData({...formData, roomTypeId: e.target.value})}
+              value={formData.room_type_id}
+              onChange={(e) => setFormData({...formData, room_type_id: e.target.value})}
             >
               <option value="">Select Room Type</option>
               {roomTypes.map(type => (

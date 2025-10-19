@@ -1,4 +1,12 @@
-import { createContext, useContext, useState } from 'react';
+// src/context/ReservationContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react';
+import {
+  getReservations,
+  createReservation as createReservationAPI,
+  updateReservation as updateReservationAPI,
+  deleteReservation as deleteReservationAPI,
+  updateRoomStatus
+} from '../lib/supabase';
 
 const ReservationContext = createContext();
 
@@ -9,70 +17,93 @@ export const useReservations = () => {
 };
 
 export const ReservationProvider = ({ children }) => {
-  const [reservations, setReservations] = useState([
-    {
-      id: 1,
-      guestName: 'John Doe',
-      guestEmail: 'john@example.com',
-      guestPhone: '9876543210',
-      guestIdProof: 'AADHAR-1234',
-      roomId: 2,
-      checkInDate: '2025-10-14',
-      checkOutDate: '2025-10-16',
-      numberOfGuests: 2,
-      totalAmount: 8000,
-      advancePayment: 4000,
-      paymentStatus: 'Partial',
-      status: 'Checked-in',
-      specialRequests: 'Early check-in',
-      createdAt: '2025-10-13'
-    },
-    {
-      id: 2,
-      guestName: 'Jane Smith',
-      guestEmail: 'jane@example.com',
-      guestPhone: '9876543211',
-      guestIdProof: 'PAN-5678',
-      roomId: 5,
-      checkInDate: '2025-10-18',
-      checkOutDate: '2025-10-20',
-      numberOfGuests: 2,
-      totalAmount: 16000,
-      advancePayment: 16000,
-      paymentStatus: 'Paid',
-      status: 'Upcoming',
-      specialRequests: '',
-      createdAt: '2025-10-12'
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadReservations();
+  }, []);
+
+  const loadReservations = async () => {
+    setLoading(true);
+    const { data, error } = await getReservations();
+    if (error) {
+      console.error('Error loading reservations:', error);
+    } else {
+      setReservations(data || []);
     }
-  ]);
-
-  const addReservation = (reservation) => {
-    setReservations([...reservations, { ...reservation, id: Date.now(), createdAt: new Date().toISOString().split('T')[0] }]);
+    setLoading(false);
   };
 
-  const updateReservation = (id, updatedReservation) => {
-    setReservations(reservations.map(r => r.id === id ? { ...r, ...updatedReservation } : r));
+  const addReservation = async (reservation) => {
+    const { data, error } = await createReservationAPI(reservation);
+    if (error) {
+      console.error('Error creating reservation:', error);
+      alert('Failed to create reservation: ' + error.message);
+      return null;
+    }
+    
+    // Update room status to Occupied if checking in
+    if (reservation.status === 'Checked-in') {
+      await updateRoomStatus(reservation.room_id, 'Occupied');
+    }
+    
+    await loadReservations(); // Reload to get with relations
+    return data[0];
   };
 
-  const deleteReservation = (id) => {
+  const updateReservation = async (id, updatedReservation) => {
+    const { error } = await updateReservationAPI(id, updatedReservation);
+    if (error) {
+      console.error('Error updating reservation:', error);
+      alert('Failed to update reservation: ' + error.message);
+      return;
+    }
+    await loadReservations();
+  };
+
+  const deleteReservation = async (id) => {
+    const { error } = await deleteReservationAPI(id);
+    if (error) {
+      console.error('Error deleting reservation:', error);
+      alert('Cannot delete reservation: ' + error.message);
+      return;
+    }
     setReservations(reservations.filter(r => r.id !== id));
   };
 
-  const checkIn = (id) => {
-    setReservations(reservations.map(r => r.id === id ? { ...r, status: 'Checked-in' } : r));
+  const checkIn = async (id) => {
+    const reservation = reservations.find(r => r.id === id);
+    if (!reservation) return;
+
+    await updateReservation(id, { status: 'Checked-in' });
+    await updateRoomStatus(reservation.room_id, 'Occupied');
   };
 
-  const checkOut = (id) => {
-    setReservations(reservations.map(r => r.id === id ? { ...r, status: 'Checked-out' } : r));
+  const checkOut = async (id) => {
+    const reservation = reservations.find(r => r.id === id);
+    if (!reservation) return;
+
+    await updateReservation(id, { status: 'Checked-out' });
+    await updateRoomStatus(reservation.room_id, 'Available');
   };
 
-  const cancelReservation = (id) => {
-    setReservations(reservations.map(r => r.id === id ? { ...r, status: 'Cancelled' } : r));
+  const cancelReservation = async (id) => {
+    const reservation = reservations.find(r => r.id === id);
+    if (!reservation) return;
+
+    await updateReservation(id, { status: 'Cancelled' });
+    
+    // If was checked in, make room available
+    if (reservation.status === 'Checked-in') {
+      await updateRoomStatus(reservation.room_id, 'Available');
+    }
   };
 
   return (
     <ReservationContext.Provider value={{
       reservations,
+      loading,
       addReservation,
       updateReservation,
       deleteReservation,
