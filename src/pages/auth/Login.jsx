@@ -16,25 +16,21 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting login with:', email);
       const success = await login(email, password);
+      console.log('Login result:', success);
+      
       if (!success) {
-        setError('Invalid email or password');
+        setError('Invalid email or password. Please check your credentials.');
       }
     } catch (err) {
-      setError('An error occurred during login');
       console.error('Login error:', err);
+      setError('An error occurred during login: ' + (err.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSubmit(e);
-    }
-  };
-
-  // Demo account quick login
   const quickLogin = async (demoEmail, demoPassword) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
@@ -42,13 +38,16 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log('Quick login attempt for:', demoEmail);
       const success = await login(demoEmail, demoPassword);
+      console.log('Quick login result:', success);
+      
       if (!success) {
-        setError('Demo login failed. Please contact administrator.');
+        setError('Demo login failed. Please make sure the demo accounts are created in Supabase Authentication.');
       }
     } catch (err) {
-      setError('An error occurred during login');
-      console.error('Login error:', err);
+      console.error('Quick login error:', err);
+      setError('An error occurred: ' + (err.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -68,7 +67,6 @@ const Login = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyPress={handleKeyPress}
               placeholder="Enter email"
               disabled={loading}
               required
@@ -80,7 +78,6 @@ const Login = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
               placeholder="Enter password"
               disabled={loading}
               required
@@ -98,7 +95,7 @@ const Login = () => {
         <div className="login-demo">
           <p><strong>Demo Accounts:</strong></p>
           <p style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
-            Click to quick login with demo credentials
+            Click to quick login (make sure accounts exist in Supabase first)
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
             <button
@@ -118,9 +115,6 @@ const Login = () => {
               👤 Front Desk Login
             </button>
           </div>
-          <p style={{ marginTop: '12px', fontSize: '12px', color: '#9ca3af' }}>
-            Make sure you've created these accounts in Supabase first
-          </p>
         </div>
       </div>
     </div>
