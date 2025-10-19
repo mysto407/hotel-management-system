@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/pages/reports/Reports.jsx
-// ==========================================
+// src/pages/reports/Reports.jsx
 import { useState, useMemo } from 'react';
 import { Calendar, DollarSign, TrendingUp, FileText, Download, Printer, Filter } from 'lucide-react';
 import { Card } from '../../components/common/Card';
@@ -16,14 +14,14 @@ const Reports = () => {
   const today = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
-  const [reportType, setReportType] = useState('daily');
 
   // Filter bills by date range
   const filteredBills = useMemo(() => {
     return bills.filter(bill => {
-      const billDate = new Date(bill.createdAt);
+      const billDate = new Date(bill.created_at);
       const start = new Date(startDate);
       const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Include entire end date
       return billDate >= start && billDate <= end;
     });
   }, [bills, startDate, endDate]);
@@ -31,7 +29,7 @@ const Reports = () => {
   // Calculate totals
   const totals = useMemo(() => {
     const total = filteredBills.reduce((sum, bill) => sum + bill.total, 0);
-    const paid = filteredBills.reduce((sum, bill) => sum + bill.paidAmount, 0);
+    const paid = filteredBills.reduce((sum, bill) => sum + bill.paid_amount, 0);
     const outstanding = filteredBills.reduce((sum, bill) => sum + bill.balance, 0);
     const tax = filteredBills.reduce((sum, bill) => sum + bill.tax, 0);
     const discount = filteredBills.reduce((sum, bill) => sum + bill.discount, 0);
@@ -44,18 +42,18 @@ const Reports = () => {
   const revenueByType = useMemo(() => {
     const breakdown = {};
     filteredBills.forEach(bill => {
-      if (!breakdown[bill.billType]) {
-        breakdown[bill.billType] = {
+      if (!breakdown[bill.bill_type]) {
+        breakdown[bill.bill_type] = {
           count: 0,
           total: 0,
           paid: 0,
           outstanding: 0
         };
       }
-      breakdown[bill.billType].count++;
-      breakdown[bill.billType].total += bill.total;
-      breakdown[bill.billType].paid += bill.paidAmount;
-      breakdown[bill.billType].outstanding += bill.balance;
+      breakdown[bill.bill_type].count++;
+      breakdown[bill.bill_type].total += bill.total;
+      breakdown[bill.bill_type].paid += bill.paid_amount;
+      breakdown[bill.bill_type].outstanding += bill.balance;
     });
     return breakdown;
   }, [filteredBills]);
@@ -63,8 +61,8 @@ const Reports = () => {
   // Reservations in date range
   const filteredReservations = useMemo(() => {
     return reservations.filter(r => {
-      const checkIn = new Date(r.checkInDate);
-      const checkOut = new Date(r.checkOutDate);
+      const checkIn = new Date(r.check_in_date);
+      const checkOut = new Date(r.check_out_date);
       const start = new Date(startDate);
       const end = new Date(endDate);
       return (checkIn >= start && checkIn <= end) || (checkOut >= start && checkOut <= end);
@@ -88,9 +86,9 @@ const Reports = () => {
 
   // Payment status breakdown
   const paymentStatusBreakdown = useMemo(() => {
-    const pending = filteredBills.filter(b => b.paymentStatus === 'Pending').length;
-    const partial = filteredBills.filter(b => b.paymentStatus === 'Partial').length;
-    const paid = filteredBills.filter(b => b.paymentStatus === 'Paid').length;
+    const pending = filteredBills.filter(b => b.payment_status === 'Pending').length;
+    const partial = filteredBills.filter(b => b.payment_status === 'Partial').length;
+    const paid = filteredBills.filter(b => b.payment_status === 'Paid').length;
 
     return { pending, partial, paid };
   }, [filteredBills]);
@@ -370,25 +368,27 @@ const Reports = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredReservations.map(reservation => {
-                const room = rooms.find(r => r.id === reservation.roomId);
-                return (
-                  <tr key={reservation.id}>
-                    <td><strong>{reservation.guestName}</strong></td>
-                    <td>{room?.roomNumber || 'N/A'}</td>
-                    <td>{reservation.checkInDate}</td>
-                    <td>{reservation.checkOutDate}</td>
-                    <td>₹{reservation.totalAmount.toFixed(2)}</td>
-                    <td>
-                      <span className={`status-badge status-${reservation.status.toLowerCase()}`}>
-                        {reservation.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {filteredReservations.map(reservation => (
+                <tr key={reservation.id}>
+                  <td><strong>{reservation.guests?.name || 'Unknown'}</strong></td>
+                  <td>{reservation.rooms?.room_number || 'N/A'}</td>
+                  <td>{reservation.check_in_date}</td>
+                  <td>{reservation.check_out_date}</td>
+                  <td>₹{reservation.total_amount.toFixed(2)}</td>
+                  <td>
+                    <span className={`status-badge status-${reservation.status?.toLowerCase()}`}>
+                      {reservation.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
+          {filteredReservations.length === 0 && (
+            <p style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+              No reservations found for this period
+            </p>
+          )}
         </div>
       </Card>
 

@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/pages/inventory/Inventory.jsx
-// ==========================================
+// src/pages/inventory/Inventory.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, AlertTriangle, Package, TrendingDown, TrendingUp, RefreshCw } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
@@ -43,18 +41,18 @@ const Inventory = () => {
     category: 'Other',
     department: 'Housekeeping',
     unit: 'Pieces',
-    currentStock: 0,
-    minStock: 0,
-    maxStock: 0,
-    unitPrice: 0,
+    current_stock: 0,
+    min_stock: 0,
+    max_stock: 0,
+    unit_price: 0,
     supplier: '',
   });
 
   const [transactionFormData, setTransactionFormData] = useState({
-    itemId: '',
+    item_id: '',
     type: 'Issue',
     quantity: 0,
-    issuedTo: '',
+    issued_to: '',
     supplier: '',
     notes: ''
   });
@@ -65,17 +63,17 @@ const Inventory = () => {
     .filter(item => filterCategory === 'all' || item.category === filterCategory)
     .filter(item => 
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.supplier.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
     )
-    .filter(item => !showLowStockOnly || item.currentStock < item.minStock);
+    .filter(item => !showLowStockOnly || item.current_stock < item.min_stock);
 
   const lowStockItems = getLowStockItems();
 
-  const handleItemSubmit = () => {
+  const handleItemSubmit = async () => {
     if (editingItem) {
-      updateItem(editingItem.id, itemFormData);
+      await updateItem(editingItem.id, itemFormData);
     } else {
-      addItem(itemFormData);
+      await addItem(itemFormData);
     }
     resetItemForm();
   };
@@ -86,10 +84,10 @@ const Inventory = () => {
       category: 'Other',
       department: 'Housekeeping',
       unit: 'Pieces',
-      currentStock: 0,
-      minStock: 0,
-      maxStock: 0,
-      unitPrice: 0,
+      current_stock: 0,
+      min_stock: 0,
+      max_stock: 0,
+      unit_price: 0,
       supplier: '',
     });
     setEditingItem(null);
@@ -98,7 +96,17 @@ const Inventory = () => {
 
   const handleEditItem = (item) => {
     setEditingItem(item);
-    setItemFormData(item);
+    setItemFormData({
+      name: item.name,
+      category: item.category,
+      department: item.department,
+      unit: item.unit,
+      current_stock: item.current_stock,
+      min_stock: item.min_stock,
+      max_stock: item.max_stock,
+      unit_price: item.unit_price,
+      supplier: item.supplier || '',
+    });
     setIsItemModalOpen(true);
   };
 
@@ -108,9 +116,9 @@ const Inventory = () => {
     }
   };
 
-  const handleTransactionSubmit = () => {
-    if (transactionFormData.itemId && transactionFormData.quantity > 0) {
-      addTransaction(transactionFormData, user.name);
+  const handleTransactionSubmit = async () => {
+    if (transactionFormData.item_id && transactionFormData.quantity > 0) {
+      await addTransaction(transactionFormData, user.id);
       resetTransactionForm();
     } else {
       alert('Please select an item and enter a valid quantity');
@@ -119,10 +127,10 @@ const Inventory = () => {
 
   const resetTransactionForm = () => {
     setTransactionFormData({
-      itemId: '',
+      item_id: '',
       type: 'Issue',
       quantity: 0,
-      issuedTo: '',
+      issued_to: '',
       supplier: '',
       notes: ''
     });
@@ -135,8 +143,8 @@ const Inventory = () => {
   };
 
   const getStockStatus = (item) => {
-    const percentage = (item.currentStock / item.maxStock) * 100;
-    if (item.currentStock < item.minStock) return 'critical';
+    const percentage = (item.current_stock / item.max_stock) * 100;
+    if (item.current_stock < item.min_stock) return 'critical';
     if (percentage < 50) return 'low';
     if (percentage < 80) return 'medium';
     return 'good';
@@ -303,22 +311,22 @@ const Inventory = () => {
           <tbody>
             {filteredItems.map(item => {
               const status = getStockStatus(item);
-              const stockValue = item.currentStock * item.unitPrice;
+              const stockValue = item.current_stock * item.unit_price;
               
               return (
                 <tr key={item.id}>
                   <td>
                     <strong>{item.name}</strong>
                     <br />
-                    <small style={{ color: '#6b7280' }}>{item.supplier}</small>
+                    <small style={{ color: '#6b7280' }}>{item.supplier || 'N/A'}</small>
                   </td>
                   <td>{item.category}</td>
                   <td>{item.department}</td>
                   <td>
-                    <strong style={{ fontSize: '16px' }}>{item.currentStock}</strong> {item.unit}
+                    <strong style={{ fontSize: '16px' }}>{item.current_stock}</strong> {item.unit}
                   </td>
-                  <td>{item.minStock} / {item.maxStock}</td>
-                  <td>₹{item.unitPrice}</td>
+                  <td>{item.min_stock} / {item.max_stock}</td>
+                  <td>₹{item.unit_price}</td>
                   <td>₹{stockValue.toFixed(2)}</td>
                   <td>
                     <div className="stock-status-indicator">
@@ -396,8 +404,8 @@ const Inventory = () => {
             <tbody>
               {transactions.slice(0, 10).map(transaction => (
                 <tr key={transaction.id}>
-                  <td>{transaction.date}</td>
-                  <td><strong>{transaction.itemName}</strong></td>
+                  <td>{new Date(transaction.created_at).toLocaleDateString()}</td>
+                  <td><strong>{transaction.inventory_items?.name || 'Unknown'}</strong></td>
                   <td>
                     <span className={`transaction-badge transaction-${transaction.type.toLowerCase()}`}>
                       {transaction.type === 'Issue' && <TrendingDown size={14} />}
@@ -407,8 +415,8 @@ const Inventory = () => {
                     </span>
                   </td>
                   <td>{transaction.quantity}</td>
-                  <td>{transaction.department}</td>
-                  <td>{transaction.performedBy}</td>
+                  <td>{transaction.inventory_items?.department || 'N/A'}</td>
+                  <td>{transaction.users?.name || 'Unknown'}</td>
                   <td>{transaction.notes || '-'}</td>
                 </tr>
               ))}
@@ -471,32 +479,32 @@ const Inventory = () => {
             <label>Current Stock</label>
             <input
               type="number"
-              value={itemFormData.currentStock}
-              onChange={(e) => setItemFormData({...itemFormData, currentStock: parseFloat(e.target.value) || 0})}
+              value={itemFormData.current_stock}
+              onChange={(e) => setItemFormData({...itemFormData, current_stock: parseFloat(e.target.value) || 0})}
             />
           </div>
           <div className="form-group">
             <label>Minimum Stock *</label>
             <input
               type="number"
-              value={itemFormData.minStock}
-              onChange={(e) => setItemFormData({...itemFormData, minStock: parseFloat(e.target.value) || 0})}
+              value={itemFormData.min_stock}
+              onChange={(e) => setItemFormData({...itemFormData, min_stock: parseFloat(e.target.value) || 0})}
             />
           </div>
           <div className="form-group">
             <label>Maximum Stock *</label>
             <input
               type="number"
-              value={itemFormData.maxStock}
-              onChange={(e) => setItemFormData({...itemFormData, maxStock: parseFloat(e.target.value) || 0})}
+              value={itemFormData.max_stock}
+              onChange={(e) => setItemFormData({...itemFormData, max_stock: parseFloat(e.target.value) || 0})}
             />
           </div>
           <div className="form-group">
             <label>Unit Price (₹) *</label>
             <input
               type="number"
-              value={itemFormData.unitPrice}
-              onChange={(e) => setItemFormData({...itemFormData, unitPrice: parseFloat(e.target.value) || 0})}
+              value={itemFormData.unit_price}
+              onChange={(e) => setItemFormData({...itemFormData, unit_price: parseFloat(e.target.value) || 0})}
             />
           </div>
           <div className="form-group full-width">
@@ -529,13 +537,13 @@ const Inventory = () => {
           <div className="form-group full-width">
             <label>Select Item *</label>
             <select
-              value={transactionFormData.itemId}
-              onChange={(e) => setTransactionFormData({...transactionFormData, itemId: parseInt(e.target.value)})}
+              value={transactionFormData.item_id}
+              onChange={(e) => setTransactionFormData({...transactionFormData, item_id: e.target.value})}
             >
               <option value="">Select an item</option>
               {items.map(item => (
                 <option key={item.id} value={item.id}>
-                  {item.name} - Current: {item.currentStock} {item.unit}
+                  {item.name} - Current: {item.current_stock} {item.unit}
                 </option>
               ))}
             </select>
@@ -564,8 +572,8 @@ const Inventory = () => {
               <label>Issued To</label>
               <input
                 type="text"
-                value={transactionFormData.issuedTo}
-                onChange={(e) => setTransactionFormData({...transactionFormData, issuedTo: e.target.value})}
+                value={transactionFormData.issued_to}
+                onChange={(e) => setTransactionFormData({...transactionFormData, issued_to: e.target.value})}
                 placeholder="e.g., Room Service, Bar Staff"
               />
             </div>
@@ -614,12 +622,12 @@ const Inventory = () => {
               <div>
                 <p><strong>Category:</strong> {selectedItem.category}</p>
                 <p><strong>Department:</strong> {selectedItem.department}</p>
-                <p><strong>Current Stock:</strong> {selectedItem.currentStock} {selectedItem.unit}</p>
+                <p><strong>Current Stock:</strong> {selectedItem.current_stock} {selectedItem.unit}</p>
               </div>
               <div>
-                <p><strong>Min Stock:</strong> {selectedItem.minStock}</p>
-                <p><strong>Max Stock:</strong> {selectedItem.maxStock}</p>
-                <p><strong>Unit Price:</strong> ₹{selectedItem.unitPrice}</p>
+                <p><strong>Min Stock:</strong> {selectedItem.min_stock}</p>
+                <p><strong>Max Stock:</strong> {selectedItem.max_stock}</p>
+                <p><strong>Unit Price:</strong> ₹{selectedItem.unit_price}</p>
               </div>
             </div>
 
@@ -638,7 +646,7 @@ const Inventory = () => {
                 <tbody>
                   {getTransactionsByItem(selectedItem.id).map(transaction => (
                     <tr key={transaction.id}>
-                      <td>{transaction.date}</td>
+                      <td>{new Date(transaction.created_at).toLocaleDateString()}</td>
                       <td>
                         <span className={`transaction-badge transaction-${transaction.type.toLowerCase()}`}>
                           {transaction.type}
@@ -646,12 +654,12 @@ const Inventory = () => {
                       </td>
                       <td>{transaction.quantity}</td>
                       <td>
-                        {transaction.issuedTo && `Issued to: ${transaction.issuedTo}`}
+                        {transaction.issued_to && `Issued to: ${transaction.issued_to}`}
                         {transaction.supplier && `From: ${transaction.supplier}`}
                         {transaction.notes && <br />}
                         <small style={{ color: '#6b7280' }}>{transaction.notes}</small>
                       </td>
-                      <td>{transaction.performedBy}</td>
+                      <td>{transaction.users?.name || 'Unknown'}</td>
                     </tr>
                   ))}
                 </tbody>

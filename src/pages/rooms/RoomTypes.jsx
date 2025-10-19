@@ -1,6 +1,4 @@
-// ==========================================
-// FILE: src/pages/rooms/RoomTypes.jsx
-// ==========================================
+// src/pages/rooms/RoomTypes.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
@@ -12,17 +10,25 @@ const RoomTypes = () => {
   const [editingType, setEditingType] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    basePrice: '',
+    base_price: '',
     capacity: '',
     amenities: '',
     description: ''
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const roomTypeData = {
+      name: formData.name,
+      base_price: parseFloat(formData.base_price),
+      capacity: parseInt(formData.capacity),
+      amenities: formData.amenities,
+      description: formData.description
+    };
+
     if (editingType) {
-      updateRoomType(editingType.id, formData);
+      await updateRoomType(editingType.id, roomTypeData);
     } else {
-      addRoomType(formData);
+      await addRoomType(roomTypeData);
     }
     resetForm();
   };
@@ -30,7 +36,7 @@ const RoomTypes = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      basePrice: '',
+      base_price: '',
       capacity: '',
       amenities: '',
       description: ''
@@ -41,7 +47,13 @@ const RoomTypes = () => {
 
   const handleEdit = (type) => {
     setEditingType(type);
-    setFormData(type);
+    setFormData({
+      name: type.name,
+      base_price: type.base_price,
+      capacity: type.capacity,
+      amenities: type.amenities || '',
+      description: type.description || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -69,7 +81,7 @@ const RoomTypes = () => {
             {roomTypes.map(type => (
               <tr key={type.id}>
                 <td><strong>{type.name}</strong></td>
-                <td>₹{type.basePrice}</td>
+                <td>₹{type.base_price}</td>
                 <td>{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</td>
                 <td>{type.amenities}</td>
                 <td>
@@ -95,7 +107,7 @@ const RoomTypes = () => {
       >
         <div className="form-grid">
           <div className="form-group">
-            <label>Room Type Name</label>
+            <label>Room Type Name *</label>
             <input
               type="text"
               value={formData.name}
@@ -104,16 +116,16 @@ const RoomTypes = () => {
             />
           </div>
           <div className="form-group">
-            <label>Base Price (₹)</label>
+            <label>Base Price (₹) *</label>
             <input
               type="number"
-              value={formData.basePrice}
-              onChange={(e) => setFormData({...formData, basePrice: e.target.value})}
+              value={formData.base_price}
+              onChange={(e) => setFormData({...formData, base_price: e.target.value})}
               placeholder="2500"
             />
           </div>
           <div className="form-group">
-            <label>Capacity</label>
+            <label>Capacity *</label>
             <input
               type="number"
               value={formData.capacity}

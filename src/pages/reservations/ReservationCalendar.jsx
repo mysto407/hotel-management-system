@@ -21,7 +21,9 @@ const ReservationCalendar = () => {
       const checkIn = new Date(r.check_in_date);
       const checkOut = new Date(r.check_out_date);
       const current = new Date(date);
-      return current >= checkIn && current <= checkOut && (r.status === 'Upcoming' || r.status === 'Checked-in');
+      // Include reservations that are active on this date
+      return current >= checkIn && current <= checkOut && 
+             (r.status === 'Confirmed' || r.status === 'Checked-in');
     });
   };
 
@@ -72,7 +74,11 @@ const ReservationCalendar = () => {
                     <strong>{r.guests?.name || 'Unknown'}</strong>
                     <p>{r.check_in_date} to {r.check_out_date}</p>
                   </div>
-                  <span className={`status-badge ${r.status === 'Checked-in' ? 'status-occupied' : 'status-maintenance'}`}>
+                  <span className={`status-badge ${
+                    r.status === 'Checked-in' ? 'status-occupied' : 
+                    r.status === 'Confirmed' ? 'status-maintenance' :
+                    'status-available'
+                  }`}>
                     {r.status}
                   </span>
                 </div>

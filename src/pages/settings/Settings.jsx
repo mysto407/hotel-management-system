@@ -1,176 +1,174 @@
-// ==========================================
-// FILE: src/pages/settings/Settings.jsx
-// ==========================================
-import { useState } from 'react';
-import { Save, Building2, Users, DollarSign, Clock, Bell, Globe, Download, Upload, Plus, Edit2, Trash2, XCircle, Calendar } from 'lucide-react';
+// src/pages/settings/Settings.jsx
+import { useState, useEffect } from 'react';
+import { Save, Building2, DollarSign, Clock, Bell, Globe, Download, Calendar } from 'lucide-react';
 import { Card } from '../../components/common/Card';
-import { Modal } from '../../components/common/Modal';
 import { useAuth } from '../../context/AuthContext';
+import { supabase, getHotelSettings, updateHotelSetting } from '../../lib/supabase';
 
 const Settings = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('hotel');
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Hotel Settings State
   const [hotelSettings, setHotelSettings] = useState({
-    name: 'Grand Plaza Hotel',
-    address: '123 Main Street, Business District',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    country: 'India',
-    pincode: '400001',
-    phone: '+91 22 1234 5678',
-    email: 'info@grandplaza.com',
-    website: 'www.grandplaza.com',
-    gstNumber: 'GST123456789',
-    description: 'A luxury hotel in the heart of the city'
-  });
-
-  // Users State
-  const [users, setUsers] = useState([
-    { id: 1, username: 'admin', name: 'Admin User', role: 'Admin', email: 'admin@hotel.com', status: 'Active' },
-    { id: 2, username: 'frontdesk', name: 'Front Desk User', role: 'Front Desk', email: 'frontdesk@hotel.com', status: 'Active' },
-    { id: 3, username: 'accounts', name: 'Accounts User', role: 'Accounts', email: 'accounts@hotel.com', status: 'Active' }
-  ]);
-
-  const [userFormData, setUserFormData] = useState({
-    username: '',
-    name: '',
-    email: '',
-    role: 'Front Desk',
-    password: '',
-    status: 'Active'
+    hotel_name: 'Grand Plaza Hotel',
+    hotel_address: '123 Main Street, Business District',
+    hotel_city: 'Mumbai',
+    hotel_state: 'Maharashtra',
+    hotel_country: 'India',
+    hotel_pincode: '400001',
+    hotel_phone: '+91 22 1234 5678',
+    hotel_email: 'info@grandplaza.com',
+    hotel_website: 'www.grandplaza.com',
+    hotel_gst: '',
+    hotel_description: 'A luxury hotel in the heart of the city'
   });
 
   // Tax Settings State
   const [taxSettings, setTaxSettings] = useState({
-    gstRate: 18,
-    serviceChargeRate: 10,
-    applyServiceCharge: true,
-    taxInclusive: false
+    gst_rate: '18',
+    service_charge_rate: '10',
+    apply_service_charge: 'true',
+    tax_inclusive: 'false'
   });
 
   // Room Settings State
   const [roomSettings, setRoomSettings] = useState({
-    defaultCheckInTime: '14:00',
-    defaultCheckOutTime: '11:00',
-    earlyCheckInCharge: 500,
-    lateCheckOutCharge: 500,
-    extraBedCharge: 1000,
-    extraMattressCharge: 500,
-    childAge: 12
+    default_checkin_time: '14:00',
+    default_checkout_time: '11:00',
+    early_checkin_charge: '500',
+    late_checkout_charge: '500',
+    extra_bed_charge: '1000',
+    child_age_limit: '12'
   });
 
   // Booking Settings State
   const [bookingSettings, setBookingSettings] = useState({
-    advanceBookingDays: 90,
-    minBookingDays: 1,
-    maxBookingDays: 30,
-    cancellationHours: 24,
-    cancellationCharge: 50,
-    modificationHours: 12,
-    requireAdvancePayment: true,
-    minimumAdvancePercent: 30
+    advance_booking_days: '90',
+    min_booking_days: '1',
+    max_booking_days: '30',
+    cancellation_hours: '24',
+    cancellation_charge_percent: '50',
+    require_advance_payment: 'true',
+    minimum_advance_percent: '30'
   });
 
-  // Notification Settings State
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    smsNotifications: false,
-    bookingConfirmation: true,
-    checkInReminder: true,
-    checkOutReminder: true,
-    paymentReminder: true,
-    lowStockAlert: true,
-    dailyReport: true
-  });
+  // Load settings from Supabase
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
-  // System Settings State
-  const [systemSettings, setSystemSettings] = useState({
-    currency: 'INR',
-    currencySymbol: '₹',
-    dateFormat: 'DD/MM/YYYY',
-    timeFormat: '24h',
-    timezone: 'Asia/Kolkata',
-    language: 'English'
-  });
+  const loadSettings = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await getHotelSettings();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Convert array of settings to object
+        const settingsObj = {};
+        data.forEach(setting => {
+          settingsObj[setting.setting_key] = setting.setting_value;
+        });
+        
+        // Update state with loaded settings
+        const hotelKeys = Object.keys(hotelSettings);
+        const taxKeys = Object.keys(taxSettings);
+        const roomKeys = Object.keys(roomSettings);
+        const bookingKeys = Object.keys(bookingSettings);
 
-  const handleSaveHotelSettings = () => {
-    alert('Hotel settings saved successfully!');
-  };
+        const newHotelSettings = {};
+        const newTaxSettings = {};
+        const newRoomSettings = {};
+        const newBookingSettings = {};
 
-  const handleSaveTaxSettings = () => {
-    alert('Tax settings saved successfully!');
-  };
+        hotelKeys.forEach(key => {
+          if (settingsObj[key]) newHotelSettings[key] = settingsObj[key];
+        });
+        taxKeys.forEach(key => {
+          if (settingsObj[key]) newTaxSettings[key] = settingsObj[key];
+        });
+        roomKeys.forEach(key => {
+          if (settingsObj[key]) newRoomSettings[key] = settingsObj[key];
+        });
+        bookingKeys.forEach(key => {
+          if (settingsObj[key]) newBookingSettings[key] = settingsObj[key];
+        });
 
-  const handleSaveRoomSettings = () => {
-    alert('Room settings saved successfully!');
-  };
-
-  const handleSaveBookingSettings = () => {
-    alert('Booking settings saved successfully!');
-  };
-
-  const handleSaveNotificationSettings = () => {
-    alert('Notification settings saved successfully!');
-  };
-
-  const handleSaveSystemSettings = () => {
-    alert('System settings saved successfully!');
-  };
-
-  // User Management
-  const handleUserSubmit = () => {
-    if (editingUser) {
-      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...userFormData } : u));
-    } else {
-      setUsers([...users, { ...userFormData, id: Date.now() }]);
-    }
-    resetUserForm();
-  };
-
-  const resetUserForm = () => {
-    setUserFormData({
-      username: '',
-      name: '',
-      email: '',
-      role: 'Front Desk',
-      password: '',
-      status: 'Active'
-    });
-    setEditingUser(null);
-    setIsUserModalOpen(false);
-  };
-
-  const handleEditUser = (user) => {
-    setEditingUser(user);
-    setUserFormData(user);
-    setIsUserModalOpen(true);
-  };
-
-  const handleDeleteUser = (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(u => u.id !== userId));
+        if (Object.keys(newHotelSettings).length > 0) setHotelSettings(prev => ({ ...prev, ...newHotelSettings }));
+        if (Object.keys(newTaxSettings).length > 0) setTaxSettings(prev => ({ ...prev, ...newTaxSettings }));
+        if (Object.keys(newRoomSettings).length > 0) setRoomSettings(prev => ({ ...prev, ...newRoomSettings }));
+        if (Object.keys(newBookingSettings).length > 0) setBookingSettings(prev => ({ ...prev, ...newBookingSettings }));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleBackup = () => {
-    alert('Backup created successfully! (This would download a backup file in production)');
+  const saveSettings = async (settingsObject) => {
+    setLoading(true);
+    try {
+      // Save each setting individually
+      for (const [key, value] of Object.entries(settingsObject)) {
+        const { error } = await updateHotelSetting(key, value);
+        if (error) throw error;
+      }
+      alert('Settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Failed to save settings: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExport = () => {
-    alert('Data exported successfully! (This would download a CSV/Excel file in production)');
+  const handleSaveHotelSettings = () => saveSettings(hotelSettings);
+  const handleSaveTaxSettings = () => saveSettings(taxSettings);
+  const handleSaveRoomSettings = () => saveSettings(roomSettings);
+  const handleSaveBookingSettings = () => saveSettings(bookingSettings);
+
+  const handleBackup = async () => {
+    try {
+      // Export all data as JSON
+      const { data: rooms } = await supabase.from('rooms').select('*');
+      const { data: roomTypes } = await supabase.from('room_types').select('*');
+      const { data: guests } = await supabase.from('guests').select('*');
+      const { data: reservations } = await supabase.from('reservations').select('*');
+      const { data: bills } = await supabase.from('bills').select('*');
+      const { data: inventory } = await supabase.from('inventory_items').select('*');
+
+      const backup = {
+        timestamp: new Date().toISOString(),
+        rooms,
+        roomTypes,
+        guests,
+        reservations,
+        bills,
+        inventory
+      };
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hotel-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      alert('Backup created successfully!');
+    } catch (error) {
+      console.error('Backup error:', error);
+      alert('Failed to create backup: ' + error.message);
+    }
   };
 
   const tabs = [
     { id: 'hotel', label: 'Hotel Profile', icon: Building2 },
-    { id: 'users', label: 'User Management', icon: Users },
     { id: 'tax', label: 'Tax Settings', icon: DollarSign },
     { id: 'room', label: 'Room Settings', icon: Clock },
     { id: 'booking', label: 'Booking Settings', icon: Calendar },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'system', label: 'System', icon: Globe }
   ];
 
@@ -208,146 +206,95 @@ const Settings = () => {
                   <label>Hotel Name *</label>
                   <input
                     type="text"
-                    value={hotelSettings.name}
-                    onChange={(e) => setHotelSettings({...hotelSettings, name: e.target.value})}
+                    value={hotelSettings.hotel_name}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_name: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Phone *</label>
                   <input
                     type="tel"
-                    value={hotelSettings.phone}
-                    onChange={(e) => setHotelSettings({...hotelSettings, phone: e.target.value})}
+                    value={hotelSettings.hotel_phone}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_phone: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Email *</label>
                   <input
                     type="email"
-                    value={hotelSettings.email}
-                    onChange={(e) => setHotelSettings({...hotelSettings, email: e.target.value})}
+                    value={hotelSettings.hotel_email}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_email: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Website</label>
                   <input
                     type="text"
-                    value={hotelSettings.website}
-                    onChange={(e) => setHotelSettings({...hotelSettings, website: e.target.value})}
+                    value={hotelSettings.hotel_website}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_website: e.target.value})}
                   />
                 </div>
                 <div className="form-group full-width">
                   <label>Address *</label>
                   <input
                     type="text"
-                    value={hotelSettings.address}
-                    onChange={(e) => setHotelSettings({...hotelSettings, address: e.target.value})}
+                    value={hotelSettings.hotel_address}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_address: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>City *</label>
                   <input
                     type="text"
-                    value={hotelSettings.city}
-                    onChange={(e) => setHotelSettings({...hotelSettings, city: e.target.value})}
+                    value={hotelSettings.hotel_city}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_city: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>State *</label>
                   <input
                     type="text"
-                    value={hotelSettings.state}
-                    onChange={(e) => setHotelSettings({...hotelSettings, state: e.target.value})}
+                    value={hotelSettings.hotel_state}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_state: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Country *</label>
                   <input
                     type="text"
-                    value={hotelSettings.country}
-                    onChange={(e) => setHotelSettings({...hotelSettings, country: e.target.value})}
+                    value={hotelSettings.hotel_country}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_country: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Pincode *</label>
                   <input
                     type="text"
-                    value={hotelSettings.pincode}
-                    onChange={(e) => setHotelSettings({...hotelSettings, pincode: e.target.value})}
+                    value={hotelSettings.hotel_pincode}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_pincode: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>GST Number</label>
                   <input
                     type="text"
-                    value={hotelSettings.gstNumber}
-                    onChange={(e) => setHotelSettings({...hotelSettings, gstNumber: e.target.value})}
+                    value={hotelSettings.hotel_gst}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_gst: e.target.value})}
                   />
                 </div>
                 <div className="form-group full-width">
                   <label>Description</label>
                   <textarea
-                    value={hotelSettings.description}
-                    onChange={(e) => setHotelSettings({...hotelSettings, description: e.target.value})}
+                    value={hotelSettings.hotel_description}
+                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_description: e.target.value})}
                     rows="3"
                   />
                 </div>
               </div>
               <div className="settings-actions">
-                <button onClick={handleSaveHotelSettings} className="btn-primary">
-                  <Save size={18} /> Save Hotel Settings
+                <button onClick={handleSaveHotelSettings} className="btn-primary" disabled={loading}>
+                  <Save size={18} /> {loading ? 'Saving...' : 'Save Hotel Settings'}
                 </button>
-              </div>
-            </Card>
-          )}
-
-          {/* User Management Tab */}
-          {activeTab === 'users' && (
-            <Card title="System Users">
-              <div className="settings-section-header">
-                <p>Manage users who can access the system</p>
-                <button onClick={() => setIsUserModalOpen(true)} className="btn-primary">
-                  <Plus size={18} /> Add User
-                </button>
-              </div>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Username</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(user => (
-                      <tr key={user.id}>
-                        <td><strong>{user.username}</strong></td>
-                        <td>{user.name}</td>
-                        <td>{user.email}</td>
-                        <td><span className="role-badge">{user.role}</span></td>
-                        <td>
-                          <span className={`status-badge ${user.status === 'Active' ? 'status-available' : 'status-blocked'}`}>
-                            {user.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="action-buttons">
-                            <button onClick={() => handleEditUser(user)} className="btn-icon btn-edit">
-                              <Edit2 size={16} />
-                            </button>
-                            <button onClick={() => handleDeleteUser(user.id)} className="btn-icon btn-delete">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </Card>
           )}
@@ -360,24 +307,24 @@ const Settings = () => {
                   <label>GST Rate (%)</label>
                   <input
                     type="number"
-                    value={taxSettings.gstRate}
-                    onChange={(e) => setTaxSettings({...taxSettings, gstRate: parseFloat(e.target.value)})}
+                    value={taxSettings.gst_rate}
+                    onChange={(e) => setTaxSettings({...taxSettings, gst_rate: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Service Charge (%)</label>
                   <input
                     type="number"
-                    value={taxSettings.serviceChargeRate}
-                    onChange={(e) => setTaxSettings({...taxSettings, serviceChargeRate: parseFloat(e.target.value)})}
+                    value={taxSettings.service_charge_rate}
+                    onChange={(e) => setTaxSettings({...taxSettings, service_charge_rate: e.target.value})}
                   />
                 </div>
                 <div className="form-group full-width">
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={taxSettings.applyServiceCharge}
-                      onChange={(e) => setTaxSettings({...taxSettings, applyServiceCharge: e.target.checked})}
+                      checked={taxSettings.apply_service_charge === 'true'}
+                      onChange={(e) => setTaxSettings({...taxSettings, apply_service_charge: e.target.checked ? 'true' : 'false'})}
                     />
                     <span>Apply Service Charge</span>
                   </label>
@@ -386,16 +333,16 @@ const Settings = () => {
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={taxSettings.taxInclusive}
-                      onChange={(e) => setTaxSettings({...taxSettings, taxInclusive: e.target.checked})}
+                      checked={taxSettings.tax_inclusive === 'true'}
+                      onChange={(e) => setTaxSettings({...taxSettings, tax_inclusive: e.target.checked ? 'true' : 'false'})}
                     />
                     <span>Tax Inclusive Pricing</span>
                   </label>
                 </div>
               </div>
               <div className="settings-actions">
-                <button onClick={handleSaveTaxSettings} className="btn-primary">
-                  <Save size={18} /> Save Tax Settings
+                <button onClick={handleSaveTaxSettings} className="btn-primary" disabled={loading}>
+                  <Save size={18} /> {loading ? 'Saving...' : 'Save Tax Settings'}
                 </button>
               </div>
             </Card>
@@ -409,62 +356,54 @@ const Settings = () => {
                   <label>Default Check-in Time</label>
                   <input
                     type="time"
-                    value={roomSettings.defaultCheckInTime}
-                    onChange={(e) => setRoomSettings({...roomSettings, defaultCheckInTime: e.target.value})}
+                    value={roomSettings.default_checkin_time}
+                    onChange={(e) => setRoomSettings({...roomSettings, default_checkin_time: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Default Check-out Time</label>
                   <input
                     type="time"
-                    value={roomSettings.defaultCheckOutTime}
-                    onChange={(e) => setRoomSettings({...roomSettings, defaultCheckOutTime: e.target.value})}
+                    value={roomSettings.default_checkout_time}
+                    onChange={(e) => setRoomSettings({...roomSettings, default_checkout_time: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Early Check-in Charge (₹)</label>
                   <input
                     type="number"
-                    value={roomSettings.earlyCheckInCharge}
-                    onChange={(e) => setRoomSettings({...roomSettings, earlyCheckInCharge: parseFloat(e.target.value)})}
+                    value={roomSettings.early_checkin_charge}
+                    onChange={(e) => setRoomSettings({...roomSettings, early_checkin_charge: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Late Check-out Charge (₹)</label>
                   <input
                     type="number"
-                    value={roomSettings.lateCheckOutCharge}
-                    onChange={(e) => setRoomSettings({...roomSettings, lateCheckOutCharge: parseFloat(e.target.value)})}
+                    value={roomSettings.late_checkout_charge}
+                    onChange={(e) => setRoomSettings({...roomSettings, late_checkout_charge: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Extra Bed Charge (₹)</label>
                   <input
                     type="number"
-                    value={roomSettings.extraBedCharge}
-                    onChange={(e) => setRoomSettings({...roomSettings, extraBedCharge: parseFloat(e.target.value)})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Extra Mattress Charge (₹)</label>
-                  <input
-                    type="number"
-                    value={roomSettings.extraMattressCharge}
-                    onChange={(e) => setRoomSettings({...roomSettings, extraMattressCharge: parseFloat(e.target.value)})}
+                    value={roomSettings.extra_bed_charge}
+                    onChange={(e) => setRoomSettings({...roomSettings, extra_bed_charge: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Child Age Limit (years)</label>
                   <input
                     type="number"
-                    value={roomSettings.childAge}
-                    onChange={(e) => setRoomSettings({...roomSettings, childAge: parseInt(e.target.value)})}
+                    value={roomSettings.child_age_limit}
+                    onChange={(e) => setRoomSettings({...roomSettings, child_age_limit: e.target.value})}
                   />
                 </div>
               </div>
               <div className="settings-actions">
-                <button onClick={handleSaveRoomSettings} className="btn-primary">
-                  <Save size={18} /> Save Room Settings
+                <button onClick={handleSaveRoomSettings} className="btn-primary" disabled={loading}>
+                  <Save size={18} /> {loading ? 'Saving...' : 'Save Room Settings'}
                 </button>
               </div>
             </Card>
@@ -478,160 +417,64 @@ const Settings = () => {
                   <label>Advance Booking Days</label>
                   <input
                     type="number"
-                    value={bookingSettings.advanceBookingDays}
-                    onChange={(e) => setBookingSettings({...bookingSettings, advanceBookingDays: parseInt(e.target.value)})}
+                    value={bookingSettings.advance_booking_days}
+                    onChange={(e) => setBookingSettings({...bookingSettings, advance_booking_days: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Minimum Booking Days</label>
                   <input
                     type="number"
-                    value={bookingSettings.minBookingDays}
-                    onChange={(e) => setBookingSettings({...bookingSettings, minBookingDays: parseInt(e.target.value)})}
+                    value={bookingSettings.min_booking_days}
+                    onChange={(e) => setBookingSettings({...bookingSettings, min_booking_days: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Maximum Booking Days</label>
                   <input
                     type="number"
-                    value={bookingSettings.maxBookingDays}
-                    onChange={(e) => setBookingSettings({...bookingSettings, maxBookingDays: parseInt(e.target.value)})}
+                    value={bookingSettings.max_booking_days}
+                    onChange={(e) => setBookingSettings({...bookingSettings, max_booking_days: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Cancellation Notice (hours)</label>
                   <input
                     type="number"
-                    value={bookingSettings.cancellationHours}
-                    onChange={(e) => setBookingSettings({...bookingSettings, cancellationHours: parseInt(e.target.value)})}
+                    value={bookingSettings.cancellation_hours}
+                    onChange={(e) => setBookingSettings({...bookingSettings, cancellation_hours: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Cancellation Charge (%)</label>
                   <input
                     type="number"
-                    value={bookingSettings.cancellationCharge}
-                    onChange={(e) => setBookingSettings({...bookingSettings, cancellationCharge: parseFloat(e.target.value)})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Modification Notice (hours)</label>
-                  <input
-                    type="number"
-                    value={bookingSettings.modificationHours}
-                    onChange={(e) => setBookingSettings({...bookingSettings, modificationHours: parseInt(e.target.value)})}
+                    value={bookingSettings.cancellation_charge_percent}
+                    onChange={(e) => setBookingSettings({...bookingSettings, cancellation_charge_percent: e.target.value})}
                   />
                 </div>
                 <div className="form-group">
                   <label>Minimum Advance Payment (%)</label>
                   <input
                     type="number"
-                    value={bookingSettings.minimumAdvancePercent}
-                    onChange={(e) => setBookingSettings({...bookingSettings, minimumAdvancePercent: parseFloat(e.target.value)})}
+                    value={bookingSettings.minimum_advance_percent}
+                    onChange={(e) => setBookingSettings({...bookingSettings, minimum_advance_percent: e.target.value})}
                   />
                 </div>
                 <div className="form-group full-width">
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={bookingSettings.requireAdvancePayment}
-                      onChange={(e) => setBookingSettings({...bookingSettings, requireAdvancePayment: e.target.checked})}
+                      checked={bookingSettings.require_advance_payment === 'true'}
+                      onChange={(e) => setBookingSettings({...bookingSettings, require_advance_payment: e.target.checked ? 'true' : 'false'})}
                     />
                     <span>Require Advance Payment</span>
                   </label>
                 </div>
               </div>
               <div className="settings-actions">
-                <button onClick={handleSaveBookingSettings} className="btn-primary">
-                  <Save size={18} /> Save Booking Settings
-                </button>
-              </div>
-            </Card>
-          )}
-
-          {/* Notifications Tab */}
-          {activeTab === 'notifications' && (
-            <Card title="Notification Preferences">
-              <div className="notification-settings">
-                <div className="notification-group">
-                  <h4>Communication Channels</h4>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.emailNotifications}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, emailNotifications: e.target.checked})}
-                    />
-                    <span>Email Notifications</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.smsNotifications}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, smsNotifications: e.target.checked})}
-                    />
-                    <span>SMS Notifications</span>
-                  </label>
-                </div>
-
-                <div className="notification-group">
-                  <h4>Guest Notifications</h4>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.bookingConfirmation}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, bookingConfirmation: e.target.checked})}
-                    />
-                    <span>Booking Confirmation</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.checkInReminder}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, checkInReminder: e.target.checked})}
-                    />
-                    <span>Check-in Reminder</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.checkOutReminder}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, checkOutReminder: e.target.checked})}
-                    />
-                    <span>Check-out Reminder</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.paymentReminder}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, paymentReminder: e.target.checked})}
-                    />
-                    <span>Payment Reminder</span>
-                  </label>
-                </div>
-
-                <div className="notification-group">
-                  <h4>System Alerts</h4>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.lowStockAlert}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, lowStockAlert: e.target.checked})}
-                    />
-                    <span>Low Stock Alerts</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={notificationSettings.dailyReport}
-                      onChange={(e) => setNotificationSettings({...notificationSettings, dailyReport: e.target.checked})}
-                    />
-                    <span>Daily Summary Report</span>
-                  </label>
-                </div>
-              </div>
-              <div className="settings-actions">
-                <button onClick={handleSaveNotificationSettings} className="btn-primary">
-                  <Save size={18} /> Save Notification Settings
+                <button onClick={handleSaveBookingSettings} className="btn-primary" disabled={loading}>
+                  <Save size={18} /> {loading ? 'Saving...' : 'Save Booking Settings'}
                 </button>
               </div>
             </Card>
@@ -640,182 +483,40 @@ const Settings = () => {
           {/* System Settings Tab */}
           {activeTab === 'system' && (
             <>
-              <Card title="System Preferences">
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>Currency</label>
-                    <select
-                      value={systemSettings.currency}
-                      onChange={(e) => setSystemSettings({...systemSettings, currency: e.target.value})}
-                    >
-                      <option value="INR">INR - Indian Rupee</option>
-                      <option value="USD">USD - US Dollar</option>
-                      <option value="EUR">EUR - Euro</option>
-                      <option value="GBP">GBP - British Pound</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Currency Symbol</label>
-                    <input
-                      type="text"
-                      value={systemSettings.currencySymbol}
-                      onChange={(e) => setSystemSettings({...systemSettings, currencySymbol: e.target.value})}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Date Format</label>
-                    <select
-                      value={systemSettings.dateFormat}
-                      onChange={(e) => setSystemSettings({...systemSettings, dateFormat: e.target.value})}
-                    >
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Time Format</label>
-                    <select
-                      value={systemSettings.timeFormat}
-                      onChange={(e) => setSystemSettings({...systemSettings, timeFormat: e.target.value})}
-                    >
-                      <option value="24h">24 Hour</option>
-                      <option value="12h">12 Hour (AM/PM)</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Timezone</label>
-                    <select
-                      value={systemSettings.timezone}
-                      onChange={(e) => setSystemSettings({...systemSettings, timezone: e.target.value})}
-                    >
-                      <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                      <option value="America/New_York">America/New York (EST)</option>
-                      <option value="Europe/London">Europe/London (GMT)</option>
-                      <option value="Asia/Dubai">Asia/Dubai (GST)</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Language</label>
-                    <select
-                      value={systemSettings.language}
-                      onChange={(e) => setSystemSettings({...systemSettings, language: e.target.value})}
-                    >
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Spanish">Spanish</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="settings-actions">
-                  <button onClick={handleSaveSystemSettings} className="btn-primary">
-                    <Save size={18} /> Save System Settings
-                  </button>
-                </div>
-              </Card>
-
               <Card title="Data Management">
                 <div className="data-management">
                   <div className="data-action">
                     <div>
                       <h4>Backup Database</h4>
-                      <p>Create a complete backup of all system data</p>
+                      <p>Create a complete backup of all system data as JSON</p>
                     </div>
-                    <button onClick={handleBackup} className="btn-primary">
+                    <button onClick={handleBackup} className="btn-primary" disabled={loading}>
                       <Download size={18} /> Create Backup
                     </button>
                   </div>
                   <div className="data-action">
                     <div>
-                      <h4>Export Data</h4>
-                      <p>Export all data to CSV/Excel format</p>
+                      <h4>Current User</h4>
+                      <p><strong>Name:</strong> {user?.name}</p>
+                      <p><strong>Role:</strong> {user?.role}</p>
+                      <p><strong>Email:</strong> {user?.email || 'Not set'}</p>
                     </div>
-                    <button onClick={handleExport} className="btn-secondary">
-                      <Upload size={18} /> Export Data
-                    </button>
                   </div>
+                </div>
+              </Card>
+
+              <Card title="About">
+                <div style={{ padding: '16px' }}>
+                  <h4 style={{ marginBottom: '12px' }}>Hotel Management System</h4>
+                  <p style={{ color: '#6b7280', marginBottom: '8px' }}>Version 1.0.0</p>
+                  <p style={{ color: '#6b7280', marginBottom: '8px' }}>Built with React + Supabase</p>
+                  <p style={{ color: '#6b7280' }}>© 2025 All rights reserved</p>
                 </div>
               </Card>
             </>
           )}
         </div>
       </div>
-
-      {/* User Modal */}
-      <Modal
-        isOpen={isUserModalOpen}
-        onClose={resetUserForm}
-        title={editingUser ? 'Edit User' : 'Add New User'}
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Username *</label>
-            <input
-              type="text"
-              value={userFormData.username}
-              onChange={(e) => setUserFormData({...userFormData, username: e.target.value})}
-              placeholder="username"
-            />
-          </div>
-          <div className="form-group">
-            <label>Full Name *</label>
-            <input
-              type="text"
-              value={userFormData.name}
-              onChange={(e) => setUserFormData({...userFormData, name: e.target.value})}
-              placeholder="John Doe"
-            />
-          </div>
-          <div className="form-group full-width">
-            <label>Email *</label>
-            <input
-              type="email"
-              value={userFormData.email}
-              onChange={(e) => setUserFormData({...userFormData, email: e.target.value})}
-              placeholder="user@hotel.com"
-            />
-          </div>
-          <div className="form-group">
-            <label>Role *</label>
-            <select
-              value={userFormData.role}
-              onChange={(e) => setUserFormData({...userFormData, role: e.target.value})}
-            >
-              <option value="Admin">Admin</option>
-              <option value="Front Desk">Front Desk</option>
-              <option value="Accounts">Accounts</option>
-              <option value="Store">Store</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Status</label>
-            <select
-              value={userFormData.status}
-              onChange={(e) => setUserFormData({...userFormData, status: e.target.value})}
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </div>
-          <div className="form-group full-width">
-            <label>Password {!editingUser && '*'}</label>
-            <input
-              type="password"
-              value={userFormData.password}
-              onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
-              placeholder={editingUser ? "Leave blank to keep current" : "Enter password"}
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetUserForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleUserSubmit} className="btn-primary">
-            <Save size={18} /> Save User
-          </button>
-        </div>
-      </Modal>
     </div>
   );
 };
