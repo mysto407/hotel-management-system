@@ -332,17 +332,34 @@ export const createInventoryTransaction = async(transaction) => {
 }
 
 // Hotel Settings
+// In src/lib/supabase.js
+
 export const getHotelSettings = async() => {
     const { data, error } = await supabase
         .from('hotel_settings')
         .select('*')
+
+    // Convert jsonb values to strings
+    if (data) {
+        data.forEach(setting => {
+            if (typeof setting.setting_value === 'object') {
+                setting.setting_value = setting.setting_value;
+            } else if (typeof setting.setting_value === 'string') {
+                // Already a string, keep as is
+            }
+        });
+    }
+
     return { data, error }
 }
 
 export const updateHotelSetting = async(key, value) => {
     const { data, error } = await supabase
         .from('hotel_settings')
-        .upsert({ setting_key: key, setting_value: value })
+        .upsert({
+            setting_key: key,
+            setting_value: value // Will be stored as jsonb
+        })
         .select()
     return { data, error }
 }
