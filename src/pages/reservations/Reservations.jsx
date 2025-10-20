@@ -544,6 +544,9 @@ const Reservations = () => {
               value={formData.status}
               onChange={(e) => setFormData({...formData, status: e.target.value})}
             >
+              <option value="Inquiry">Inquiry</option>
+              <option value="Tentative">Tentative</option>
+              <option value="Hold">Hold</option>
               <option value="Confirmed">Confirmed</option>
               <option value="Checked-in">Checked-in</option>
             </select>
