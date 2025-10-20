@@ -415,44 +415,40 @@ const Reservations = () => {
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Number of Adults *</label>
-            <input
-              type="number"
-              min="1"
-              value={formData.number_of_adults}
-              onChange={(e) => setFormData({...formData, number_of_adults: e.target.value})}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Number of Children</label>
-            <input
-              type="number"
-              min="0"
-              value={formData.number_of_children}
-              onChange={(e) => setFormData({...formData, number_of_children: e.target.value})}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Number of Infants</label>
-            <input
-              type="number"
-              min="0"
-              value={formData.number_of_infants}
-              onChange={(e) => setFormData({...formData, number_of_infants: e.target.value})}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Total Guests</label>
-            <input
-              type="text"
-              value={parseInt(formData.number_of_adults || 0) + parseInt(formData.number_of_children || 0) + parseInt(formData.number_of_infants || 0)}
-              disabled
-              style={{ background: '#f3f4f6', color: '#6b7280' }}
-            />
+          <div className="form-group full-width">
+            <label>Number of Guests *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Adults</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.number_of_adults}
+                  onChange={(e) => setFormData({...formData, number_of_adults: e.target.value})}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Children</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.number_of_children}
+                  onChange={(e) => setFormData({...formData, number_of_children: e.target.value})}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Infants</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.number_of_infants}
+                  onChange={(e) => setFormData({...formData, number_of_infants: e.target.value})}
+                />
+              </div>
+            </div>
+            <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
+              Total: {parseInt(formData.number_of_adults || 0) + parseInt(formData.number_of_children || 0) + parseInt(formData.number_of_infants || 0)} guests
+            </small>
           </div>
 
           <div className="form-group">
