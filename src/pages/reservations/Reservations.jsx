@@ -26,6 +26,7 @@ const Reservations = () => {
     number_of_adults: 1,
     number_of_children: 0,
     number_of_infants: 0,
+    meal_plan: 'NM',
     total_amount: 0,
     advance_payment: 0,
     payment_status: 'Pending',
@@ -61,6 +62,7 @@ const Reservations = () => {
       number_of_children: parseInt(formData.number_of_children),
       number_of_infants: parseInt(formData.number_of_infants),
       number_of_guests: parseInt(formData.number_of_adults) + parseInt(formData.number_of_children) + parseInt(formData.number_of_infants),
+      meal_plan: formData.meal_plan,
       total_amount: parseFloat(formData.total_amount),
       advance_payment: parseFloat(formData.advance_payment),
       payment_status: formData.payment_status,
@@ -85,6 +87,7 @@ const Reservations = () => {
       number_of_adults: 1,
       number_of_children: 0,
       number_of_infants: 0,
+      meal_plan: 'NM',
       total_amount: 0,
       advance_payment: 0,
       payment_status: 'Pending',
@@ -154,6 +157,7 @@ const Reservations = () => {
       number_of_adults: reservation.number_of_adults || 1,
       number_of_children: reservation.number_of_children || 0,
       number_of_infants: reservation.number_of_infants || 0,
+      meal_plan: reservation.meal_plan || 'NM',
       total_amount: reservation.total_amount,
       advance_payment: reservation.advance_payment,
       payment_status: reservation.payment_status,
@@ -193,6 +197,16 @@ const Reservations = () => {
         }
       }
     }
+  };
+
+  const getMealPlanLabel = (mealPlan) => {
+    const mealPlans = {
+      'NM': 'No Meal',
+      'BO': 'Breakfast Only',
+      'HB': 'Half Board',
+      'FB': 'Full Board'
+    };
+    return mealPlans[mealPlan] || mealPlan;
   };
 
   const getRoomInfo = (room) => {
@@ -254,6 +268,7 @@ const Reservations = () => {
               <th>Check-in</th>
               <th>Check-out</th>
               <th>Guests</th>
+              <th>Meal Plan</th>
               <th>Amount</th>
               <th>Payment</th>
               <th>Status</th>
@@ -277,6 +292,11 @@ const Reservations = () => {
                   {reservation.number_of_adults || reservation.number_of_guests || 0} Adults
                   {reservation.number_of_children > 0 && <><br /><small style={{color: '#6b7280'}}>{reservation.number_of_children} Children</small></>}
                   {reservation.number_of_infants > 0 && <><br /><small style={{color: '#6b7280'}}>{reservation.number_of_infants} Infants</small></>}
+                </td>
+                <td>
+                  <span className="bill-type-badge">
+                    {getMealPlanLabel(reservation.meal_plan)}
+                  </span>
                 </td>
                 <td>₹{reservation.total_amount}</td>
                 <td>
@@ -449,6 +469,19 @@ const Reservations = () => {
             <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
               Total: {parseInt(formData.number_of_adults || 0) + parseInt(formData.number_of_children || 0) + parseInt(formData.number_of_infants || 0)} guests
             </small>
+          </div>
+
+          <div className="form-group">
+            <label>Meal Plan *</label>
+            <select
+              value={formData.meal_plan}
+              onChange={(e) => setFormData({...formData, meal_plan: e.target.value})}
+            >
+              <option value="NM">NM - No Meal</option>
+              <option value="BO">BO - Breakfast Only</option>
+              <option value="HB">HB - Half Board</option>
+              <option value="FB">FB - Full Board</option>
+            </select>
           </div>
 
           <div className="form-group">
