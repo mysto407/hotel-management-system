@@ -13,12 +13,19 @@ const Reservations = () => {
   const { guests, getGuestByPhone, addGuest } = useGuests();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const [agents, setAgents] = useState([
+    { id: '1', name: 'Travel Agency A', email: 'agenta@example.com', phone: '9876543210', commission: '10' },
+    { id: '2', name: 'Travel Agency B', email: 'agentb@example.com', phone: '9876543211', commission: '15' }
+  ]);
 
   const [formData, setFormData] = useState({
+    booking_source: 'direct',
+    agent_id: '',
     guest_id: '',
     room_id: '',
     check_in_date: '',
@@ -47,6 +54,14 @@ const Reservations = () => {
     guest_type: 'Regular'
   });
 
+  const [agentFormData, setAgentFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    commission: '',
+    address: ''
+  });
+
   const handleSubmit = async () => {
     if (!formData.guest_id || !formData.room_id || !formData.check_in_date || !formData.check_out_date) {
       alert('Please fill all required fields');
@@ -54,6 +69,8 @@ const Reservations = () => {
     }
 
     const reservationData = {
+      booking_source: formData.booking_source,
+      agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
       guest_id: formData.guest_id,
       room_id: formData.room_id,
       check_in_date: formData.check_in_date,
@@ -80,6 +97,8 @@ const Reservations = () => {
 
   const resetForm = () => {
     setFormData({
+      booking_source: 'direct',
+      agent_id: '',
       guest_id: '',
       room_id: '',
       check_in_date: '',
@@ -97,6 +116,33 @@ const Reservations = () => {
     setSelectedGuest(null);
     setEditingReservation(null);
     setIsModalOpen(false);
+  };
+
+  const resetAgentForm = () => {
+    setAgentFormData({
+      name: '',
+      email: '',
+      phone: '',
+      commission: '',
+      address: ''
+    });
+    setIsAgentModalOpen(false);
+  };
+
+  const handleCreateAgent = () => {
+    if (!agentFormData.name) {
+      alert('Please enter agent name');
+      return;
+    }
+
+    const newAgent = {
+      id: Date.now().toString(),
+      ...agentFormData
+    };
+
+    setAgents([...agents, newAgent]);
+    setFormData({ ...formData, agent_id: newAgent.id });
+    resetAgentForm();
   };
 
   const resetGuestForm = () => {
@@ -150,6 +196,8 @@ const Reservations = () => {
     setEditingReservation(reservation);
     setSelectedGuest(reservation.guests);
     setFormData({
+      booking_source: reservation.booking_source || 'direct',
+      agent_id: reservation.agent_id || '',
       guest_id: reservation.guest_id,
       room_id: reservation.room_id,
       check_in_date: reservation.check_in_date,
@@ -251,6 +299,9 @@ const Reservations = () => {
             className="filter-select"
           >
             <option value="all">All Reservations</option>
+            <option value="Inquiry">Inquiry</option>
+            <option value="Tentative">Tentative</option>
+            <option value="Hold">Hold</option>
             <option value="Confirmed">Confirmed</option>
             <option value="Checked-in">Checked-in</option>
             <option value="Checked-out">Checked-out</option>
@@ -310,6 +361,9 @@ const Reservations = () => {
                 </td>
                 <td>
                   <span className={`status-badge ${
+                    reservation.status === 'Inquiry' ? 'status-inquiry' :
+                    reservation.status === 'Tentative' ? 'status-tentative' :
+                    reservation.status === 'Hold' ? 'status-hold' :
                     reservation.status === 'Confirmed' ? 'status-maintenance' :
                     reservation.status === 'Checked-in' ? 'status-occupied' :
                     reservation.status === 'Checked-out' ? 'status-available' :
@@ -320,7 +374,7 @@ const Reservations = () => {
                 </td>
                 <td>
                   <div className="action-buttons">
-                    {reservation.status === 'Confirmed' && (
+                    {(reservation.status === 'Confirmed' || reservation.status === 'Hold') && (
                       <button
                         onClick={() => handleCheckIn(reservation)}
                         className="btn-icon btn-success"
@@ -364,6 +418,48 @@ const Reservations = () => {
         size="large"
       >
         <div className="form-grid">
+          {/* Booking Source */}
+          <div className="form-group">
+            <label>Booking Source *</label>
+            <select
+              value={formData.booking_source}
+              onChange={(e) => {
+                setFormData({...formData, booking_source: e.target.value, agent_id: ''});
+              }}
+            >
+              <option value="direct">Direct</option>
+              <option value="agent">Agent</option>
+            </select>
+          </div>
+
+          {/* Agent Selection - Only show if booking source is agent */}
+          {formData.booking_source === 'agent' && (
+            <div className="form-group">
+              <label>Select Agent *</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  style={{ flex: 1 }}
+                  value={formData.agent_id}
+                  onChange={(e) => setFormData({...formData, agent_id: e.target.value})}
+                >
+                  <option value="">Select Agent</option>
+                  {agents.map(agent => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.name} - {agent.phone}
+                    </option>
+                  ))}
+                </select>
+                <button 
+                  onClick={() => setIsAgentModalOpen(true)} 
+                  className="btn-secondary"
+                  type="button"
+                >
+                  <UserPlus size={18} /> New Agent
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Guest Selection */}
           <div className="form-group full-width">
             <label>Select Guest *</label>
@@ -684,6 +780,69 @@ const Reservations = () => {
           </button>
           <button onClick={handleCreateGuest} className="btn-primary">
             <Save size={18} /> Add Guest
+          </button>
+        </div>
+      </Modal>
+
+      {/* Add Agent Modal */}
+      <Modal
+        isOpen={isAgentModalOpen}
+        onClose={resetAgentForm}
+        title="Add New Agent"
+      >
+        <div className="form-grid">
+          <div className="form-group full-width">
+            <label>Agent/Agency Name *</label>
+            <input
+              type="text"
+              value={agentFormData.name}
+              onChange={(e) => setAgentFormData({...agentFormData, name: e.target.value})}
+              placeholder="Travel Agency Name"
+            />
+          </div>
+          <div className="form-group">
+            <label>Phone</label>
+            <input
+              type="tel"
+              value={agentFormData.phone}
+              onChange={(e) => setAgentFormData({...agentFormData, phone: e.target.value})}
+              placeholder="9876543210"
+            />
+          </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={agentFormData.email}
+              onChange={(e) => setAgentFormData({...agentFormData, email: e.target.value})}
+              placeholder="agent@example.com"
+            />
+          </div>
+          <div className="form-group">
+            <label>Commission (%)</label>
+            <input
+              type="number"
+              value={agentFormData.commission}
+              onChange={(e) => setAgentFormData({...agentFormData, commission: e.target.value})}
+              placeholder="10"
+            />
+          </div>
+          <div className="form-group full-width">
+            <label>Address</label>
+            <input
+              type="text"
+              value={agentFormData.address}
+              onChange={(e) => setAgentFormData({...agentFormData, address: e.target.value})}
+              placeholder="123 Main Street"
+            />
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button onClick={resetAgentForm} className="btn-secondary">
+            <XCircle size={18} /> Cancel
+          </button>
+          <button onClick={handleCreateAgent} className="btn-primary">
+            <Save size={18} /> Add Agent
           </button>
         </div>
       </Modal>
