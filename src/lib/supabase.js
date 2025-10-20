@@ -358,7 +358,10 @@ export const updateHotelSetting = async(key, value) => {
         .from('hotel_settings')
         .upsert({
             setting_key: key,
-            setting_value: value // Will be stored as jsonb
+            setting_value: value
+        }, {
+            onConflict: 'setting_key',
+            ignoreDuplicates: false
         })
         .select()
     return { data, error }
