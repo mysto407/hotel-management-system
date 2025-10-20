@@ -106,8 +106,8 @@ const Reservations = () => {
   };
 
   const handleCreateGuest = async () => {
-    if (!guestFormData.name || !guestFormData.phone || !guestFormData.id_proof_number) {
-      alert('Please fill required guest fields (Name, Phone, ID Proof Number)');
+    if (!guestFormData.name) {
+      alert('Please enter guest name');
       return;
     }
 
@@ -514,7 +514,7 @@ const Reservations = () => {
             />
           </div>
           <div className="form-group">
-            <label>Phone *</label>
+            <label>Phone</label>
             <input
               type="tel"
               value={guestFormData.phone}
@@ -532,7 +532,7 @@ const Reservations = () => {
             />
           </div>
           <div className="form-group">
-            <label>ID Proof Type *</label>
+            <label>ID Proof Type</label>
             <select
               value={guestFormData.id_proof_type}
               onChange={(e) => setGuestFormData({...guestFormData, id_proof_type: e.target.value})}
@@ -545,7 +545,7 @@ const Reservations = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>ID Proof Number *</label>
+            <label>ID Proof Number</label>
             <input
               type="text"
               value={guestFormData.id_proof_number}
