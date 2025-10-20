@@ -154,7 +154,14 @@ const [formData, setFormData] = useState({
   };
 
   const handlePayment = (bill) => {
-    setSelectedBill(bill);
+    // Ensure the bill has all required properties
+    const billWithDetails = {
+      ...bill,
+      guestName: bill.reservations?.guests?.name || 'Unknown',
+      billType: bill.bill_type,
+      paidAmount: bill.paid_amount || 0
+    };
+    setSelectedBill(billWithDetails);
     setPaymentAmount(0);
     setIsPaymentModalOpen(true);
   };
