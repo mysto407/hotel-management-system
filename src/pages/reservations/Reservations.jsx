@@ -5,12 +5,14 @@ import { Modal } from '../../components/common/Modal';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
+import { useAgents } from '../../context/AgentContext';
 import { calculateDays } from '../../utils/helpers';
 
 const Reservations = () => {
   const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation } = useReservations();
   const { rooms, roomTypes } = useRooms();
   const { guests, getGuestByPhone, addGuest } = useGuests();
+  const { agents, addAgent } = useAgents();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
@@ -18,10 +20,6 @@ const Reservations = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
-  const [agents, setAgents] = useState([
-    { id: '1', name: 'Travel Agency A', email: 'agenta@example.com', phone: '9876543210', commission: '10' },
-    { id: '2', name: 'Travel Agency B', email: 'agentb@example.com', phone: '9876543211', commission: '15' }
-  ]);
 
   const [formData, setFormData] = useState({
     booking_source: 'direct',
@@ -129,20 +127,17 @@ const Reservations = () => {
     setIsAgentModalOpen(false);
   };
 
-  const handleCreateAgent = () => {
+  const handleCreateAgent = async () => {
     if (!agentFormData.name) {
       alert('Please enter agent name');
       return;
     }
 
-    const newAgent = {
-      id: Date.now().toString(),
-      ...agentFormData
-    };
-
-    setAgents([...agents, newAgent]);
-    setFormData({ ...formData, agent_id: newAgent.id });
-    resetAgentForm();
+    const newAgent = await addAgent(agentFormData);
+    if (newAgent) {
+      setFormData({ ...formData, agent_id: newAgent.id });
+      resetAgentForm();
+    }
   };
 
   const resetGuestForm = () => {
