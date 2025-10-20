@@ -23,7 +23,9 @@ const Reservations = () => {
     room_id: '',
     check_in_date: '',
     check_out_date: '',
-    number_of_guests: 1,
+    number_of_adults: 1,
+    number_of_children: 0,
+    number_of_infants: 0,
     total_amount: 0,
     advance_payment: 0,
     payment_status: 'Pending',
@@ -55,7 +57,10 @@ const Reservations = () => {
       room_id: formData.room_id,
       check_in_date: formData.check_in_date,
       check_out_date: formData.check_out_date,
-      number_of_guests: parseInt(formData.number_of_guests),
+      number_of_adults: parseInt(formData.number_of_adults),
+      number_of_children: parseInt(formData.number_of_children),
+      number_of_infants: parseInt(formData.number_of_infants),
+      number_of_guests: parseInt(formData.number_of_adults) + parseInt(formData.number_of_children) + parseInt(formData.number_of_infants),
       total_amount: parseFloat(formData.total_amount),
       advance_payment: parseFloat(formData.advance_payment),
       payment_status: formData.payment_status,
@@ -77,7 +82,9 @@ const Reservations = () => {
       room_id: '',
       check_in_date: '',
       check_out_date: '',
-      number_of_guests: 1,
+      number_of_adults: 1,
+      number_of_children: 0,
+      number_of_infants: 0,
       total_amount: 0,
       advance_payment: 0,
       payment_status: 'Pending',
@@ -144,7 +151,9 @@ const Reservations = () => {
       room_id: reservation.room_id,
       check_in_date: reservation.check_in_date,
       check_out_date: reservation.check_out_date,
-      number_of_guests: reservation.number_of_guests,
+      number_of_adults: reservation.number_of_adults || 1,
+      number_of_children: reservation.number_of_children || 0,
+      number_of_infants: reservation.number_of_infants || 0,
       total_amount: reservation.total_amount,
       advance_payment: reservation.advance_payment,
       payment_status: reservation.payment_status,
@@ -257,12 +266,18 @@ const Reservations = () => {
                 <td>
                   <strong>{reservation.guests?.name || 'Unknown'}</strong>
                   <br />
-                  <small style={{color: '#6b7280'}}>{reservation.guests?.phone || 'N/A'}</small>
+                  <small style={{color: '#6b7280'}}>
+                    {reservation.guests?.phone || 'N/A'}
+                  </small>
                 </td>
                 <td>{getRoomInfo(reservation.rooms)}</td>
                 <td>{reservation.check_in_date}</td>
                 <td>{reservation.check_out_date}</td>
-                <td>{reservation.number_of_guests}</td>
+                <td>
+                  {reservation.number_of_adults || reservation.number_of_guests || 0} Adults
+                  {reservation.number_of_children > 0 && <><br /><small style={{color: '#6b7280'}}>{reservation.number_of_children} Children</small></>}
+                  {reservation.number_of_infants > 0 && <><br /><small style={{color: '#6b7280'}}>{reservation.number_of_infants} Infants</small></>}
+                </td>
                 <td>₹{reservation.total_amount}</td>
                 <td>
                   <span className={`status-badge ${
@@ -401,12 +416,42 @@ const Reservations = () => {
           </div>
 
           <div className="form-group">
-            <label>Number of Guests *</label>
+            <label>Number of Adults *</label>
             <input
               type="number"
               min="1"
-              value={formData.number_of_guests}
-              onChange={(e) => setFormData({...formData, number_of_guests: e.target.value})}
+              value={formData.number_of_adults}
+              onChange={(e) => setFormData({...formData, number_of_adults: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Number of Children</label>
+            <input
+              type="number"
+              min="0"
+              value={formData.number_of_children}
+              onChange={(e) => setFormData({...formData, number_of_children: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Number of Infants</label>
+            <input
+              type="number"
+              min="0"
+              value={formData.number_of_infants}
+              onChange={(e) => setFormData({...formData, number_of_infants: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Total Guests</label>
+            <input
+              type="text"
+              value={parseInt(formData.number_of_adults || 0) + parseInt(formData.number_of_children || 0) + parseInt(formData.number_of_infants || 0)}
+              disabled
+              style={{ background: '#f3f4f6', color: '#6b7280' }}
             />
           </div>
 
