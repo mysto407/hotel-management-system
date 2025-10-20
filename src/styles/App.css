@@ -27,6 +27,8 @@
     --color-sidebar-bg: #242526;
     /* Dark graphite sidebar */
     --color-sidebar-text: #d1d5db;
+    /* Very light gray for table headers */
+    --color-table-header: #f9fafb;
     /* Lighter text on dark */
     --color-sidebar-text-hover: #ffffff;
     --color-sidebar-border: #3a3b3c;
@@ -526,7 +528,7 @@ body {
 }
 
 .data-table thead {
-    background: var(--color-secondary);
+    background: var(--color-table-header);
 }
 
 .data-table th {
