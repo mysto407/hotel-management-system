@@ -331,6 +331,40 @@ export const createInventoryTransaction = async(transaction) => {
     return { data, error }
 }
 
+// Agent CRUD operations
+export const getAgents = async() => {
+    const { data, error } = await supabase
+        .from('agents')
+        .select('*')
+        .order('name')
+    return { data, error }
+}
+
+export const createAgent = async(agent) => {
+    const { data, error } = await supabase
+        .from('agents')
+        .insert([agent])
+        .select()
+    return { data, error }
+}
+
+export const updateAgent = async(id, agent) => {
+    const { data, error } = await supabase
+        .from('agents')
+        .update(agent)
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const deleteAgent = async(id) => {
+    const { error } = await supabase
+        .from('agents')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
 // Hotel Settings
 // In src/lib/supabase.js
 
