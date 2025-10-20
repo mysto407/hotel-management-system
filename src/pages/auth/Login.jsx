@@ -57,17 +57,20 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <Hotel className="login-icon" size={48} />
+          <div className="login-icon">
+            <Hotel size={40} />
+          </div>
           <h1>Hotel Manager</h1>
+          <p>Welcome back! Please login to your account.</p>
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email"
+              placeholder="you@example.com"
               disabled={loading}
               required
             />
@@ -78,7 +81,7 @@ const Login = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              placeholder="Enter your password"
               disabled={loading}
               required
             />
@@ -93,14 +96,14 @@ const Login = () => {
           </button>
         </form>
         <div className="login-demo">
-          <p><strong>Demo Accounts:</strong></p>
+          <p><strong>🚀 Demo Accounts</strong></p>
           <p style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
-            Click to quick login (make sure accounts exist in Supabase first)
+            Quick access for testing (accounts must exist in Supabase)
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+          <div>
             <button
               onClick={() => quickLogin('admin@hotel.com', 'admin123')}
-              className="btn-secondary btn-block"
+              className="btn-secondary"
               disabled={loading}
               type="button"
             >
@@ -108,7 +111,7 @@ const Login = () => {
             </button>
             <button
               onClick={() => quickLogin('frontdesk@hotel.com', 'front123')}
-              className="btn-secondary btn-block"
+              className="btn-secondary"
               disabled={loading}
               type="button"
             >
