@@ -550,29 +550,12 @@ const Expenses = () => {
                         </td>
                         {allColumns.map(col => (
                           <td key={col.id} className="spreadsheet-cell">
-                            {col.type === 'date' ? (
-                              <input
-                                type="text"
-                                value={getCellValue(row, col.id)}
-                                onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                                placeholder="DD/MM/YYYY"
-                                className="spreadsheet-cell-input"
-                                onBlur={(e) => {
-                                  // Validate date format on blur
-                                  const value = e.target.value;
-                                  if (value && !/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-                                    alert('Please enter date in DD/MM/YYYY format');
-                                  }
-                                }}
-                              />
-                            ) : (
-                              <input
-                                type={col.type}
-                                value={getCellValue(row, col.id)}
-                                onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                                className="spreadsheet-cell-input"
-                              />
-                            )}
+                            <input
+                              type={col.type}
+                              value={getCellValue(row, col.id)}
+                              onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                              className="spreadsheet-cell-input"
+                            />
                           </td>
                         ))}
                       </tr>
