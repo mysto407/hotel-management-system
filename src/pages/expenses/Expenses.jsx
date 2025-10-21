@@ -1,6 +1,6 @@
 // src/pages/expenses/Expenses.jsx
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, Download, Edit2, X, Check, FolderPlus, FileText } from 'lucide-react';
+import { Save, Download, Edit2, X, Check, FolderPlus, FileText, Plus, Trash2 } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
 
@@ -16,6 +16,8 @@ const Expenses = () => {
   const [isSheetModalOpen, setIsSheetModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newSheetName, setNewSheetName] = useState('');
+  const [hoveredColumn, setHoveredColumn] = useState(null);
+  const [hoveredRow, setHoveredRow] = useState(null);
 
   // Default columns that are always present
   const defaultColumns = [
@@ -126,8 +128,8 @@ const Expenses = () => {
       .map(key => key.replace(`${category}_`, ''));
   };
 
-  // Add new custom column
-  const addColumn = () => {
+  // Add column after specific position
+  const addColumnAfter = (afterIndex) => {
     const columnName = prompt('Enter column name:');
     if (columnName && columnName.trim()) {
       const newColumn = {
@@ -136,7 +138,15 @@ const Expenses = () => {
         type: 'text',
         fixed: false
       };
-      const updatedColumns = [...customColumns, newColumn];
+      
+      const updatedColumns = [...customColumns];
+      const insertIndex = afterIndex - defaultColumns.length;
+      if (insertIndex >= 0) {
+        updatedColumns.splice(insertIndex + 1, 0, newColumn);
+      } else {
+        updatedColumns.unshift(newColumn);
+      }
+      
       setCustomColumns(updatedColumns);
       
       // Add empty values for existing rows
@@ -146,7 +156,6 @@ const Expenses = () => {
       }));
       setRows(updatedRows);
       
-      // Save to sheets
       saveCurrentSheet(updatedColumns, updatedRows);
     }
   };
@@ -157,7 +166,6 @@ const Expenses = () => {
       const updatedColumns = customColumns.filter(col => col.id !== columnId);
       setCustomColumns(updatedColumns);
       
-      // Remove data for this column from all rows
       const updatedRows = rows.map(row => {
         const newCustomData = { ...row.customData };
         delete newCustomData[columnId];
@@ -165,13 +173,12 @@ const Expenses = () => {
       });
       setRows(updatedRows);
       
-      // Save to sheets
       saveCurrentSheet(updatedColumns, updatedRows);
     }
   };
 
-  // Add new row
-  const addRow = () => {
+  // Add row after specific position
+  const addRowAfter = (afterIndex) => {
     const newRow = {
       id: Date.now(),
       date: new Date().toISOString().split('T')[0],
@@ -181,12 +188,12 @@ const Expenses = () => {
       customData: {}
     };
     
-    // Initialize custom columns with empty values
     customColumns.forEach(col => {
       newRow.customData[col.id] = '';
     });
     
-    const updatedRows = [...rows, newRow];
+    const updatedRows = [...rows];
+    updatedRows.splice(afterIndex + 1, 0, newRow);
     setRows(updatedRows);
     saveCurrentSheet(customColumns, updatedRows);
   };
@@ -293,10 +300,7 @@ const Expenses = () => {
       return;
     }
     
-    // Create CSV header
     const headers = allColumns.map(col => col.name).join(',');
-    
-    // Create CSV rows
     const csvRows = rows.map(row => {
       return allColumns.map(col => {
         const value = getCellValue(row, col.id);
@@ -304,10 +308,7 @@ const Expenses = () => {
       }).join(',');
     });
     
-    // Combine all
     const csv = [sheetName, '', headers, ...csvRows].join('\n');
-    
-    // Download
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -321,6 +322,13 @@ const Expenses = () => {
     <div>
       <div className="page-header">
         <h1 className="page-title">Expenses Management</h1>
+        {selectedCategory && selectedSheet && (
+          <div className="action-buttons">
+            <button onClick={exportToCSV} className="btn-primary">
+              <Download size={18} /> Export CSV
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Category and Sheet Selection */}
@@ -380,133 +388,213 @@ const Expenses = () => {
         </div>
       </Card>
 
-      {/* Sheet Editor - Only show if category and sheet are selected */}
+      {/* Spreadsheet - Only show if category and sheet are selected */}
       {selectedCategory && selectedSheet && (
-        <>
-          <div className="page-header">
+        <Card style={{ padding: '16px', overflow: 'auto' }}>
+          {/* Sheet Name Header */}
+          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             {isEditingName ? (
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <>
                 <input
                   type="text"
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
-                  className="form-group input"
-                  style={{ fontSize: '24px', fontWeight: '600', margin: 0, padding: '4px 12px' }}
+                  style={{ 
+                    fontSize: '18px', 
+                    fontWeight: '600', 
+                    padding: '4px 8px',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '4px'
+                  }}
                   autoFocus
                 />
-                <button onClick={saveName} className="btn-icon btn-success">
-                  <Check size={18} />
+                <button onClick={saveName} className="btn-icon" style={{ color: '#10b981' }}>
+                  <Check size={16} />
                 </button>
-                <button onClick={cancelEditName} className="btn-icon btn-delete">
-                  <X size={18} />
+                <button onClick={cancelEditName} className="btn-icon" style={{ color: '#ef4444' }}>
+                  <X size={16} />
                 </button>
-              </div>
+              </>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+              <>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
                   {sheetName}
-                </h2>
+                </h3>
                 <button onClick={startEditingName} className="btn-icon" title="Edit name">
-                  <Edit2 size={18} />
+                  <Edit2 size={14} />
                 </button>
-              </div>
+              </>
             )}
-            
-            <div className="action-buttons">
-              <button onClick={exportToCSV} className="btn-primary">
-                <Download size={18} /> Export CSV
-              </button>
-            </div>
           </div>
 
-          <Card>
-            <div className="action-buttons" style={{ marginBottom: '20px' }}>
-              <button onClick={addColumn} className="btn-secondary">
-                <Plus size={18} /> Add Column
-              </button>
-              <button onClick={addRow} className="btn-secondary">
-                <Plus size={18} /> Add Row
-              </button>
-            </div>
-
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '50px' }}>#</th>
-                    {allColumns.map(col => (
-                      <th key={col.id} style={{ minWidth: col.id === 'remarks' ? '200px' : '150px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>{col.name}</span>
-                          {!col.fixed && (
+          {/* Spreadsheet Table */}
+          <div style={{ 
+            border: '1px solid #d1d5db', 
+            borderRadius: '4px',
+            overflow: 'auto',
+            background: 'white'
+          }}>
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'collapse',
+              fontFamily: 'monospace',
+              fontSize: '13px'
+            }}>
+              <thead>
+                <tr style={{ background: '#f9fafb' }}>
+                  <th style={{ 
+                    padding: '0',
+                    width: '40px',
+                    minWidth: '40px',
+                    border: '1px solid #d1d5db',
+                    background: '#f3f4f6',
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 11
+                  }}></th>
+                  {allColumns.map((col, colIndex) => (
+                    <th 
+                      key={col.id}
+                      onMouseEnter={() => setHoveredColumn(colIndex)}
+                      onMouseLeave={() => setHoveredColumn(null)}
+                      style={{ 
+                        padding: '8px',
+                        minWidth: col.id === 'remarks' ? '200px' : '120px',
+                        border: '1px solid #d1d5db',
+                        textAlign: 'left',
+                        fontWeight: '600',
+                        fontSize: '12px',
+                        color: '#374151',
+                        background: hoveredColumn === colIndex ? '#f3f4f6' : '#f9fafb',
+                        position: 'relative'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                        <span>{col.name}</span>
+                        {hoveredColumn === colIndex && (
+                          <div style={{ display: 'flex', gap: '2px' }}>
                             <button
-                              onClick={() => removeColumn(col.id)}
+                              onClick={() => addColumnAfter(colIndex)}
                               className="btn-icon"
-                              style={{ color: '#ef4444', padding: '2px' }}
-                              title="Remove column"
+                              style={{ padding: '2px', background: 'white' }}
+                              title="Add column after"
                             >
-                              <X size={14} />
+                              <Plus size={12} />
                             </button>
-                          )}
-                        </div>
-                      </th>
-                    ))}
-                    <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row, index) => (
-                    <tr key={row.id}>
-                      <td style={{ fontWeight: '600', color: '#6b7280' }}>{index + 1}</td>
-                      {allColumns.map(col => (
-                        <td key={col.id}>
-                          <input
-                            type={col.type}
-                            value={getCellValue(row, col.id)}
-                            onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '8px 12px',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              outline: 'none'
-                            }}
-                          />
-                        </td>
-                      ))}
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={() => removeRow(row.id)}
-                          disabled={rows.length === 1}
-                          className="btn-icon btn-delete"
-                          style={{ 
-                            opacity: rows.length === 1 ? 0.5 : 1,
-                            cursor: rows.length === 1 ? 'not-allowed' : 'pointer'
-                          }}
-                          title={rows.length === 1 ? 'Cannot delete last row' : 'Delete row'}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
+                            {!col.fixed && (
+                              <button
+                                onClick={() => removeColumn(col.id)}
+                                className="btn-icon"
+                                style={{ padding: '2px', background: 'white', color: '#ef4444' }}
+                                title="Delete column"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </th>
                   ))}
-                </tbody>
-                <tfoot style={{ background: '#f9fafb', fontWeight: '600' }}>
-                  <tr>
-                    <td colSpan={3} style={{ textAlign: 'right', fontSize: '15px', color: '#1f2937' }}>
-                      Total:
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, rowIndex) => (
+                  <tr 
+                    key={row.id}
+                    onMouseEnter={() => setHoveredRow(rowIndex)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                  >
+                    <td style={{ 
+                      padding: '4px',
+                      textAlign: 'center',
+                      border: '1px solid #d1d5db',
+                      background: hoveredRow === rowIndex ? '#f3f4f6' : '#f9fafb',
+                      fontWeight: '600',
+                      color: '#6b7280',
+                      fontSize: '11px',
+                      position: 'sticky',
+                      left: 0,
+                      zIndex: 10
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span>{rowIndex + 1}</span>
+                        {hoveredRow === rowIndex && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <button
+                              onClick={() => addRowAfter(rowIndex)}
+                              className="btn-icon"
+                              style={{ padding: '2px', background: 'white' }}
+                              title="Add row after"
+                            >
+                              <Plus size={10} />
+                            </button>
+                            {rows.length > 1 && (
+                              <button
+                                onClick={() => removeRow(row.id)}
+                                className="btn-icon"
+                                style={{ padding: '2px', background: 'white', color: '#ef4444' }}
+                                title="Delete row"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
-                    <td style={{ fontSize: '16px', color: '#1f2937' }}>
-                      ₹{calculateTotal().toFixed(2)}
-                    </td>
-                    <td colSpan={customColumns.length + 1}></td>
+                    {allColumns.map(col => (
+                      <td key={col.id} style={{ 
+                        padding: '0',
+                        border: '1px solid #d1d5db'
+                      }}>
+                        <input
+                          type={col.type}
+                          value={getCellValue(row, col.id)}
+                          onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: 'none',
+                            outline: 'none',
+                            fontSize: '13px',
+                            fontFamily: 'inherit',
+                            background: 'transparent'
+                          }}
+                        />
+                      </td>
+                    ))}
                   </tr>
-                </tfoot>
-              </table>
-            </div>
-          </Card>
-        </>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#fef3c7', fontWeight: '600' }}>
+                  <td colSpan={3} style={{ 
+                    padding: '8px', 
+                    textAlign: 'right',
+                    border: '1px solid #d1d5db',
+                    fontSize: '13px',
+                    color: '#78350f'
+                  }}>
+                    Total:
+                  </td>
+                  <td style={{ 
+                    padding: '8px',
+                    border: '1px solid #d1d5db',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    color: '#78350f'
+                  }}>
+                    ₹{calculateTotal().toFixed(2)}
+                  </td>
+                  <td colSpan={customColumns.length} style={{ 
+                    border: '1px solid #d1d5db'
+                  }}></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Add Category Modal */}
