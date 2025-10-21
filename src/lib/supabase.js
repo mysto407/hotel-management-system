@@ -508,27 +508,36 @@ export const getExpenseRows = async(sheetId) => {
     return { data, error }
 }
 
+
 export const bulkUpdateExpenseRows = async(sheetId, rows) => {
-    // First, delete all existing rows for this sheet
+    // Separate existing rows (with UUID) from new rows (with temp IDs)
+    const existingRows = rows.filter(row =>
+        row.id && !String(row.id).startsWith('temp_')
+    );
+    const newRows = rows.filter(row =>
+        !row.id || String(row.id).startsWith('temp_')
+    );
+
+    // Delete all existing rows for this sheet
     await supabase
         .from('expense_rows')
         .delete()
-        .eq('sheet_id', sheetId)
+        .eq('sheet_id', sheetId);
 
-    // Then insert the new rows
+    // Prepare all rows for insertion (both existing and new)
     const rowsToInsert = rows.map(row => ({
         sheet_id: sheetId,
         date: row.date,
         ref_no: row.refNo,
-        total_amount: row.totalAmount,
+        total_amount: parseFloat(row.totalAmount) || 0,
         remarks: row.remarks,
         custom_data: row.customData
-    }))
+    }));
 
     const { data, error } = await supabase
         .from('expense_rows')
         .insert(rowsToInsert)
-        .select()
+        .select();
 
-    return { data, error }
+    return { data, error };
 }
