@@ -383,7 +383,60 @@ const Expenses = () => {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Expenses Management</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <h1 className="page-title" style={{ margin: 0 }}>Expenses Management</h1>
+          
+          {/* Category Pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  setSelectedSheet('');
+                  setSheetName('');
+                }}
+                style={{
+                  padding: '8px 16px',
+                  border: selectedCategory === cat ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                  borderRadius: '20px',
+                  background: selectedCategory === cat ? '#dbeafe' : 'white',
+                  color: selectedCategory === cat ? '#1e40af' : '#374151',
+                  fontSize: '14px',
+                  fontWeight: selectedCategory === cat ? '600' : '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                📁 {cat}
+              </button>
+            ))}
+            <button
+              onClick={() => setIsCategoryModalOpen(true)}
+              style={{
+                padding: '8px 16px',
+                border: '2px dashed #d1d5db',
+                borderRadius: '20px',
+                background: 'white',
+                color: '#6b7280',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Add new category"
+            >
+              <Plus size={16} /> Add Category
+            </button>
+          </div>
+        </div>
+
         {selectedCategory && selectedSheet && (
           <div className="action-buttons">
             <button onClick={exportToCSV} className="btn-primary">
@@ -393,62 +446,59 @@ const Expenses = () => {
         )}
       </div>
 
-      {/* Category and Sheet Selection */}
-      <Card>
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Category</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                value={selectedCategory}
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setSelectedSheet('');
-                  setSheetName('');
+      {/* Sheet Tabs - Show only when category is selected */}
+      {selectedCategory && (
+        <Card style={{ padding: '12px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', marginRight: '8px' }}>
+              Sheets:
+            </span>
+            {getSheetsForCategory(selectedCategory).map(sheet => (
+              <button
+                key={sheet}
+                onClick={() => setSelectedSheet(sheet)}
+                style={{
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderBottom: selectedSheet === sheet ? '3px solid #3b82f6' : '3px solid transparent',
+                  borderRadius: '4px 4px 0 0',
+                  background: selectedSheet === sheet ? '#f0f9ff' : 'transparent',
+                  color: selectedSheet === sheet ? '#1e40af' : '#6b7280',
+                  fontSize: '14px',
+                  fontWeight: selectedSheet === sheet ? '600' : '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
-                style={{ flex: 1 }}
               >
-                <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <button 
-                onClick={() => setIsCategoryModalOpen(true)} 
-                className="btn-secondary"
-                title="Add new category"
-              >
-                <FolderPlus size={18} />
+                📄 {sheet}
               </button>
-            </div>
+            ))}
+            <button
+              onClick={() => setIsSheetModalOpen(true)}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                background: '#f3f4f6',
+                color: '#6b7280',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Add new sheet"
+            >
+              <Plus size={16} /> Add Sheet
+            </button>
           </div>
-
-          <div className="form-group">
-            <label>Sheet Name</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                value={selectedSheet}
-                onChange={(e) => setSelectedSheet(e.target.value)}
-                disabled={!selectedCategory}
-                style={{ flex: 1 }}
-              >
-                <option value="">Select Sheet</option>
-                {selectedCategory && getSheetsForCategory(selectedCategory).map(sheet => (
-                  <option key={sheet} value={sheet}>{sheet}</option>
-                ))}
-              </select>
-              <button 
-                onClick={() => setIsSheetModalOpen(true)}
-                className="btn-secondary"
-                disabled={!selectedCategory}
-                title="Add new sheet"
-              >
-                <FileText size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Spreadsheet - Only show if category and sheet are selected */}
       {selectedCategory && selectedSheet && (
