@@ -30,6 +30,8 @@ const Expenses = () => {
   const [newSheetName, setNewSheetName] = useState('');
   const [hoveredColumn, setHoveredColumn] = useState(null);
   const [hoveredRow, setHoveredRow] = useState(null);
+  const saveTimeoutRef = useRef(null);
+
 
   // Fixed columns - split into groups to allow custom columns between them
   const fixedColumns = [
@@ -299,11 +301,25 @@ const Expenses = () => {
     });
     setRows(updatedRows);
     
-    // Auto-save with debounce would be better in production
+    // Debounce save - wait 1 second after user stops typing
     if (selectedSheet) {
-      saveSheetData(selectedSheet.id, customColumns, updatedRows);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      saveTimeoutRef.current = setTimeout(() => {
+        saveSheetData(selectedSheet.id, customColumns, updatedRows);
+      }, 1000);
     }
   };
+  // Add cleanup on unmount
+useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getCellValue = (row, columnId) => {
     if (columnId.startsWith('custom_')) {
