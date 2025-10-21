@@ -6,6 +6,7 @@ import { BillingProvider } from './context/BillingContext';
 import { InventoryProvider } from './context/InventoryContext';
 import { GuestProvider } from './context/GuestContext';
 import { AgentProvider } from './context/AgentContext';
+import { ExpenseProvider } from './context/ExpensesContext'; // ADD THIS
 import { Layout } from './components/layout/Layout';
 import Login from './pages/auth/Login';
 import './styles/App.css';
@@ -38,7 +39,9 @@ function App() {
             <InventoryProvider>
               <GuestProvider>
                 <AgentProvider>
-                  <AppContent />
+                  <ExpenseProvider> {/* ADD THIS */}
+                    <AppContent />
+                  </ExpenseProvider> {/* ADD THIS */}
                 </AgentProvider>
               </GuestProvider>
             </InventoryProvider>
