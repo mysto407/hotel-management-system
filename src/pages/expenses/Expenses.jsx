@@ -654,6 +654,7 @@ const Expenses = () => {
         <div className="modal-actions">
           <button 
             onClick={() => {
+                
               setIsSheetModalOpen(false);
               setNewSheetName('');
             }} 
