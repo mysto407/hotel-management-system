@@ -1,5 +1,6 @@
 // src/pages/expenses/Expenses.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { Download, Edit2, X, Check, Plus, Trash2 } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
