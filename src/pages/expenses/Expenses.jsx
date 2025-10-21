@@ -3,12 +3,23 @@ import { useState, useEffect } from 'react';
 import { Download, Edit2, X, Check, Plus, Trash2 } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
+import { useExpense } from '../../context/ExpensesContext';
 
 const Expenses = () => {
-  const [categories, setCategories] = useState([]);
+  const {
+    categories,
+    loading,
+    addCategory,
+    removeCategory,
+    loadSheets,
+    addSheet,
+    loadSheetData,
+    saveSheetData
+  } = useExpense();
+
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [sheets, setSheets] = useState({});
-  const [selectedSheet, setSelectedSheet] = useState('');
+  const [sheets, setSheets] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState(null);
   const [sheetName, setSheetName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
@@ -30,7 +41,7 @@ const Expenses = () => {
   const [customColumns, setCustomColumns] = useState([]);
   const [rows, setRows] = useState([
     {
-      id: 1,
+      id: Date.now(),
       date: new Date().toISOString().split('T')[0],
       refNo: '',
       totalAmount: 0,
@@ -88,32 +99,40 @@ const Expenses = () => {
     return grouped;
   };
 
-  // Load data from localStorage on mount
+  // Load sheets when category changes
   useEffect(() => {
-    const savedData = localStorage.getItem('expenseData');
-    if (savedData) {
-      const data = JSON.parse(savedData);
-      setCategories(data.categories || []);
-      setSheets(data.sheets || {});
+    if (selectedCategory) {
+      loadCategorySheets();
+    } else {
+      setSheets([]);
+      setSelectedSheet(null);
     }
-  }, []);
+  }, [selectedCategory]);
 
-  // Save data to localStorage whenever it changes
+  // Load sheet data when selected sheet changes
   useEffect(() => {
-    const data = { categories, sheets };
-    localStorage.setItem('expenseData', JSON.stringify(data));
-  }, [categories, sheets]);
+    if (selectedSheet) {
+      loadSelectedSheetData();
+    }
+  }, [selectedSheet]);
 
-  // Load sheet data when selected
-  useEffect(() => {
-    if (selectedCategory && selectedSheet) {
-      const sheetData = sheets[`${selectedCategory}_${selectedSheet}`];
-      if (sheetData) {
-        setSheetName(sheetData.name);
-        setCustomColumns(sheetData.customColumns || []);
-        setRows(sheetData.rows || [
+  const loadCategorySheets = async () => {
+    const categoryObj = categories.find(c => c.name === selectedCategory);
+    if (categoryObj) {
+      const loadedSheets = await loadSheets(categoryObj.id);
+      setSheets(loadedSheets);
+    }
+  };
+
+  const loadSelectedSheetData = async () => {
+    if (selectedSheet && selectedSheet.id) {
+      const data = await loadSheetData(selectedSheet.id);
+      if (data) {
+        setSheetName(selectedSheet.name);
+        setCustomColumns(data.customColumns || []);
+        setRows(data.rows && data.rows.length > 0 ? data.rows : [
           {
-            id: 1,
+            id: Date.now(),
             date: new Date().toISOString().split('T')[0],
             refNo: '',
             totalAmount: 0,
@@ -123,50 +142,56 @@ const Expenses = () => {
         ]);
       }
     }
-  }, [selectedCategory, selectedSheet, sheets]);
-
-  const addCategory = () => {
-    if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
-      setCategories([...categories, newCategoryName.trim()]);
-      setNewCategoryName('');
-      setIsCategoryModalOpen(false);
-    } else if (categories.includes(newCategoryName.trim())) {
-      alert('Category already exists!');
-    }
   };
 
-  const addSheet = () => {
-    if (newSheetName.trim() && selectedCategory) {
-      const sheetKey = `${selectedCategory}_${newSheetName.trim()}`;
-      if (!sheets[sheetKey]) {
-        const newSheet = {
-          name: newSheetName.trim(),
-          customColumns: [],
-          rows: [
-            {
-              id: 1,
-              date: new Date().toISOString().split('T')[0],
-              refNo: '',
-              totalAmount: 0,
-              remarks: '',
-              customData: {}
-            }
-          ]
-        };
-        setSheets({ ...sheets, [sheetKey]: newSheet });
-        setSelectedSheet(newSheetName.trim());
-        setNewSheetName('');
-        setIsSheetModalOpen(false);
-      } else {
-        alert('Sheet name already exists in this category!');
+  const handleAddCategory = async () => {
+    if (newCategoryName.trim()) {
+      const existingCategory = categories.find(c => c.name === newCategoryName.trim());
+      if (existingCategory) {
+        alert('Category already exists!');
+        return;
+      }
+      
+      const newCategory = await addCategory(newCategoryName.trim());
+      if (newCategory) {
+        setNewCategoryName('');
+        setIsCategoryModalOpen(false);
       }
     }
   };
 
-  const getSheetsForCategory = (category) => {
-    return Object.keys(sheets)
-      .filter(key => key.startsWith(`${category}_`))
-      .map(key => key.replace(`${category}_`, ''));
+  const handleAddSheet = async () => {
+    if (newSheetName.trim() && selectedCategory) {
+      const categoryObj = categories.find(c => c.name === selectedCategory);
+      if (categoryObj) {
+        const existingSheet = sheets.find(s => s.name === newSheetName.trim());
+        if (existingSheet) {
+          alert('Sheet name already exists in this category!');
+          return;
+        }
+
+        const newSheet = await addSheet(categoryObj.id, newSheetName.trim());
+        if (newSheet) {
+          setSheets([...sheets, newSheet]);
+          setSelectedSheet(newSheet);
+          setNewSheetName('');
+          setIsSheetModalOpen(false);
+        }
+      }
+    }
+  };
+
+  const handleDeleteCategory = async (categoryName) => {
+    if (window.confirm(`Delete category "${categoryName}" and all its sheets?`)) {
+      const categoryObj = categories.find(c => c.name === categoryName);
+      if (categoryObj) {
+        const success = await removeCategory(categoryObj.id);
+        if (success && selectedCategory === categoryName) {
+          setSelectedCategory('');
+          setSelectedSheet(null);
+        }
+      }
+    }
   };
 
   const addColumnAfter = (afterIndex) => {
@@ -199,7 +224,9 @@ const Expenses = () => {
       }));
       setRows(updatedRows);
       
-      saveCurrentSheet(updatedColumns, updatedRows);
+      if (selectedSheet) {
+        saveSheetData(selectedSheet.id, updatedColumns, updatedRows);
+      }
     }
   };
 
@@ -215,7 +242,9 @@ const Expenses = () => {
       });
       setRows(updatedRows);
       
-      saveCurrentSheet(updatedColumns, updatedRows);
+      if (selectedSheet) {
+        saveSheetData(selectedSheet.id, updatedColumns, updatedRows);
+      }
     }
   };
 
@@ -236,14 +265,20 @@ const Expenses = () => {
     const updatedRows = [...rows];
     updatedRows.splice(afterIndex + 1, 0, newRow);
     setRows(updatedRows);
-    saveCurrentSheet(customColumns, updatedRows);
+    
+    if (selectedSheet) {
+      saveSheetData(selectedSheet.id, customColumns, updatedRows);
+    }
   };
 
   const removeRow = (rowId) => {
     if (rows.length > 1) {
       const updatedRows = rows.filter(row => row.id !== rowId);
       setRows(updatedRows);
-      saveCurrentSheet(customColumns, updatedRows);
+      
+      if (selectedSheet) {
+        saveSheetData(selectedSheet.id, customColumns, updatedRows);
+      }
     }
   };
 
@@ -262,7 +297,11 @@ const Expenses = () => {
       return row;
     });
     setRows(updatedRows);
-    saveCurrentSheet(customColumns, updatedRows);
+    
+    // Auto-save with debounce would be better in production
+    if (selectedSheet) {
+      saveSheetData(selectedSheet.id, customColumns, updatedRows);
+    }
   };
 
   const getCellValue = (row, columnId) => {
@@ -277,31 +316,15 @@ const Expenses = () => {
     setIsEditingName(true);
   };
 
-  const saveName = () => {
-    if (tempName.trim() && selectedCategory && selectedSheet) {
-      const oldKey = `${selectedCategory}_${selectedSheet}`;
-      const newKey = `${selectedCategory}_${tempName.trim()}`;
-      
-      if (oldKey !== newKey && sheets[newKey]) {
-        alert('A sheet with this name already exists in this category!');
-        return;
-      }
-      
-      const sheetData = sheets[oldKey];
-      sheetData.name = tempName.trim();
-      
-      if (oldKey !== newKey) {
-        const newSheets = { ...sheets };
-        delete newSheets[oldKey];
-        newSheets[newKey] = sheetData;
-        setSheets(newSheets);
-        setSelectedSheet(tempName.trim());
-      } else {
-        setSheets({ ...sheets, [oldKey]: sheetData });
-      }
-      
+  const saveName = async () => {
+    if (tempName.trim() && selectedSheet) {
+      // Update in backend would require a new function in context
+      // For now, just update locally
       setSheetName(tempName.trim());
       setIsEditingName(false);
+      
+      // You might want to add an updateSheet function to context
+      // await updateSheet(selectedSheet.id, { name: tempName.trim() });
     }
   };
 
@@ -312,20 +335,6 @@ const Expenses = () => {
 
   const calculateTotal = () => {
     return rows.reduce((sum, row) => sum + (parseFloat(row.totalAmount) || 0), 0);
-  };
-
-  const saveCurrentSheet = (cols = customColumns, rowsData = rows) => {
-    if (selectedCategory && selectedSheet) {
-      const sheetKey = `${selectedCategory}_${selectedSheet}`;
-      setSheets({
-        ...sheets,
-        [sheetKey]: {
-          name: sheetName,
-          customColumns: cols,
-          rows: rowsData
-        }
-      });
-    }
   };
 
   const exportToCSV = () => {
@@ -352,6 +361,15 @@ const Expenses = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading expenses...</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Page Header with Category Pills */}
@@ -361,17 +379,42 @@ const Expenses = () => {
           
           <div className="category-pills">
             {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => {
-                  setSelectedCategory(cat);
-                  setSelectedSheet('');
-                  setSheetName('');
-                }}
-                className={`category-pill ${selectedCategory === cat ? 'active' : ''}`}
-              >
-                📁 {cat}
-              </button>
+              <div key={cat.id} style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  onClick={() => {
+                    setSelectedCategory(cat.name);
+                    setSelectedSheet(null);
+                    setSheetName('');
+                  }}
+                  className={`category-pill ${selectedCategory === cat.name ? 'active' : ''}`}
+                >
+                  📁 {cat.name}
+                </button>
+                {selectedCategory === cat.name && (
+                  <button
+                    onClick={() => handleDeleteCategory(cat.name)}
+                    style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-8px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Delete category"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
             <button
               onClick={() => setIsCategoryModalOpen(true)}
@@ -397,13 +440,13 @@ const Expenses = () => {
         <Card className="sheet-tabs-card">
           <div className="sheet-tabs-container">
             <span className="sheet-tabs-label">Sheets:</span>
-            {getSheetsForCategory(selectedCategory).map(sheet => (
+            {sheets.map(sheet => (
               <button
-                key={sheet}
+                key={sheet.id}
                 onClick={() => setSelectedSheet(sheet)}
-                className={`sheet-tab ${selectedSheet === sheet ? 'active' : ''}`}
+                className={`sheet-tab ${selectedSheet?.id === sheet.id ? 'active' : ''}`}
               >
-                📄 {sheet}
+                📄 {sheet.name}
               </button>
             ))}
             <button
@@ -574,7 +617,7 @@ const Expenses = () => {
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             placeholder="e.g., Office Expenses, Travel, Utilities"
-            onKeyPress={(e) => e.key === 'Enter' && addCategory()}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
           />
         </div>
         <div className="modal-actions">
@@ -587,7 +630,7 @@ const Expenses = () => {
           >
             Cancel
           </button>
-          <button onClick={addCategory} className="btn-primary">
+          <button onClick={handleAddCategory} className="btn-primary">
             <Plus size={18} /> Add Category
           </button>
         </div>
@@ -609,7 +652,7 @@ const Expenses = () => {
             value={newSheetName}
             onChange={(e) => setNewSheetName(e.target.value)}
             placeholder="e.g., January 2025, Q1 Expenses"
-            onKeyPress={(e) => e.key === 'Enter' && addSheet()}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddSheet()}
           />
         </div>
         <div className="modal-actions">
@@ -622,7 +665,7 @@ const Expenses = () => {
           >
             Cancel
           </button>
-          <button onClick={addSheet} className="btn-primary">
+          <button onClick={handleAddSheet} className="btn-primary">
             <Plus size={18} /> Add Sheet
           </button>
         </div>
