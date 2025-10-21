@@ -584,32 +584,34 @@ const Expenses = () => {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr style={{ background: '#fef3c7', fontWeight: '600' }}>
-                  <td colSpan={3} style={{ 
-                    padding: '8px', 
-                    textAlign: 'right',
-                    border: '1px solid #d1d5db',
-                    fontSize: '13px',
-                    color: '#78350f'
-                  }}>
-                    Total:
-                  </td>
-                  <td style={{ 
-                    padding: '8px',
-                    border: '1px solid #d1d5db',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    color: '#78350f'
-                  }}>
-                    ₹{calculateTotal().toFixed(2)}
-                  </td>
-                  <td colSpan={customColumns.length} style={{ 
-                    border: '1px solid #d1d5db'
-                  }}></td>
-                </tr>
-              </tfoot>
             </table>
+          </div>
+
+          {/* Total Row - Outside Table */}
+          <div style={{
+            marginTop: '16px',
+            padding: '12px 16px',
+            background: '#fef3c7',
+            border: '2px solid #fbbf24',
+            borderRadius: '6px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ 
+              fontSize: '15px',
+              fontWeight: '600',
+              color: '#78350f'
+            }}>
+              Total:
+            </span>
+            <span style={{ 
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#78350f'
+            }}>
+              ₹{calculateTotal().toFixed(2)}
+            </span>
           </div>
         </Card>
       )}
