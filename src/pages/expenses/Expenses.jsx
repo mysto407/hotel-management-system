@@ -1,5 +1,7 @@
+// src/pages/expenses/Expenses.jsx
 import { useState } from 'react';
-import { Plus, Trash2, Save, Download, Upload, Edit2, X, Check } from 'lucide-react';
+import { Plus, Trash2, Save, Download, Edit2, X, Check } from 'lucide-react';
+import { Card } from '../../components/common/Card';
 
 const Expenses = () => {
   const [sheetName, setSheetName] = useState('Monthly Expenses');
@@ -187,384 +189,154 @@ const Expenses = () => {
   };
 
   return (
-    <div style={{ padding: '24px', background: '#f3f4f6', minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ 
-        background: 'white', 
-        borderRadius: '8px', 
-        padding: '24px', 
-        marginBottom: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          {isEditingName ? (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input
-                type="text"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                style={{
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  padding: '4px 12px',
-                  border: '2px solid #3b82f6',
-                  borderRadius: '6px',
-                  outline: 'none'
-                }}
-                autoFocus
-              />
-              <button
-                onClick={saveName}
-                style={{
-                  background: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <Check size={18} />
-              </button>
-              <button
-                onClick={cancelEditName}
-                style={{
-                  background: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1f2937', margin: 0 }}>
-                {sheetName}
-              </h1>
-              <button
-                onClick={startEditingName}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '6px',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-                title="Edit name"
-              >
-                <Edit2 size={18} />
-              </button>
-            </div>
-          )}
-          
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              onClick={saveToStorage}
-              style={{
-                background: '#10b981',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '15px',
-                fontWeight: '500'
-              }}
-            >
-              <Save size={18} /> Save
+    <div>
+      <div className="page-header">
+        {isEditingName ? (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="text"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              className="form-group input"
+              style={{ fontSize: '28px', fontWeight: '700', margin: 0, padding: '4px 12px' }}
+              autoFocus
+            />
+            <button onClick={saveName} className="btn-icon btn-success">
+              <Check size={18} />
             </button>
-            <button
-              onClick={exportToCSV}
-              style={{
-                background: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '15px',
-                fontWeight: '500'
-              }}
-            >
-              <Download size={18} /> Export CSV
+            <button onClick={cancelEditName} className="btn-icon btn-delete">
+              <X size={18} />
             </button>
           </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h1 className="page-title">{sheetName}</h1>
+            <button onClick={startEditingName} className="btn-icon" title="Edit name">
+              <Edit2 size={18} />
+            </button>
+          </div>
+        )}
+        
+        <div className="action-buttons">
+          <button onClick={saveToStorage} className="btn-primary">
+            <Save size={18} /> Save
+          </button>
+          <button onClick={exportToCSV} className="btn-primary">
+            <Download size={18} /> Export CSV
+          </button>
         </div>
+      </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={addColumn}
-            style={{
-              background: '#f3f4f6',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '15px',
-              fontWeight: '500'
-            }}
-          >
+      <Card>
+        <div className="action-buttons" style={{ marginBottom: '20px' }}>
+          <button onClick={addColumn} className="btn-secondary">
             <Plus size={18} /> Add Column
           </button>
-          <button
-            onClick={addRow}
-            style={{
-              background: '#f3f4f6',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '15px',
-              fontWeight: '500'
-            }}
-          >
+          <button onClick={addRow} className="btn-secondary">
             <Plus size={18} /> Add Row
           </button>
         </div>
-      </div>
 
-      {/* Table */}
-      <div style={{ 
-        background: 'white', 
-        borderRadius: '8px', 
-        overflow: 'auto',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <table style={{ 
-          width: '100%', 
-          borderCollapse: 'collapse',
-          minWidth: '800px'
-        }}>
-          <thead style={{ background: '#f9fafb', position: 'sticky', top: 0, zIndex: 10 }}>
-            <tr>
-              <th style={{ 
-                padding: '14px 16px', 
-                textAlign: 'left', 
-                fontSize: '13px', 
-                fontWeight: '600',
-                color: '#6b7280',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid #e5e7eb',
-                width: '50px'
-              }}>
-                #
-              </th>
-              {allColumns.map(col => (
-                <th key={col.id} style={{ 
-                  padding: '14px 16px', 
-                  textAlign: 'left', 
-                  fontSize: '13px', 
-                  fontWeight: '600',
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  borderBottom: '2px solid #e5e7eb',
-                  minWidth: col.id === 'remarks' ? '200px' : '150px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>{col.name}</span>
-                    {!col.fixed && (
-                      <button
-                        onClick={() => removeColumn(col.id)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          padding: '4px',
-                          cursor: 'pointer',
-                          color: '#ef4444',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                        title="Remove column"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                </th>
-              ))}
-              <th style={{ 
-                padding: '14px 16px', 
-                textAlign: 'center', 
-                fontSize: '13px', 
-                fontWeight: '600',
-                color: '#6b7280',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid #e5e7eb',
-                width: '80px'
-              }}>
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.id} style={{ 
-                borderBottom: '1px solid #e5e7eb',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-              >
-                <td style={{ 
-                  padding: '12px 16px', 
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  fontWeight: '600'
-                }}>
-                  {index + 1}
-                </td>
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th style={{ width: '50px' }}>#</th>
                 {allColumns.map(col => (
-                  <td key={col.id} style={{ padding: '12px 16px' }}>
-                    {col.type === 'date' ? (
-                      <input
-                        type="date"
-                        value={getCellValue(row, col.id)}
-                        onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          outline: 'none'
-                        }}
-                      />
-                    ) : col.type === 'number' ? (
-                      <input
-                        type="number"
-                        value={getCellValue(row, col.id)}
-                        onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          outline: 'none'
-                        }}
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={getCellValue(row, col.id)}
-                        onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          outline: 'none'
-                        }}
-                      />
-                    )}
-                  </td>
+                  <th key={col.id} style={{ minWidth: col.id === 'remarks' ? '200px' : '150px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>{col.name}</span>
+                      {!col.fixed && (
+                        <button
+                          onClick={() => removeColumn(col.id)}
+                          className="btn-icon"
+                          style={{ color: '#ef4444', padding: '2px' }}
+                          title="Remove column"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </th>
                 ))}
-                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => removeRow(row.id)}
-                    disabled={rows.length === 1}
-                    style={{
-                      background: rows.length === 1 ? '#f3f4f6' : '#fee2e2',
-                      color: rows.length === 1 ? '#9ca3af' : '#ef4444',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      cursor: rows.length === 1 ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto'
-                    }}
-                    title={rows.length === 1 ? 'Cannot delete last row' : 'Delete row'}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
+                <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot style={{ background: '#f9fafb', fontWeight: '600' }}>
-            <tr>
-              <td colSpan={3} style={{ 
-                padding: '14px 16px', 
-                textAlign: 'right',
-                fontSize: '15px',
-                color: '#1f2937',
-                borderTop: '2px solid #e5e7eb'
-              }}>
-                Total:
-              </td>
-              <td style={{ 
-                padding: '14px 16px',
-                fontSize: '16px',
-                color: '#1f2937',
-                borderTop: '2px solid #e5e7eb'
-              }}>
-                ₹{calculateTotal().toFixed(2)}
-              </td>
-              <td colSpan={customColumns.length + 1} style={{ 
-                borderTop: '2px solid #e5e7eb'
-              }}></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={row.id}>
+                  <td style={{ fontWeight: '600', color: '#6b7280' }}>{index + 1}</td>
+                  {allColumns.map(col => (
+                    <td key={col.id}>
+                      <input
+                        type={col.type}
+                        value={getCellValue(row, col.id)}
+                        onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                    </td>
+                  ))}
+                  <td style={{ textAlign: 'center' }}>
+                    <button
+                      onClick={() => removeRow(row.id)}
+                      disabled={rows.length === 1}
+                      className="btn-icon btn-delete"
+                      style={{ 
+                        opacity: rows.length === 1 ? 0.5 : 1,
+                        cursor: rows.length === 1 ? 'not-allowed' : 'pointer'
+                      }}
+                      title={rows.length === 1 ? 'Cannot delete last row' : 'Delete row'}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot style={{ background: '#f9fafb', fontWeight: '600' }}>
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'right', fontSize: '15px', color: '#1f2937' }}>
+                  Total:
+                </td>
+                <td style={{ fontSize: '16px', color: '#1f2937' }}>
+                  ₹{calculateTotal().toFixed(2)}
+                </td>
+                <td colSpan={customColumns.length + 1}></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </Card>
 
-      {/* Summary */}
-      <div style={{ 
-        background: 'white', 
-        borderRadius: '8px', 
-        padding: '20px',
-        marginTop: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', marginBottom: '12px' }}>
-          Summary
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div style={{ padding: '12px', background: '#f9fafb', borderRadius: '6px' }}>
-            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Total Rows</p>
-            <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>{rows.length}</p>
+      <Card title="Summary">
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div>
+              <p className="stat-label">Total Rows</p>
+              <p className="stat-value">{rows.length}</p>
+            </div>
           </div>
-          <div style={{ padding: '12px', background: '#f9fafb', borderRadius: '6px' }}>
-            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Total Columns</p>
-            <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>{allColumns.length}</p>
+          <div className="stat-card">
+            <div>
+              <p className="stat-label">Total Columns</p>
+              <p className="stat-value">{allColumns.length}</p>
+            </div>
           </div>
-          <div style={{ padding: '12px', background: '#f9fafb', borderRadius: '6px' }}>
-            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Total Amount</p>
-            <p style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>₹{calculateTotal().toFixed(2)}</p>
+          <div className="stat-card">
+            <div>
+              <p className="stat-label">Total Amount</p>
+              <p className="stat-value" style={{ color: '#10b981' }}>₹{calculateTotal().toFixed(2)}</p>
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };
