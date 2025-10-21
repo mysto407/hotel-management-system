@@ -28,24 +28,10 @@ const Expenses = () => {
   ];
 
   const [customColumns, setCustomColumns] = useState([]);
-  // Helper to convert date from yyyy-mm-dd to dd/mm/yyyy
-  const formatDateForDisplay = (dateString) => {
-    if (!dateString) return '';
-    const [year, month, day] = dateString.split('-');
-    return `${day}/${month}/${year}`;
-  };
-
-  // Helper to convert date from dd/mm/yyyy to yyyy-mm-dd
-  const formatDateForStorage = (dateString) => {
-    if (!dateString) return '';
-    const [day, month, year] = dateString.split('/');
-    return `${year}-${month}-${day}`;
-  };
-
   const [rows, setRows] = useState([
     {
       id: 1,
-      date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
+      date: new Date().toISOString().split('T')[0],
       refNo: '',
       totalAmount: 0,
       remarks: '',
@@ -60,13 +46,11 @@ const Expenses = () => {
     ...fixedColumns.filter(col => col.group === 'end')
   ];
 
-  // Helper function to get month/year from date (now handles dd/mm/yyyy format)
+  // Helper function to get month/year from date
   const getMonthYear = (dateString) => {
     if (!dateString) return null;
-    // Convert dd/mm/yyyy to yyyy-mm-dd for proper parsing
-    const [day, month, year] = dateString.split('/');
-    if (!day || !month || !year) return null;
-    return `${year}-${month.padStart(2, '0')}`;
+    const date = new Date(dateString);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   };
 
   // Helper function to format month header
@@ -130,7 +114,7 @@ const Expenses = () => {
         setRows(sheetData.rows || [
           {
             id: 1,
-            date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
+            date: new Date().toISOString().split('T')[0],
             refNo: '',
             totalAmount: 0,
             remarks: '',
@@ -161,7 +145,7 @@ const Expenses = () => {
           rows: [
             {
               id: 1,
-              date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
+              date: new Date().toISOString().split('T')[0],
               refNo: '',
               totalAmount: 0,
               remarks: '',
@@ -238,7 +222,7 @@ const Expenses = () => {
   const addRowAfter = (afterIndex) => {
     const newRow = {
       id: Date.now(),
-      date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
+      date: new Date().toISOString().split('T')[0],
       refNo: '',
       totalAmount: 0,
       remarks: '',
