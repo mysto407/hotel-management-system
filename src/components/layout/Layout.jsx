@@ -14,6 +14,7 @@ import Billing from '../../pages/billing/Billing';
 import Reports from '../../pages/reports/Reports';
 import Inventory from '../../pages/inventory/Inventory';
 import Guests from '../../pages/guests/Guests';
+import Expenses from '../../pages/expenses/Expenses';
 import SettingsPage from '../../pages/settings/Settings';
 
 export const Layout = () => {
@@ -31,6 +32,7 @@ export const Layout = () => {
     reports: <Reports />,
     inventory: <Inventory />,
     guests: <Guests />,
+    expenses: <Expenses />,
     settings: <SettingsPage />
   };
 

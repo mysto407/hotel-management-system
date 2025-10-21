@@ -15,6 +15,7 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'Accounts'] },
     { id: 'inventory', label: 'Inventory', icon: Package, roles: ['Admin', 'Store'] },
     { id: 'guests', label: 'Guests', icon: Users, roles: ['Admin', 'Front Desk'] },
+    { id: 'expenses', label: 'Expenses', icon: Receipt, roles: ['Admin', 'Accounts'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin'] }
   ];
 
