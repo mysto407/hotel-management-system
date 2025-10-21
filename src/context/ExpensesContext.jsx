@@ -126,7 +126,7 @@ export const ExpenseProvider = ({ children }) => {
       alert('Failed to save columns: ' + colError.message);
       return false;
     }
-
+  
     // Save rows
     const { error: rowError } = await bulkUpdateExpenseRows(sheetId, rows);
     if (rowError) {
@@ -134,7 +134,7 @@ export const ExpenseProvider = ({ children }) => {
       alert('Failed to save rows: ' + rowError.message);
       return false;
     }
-
+  
     return true;
   };
 
