@@ -400,3 +400,135 @@ export const updateHotelSetting = async(key, value) => {
         .select()
     return { data, error }
 }
+
+// Expense Categories
+export const getExpenseCategories = async() => {
+    const { data, error } = await supabase
+        .from('expense_categories')
+        .select('*')
+        .order('name')
+    return { data, error }
+}
+
+export const createExpenseCategory = async(name) => {
+    const { data, error } = await supabase
+        .from('expense_categories')
+        .insert([{ name }])
+        .select()
+    return { data, error }
+}
+
+export const deleteExpenseCategory = async(id) => {
+    const { error } = await supabase
+        .from('expense_categories')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
+// Expense Sheets
+export const getExpenseSheets = async(categoryId) => {
+    const { data, error } = await supabase
+        .from('expense_sheets')
+        .select('*')
+        .eq('category_id', categoryId)
+        .order('created_at', { ascending: false })
+    return { data, error }
+}
+
+export const createExpenseSheet = async(categoryId, name) => {
+    const { data, error } = await supabase
+        .from('expense_sheets')
+        .insert([{
+            category_id: categoryId,
+            name
+        }])
+        .select()
+    return { data, error }
+}
+
+export const updateExpenseSheet = async(id, updates) => {
+    const { data, error } = await supabase
+        .from('expense_sheets')
+        .update(updates)
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const deleteExpenseSheet = async(id) => {
+    const { error } = await supabase
+        .from('expense_sheets')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
+// Expense Columns
+export const getExpenseColumns = async(sheetId) => {
+    const { data, error } = await supabase
+        .from('expense_columns')
+        .select('*')
+        .eq('sheet_id', sheetId)
+        .order('column_order')
+    return { data, error }
+}
+
+export const updateExpenseColumns = async(sheetId, columns) => {
+    // First, delete all existing columns for this sheet
+    await supabase
+        .from('expense_columns')
+        .delete()
+        .eq('sheet_id', sheetId)
+
+    // Then insert the new columns
+    const columnsToInsert = columns.map((col, index) => ({
+        sheet_id: sheetId,
+        column_id: col.id,
+        column_name: col.name,
+        column_type: col.type,
+        column_order: index
+    }))
+
+    const { data, error } = await supabase
+        .from('expense_columns')
+        .insert(columnsToInsert)
+        .select()
+
+    return { data, error }
+}
+
+// Expense Rows
+export const getExpenseRows = async(sheetId) => {
+    const { data, error } = await supabase
+        .from('expense_rows')
+        .select('*')
+        .eq('sheet_id', sheetId)
+        .order('date', { ascending: true })
+    return { data, error }
+}
+
+export const bulkUpdateExpenseRows = async(sheetId, rows) => {
+    // First, delete all existing rows for this sheet
+    await supabase
+        .from('expense_rows')
+        .delete()
+        .eq('sheet_id', sheetId)
+
+    // Then insert the new rows
+    const rowsToInsert = rows.map(row => ({
+        sheet_id: sheetId,
+        date: row.date,
+        ref_no: row.refNo,
+        total_amount: row.totalAmount,
+        remarks: row.remarks,
+        custom_data: row.customData
+    }))
+
+    const { data, error } = await supabase
+        .from('expense_rows')
+        .insert(rowsToInsert)
+        .select()
+
+    return { data, error }
+}
