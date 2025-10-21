@@ -19,12 +19,12 @@ const Expenses = () => {
   const [hoveredColumn, setHoveredColumn] = useState(null);
   const [hoveredRow, setHoveredRow] = useState(null);
 
-  // Default columns that are always present
-  const defaultColumns = [
-    { id: 'date', name: 'Date', type: 'date', fixed: true },
-    { id: 'refNo', name: 'Ref No.', type: 'text', fixed: true },
-    { id: 'totalAmount', name: 'Total Amount', type: 'number', fixed: true },
-    { id: 'remarks', name: 'Remarks', type: 'text', fixed: true }
+  // Default columns - split into groups to allow custom columns between them
+  const fixedColumns = [
+    { id: 'date', name: 'Date', type: 'date', fixed: true, group: 'start' },
+    { id: 'refNo', name: 'Ref No.', type: 'text', fixed: true, group: 'start' },
+    { id: 'totalAmount', name: 'Total Amount', type: 'number', fixed: true, group: 'end' },
+    { id: 'remarks', name: 'Remarks', type: 'text', fixed: true, group: 'end' }
   ];
 
   const [customColumns, setCustomColumns] = useState([]);
@@ -39,7 +39,12 @@ const Expenses = () => {
     }
   ]);
 
-  const allColumns = [...defaultColumns, ...customColumns];
+  // Build allColumns with custom columns interspersed
+  const allColumns = [
+    ...fixedColumns.filter(col => col.group === 'start'),
+    ...customColumns,
+    ...fixedColumns.filter(col => col.group === 'end')
+  ];
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -139,12 +144,24 @@ const Expenses = () => {
         fixed: false
       };
       
+      // Find how many fixed 'start' columns there are (Date, Ref No.)
+      const startFixedCount = fixedColumns.filter(col => col.group === 'start').length;
+      
+      // Calculate where to insert in customColumns array
+      // afterIndex is the position in allColumns
+      // Custom columns start after the 'start' fixed columns
+      const insertIndex = afterIndex - startFixedCount + 1;
+      
       const updatedColumns = [...customColumns];
-      const insertIndex = afterIndex - defaultColumns.length;
-      if (insertIndex >= 0) {
-        updatedColumns.splice(insertIndex + 1, 0, newColumn);
-      } else {
+      if (insertIndex <= 0) {
+        // Insert at beginning of custom columns (right after 'start' fixed)
         updatedColumns.unshift(newColumn);
+      } else if (insertIndex >= updatedColumns.length) {
+        // Insert at end of custom columns (right before 'end' fixed)
+        updatedColumns.push(newColumn);
+      } else {
+        // Insert at specific position
+        updatedColumns.splice(insertIndex, 0, newColumn);
       }
       
       setCustomColumns(updatedColumns);
@@ -473,14 +490,6 @@ const Expenses = () => {
                         <span>{col.name}</span>
                         {hoveredColumn === colIndex && (
                           <div style={{ display: 'flex', gap: '2px' }}>
-                            <button
-                              onClick={() => addColumnAfter(colIndex)}
-                              className="btn-icon"
-                              style={{ padding: '2px', background: 'white' }}
-                              title="Add column after"
-                            >
-                              <Plus size={12} />
-                            </button>
                             {!col.fixed && (
                               <button
                                 onClick={() => removeColumn(col.id)}
@@ -491,6 +500,14 @@ const Expenses = () => {
                                 <Trash2 size={12} />
                               </button>
                             )}
+                            <button
+                              onClick={() => addColumnAfter(colIndex)}
+                              className="btn-icon"
+                              style={{ padding: '2px', background: 'white' }}
+                              title="Add column after"
+                            >
+                              <Plus size={12} />
+                            </button>
                           </div>
                         )}
                       </div>
@@ -654,7 +671,6 @@ const Expenses = () => {
         <div className="modal-actions">
           <button 
             onClick={() => {
-                
               setIsSheetModalOpen(false);
               setNewSheetName('');
             }} 
