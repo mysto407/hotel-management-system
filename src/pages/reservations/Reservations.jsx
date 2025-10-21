@@ -730,6 +730,7 @@ const Reservations = () => {
               <option value="Passport">Passport</option>
               <option value="Driving License">Driving License</option>
               <option value="Voter ID">Voter ID</option>
+              <option value="N/A">N/A</option>
             </select>
           </div>
           <div className="form-group">
