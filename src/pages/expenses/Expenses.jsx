@@ -18,6 +18,51 @@ const Expenses = () => {
   const [newSheetName, setNewSheetName] = useState('');
   const [hoveredColumn, setHoveredColumn] = useState(null);
   const [hoveredRow, setHoveredRow] = useState(null);
+  const [monthHeaders, setMonthHeaders] = useState([]);
+
+  // Helper function to get month/year from date
+  const getMonthYear = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  // Helper function to format month header
+  const formatMonthHeader = (monthYear) => {
+    if (!monthYear) return '';
+    const [year, month] = monthYear.split('-');
+    const date = new Date(year, parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  // Group rows by month
+  const getGroupedRows = () => {
+    const grouped = [];
+    let currentMonth = null;
+
+    rows.forEach((row, index) => {
+      const rowMonth = getMonthYear(row.date);
+      
+      // Add month header if month changes
+      if (rowMonth !== currentMonth) {
+        grouped.push({
+          type: 'header',
+          monthYear: rowMonth,
+          displayText: formatMonthHeader(rowMonth) || 'No Date Set'
+        });
+        currentMonth = rowMonth;
+      }
+      
+      // Add the actual row
+      grouped.push({
+        type: 'data',
+        data: row,
+        originalIndex: index
+      });
+    });
+
+    return grouped;
+  };
 
   // Default columns - split into groups to allow custom columns between them
   const fixedColumns = [
@@ -516,73 +561,101 @@ const Expenses = () => {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, rowIndex) => (
-                  <tr 
-                    key={row.id}
-                    onMouseEnter={() => setHoveredRow(rowIndex)}
-                    onMouseLeave={() => setHoveredRow(null)}
-                  >
-                    <td style={{ 
-                      padding: '4px',
-                      textAlign: 'center',
-                      border: '1px solid #d1d5db',
-                      background: hoveredRow === rowIndex ? '#f3f4f6' : '#f9fafb',
-                      fontWeight: '600',
-                      color: '#6b7280',
-                      fontSize: '11px',
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 10
-                    }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                        <span>{rowIndex + 1}</span>
-                        {hoveredRow === rowIndex && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <button
-                              onClick={() => addRowAfter(rowIndex)}
-                              className="btn-icon"
-                              style={{ padding: '2px', background: 'white' }}
-                              title="Add row after"
-                            >
-                              <Plus size={10} />
-                            </button>
-                            {rows.length > 1 && (
-                              <button
-                                onClick={() => removeRow(row.id)}
-                                className="btn-icon"
-                                style={{ padding: '2px', background: 'white', color: '#ef4444' }}
-                                title="Delete row"
-                              >
-                                <Trash2 size={10} />
-                              </button>
+                {getGroupedRows().map((item, idx) => {
+                  if (item.type === 'header') {
+                    // Month Header Row
+                    return (
+                      <tr key={`header-${item.monthYear}-${idx}`}>
+                        <td 
+                          colSpan={allColumns.length + 1}
+                          style={{
+                            padding: '10px 16px',
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            color: 'white',
+                            fontWeight: '700',
+                            fontSize: '14px',
+                            textAlign: 'left',
+                            border: '1px solid #2563eb',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          📅 {item.displayText}
+                        </td>
+                      </tr>
+                    );
+                  } else {
+                    // Data Row
+                    const row = item.data;
+                    const rowIndex = item.originalIndex;
+                    return (
+                      <tr 
+                        key={row.id}
+                        onMouseEnter={() => setHoveredRow(rowIndex)}
+                        onMouseLeave={() => setHoveredRow(null)}
+                      >
+                        <td style={{ 
+                          padding: '4px',
+                          textAlign: 'center',
+                          border: '1px solid #d1d5db',
+                          background: hoveredRow === rowIndex ? '#f3f4f6' : '#f9fafb',
+                          fontWeight: '600',
+                          color: '#6b7280',
+                          fontSize: '11px',
+                          position: 'sticky',
+                          left: 0,
+                          zIndex: 10
+                        }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            <span>{rowIndex + 1}</span>
+                            {hoveredRow === rowIndex && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <button
+                                  onClick={() => addRowAfter(rowIndex)}
+                                  className="btn-icon"
+                                  style={{ padding: '2px', background: 'white' }}
+                                  title="Add row after"
+                                >
+                                  <Plus size={10} />
+                                </button>
+                                {rows.length > 1 && (
+                                  <button
+                                    onClick={() => removeRow(row.id)}
+                                    className="btn-icon"
+                                    style={{ padding: '2px', background: 'white', color: '#ef4444' }}
+                                    title="Delete row"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                    {allColumns.map(col => (
-                      <td key={col.id} style={{ 
-                        padding: '0',
-                        border: '1px solid #d1d5db'
-                      }}>
-                        <input
-                          type={col.type}
-                          value={getCellValue(row, col.id)}
-                          onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: 'none',
-                            outline: 'none',
-                            fontSize: '13px',
-                            fontFamily: 'inherit',
-                            background: 'transparent'
-                          }}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                        </td>
+                        {allColumns.map(col => (
+                          <td key={col.id} style={{ 
+                            padding: '0',
+                            border: '1px solid #d1d5db'
+                          }}>
+                            <input
+                              type={col.type}
+                              value={getCellValue(row, col.id)}
+                              onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '8px',
+                                border: 'none',
+                                outline: 'none',
+                                fontSize: '13px',
+                                fontFamily: 'inherit',
+                                background: 'transparent'
+                              }}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  }
+                })}
               </tbody>
             </table>
           </div>
