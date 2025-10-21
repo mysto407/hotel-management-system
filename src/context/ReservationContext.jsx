@@ -5,7 +5,8 @@ import {
   createReservation as createReservationAPI,
   updateReservation as updateReservationAPI,
   deleteReservation as deleteReservationAPI,
-  updateRoomStatus
+  updateRoomStatus,
+  createBill
 } from '../lib/supabase';
 
 const ReservationContext = createContext();
@@ -72,12 +73,72 @@ export const ReservationProvider = ({ children }) => {
     setReservations(reservations.filter(r => r.id !== id));
   };
 
+  // Calculate number of nights between check-in and check-out
+  const calculateNights = (checkInDate, checkOutDate) => {
+    const checkIn = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+    const diffTime = Math.abs(checkOut - checkIn);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 1;
+  };
+
   const checkIn = async (id) => {
     const reservation = reservations.find(r => r.id === id);
     if (!reservation) return;
 
-    await updateReservation(id, { status: 'Checked-in' });
-    await updateRoomStatus(reservation.room_id, 'Occupied');
+    try {
+      // Update reservation status to Checked-in
+      await updateReservation(id, { status: 'Checked-in' });
+      
+      // Update room status to Occupied
+      await updateRoomStatus(reservation.room_id, 'Occupied');
+
+      // Auto-create Room Charge Bill
+      const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+      const roomRate = reservation.rooms?.room_types?.base_price || 0;
+      const subtotal = nights * roomRate;
+      const tax = subtotal * 0.18; // 18% GST
+      const total = subtotal + tax;
+
+      // Create bill items for each night
+      const billItems = [];
+      for (let i = 0; i < nights; i++) {
+        billItems.push({
+          description: `Room ${reservation.rooms?.room_number || 'N/A'} - Night ${i + 1}`,
+          quantity: 1,
+          rate: roomRate,
+          amount: roomRate
+        });
+      }
+
+      // Create the room charge bill
+      const billData = {
+        reservation_id: reservation.id,
+        bill_type: 'Room',
+        subtotal: subtotal,
+        tax: tax,
+        discount: 0,
+        total: total,
+        paid_amount: 0,
+        balance: total,
+        payment_status: 'Pending',
+        notes: `Auto-generated room charge for ${nights} night(s)`
+      };
+
+      const { data: billResult, error: billError } = await createBill(billData, billItems);
+      
+      if (billError) {
+        console.error('Error creating room charge bill:', billError);
+        alert('Guest checked in successfully, but failed to create room charge bill. Please create manually.');
+      } else {
+        console.log('Room charge bill created successfully:', billResult);
+        alert(`Guest checked in successfully! Room charge bill created for ${nights} night(s) - Total: ₹${total.toFixed(2)}`);
+      }
+
+    } catch (error) {
+      console.error('Error during check-in:', error);
+      alert('Failed to complete check-in: ' + error.message);
+    }
   };
 
   const checkOut = async (id) => {
