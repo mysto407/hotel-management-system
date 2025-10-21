@@ -1600,3 +1600,329 @@ body {
         min-width: 600px;
     }
 }
+
+
+/* Expenses Page Styles */
+
+.expenses-header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.expenses-title {
+    margin: 0;
+}
+
+
+/* Category Pills */
+
+.category-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.category-pill {
+    padding: 8px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    background: white;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.category-pill.active {
+    border: 2px solid #3b82f6;
+    background: #dbeafe;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.category-pill.add-pill {
+    border: 2px dashed #d1d5db;
+    color: #6b7280;
+}
+
+.category-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Sheet Tabs */
+
+.sheet-tabs-card {
+    padding: 12px 16px;
+}
+
+.sheet-tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 8px;
+}
+
+.sheet-tabs-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-right: 8px;
+}
+
+.sheet-tab {
+    padding: 8px 16px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 4px 4px 0 0;
+    background: transparent;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sheet-tab.active {
+    border-bottom: 3px solid #3b82f6;
+    background: #f0f9ff;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.sheet-tab.add-tab {
+    background: #f3f4f6;
+    border-radius: 4px;
+}
+
+.sheet-tab:hover {
+    background: #f9fafb;
+}
+
+.sheet-tab.add-tab:hover {
+    background: #e5e7eb;
+}
+
+
+/* Spreadsheet */
+
+.spreadsheet-card {
+    padding: 16px;
+    overflow: auto;
+}
+
+.sheet-name-header {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sheet-name-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.sheet-name-input {
+    font-size: 18px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border: 2px solid #3b82f6;
+    border-radius: 4px;
+}
+
+.sheet-name-btn.save {
+    color: #10b981;
+}
+
+.sheet-name-btn.cancel {
+    color: #ef4444;
+}
+
+.spreadsheet-container {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    overflow: auto;
+    background: white;
+}
+
+.spreadsheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+
+/* Spreadsheet Headers */
+
+.spreadsheet-row-header {
+    padding: 0;
+    width: 40px;
+    min-width: 40px;
+    border: 1px solid #d1d5db;
+    background: #f3f4f6;
+    position: sticky;
+    left: 0;
+    z-index: 11;
+}
+
+.spreadsheet-col-header {
+    padding: 8px;
+    min-width: 120px;
+    border: 1px solid #d1d5db;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    color: #374151;
+    background: #f9fafb;
+    position: relative;
+}
+
+.spreadsheet-col-header.hovered {
+    background: #f3f4f6;
+}
+
+.spreadsheet-col-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.spreadsheet-col-actions {
+    display: flex;
+    gap: 2px;
+}
+
+
+/* Spreadsheet Rows */
+
+.spreadsheet-row-number {
+    padding: 4px;
+    text-align: center;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 11px;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+}
+
+.spreadsheet-row-number.hovered {
+    background: #f3f4f6;
+}
+
+.spreadsheet-row-number-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.spreadsheet-row-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+
+/* Spreadsheet Cells */
+
+.spreadsheet-cell {
+    padding: 0;
+    border: 1px solid #d1d5db;
+}
+
+.spreadsheet-cell-input {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    font-family: inherit;
+    background: transparent;
+}
+
+
+/* Spreadsheet Action Buttons */
+
+.spreadsheet-action-btn {
+    padding: 2px;
+    background: white;
+}
+
+.spreadsheet-action-btn.delete {
+    color: #ef4444;
+}
+
+
+/* Month Headers */
+
+.spreadsheet-month-header {
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: left;
+    border: 1px solid #2563eb;
+    letter-spacing: 0.5px;
+}
+
+
+/* Total Row */
+
+.spreadsheet-total {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #fef3c7;
+    border: 2px solid #fbbf24;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.spreadsheet-total-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #78350f;
+}
+
+.spreadsheet-total-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #78350f;
+}
+
+
+/* Responsive adjustments for expenses */
+
+@media (max-width: 768px) {
+    .expenses-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .category-pills,
+    .sheet-tabs-container {
+        width: 100%;
+    }
+}

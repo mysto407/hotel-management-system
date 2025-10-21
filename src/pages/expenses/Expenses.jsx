@@ -1,6 +1,6 @@
 // src/pages/expenses/Expenses.jsx
 import { useState, useEffect } from 'react';
-import { Save, Download, Edit2, X, Check, FolderPlus, FileText, Plus, Trash2 } from 'lucide-react';
+import { Download, Edit2, X, Check, Plus, Trash2 } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
 
@@ -18,13 +18,55 @@ const Expenses = () => {
   const [newSheetName, setNewSheetName] = useState('');
   const [hoveredColumn, setHoveredColumn] = useState(null);
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [monthHeaders, setMonthHeaders] = useState([]);
 
-  // Helper function to get month/year from date
+  // Fixed columns - split into groups to allow custom columns between them
+  const fixedColumns = [
+    { id: 'date', name: 'Date', type: 'date', fixed: true, group: 'start' },
+    { id: 'refNo', name: 'Ref No.', type: 'text', fixed: true, group: 'start' },
+    { id: 'totalAmount', name: 'Total Amount', type: 'number', fixed: true, group: 'end' },
+    { id: 'remarks', name: 'Remarks', type: 'text', fixed: true, group: 'end' }
+  ];
+
+  const [customColumns, setCustomColumns] = useState([]);
+  // Helper to convert date from yyyy-mm-dd to dd/mm/yyyy
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  // Helper to convert date from dd/mm/yyyy to yyyy-mm-dd
+  const formatDateForStorage = (dateString) => {
+    if (!dateString) return '';
+    const [day, month, year] = dateString.split('/');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [rows, setRows] = useState([
+    {
+      id: 1,
+      date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
+      refNo: '',
+      totalAmount: 0,
+      remarks: '',
+      customData: {}
+    }
+  ]);
+
+  // Build allColumns with custom columns interspersed
+  const allColumns = [
+    ...fixedColumns.filter(col => col.group === 'start'),
+    ...customColumns,
+    ...fixedColumns.filter(col => col.group === 'end')
+  ];
+
+  // Helper function to get month/year from date (now handles dd/mm/yyyy format)
   const getMonthYear = (dateString) => {
     if (!dateString) return null;
-    const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    // Convert dd/mm/yyyy to yyyy-mm-dd for proper parsing
+    const [day, month, year] = dateString.split('/');
+    if (!day || !month || !year) return null;
+    return `${year}-${month.padStart(2, '0')}`;
   };
 
   // Helper function to format month header
@@ -43,7 +85,6 @@ const Expenses = () => {
     rows.forEach((row, index) => {
       const rowMonth = getMonthYear(row.date);
       
-      // Add month header if month changes
       if (rowMonth !== currentMonth) {
         grouped.push({
           type: 'header',
@@ -53,7 +94,6 @@ const Expenses = () => {
         currentMonth = rowMonth;
       }
       
-      // Add the actual row
       grouped.push({
         type: 'data',
         data: row,
@@ -63,33 +103,6 @@ const Expenses = () => {
 
     return grouped;
   };
-
-  // Default columns - split into groups to allow custom columns between them
-  const fixedColumns = [
-    { id: 'date', name: 'Date', type: 'date', fixed: true, group: 'start' },
-    { id: 'refNo', name: 'Ref No.', type: 'text', fixed: true, group: 'start' },
-    { id: 'totalAmount', name: 'Total Amount', type: 'number', fixed: true, group: 'end' },
-    { id: 'remarks', name: 'Remarks', type: 'text', fixed: true, group: 'end' }
-  ];
-
-  const [customColumns, setCustomColumns] = useState([]);
-  const [rows, setRows] = useState([
-    {
-      id: 1,
-      date: new Date().toISOString().split('T')[0],
-      refNo: '',
-      totalAmount: 0,
-      remarks: '',
-      customData: {}
-    }
-  ]);
-
-  // Build allColumns with custom columns interspersed
-  const allColumns = [
-    ...fixedColumns.filter(col => col.group === 'start'),
-    ...customColumns,
-    ...fixedColumns.filter(col => col.group === 'end')
-  ];
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -103,10 +116,7 @@ const Expenses = () => {
 
   // Save data to localStorage whenever it changes
   useEffect(() => {
-    const data = {
-      categories,
-      sheets
-    };
+    const data = { categories, sheets };
     localStorage.setItem('expenseData', JSON.stringify(data));
   }, [categories, sheets]);
 
@@ -120,7 +130,7 @@ const Expenses = () => {
         setRows(sheetData.rows || [
           {
             id: 1,
-            date: new Date().toISOString().split('T')[0],
+            date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
             refNo: '',
             totalAmount: 0,
             remarks: '',
@@ -131,7 +141,6 @@ const Expenses = () => {
     }
   }, [selectedCategory, selectedSheet, sheets]);
 
-  // Add new category
   const addCategory = () => {
     if (newCategoryName.trim() && !categories.includes(newCategoryName.trim())) {
       setCategories([...categories, newCategoryName.trim()]);
@@ -142,7 +151,6 @@ const Expenses = () => {
     }
   };
 
-  // Add new sheet
   const addSheet = () => {
     if (newSheetName.trim() && selectedCategory) {
       const sheetKey = `${selectedCategory}_${newSheetName.trim()}`;
@@ -153,7 +161,7 @@ const Expenses = () => {
           rows: [
             {
               id: 1,
-              date: new Date().toISOString().split('T')[0],
+              date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
               refNo: '',
               totalAmount: 0,
               remarks: '',
@@ -171,14 +179,12 @@ const Expenses = () => {
     }
   };
 
-  // Get sheets for selected category
   const getSheetsForCategory = (category) => {
     return Object.keys(sheets)
       .filter(key => key.startsWith(`${category}_`))
       .map(key => key.replace(`${category}_`, ''));
   };
 
-  // Add column after specific position
   const addColumnAfter = (afterIndex) => {
     const columnName = prompt('Enter column name:');
     if (columnName && columnName.trim()) {
@@ -189,29 +195,20 @@ const Expenses = () => {
         fixed: false
       };
       
-      // Find how many fixed 'start' columns there are (Date, Ref No.)
       const startFixedCount = fixedColumns.filter(col => col.group === 'start').length;
-      
-      // Calculate where to insert in customColumns array
-      // afterIndex is the position in allColumns
-      // Custom columns start after the 'start' fixed columns
       const insertIndex = afterIndex - startFixedCount + 1;
       
       const updatedColumns = [...customColumns];
       if (insertIndex <= 0) {
-        // Insert at beginning of custom columns (right after 'start' fixed)
         updatedColumns.unshift(newColumn);
       } else if (insertIndex >= updatedColumns.length) {
-        // Insert at end of custom columns (right before 'end' fixed)
         updatedColumns.push(newColumn);
       } else {
-        // Insert at specific position
         updatedColumns.splice(insertIndex, 0, newColumn);
       }
       
       setCustomColumns(updatedColumns);
       
-      // Add empty values for existing rows
       const updatedRows = rows.map(row => ({
         ...row,
         customData: { ...row.customData, [newColumn.id]: '' }
@@ -222,7 +219,6 @@ const Expenses = () => {
     }
   };
 
-  // Remove custom column
   const removeColumn = (columnId) => {
     if (window.confirm('Are you sure you want to remove this column?')) {
       const updatedColumns = customColumns.filter(col => col.id !== columnId);
@@ -239,11 +235,10 @@ const Expenses = () => {
     }
   };
 
-  // Add row after specific position
   const addRowAfter = (afterIndex) => {
     const newRow = {
       id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
+      date: formatDateForDisplay(new Date().toISOString().split('T')[0]),
       refNo: '',
       totalAmount: 0,
       remarks: '',
@@ -260,7 +255,6 @@ const Expenses = () => {
     saveCurrentSheet(customColumns, updatedRows);
   };
 
-  // Remove row
   const removeRow = (rowId) => {
     if (rows.length > 1) {
       const updatedRows = rows.filter(row => row.id !== rowId);
@@ -269,7 +263,6 @@ const Expenses = () => {
     }
   };
 
-  // Update cell value
   const updateCell = (rowId, columnId, value) => {
     const updatedRows = rows.map(row => {
       if (row.id === rowId) {
@@ -288,7 +281,6 @@ const Expenses = () => {
     saveCurrentSheet(customColumns, updatedRows);
   };
 
-  // Get cell value
   const getCellValue = (row, columnId) => {
     if (columnId.startsWith('custom_')) {
       return row.customData[columnId] || '';
@@ -296,7 +288,6 @@ const Expenses = () => {
     return row[columnId] || '';
   };
 
-  // Edit sheet name
   const startEditingName = () => {
     setTempName(sheetName);
     setIsEditingName(true);
@@ -335,12 +326,10 @@ const Expenses = () => {
     setTempName('');
   };
 
-  // Calculate total
   const calculateTotal = () => {
     return rows.reduce((sum, row) => sum + (parseFloat(row.totalAmount) || 0), 0);
   };
 
-  // Save current sheet
   const saveCurrentSheet = (cols = customColumns, rowsData = rows) => {
     if (selectedCategory && selectedSheet) {
       const sheetKey = `${selectedCategory}_${selectedSheet}`;
@@ -355,7 +344,6 @@ const Expenses = () => {
     }
   };
 
-  // Export to CSV
   const exportToCSV = () => {
     if (!selectedCategory || !selectedSheet) {
       alert('Please select a category and sheet first!');
@@ -382,12 +370,12 @@ const Expenses = () => {
 
   return (
     <div>
+      {/* Page Header with Category Pills */}
       <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <h1 className="page-title" style={{ margin: 0 }}>Expenses Management</h1>
+        <div className="expenses-header-content">
+          <h1 className="page-title expenses-title">Expenses Management</h1>
           
-          {/* Category Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="category-pills">
             {categories.map(cat => (
               <button
                 key={cat}
@@ -396,40 +384,14 @@ const Expenses = () => {
                   setSelectedSheet('');
                   setSheetName('');
                 }}
-                style={{
-                  padding: '8px 16px',
-                  border: selectedCategory === cat ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                  borderRadius: '20px',
-                  background: selectedCategory === cat ? '#dbeafe' : 'white',
-                  color: selectedCategory === cat ? '#1e40af' : '#374151',
-                  fontSize: '14px',
-                  fontWeight: selectedCategory === cat ? '600' : '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
+                className={`category-pill ${selectedCategory === cat ? 'active' : ''}`}
               >
                 📁 {cat}
               </button>
             ))}
             <button
               onClick={() => setIsCategoryModalOpen(true)}
-              style={{
-                padding: '8px 16px',
-                border: '2px dashed #d1d5db',
-                borderRadius: '20px',
-                background: 'white',
-                color: '#6b7280',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className="category-pill add-pill"
               title="Add new category"
             >
               <Plus size={16} /> Add Category
@@ -446,52 +408,23 @@ const Expenses = () => {
         )}
       </div>
 
-      {/* Sheet Tabs - Show only when category is selected */}
+      {/* Sheet Tabs */}
       {selectedCategory && (
-        <Card style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', marginRight: '8px' }}>
-              Sheets:
-            </span>
+        <Card className="sheet-tabs-card">
+          <div className="sheet-tabs-container">
+            <span className="sheet-tabs-label">Sheets:</span>
             {getSheetsForCategory(selectedCategory).map(sheet => (
               <button
                 key={sheet}
                 onClick={() => setSelectedSheet(sheet)}
-                style={{
-                  padding: '8px 16px',
-                  border: 'none',
-                  borderBottom: selectedSheet === sheet ? '3px solid #3b82f6' : '3px solid transparent',
-                  borderRadius: '4px 4px 0 0',
-                  background: selectedSheet === sheet ? '#f0f9ff' : 'transparent',
-                  color: selectedSheet === sheet ? '#1e40af' : '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: selectedSheet === sheet ? '600' : '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
+                className={`sheet-tab ${selectedSheet === sheet ? 'active' : ''}`}
               >
                 📄 {sheet}
               </button>
             ))}
             <button
               onClick={() => setIsSheetModalOpen(true)}
-              style={{
-                padding: '8px 16px',
-                border: 'none',
-                borderRadius: '4px',
-                background: '#f3f4f6',
-                color: '#6b7280',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className="sheet-tab add-tab"
               title="Add new sheet"
             >
               <Plus size={16} /> Add Sheet
@@ -500,38 +433,30 @@ const Expenses = () => {
         </Card>
       )}
 
-      {/* Spreadsheet - Only show if category and sheet are selected */}
+      {/* Spreadsheet */}
       {selectedCategory && selectedSheet && (
-        <Card style={{ padding: '16px', overflow: 'auto' }}>
+        <Card className="spreadsheet-card">
           {/* Sheet Name Header */}
-          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="sheet-name-header">
             {isEditingName ? (
               <>
                 <input
                   type="text"
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
-                  style={{ 
-                    fontSize: '18px', 
-                    fontWeight: '600', 
-                    padding: '4px 8px',
-                    border: '2px solid #3b82f6',
-                    borderRadius: '4px'
-                  }}
+                  className="sheet-name-input"
                   autoFocus
                 />
-                <button onClick={saveName} className="btn-icon" style={{ color: '#10b981' }}>
+                <button onClick={saveName} className="btn-icon sheet-name-btn save">
                   <Check size={16} />
                 </button>
-                <button onClick={cancelEditName} className="btn-icon" style={{ color: '#ef4444' }}>
+                <button onClick={cancelEditName} className="btn-icon sheet-name-btn cancel">
                   <X size={16} />
                 </button>
               </>
             ) : (
               <>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                  {sheetName}
-                </h3>
+                <h3 className="sheet-name-title">{sheetName}</h3>
                 <button onClick={startEditingName} className="btn-icon" title="Edit name">
                   <Edit2 size={14} />
                 </button>
@@ -540,56 +465,26 @@ const Expenses = () => {
           </div>
 
           {/* Spreadsheet Table */}
-          <div style={{ 
-            border: '1px solid #d1d5db', 
-            borderRadius: '4px',
-            overflow: 'auto',
-            background: 'white'
-          }}>
-            <table style={{ 
-              width: '100%', 
-              borderCollapse: 'collapse',
-              fontFamily: 'monospace',
-              fontSize: '13px'
-            }}>
+          <div className="spreadsheet-container">
+            <table className="spreadsheet-table">
               <thead>
-                <tr style={{ background: '#f9fafb' }}>
-                  <th style={{ 
-                    padding: '0',
-                    width: '40px',
-                    minWidth: '40px',
-                    border: '1px solid #d1d5db',
-                    background: '#f3f4f6',
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 11
-                  }}></th>
+                <tr>
+                  <th className="spreadsheet-row-header"></th>
                   {allColumns.map((col, colIndex) => (
                     <th 
                       key={col.id}
                       onMouseEnter={() => setHoveredColumn(colIndex)}
                       onMouseLeave={() => setHoveredColumn(null)}
-                      style={{ 
-                        padding: '8px',
-                        minWidth: col.id === 'remarks' ? '200px' : '120px',
-                        border: '1px solid #d1d5db',
-                        textAlign: 'left',
-                        fontWeight: '600',
-                        fontSize: '12px',
-                        color: '#374151',
-                        background: hoveredColumn === colIndex ? '#f3f4f6' : '#f9fafb',
-                        position: 'relative'
-                      }}
+                      className={`spreadsheet-col-header ${hoveredColumn === colIndex ? 'hovered' : ''}`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                      <div className="spreadsheet-col-header-content">
                         <span>{col.name}</span>
                         {hoveredColumn === colIndex && (
-                          <div style={{ display: 'flex', gap: '2px' }}>
+                          <div className="spreadsheet-col-actions">
                             {!col.fixed && (
                               <button
                                 onClick={() => removeColumn(col.id)}
-                                className="btn-icon"
-                                style={{ padding: '2px', background: 'white', color: '#ef4444' }}
+                                className="btn-icon spreadsheet-action-btn delete"
                                 title="Delete column"
                               >
                                 <Trash2 size={12} />
@@ -597,8 +492,7 @@ const Expenses = () => {
                             )}
                             <button
                               onClick={() => addColumnAfter(colIndex)}
-                              className="btn-icon"
-                              style={{ padding: '2px', background: 'white' }}
+                              className="btn-icon spreadsheet-action-btn"
                               title="Add column after"
                             >
                               <Plus size={12} />
@@ -613,56 +507,30 @@ const Expenses = () => {
               <tbody>
                 {getGroupedRows().map((item, idx) => {
                   if (item.type === 'header') {
-                    // Month Header Row
                     return (
                       <tr key={`header-${item.monthYear}-${idx}`}>
-                        <td 
-                          colSpan={allColumns.length + 1}
-                          style={{
-                            padding: '10px 16px',
-                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                            color: 'white',
-                            fontWeight: '700',
-                            fontSize: '14px',
-                            textAlign: 'left',
-                            border: '1px solid #2563eb',
-                            letterSpacing: '0.5px'
-                          }}
-                        >
+                        <td colSpan={allColumns.length + 1} className="spreadsheet-month-header">
                           📅 {item.displayText}
                         </td>
                       </tr>
                     );
                   } else {
-                    // Data Row
                     const row = item.data;
                     const rowIndex = item.originalIndex;
                     return (
-                      <tr 
-                        key={row.id}
-                        onMouseEnter={() => setHoveredRow(rowIndex)}
-                        onMouseLeave={() => setHoveredRow(null)}
-                      >
-                        <td style={{ 
-                          padding: '4px',
-                          textAlign: 'center',
-                          border: '1px solid #d1d5db',
-                          background: hoveredRow === rowIndex ? '#f3f4f6' : '#f9fafb',
-                          fontWeight: '600',
-                          color: '#6b7280',
-                          fontSize: '11px',
-                          position: 'sticky',
-                          left: 0,
-                          zIndex: 10
-                        }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                      <tr key={row.id}>
+                        <td 
+                          onMouseEnter={() => setHoveredRow(rowIndex)}
+                          onMouseLeave={() => setHoveredRow(null)}
+                          className={`spreadsheet-row-number ${hoveredRow === rowIndex ? 'hovered' : ''}`}
+                        >
+                          <div className="spreadsheet-row-number-content">
                             <span>{rowIndex + 1}</span>
                             {hoveredRow === rowIndex && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <div className="spreadsheet-row-actions">
                                 <button
                                   onClick={() => addRowAfter(rowIndex)}
-                                  className="btn-icon"
-                                  style={{ padding: '2px', background: 'white' }}
+                                  className="btn-icon spreadsheet-action-btn"
                                   title="Add row after"
                                 >
                                   <Plus size={10} />
@@ -670,8 +538,7 @@ const Expenses = () => {
                                 {rows.length > 1 && (
                                   <button
                                     onClick={() => removeRow(row.id)}
-                                    className="btn-icon"
-                                    style={{ padding: '2px', background: 'white', color: '#ef4444' }}
+                                    className="btn-icon spreadsheet-action-btn delete"
                                     title="Delete row"
                                   >
                                     <Trash2 size={10} />
@@ -682,24 +549,30 @@ const Expenses = () => {
                           </div>
                         </td>
                         {allColumns.map(col => (
-                          <td key={col.id} style={{ 
-                            padding: '0',
-                            border: '1px solid #d1d5db'
-                          }}>
-                            <input
-                              type={col.type}
-                              value={getCellValue(row, col.id)}
-                              onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                              style={{
-                                width: '100%',
-                                padding: '8px',
-                                border: 'none',
-                                outline: 'none',
-                                fontSize: '13px',
-                                fontFamily: 'inherit',
-                                background: 'transparent'
-                              }}
-                            />
+                          <td key={col.id} className="spreadsheet-cell">
+                            {col.type === 'date' ? (
+                              <input
+                                type="text"
+                                value={getCellValue(row, col.id)}
+                                onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                                placeholder="DD/MM/YYYY"
+                                className="spreadsheet-cell-input"
+                                onBlur={(e) => {
+                                  // Validate date format on blur
+                                  const value = e.target.value;
+                                  if (value && !/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+                                    alert('Please enter date in DD/MM/YYYY format');
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <input
+                                type={col.type}
+                                value={getCellValue(row, col.id)}
+                                onChange={(e) => updateCell(row.id, col.id, e.target.value)}
+                                className="spreadsheet-cell-input"
+                              />
+                            )}
                           </td>
                         ))}
                       </tr>
@@ -710,31 +583,10 @@ const Expenses = () => {
             </table>
           </div>
 
-          {/* Total Row - Outside Table */}
-          <div style={{
-            marginTop: '16px',
-            padding: '12px 16px',
-            background: '#fef3c7',
-            border: '2px solid #fbbf24',
-            borderRadius: '6px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <span style={{ 
-              fontSize: '15px',
-              fontWeight: '600',
-              color: '#78350f'
-            }}>
-              Total:
-            </span>
-            <span style={{ 
-              fontSize: '18px',
-              fontWeight: '700',
-              color: '#78350f'
-            }}>
-              ₹{calculateTotal().toFixed(2)}
-            </span>
+          {/* Total Row */}
+          <div className="spreadsheet-total">
+            <span className="spreadsheet-total-label">Total:</span>
+            <span className="spreadsheet-total-value">₹{calculateTotal().toFixed(2)}</span>
           </div>
         </Card>
       )}
