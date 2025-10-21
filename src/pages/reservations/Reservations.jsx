@@ -24,6 +24,7 @@ const Reservations = () => {
   const [formData, setFormData] = useState({
     booking_source: 'direct',
     agent_id: '',
+    direct_source: '', // NEW FIELD for direct booking source
     guest_id: '',
     room_id: '',
     check_in_date: '',
@@ -69,6 +70,7 @@ const Reservations = () => {
     const reservationData = {
       booking_source: formData.booking_source,
       agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
+      direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
       guest_id: formData.guest_id,
       room_id: formData.room_id,
       check_in_date: formData.check_in_date,
@@ -97,6 +99,7 @@ const Reservations = () => {
     setFormData({
       booking_source: 'direct',
       agent_id: '',
+      direct_source: '',
       guest_id: '',
       room_id: '',
       check_in_date: '',
@@ -193,6 +196,7 @@ const Reservations = () => {
     setFormData({
       booking_source: reservation.booking_source || 'direct',
       agent_id: reservation.agent_id || '',
+      direct_source: reservation.direct_source || '',
       guest_id: reservation.guest_id,
       room_id: reservation.room_id,
       check_in_date: reservation.check_in_date,
@@ -419,13 +423,29 @@ const Reservations = () => {
             <select
               value={formData.booking_source}
               onChange={(e) => {
-                setFormData({...formData, booking_source: e.target.value, agent_id: ''});
+                setFormData({...formData, booking_source: e.target.value, agent_id: '', direct_source: ''});
               }}
             >
               <option value="direct">Direct</option>
               <option value="agent">Agent</option>
             </select>
           </div>
+
+          {/* Direct Source - Show if booking source is direct */}
+          {formData.booking_source === 'direct' && (
+            <div className="form-group">
+              <label>Direct Booking Source</label>
+              <input
+                type="text"
+                value={formData.direct_source}
+                onChange={(e) => setFormData({...formData, direct_source: e.target.value})}
+                placeholder="e.g., Walk-in, Phone Call, Website"
+              />
+              <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
+                Optional: Specify where this booking came from
+              </small>
+            </div>
+          )}
 
           {/* Agent Selection - Only show if booking source is agent */}
           {formData.booking_source === 'agent' && (
