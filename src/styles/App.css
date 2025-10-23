@@ -880,14 +880,17 @@ body {
 }
 
 .calendar-table thead .calendar-fixed-column {
-    z-index: 20;
+    z-index: 30;
+    /* Higher z-index for header first column */
+    background: white;
 }
 
 
 /* Make the first column in availability row extra sticky */
 
 .availability-row .calendar-fixed-column {
-    z-index: 25;
+    z-index: 28;
+    background: #f0f9ff;
 }
 
 
@@ -909,6 +912,17 @@ body {
 .calendar-date-header.today {
     background: #dbeafe;
     color: #1e40af;
+}
+
+
+/* First column in date header row - make it sticky both ways */
+
+.calendar-table thead tr:first-child .calendar-fixed-column {
+    position: sticky;
+    left: 0;
+    top: 0;
+    z-index: 30;
+    background: white;
 }
 
 .date-header-content {
@@ -943,19 +957,32 @@ body {
     border-bottom: 2px solid #3b82f6;
 }
 
-.availability-row th {
-    position: sticky;
-    top: 105px;
-    /* Sticks below date header (adjust if date header height changes) */
-    z-index: 18;
-    background: #f0f9ff;
-}
-
+.availability-row th,
 .availability-row td {
     position: sticky;
     top: 105px;
-    /* Sticks below date header */
+    /* Sticks below date header (adjust if date header height changes) */
+    background: #f0f9ff;
+    border-top: 0;
+    /* Remove any top border that might cause gaps */
+}
+
+.availability-row th {
+    z-index: 18;
+}
+
+.availability-row td {
     z-index: 8;
+}
+
+
+/* First column in availability row - sticky both horizontally and vertically */
+
+.availability-row .calendar-fixed-column {
+    position: sticky;
+    left: 0;
+    top: 105px;
+    z-index: 28;
     background: #f0f9ff;
 }
 
