@@ -187,7 +187,9 @@ const ReservationCalendar = () => {
                   );
                 })}
               </tr>
+            </thead>
 
+            <tbody>
               {/* Total Availability Row */}
               <tr className="availability-row">
                 <th className="calendar-fixed-column availability-label">Total Availability</th>
@@ -204,9 +206,7 @@ const ReservationCalendar = () => {
                   );
                 })}
               </tr>
-            </thead>
 
-            <tbody>
               {/* Room Types and Rooms */}
               {roomTypes.map(roomType => {
                 const typeRooms = rooms.filter(r => r.room_type_id === roomType.id);
