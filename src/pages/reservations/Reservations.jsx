@@ -387,22 +387,21 @@ const Reservations = () => {
     <div>
       <div className="page-header">
         <h1 className="page-title">Reservations</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={20} /> New Booking
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <div style={{ marginBottom: '20px' }}>
-        <div className="search-box" style={{ width: '100%', maxWidth: '500px' }}>
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search by guest name or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%' }}
-          />
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* Search Input */}
+          <div className="search-box" style={{ width: '300px' }}>
+            <Search size={18} />
+            <input
+              type="text"
+              placeholder="Search guest name or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+            <Plus size={20} /> New Booking
+          </button>
         </div>
       </div>
 
@@ -418,23 +417,16 @@ const Reservations = () => {
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '8px', 
+            justifyContent: 'space-between',
             marginBottom: '16px'
           }}>
-            <Calendar size={20} color="#3b82f6" />
-            <h3 style={{ 
-              fontSize: '16px', 
-              fontWeight: '600', 
-              color: '#1f2937',
-              margin: 0
-            }}>
-              Date Range Filter
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={18} color="#3b82f6" />
+            </div>
             {hasActiveFilters() && (
               <button
                 onClick={clearAllFilters}
                 style={{
-                  marginLeft: 'auto',
                   padding: '6px 12px',
                   fontSize: '13px',
                   background: '#fee2e2',
@@ -455,8 +447,8 @@ const Reservations = () => {
             <button
               onClick={() => setDatePreset('all')}
               style={{
-                padding: '8px 16px',
-                fontSize: '14px',
+                padding: '6px 12px',
+                fontSize: '13px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -476,8 +468,8 @@ const Reservations = () => {
                 setDateFilterType('today');
               }}
               style={{
-                padding: '8px 16px',
-                fontSize: '14px',
+                padding: '6px 12px',
+                fontSize: '13px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -492,8 +484,8 @@ const Reservations = () => {
             <button
               onClick={() => setDatePreset('weekly')}
               style={{
-                padding: '8px 16px',
-                fontSize: '14px',
+                padding: '6px 12px',
+                fontSize: '13px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -508,8 +500,8 @@ const Reservations = () => {
             <button
               onClick={() => setDatePreset('fortnightly')}
               style={{
-                padding: '8px 16px',
-                fontSize: '14px',
+                padding: '6px 12px',
+                fontSize: '13px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -524,8 +516,8 @@ const Reservations = () => {
             <button
               onClick={() => setDatePreset('monthly')}
               style={{
-                padding: '8px 16px',
-                fontSize: '14px',
+                padding: '6px 12px',
+                fontSize: '13px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -540,8 +532,8 @@ const Reservations = () => {
             <button
               onClick={() => setDateFilterType('custom')}
               style={{
-                padding: '8px 16px',
-                fontSize: '14px',
+                padding: '6px 12px',
+                fontSize: '13px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 cursor: 'pointer',
