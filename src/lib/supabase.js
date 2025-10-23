@@ -179,7 +179,8 @@ export const getReservations = async() => {
         .select(`
       *,
       guests (*),
-      rooms (*, room_types (*))
+      rooms (*, room_types (*)),
+      agents (*)
     `)
         .order('created_at', { ascending: false })
     return { data, error }
