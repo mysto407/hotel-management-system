@@ -392,274 +392,22 @@ const Reservations = () => {
         </button>
       </div>
 
-      {/* Consolidated Filters Panel */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: 'white', 
-          borderRadius: '8px', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          overflow: 'hidden'
-        }}>
-          {/* Filter Header */}
-          <div 
-            style={{ 
-              padding: '16px 20px',
-              background: '#f9fafb',
-              borderBottom: '1px solid #e5e7eb',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              cursor: 'pointer'
-            }}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Filter size={20} color="#3b82f6" />
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                Advanced Filters & Search
-              </h3>
-              {hasActiveFilters() && (
-                <span style={{
-                  background: '#3b82f6',
-                  color: 'white',
-                  fontSize: '12px',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontWeight: '600'
-                }}>
-                  Active
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {hasActiveFilters() && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clearAllFilters();
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '13px',
-                    background: '#fee2e2',
-                    color: '#dc2626',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  Clear All
-                </button>
-              )}
-              <span style={{ 
-                color: '#6b7280', 
-                fontSize: '14px',
-                transition: 'transform 0.2s',
-                transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
-              }}>
-                ▼
-              </span>
-            </div>
-          </div>
-
-          {/* Filter Content */}
-          {showFilters && (
-            <div style={{ padding: '20px' }}>
-              {/* Search Bar */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '13px', 
-                  fontWeight: '600', 
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Search Guest
-                </label>
-                <div className="search-box" style={{ width: '100%' }}>
-                  <Search size={18} />
-                  <input
-                    type="text"
-                    placeholder="Search by guest name or phone..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              {/* Filter Grid */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: '16px',
-                marginBottom: '20px'
-              }}>
-                {/* Status Filter */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: '13px', 
-                    fontWeight: '600', 
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Status
-                  </label>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="all">All Status</option>
-                    <option value="Inquiry">Inquiry</option>
-                    <option value="Tentative">Tentative</option>
-                    <option value="Hold">Hold</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Checked-in">Checked-in</option>
-                    <option value="Checked-out">Checked-out</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-
-                {/* Meal Plan Filter */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: '13px', 
-                    fontWeight: '600', 
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Meal Plan
-                  </label>
-                  <select
-                    value={filterMealPlan}
-                    onChange={(e) => setFilterMealPlan(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="all">All Meal Plans</option>
-                    <option value="NM">No Meal</option>
-                    <option value="BO">Breakfast Only</option>
-                    <option value="HB">Half Board</option>
-                    <option value="FB">Full Board</option>
-                  </select>
-                </div>
-
-                {/* Guest Count Filter */}
-                <div>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: '13px', 
-                    fontWeight: '600', 
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Number of Guests
-                  </label>
-                  <select
-                    value={filterGuestCount}
-                    onChange={(e) => setFilterGuestCount(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="all">All Guest Counts</option>
-                    <option value="1-2">1-2 Guests</option>
-                    <option value="3-4">3-4 Guests</option>
-                    <option value="5+">5+ Guests</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Active Filters Summary */}
-              {hasActiveFilters() && (
-                <div style={{ 
-                  marginTop: '20px',
-                  padding: '12px',
-                  background: '#fef3c7',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  color: '#92400e'
-                }}>
-                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>Active Filters:</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {searchTerm && (
-                      <span style={{ 
-                        padding: '2px 8px', 
-                        background: 'white', 
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        Search: "{searchTerm}"
-                      </span>
-                    )}
-                    {filterStatus !== 'all' && (
-                      <span style={{ 
-                        padding: '2px 8px', 
-                        background: 'white', 
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        Status: {filterStatus}
-                      </span>
-                    )}
-                    {filterMealPlan !== 'all' && (
-                      <span style={{ 
-                        padding: '2px 8px', 
-                        background: 'white', 
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        Meal: {getMealPlanLabel(filterMealPlan)}
-                      </span>
-                    )}
-                    {filterGuestCount !== 'all' && (
-                      <span style={{ 
-                        padding: '2px 8px', 
-                        background: 'white', 
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        Guests: {filterGuestCount}
-                      </span>
-                    )}
-                    {dateFilterType !== 'all' && (
-                      <span style={{ 
-                        padding: '2px 8px', 
-                        background: 'white', 
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}>
-                        Date Range Active
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+      {/* Search Bar */}
+      <div style={{ marginBottom: '20px' }}>
+        <div className="search-box" style={{ width: '100%', maxWidth: '500px' }}>
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Search by guest name or phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: '100%' }}
+          />
         </div>
       </div>
 
-      {/* Date Range Quick Filters - Outside Advanced Filters */}
+      {/* Main Filters - Date Range and Quick Filters */}
+      {/* Main Filters - Date Range and Quick Filters */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ 
           background: 'white', 
@@ -671,21 +419,39 @@ const Reservations = () => {
             display: 'flex', 
             alignItems: 'center', 
             gap: '8px', 
-            marginBottom: '12px'
+            marginBottom: '16px'
           }}>
-            <Calendar size={18} color="#3b82f6" />
-            <label style={{ 
-              fontSize: '14px', 
+            <Calendar size={20} color="#3b82f6" />
+            <h3 style={{ 
+              fontSize: '16px', 
               fontWeight: '600', 
-              color: '#374151',
+              color: '#1f2937',
               margin: 0
             }}>
               Date Range Filter
-            </label>
+            </h3>
+            {hasActiveFilters() && (
+              <button
+                onClick={clearAllFilters}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  background: '#fee2e2',
+                  color: '#dc2626',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                Clear All Filters
+              </button>
+            )}
           </div>
 
           {/* Quick Date Presets */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <button
               onClick={() => setDatePreset('all')}
               style={{
@@ -701,6 +467,27 @@ const Reservations = () => {
               }}
             >
               All Dates
+            </button>
+            <button
+              onClick={() => {
+                const today = new Date();
+                setStartDate(today.toISOString().split('T')[0]);
+                setEndDate(today.toISOString().split('T')[0]);
+                setDateFilterType('today');
+              }}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: dateFilterType === 'today' ? '#3b82f6' : 'white',
+                color: dateFilterType === 'today' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'today' ? '600' : '500',
+                transition: 'all 0.2s'
+              }}
+            >
+              Today
             </button>
             <button
               onClick={() => setDatePreset('weekly')}
@@ -770,7 +557,7 @@ const Reservations = () => {
 
           {/* Custom Date Range Inputs */}
           {dateFilterType === 'custom' && (
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
               <div style={{ flex: '1', minWidth: '150px' }}>
                 <label style={{ 
                   display: 'block', 
@@ -821,7 +608,7 @@ const Reservations = () => {
           {/* Active Date Filter Display */}
           {dateFilterType !== 'all' && (startDate || endDate) && (
             <div style={{ 
-              marginTop: '12px', 
+              marginBottom: '16px', 
               padding: '8px 12px', 
               background: '#f0f9ff', 
               borderRadius: '6px',
@@ -831,6 +618,326 @@ const Reservations = () => {
               <strong>Active Range:</strong> {startDate || '...'} to {endDate || '...'}
             </div>
           )}
+
+          {/* Filter Shortcuts */}
+          <div style={{ 
+            borderTop: '1px solid #e5e7eb',
+            paddingTop: '16px'
+          }}>
+            {/* Status Filters */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ 
+                fontSize: '13px', 
+                fontWeight: '600', 
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Status
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'all' ? '#6b7280' : 'white',
+                    color: filterStatus === 'all' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'all' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Inquiry')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'Inquiry' ? '#a855f7' : 'white',
+                    color: filterStatus === 'Inquiry' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'Inquiry' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Inquiry
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Tentative')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'Tentative' ? '#f59e0b' : 'white',
+                    color: filterStatus === 'Tentative' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'Tentative' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Tentative
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Hold')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'Hold' ? '#fb923c' : 'white',
+                    color: filterStatus === 'Hold' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'Hold' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Hold
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Confirmed')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'Confirmed' ? '#10b981' : 'white',
+                    color: filterStatus === 'Confirmed' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'Confirmed' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Confirmed
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Checked-in')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'Checked-in' ? '#3b82f6' : 'white',
+                    color: filterStatus === 'Checked-in' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'Checked-in' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Checked-in
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Checked-out')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'Checked-out' ? '#059669' : 'white',
+                    color: filterStatus === 'Checked-out' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'Checked-out' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Checked-out
+                </button>
+                <button
+                  onClick={() => setFilterStatus('Cancelled')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterStatus === 'Cancelled' ? '#ef4444' : 'white',
+                    color: filterStatus === 'Cancelled' ? 'white' : '#374151',
+                    fontWeight: filterStatus === 'Cancelled' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Cancelled
+                </button>
+              </div>
+            </div>
+
+            {/* Meal Plan Filters */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ 
+                fontSize: '13px', 
+                fontWeight: '600', 
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Meal Plan
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setFilterMealPlan('all')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterMealPlan === 'all' ? '#6b7280' : 'white',
+                    color: filterMealPlan === 'all' ? 'white' : '#374151',
+                    fontWeight: filterMealPlan === 'all' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilterMealPlan('NM')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterMealPlan === 'NM' ? '#64748b' : 'white',
+                    color: filterMealPlan === 'NM' ? 'white' : '#374151',
+                    fontWeight: filterMealPlan === 'NM' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  No Meal
+                </button>
+                <button
+                  onClick={() => setFilterMealPlan('BO')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterMealPlan === 'BO' ? '#8b5cf6' : 'white',
+                    color: filterMealPlan === 'BO' ? 'white' : '#374151',
+                    fontWeight: filterMealPlan === 'BO' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Breakfast Only
+                </button>
+                <button
+                  onClick={() => setFilterMealPlan('HB')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterMealPlan === 'HB' ? '#d946ef' : 'white',
+                    color: filterMealPlan === 'HB' ? 'white' : '#374151',
+                    fontWeight: filterMealPlan === 'HB' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Half Board
+                </button>
+                <button
+                  onClick={() => setFilterMealPlan('FB')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterMealPlan === 'FB' ? '#ec4899' : 'white',
+                    color: filterMealPlan === 'FB' ? 'white' : '#374151',
+                    fontWeight: filterMealPlan === 'FB' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Full Board
+                </button>
+              </div>
+            </div>
+
+            {/* Guest Count Filters */}
+            <div>
+              <div style={{ 
+                fontSize: '13px', 
+                fontWeight: '600', 
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                Number of Guests
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setFilterGuestCount('all')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterGuestCount === 'all' ? '#6b7280' : 'white',
+                    color: filterGuestCount === 'all' ? 'white' : '#374151',
+                    fontWeight: filterGuestCount === 'all' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilterGuestCount('1-2')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterGuestCount === '1-2' ? '#06b6d4' : 'white',
+                    color: filterGuestCount === '1-2' ? 'white' : '#374151',
+                    fontWeight: filterGuestCount === '1-2' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  1-2 Guests
+                </button>
+                <button
+                  onClick={() => setFilterGuestCount('3-4')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterGuestCount === '3-4' ? '#0891b2' : 'white',
+                    color: filterGuestCount === '3-4' ? 'white' : '#374151',
+                    fontWeight: filterGuestCount === '3-4' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  3-4 Guests
+                </button>
+                <button
+                  onClick={() => setFilterGuestCount('5+')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: filterGuestCount === '5+' ? '#14b8a6' : 'white',
+                    color: filterGuestCount === '5+' ? 'white' : '#374151',
+                    fontWeight: filterGuestCount === '5+' ? '600' : '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  5+ Guests
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
