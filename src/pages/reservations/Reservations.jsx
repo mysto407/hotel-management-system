@@ -410,7 +410,7 @@ const Reservations = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Filter size={20} color="#3b82f6" />
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                Filters & Search
+                Advanced Filters & Search
               </h3>
               {hasActiveFilters() && (
                 <span style={{
@@ -583,172 +583,6 @@ const Reservations = () => {
                 </div>
               </div>
 
-              {/* Date Range Filter */}
-              <div style={{ 
-                borderTop: '1px solid #e5e7eb',
-                paddingTop: '20px'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  marginBottom: '12px'
-                }}>
-                  <Calendar size={18} color="#3b82f6" />
-                  <label style={{ 
-                    fontSize: '13px', 
-                    fontWeight: '600', 
-                    color: '#374151',
-                    margin: 0
-                  }}>
-                    Date Range
-                  </label>
-                </div>
-
-                {/* Quick Date Presets */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setDatePreset('all')}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '13px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: dateFilterType === 'all' ? '#3b82f6' : 'white',
-                      color: dateFilterType === 'all' ? 'white' : '#374151',
-                      fontWeight: dateFilterType === 'all' ? '600' : '500'
-                    }}
-                  >
-                    All Dates
-                  </button>
-                  <button
-                    onClick={() => setDatePreset('weekly')}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '13px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: dateFilterType === 'weekly' ? '#3b82f6' : 'white',
-                      color: dateFilterType === 'weekly' ? 'white' : '#374151',
-                      fontWeight: dateFilterType === 'weekly' ? '600' : '500'
-                    }}
-                  >
-                    Next 7 Days
-                  </button>
-                  <button
-                    onClick={() => setDatePreset('fortnightly')}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '13px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: dateFilterType === 'fortnightly' ? '#3b82f6' : 'white',
-                      color: dateFilterType === 'fortnightly' ? 'white' : '#374151',
-                      fontWeight: dateFilterType === 'fortnightly' ? '600' : '500'
-                    }}
-                  >
-                    Next 14 Days
-                  </button>
-                  <button
-                    onClick={() => setDatePreset('monthly')}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '13px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: dateFilterType === 'monthly' ? '#3b82f6' : 'white',
-                      color: dateFilterType === 'monthly' ? 'white' : '#374151',
-                      fontWeight: dateFilterType === 'monthly' ? '600' : '500'
-                    }}
-                  >
-                    Next 30 Days
-                  </button>
-                  <button
-                    onClick={() => setDateFilterType('custom')}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '13px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: dateFilterType === 'custom' ? '#3b82f6' : 'white',
-                      color: dateFilterType === 'custom' ? 'white' : '#374151',
-                      fontWeight: dateFilterType === 'custom' ? '600' : '500'
-                    }}
-                  >
-                    Custom Range
-                  </button>
-                </div>
-
-                {/* Custom Date Range Inputs */}
-                {dateFilterType === 'custom' && (
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1', minWidth: '150px' }}>
-                      <label style={{ 
-                        display: 'block', 
-                        fontSize: '12px', 
-                        color: '#6b7280',
-                        marginBottom: '4px'
-                      }}>
-                        From Date
-                      </label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      />
-                    </div>
-                    <div style={{ flex: '1', minWidth: '150px' }}>
-                      <label style={{ 
-                        display: 'block', 
-                        fontSize: '12px', 
-                        color: '#6b7280',
-                        marginBottom: '4px'
-                      }}>
-                        To Date
-                      </label>
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Active Date Filter Display */}
-                {dateFilterType !== 'all' && (startDate || endDate) && (
-                  <div style={{ 
-                    marginTop: '12px', 
-                    padding: '8px 12px', 
-                    background: '#f0f9ff', 
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    color: '#1e40af'
-                  }}>
-                    <strong>Date Filter:</strong> {startDate || '...'} to {endDate || '...'}
-                  </div>
-                )}
-              </div>
-
               {/* Active Filters Summary */}
               {hasActiveFilters() && (
                 <div style={{ 
@@ -814,6 +648,181 @@ const Reservations = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Date Range Quick Filters - Outside Advanced Filters */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '8px', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          padding: '20px'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            marginBottom: '12px'
+          }}>
+            <Calendar size={18} color="#3b82f6" />
+            <label style={{ 
+              fontSize: '14px', 
+              fontWeight: '600', 
+              color: '#374151',
+              margin: 0
+            }}>
+              Date Range Filter
+            </label>
+          </div>
+
+          {/* Quick Date Presets */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setDatePreset('all')}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: dateFilterType === 'all' ? '#3b82f6' : 'white',
+                color: dateFilterType === 'all' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'all' ? '600' : '500',
+                transition: 'all 0.2s'
+              }}
+            >
+              All Dates
+            </button>
+            <button
+              onClick={() => setDatePreset('weekly')}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: dateFilterType === 'weekly' ? '#3b82f6' : 'white',
+                color: dateFilterType === 'weekly' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'weekly' ? '600' : '500',
+                transition: 'all 0.2s'
+              }}
+            >
+              Next 7 Days
+            </button>
+            <button
+              onClick={() => setDatePreset('fortnightly')}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: dateFilterType === 'fortnightly' ? '#3b82f6' : 'white',
+                color: dateFilterType === 'fortnightly' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'fortnightly' ? '600' : '500',
+                transition: 'all 0.2s'
+              }}
+            >
+              Next 14 Days
+            </button>
+            <button
+              onClick={() => setDatePreset('monthly')}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: dateFilterType === 'monthly' ? '#3b82f6' : 'white',
+                color: dateFilterType === 'monthly' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'monthly' ? '600' : '500',
+                transition: 'all 0.2s'
+              }}
+            >
+              Next 30 Days
+            </button>
+            <button
+              onClick={() => setDateFilterType('custom')}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                background: dateFilterType === 'custom' ? '#3b82f6' : 'white',
+                color: dateFilterType === 'custom' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'custom' ? '600' : '500',
+                transition: 'all 0.2s'
+              }}
+            >
+              Custom Range
+            </button>
+          </div>
+
+          {/* Custom Date Range Inputs */}
+          {dateFilterType === 'custom' && (
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1', minWidth: '150px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '12px', 
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  From Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div style={{ flex: '1', minWidth: '150px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '12px', 
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  To Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Active Date Filter Display */}
+          {dateFilterType !== 'all' && (startDate || endDate) && (
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '8px 12px', 
+              background: '#f0f9ff', 
+              borderRadius: '6px',
+              fontSize: '13px',
+              color: '#1e40af'
+            }}>
+              <strong>Active Range:</strong> {startDate || '...'} to {endDate || '...'}
             </div>
           )}
         </div>
@@ -945,8 +954,7 @@ const Reservations = () => {
             padding: '16px', 
             background: '#ecfeff', 
             borderRadius: '8px',
-            border: '1px solid #a5f3fc',
-            gridColumn: 'span 2'
+            border: '1px solid #a5f3fc'
           }}>
             <div style={{ fontSize: '12px', color: '#0e7490', fontWeight: '600', marginBottom: '8px' }}>
               Payment Status
@@ -965,6 +973,41 @@ const Reservations = () => {
                   }}>
                     <span style={{ fontWeight: '600' }}>{count}</span>
                     <span>{paymentStatus}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Meal Plan Breakdown */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#fef2f2', 
+            borderRadius: '8px',
+            border: '1px solid #fecaca'
+          }}>
+            <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600', marginBottom: '8px' }}>
+              Meal Plans
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {[
+                { code: 'NM', label: 'No Meal' },
+                { code: 'BO', label: 'Breakfast Only' },
+                { code: 'HB', label: 'Half Board' },
+                { code: 'FB', label: 'Full Board' }
+              ].map(({ code, label }) => {
+                const count = filteredReservations.filter(r => r.meal_plan === code).length;
+                if (count === 0) return null;
+                return (
+                  <div key={code} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    fontSize: '13px',
+                    color: '#7f1d1d'
+                  }}>
+                    <span style={{ fontWeight: '600' }}>{count}</span>
+                    <span>{label}</span>
                   </div>
                 );
               })}
