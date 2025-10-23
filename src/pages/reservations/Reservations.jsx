@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, Save, XCircle, CheckCircle, LogOut, Search, Filter, UserPlus } from 'lucide-react';
+import { Plus, Edit2, XOctagon, Save, XCircle, CheckCircle, LogOut, Search, Filter, UserPlus, Calendar } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
@@ -20,11 +20,16 @@ const Reservations = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
+  
+  // Date filter states
+  const [dateFilterType, setDateFilterType] = useState('all'); // all, weekly, fortnightly, monthly, custom
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const [formData, setFormData] = useState({
     booking_source: 'direct',
     agent_id: '',
-    direct_source: '', // NEW FIELD for direct booking source
+    direct_source: '',
     guest_id: '',
     room_id: '',
     check_in_date: '',
@@ -60,6 +65,40 @@ const Reservations = () => {
     commission: '',
     address: ''
   });
+
+  // Function to set date ranges based on preset
+  const setDatePreset = (preset) => {
+    const today = new Date();
+    let start, end;
+
+    switch(preset) {
+      case 'weekly':
+        start = new Date(today);
+        end = new Date(today);
+        end.setDate(end.getDate() + 7);
+        break;
+      case 'fortnightly':
+        start = new Date(today);
+        end = new Date(today);
+        end.setDate(end.getDate() + 14);
+        break;
+      case 'monthly':
+        start = new Date(today);
+        end = new Date(today);
+        end.setMonth(end.getMonth() + 1);
+        break;
+      case 'all':
+      default:
+        setStartDate('');
+        setEndDate('');
+        setDateFilterType('all');
+        return;
+    }
+
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+    setDateFilterType(preset);
+  };
 
   const handleSubmit = async () => {
     if (!formData.guest_id || !formData.room_id || !formData.check_in_date || !formData.check_out_date) {
@@ -264,12 +303,33 @@ const Reservations = () => {
 
   const availableRooms = rooms.filter(r => r.status === 'Available');
 
+  // Enhanced filtering with date range
   const filteredReservations = reservations
     .filter(r => filterStatus === 'all' || r.status === filterStatus)
     .filter(r =>
       r.guests?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.guests?.phone?.includes(searchTerm)
-    );
+    )
+    .filter(r => {
+      // Date range filter
+      if (dateFilterType === 'all' || (!startDate && !endDate)) return true;
+      
+      const checkIn = new Date(r.check_in_date);
+      const checkOut = new Date(r.check_out_date);
+      const filterStart = startDate ? new Date(startDate) : null;
+      const filterEnd = endDate ? new Date(endDate) : null;
+
+      // Check if reservation overlaps with date range
+      if (filterStart && filterEnd) {
+        return (checkIn <= filterEnd && checkOut >= filterStart);
+      } else if (filterStart) {
+        return checkOut >= filterStart;
+      } else if (filterEnd) {
+        return checkIn <= filterEnd;
+      }
+      
+      return true;
+    });
 
   return (
     <div>
@@ -280,6 +340,7 @@ const Reservations = () => {
         </button>
       </div>
 
+      {/* Filters Bar */}
       <div className="filters-bar">
         <div className="search-box">
           <Search size={18} />
@@ -307,6 +368,143 @@ const Reservations = () => {
             <option value="Cancelled">Cancelled</option>
           </select>
         </div>
+      </div>
+
+      {/* Date Range Filters */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ 
+          background: 'white', 
+          padding: '20px', 
+          borderRadius: '8px', 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: '16px',
+            flexWrap: 'wrap'
+          }}>
+            <Calendar size={20} color="#3b82f6" />
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+              Filter by Date Range
+            </h3>
+          </div>
+
+          {/* Quick Date Presets */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setDatePreset('all')}
+              className={`quick-date-btn ${dateFilterType === 'all' ? 'active' : ''}`}
+              style={{
+                background: dateFilterType === 'all' ? '#3b82f6' : '#f3f4f6',
+                color: dateFilterType === 'all' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'all' ? '600' : '500'
+              }}
+            >
+              All Dates
+            </button>
+            <button
+              onClick={() => setDatePreset('weekly')}
+              className={`quick-date-btn ${dateFilterType === 'weekly' ? 'active' : ''}`}
+              style={{
+                background: dateFilterType === 'weekly' ? '#3b82f6' : '#f3f4f6',
+                color: dateFilterType === 'weekly' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'weekly' ? '600' : '500'
+              }}
+            >
+              Next 7 Days
+            </button>
+            <button
+              onClick={() => setDatePreset('fortnightly')}
+              className={`quick-date-btn ${dateFilterType === 'fortnightly' ? 'active' : ''}`}
+              style={{
+                background: dateFilterType === 'fortnightly' ? '#3b82f6' : '#f3f4f6',
+                color: dateFilterType === 'fortnightly' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'fortnightly' ? '600' : '500'
+              }}
+            >
+              Next 14 Days
+            </button>
+            <button
+              onClick={() => setDatePreset('monthly')}
+              className={`quick-date-btn ${dateFilterType === 'monthly' ? 'active' : ''}`}
+              style={{
+                background: dateFilterType === 'monthly' ? '#3b82f6' : '#f3f4f6',
+                color: dateFilterType === 'monthly' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'monthly' ? '600' : '500'
+              }}
+            >
+              Next 30 Days
+            </button>
+            <button
+              onClick={() => setDateFilterType('custom')}
+              className={`quick-date-btn ${dateFilterType === 'custom' ? 'active' : ''}`}
+              style={{
+                background: dateFilterType === 'custom' ? '#3b82f6' : '#f3f4f6',
+                color: dateFilterType === 'custom' ? 'white' : '#374151',
+                fontWeight: dateFilterType === 'custom' ? '600' : '500'
+              }}
+            >
+              Custom Range
+            </button>
+          </div>
+
+          {/* Custom Date Range Inputs */}
+          {dateFilterType === 'custom' && (
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <div className="form-group" style={{ margin: 0, minWidth: '200px' }}>
+                <label>From Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="form-group" style={{ margin: 0, minWidth: '200px' }}>
+                <label>To Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="btn-secondary"
+                  style={{ alignSelf: 'flex-end' }}
+                >
+                  <XCircle size={18} /> Clear
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Active Filter Display */}
+          {dateFilterType !== 'all' && (startDate || endDate) && (
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '8px 12px', 
+              background: '#f0f9ff', 
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#1e40af'
+            }}>
+              <strong>Active Filter:</strong> {startDate || '...'} to {endDate || '...'}
+              {dateFilterType !== 'custom' && ` (${dateFilterType.charAt(0).toUpperCase() + dateFilterType.slice(1)})`}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      <div style={{ marginBottom: '16px', color: '#6b7280', fontSize: '14px' }}>
+        Showing <strong style={{ color: '#1f2937' }}>{filteredReservations.length}</strong> of{' '}
+        <strong style={{ color: '#1f2937' }}>{reservations.length}</strong> reservations
       </div>
 
       <div className="table-container">
@@ -407,6 +605,18 @@ const Reservations = () => {
             ))}
           </tbody>
         </table>
+
+        {filteredReservations.length === 0 && (
+          <div style={{ 
+            padding: '40px', 
+            textAlign: 'center', 
+            color: '#6b7280' 
+          }}>
+            <Calendar size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+            <p style={{ fontSize: '16px', marginBottom: '8px' }}>No reservations found</p>
+            <p style={{ fontSize: '14px' }}>Try adjusting your filters</p>
+          </div>
+        )}
       </div>
 
       {/* Reservation Modal */}
