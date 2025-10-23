@@ -452,7 +452,7 @@ const Reservations = () => {
                 transition: 'transform 0.2s',
                 transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
               }}>
-                â–¼
+                ▼
               </span>
             </div>
           </div>
@@ -842,18 +842,25 @@ const Reservations = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredReservations.map(reservation => (
+            {filteredReservations.map(reservation => {
+              // Debug: Log reservation structure for agent bookings
+              if (reservation.booking_source === 'agent') {
+                console.log('Agent reservation:', {
+                  id: reservation.id,
+                  booking_source: reservation.booking_source,
+                  agent_id: reservation.agent_id,
+                  agents: reservation.agents
+                });
+              }
+              
+              return (
               <tr key={reservation.id}>
                 <td>
                   <div className="booking-badges">
                     {/* Booking Source Badge with Agent Name */}
-                    {reservation.booking_source === 'agent' && reservation.agents ? (
+                    {reservation.booking_source === 'agent' ? (
                       <span className="booking-badge booking-badge-agent">
-                        👤 Agent: {reservation.agents.name}
-                      </span>
-                    ) : reservation.booking_source === 'agent' ? (
-                      <span className="booking-badge booking-badge-agent">
-                        👤 Agent
+                        👤 Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
                       </span>
                     ) : (
                       <span className="booking-badge booking-badge-direct">
@@ -943,7 +950,8 @@ const Reservations = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
 
