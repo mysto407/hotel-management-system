@@ -884,6 +884,13 @@ body {
 }
 
 
+/* Make the first column in availability row extra sticky */
+
+.availability-row .calendar-fixed-column {
+    z-index: 25;
+}
+
+
 /* Date Headers */
 
 .calendar-date-header {
@@ -896,7 +903,7 @@ body {
     font-weight: 600;
     position: sticky;
     top: 0;
-    z-index: 5;
+    z-index: 15;
 }
 
 .calendar-date-header.today {
@@ -929,7 +936,7 @@ body {
 }
 
 
-/* Availability Row */
+/* Availability Row - Make it sticky below date headers */
 
 .availability-row {
     background: #f0f9ff;
@@ -938,9 +945,18 @@ body {
 
 .availability-row th {
     position: sticky;
-    top: 80px;
-    /* Adjust based on date header height */
-    z-index: 15;
+    top: 105px;
+    /* Sticks below date header (adjust if date header height changes) */
+    z-index: 18;
+    background: #f0f9ff;
+}
+
+.availability-row td {
+    position: sticky;
+    top: 105px;
+    /* Sticks below date header */
+    z-index: 8;
+    background: #f0f9ff;
 }
 
 .availability-label {
