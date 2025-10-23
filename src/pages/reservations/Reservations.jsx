@@ -908,7 +908,7 @@ const Reservations = () => {
                     {getMealPlanLabel(reservation.meal_plan)}
                   </span>
                 </td>
-                <td>â‚¹{reservation.total_amount}</td>
+                <td>{reservation.total_amount}.00</td>
                 <td>
                   <span className={`status-badge ${
                     reservation.payment_status === 'Paid' ? 'status-available' :
