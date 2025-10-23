@@ -452,7 +452,7 @@ const Reservations = () => {
                 transition: 'transform 0.2s',
                 transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
               }}>
-                ▼
+                â–¼
               </span>
             </div>
           </div>
@@ -819,10 +819,158 @@ const Reservations = () => {
         </div>
       </div>
 
-      {/* Results Summary */}
-      <div style={{ marginBottom: '16px', color: '#6b7280', fontSize: '14px' }}>
-        Showing <strong style={{ color: '#1f2937' }}>{filteredReservations.length}</strong> of{' '}
-        <strong style={{ color: '#1f2937' }}>{reservations.length}</strong> reservations
+      {/* Summary Statistics Box */}
+      <div style={{ 
+        marginBottom: '24px', 
+        background: 'white', 
+        borderRadius: '8px', 
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        padding: '20px'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '16px'
+        }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+            Summary
+          </h3>
+          <div style={{ color: '#6b7280', fontSize: '14px' }}>
+            Showing <strong style={{ color: '#1f2937' }}>{filteredReservations.length}</strong> of{' '}
+            <strong style={{ color: '#1f2937' }}>{reservations.length}</strong> reservations
+          </div>
+        </div>
+
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '16px'
+        }}>
+          {/* Total Revenue */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#f0f9ff', 
+            borderRadius: '8px',
+            border: '1px solid #bae6fd'
+          }}>
+            <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: '600', marginBottom: '4px' }}>
+              Total Revenue
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#0c4a6e' }}>
+              ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+            </div>
+          </div>
+
+          {/* Total Advance */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#f0fdf4', 
+            borderRadius: '8px',
+            border: '1px solid #bbf7d0'
+          }}>
+            <div style={{ fontSize: '12px', color: '#15803d', fontWeight: '600', marginBottom: '4px' }}>
+              Advance Collected
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#14532d' }}>
+              ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
+            </div>
+          </div>
+
+          {/* Balance Due */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#fef3c7', 
+            borderRadius: '8px',
+            border: '1px solid #fde68a'
+          }}>
+            <div style={{ fontSize: '12px', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>
+              Balance Due
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#78350f' }}>
+              ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
+            </div>
+          </div>
+
+          {/* Total Guests */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#fce7f3', 
+            borderRadius: '8px',
+            border: '1px solid #fbcfe8'
+          }}>
+            <div style={{ fontSize: '12px', color: '#9f1239', fontWeight: '600', marginBottom: '4px' }}>
+              Total Guests
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#881337' }}>
+              {filteredReservations.reduce((sum, r) => 
+                sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+              )}
+            </div>
+          </div>
+
+          {/* Status Breakdown */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#f5f3ff', 
+            borderRadius: '8px',
+            border: '1px solid #e9d5ff',
+            gridColumn: 'span 2'
+          }}>
+            <div style={{ fontSize: '12px', color: '#6b21a8', fontWeight: '600', marginBottom: '8px' }}>
+              Status Breakdown
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {['Inquiry', 'Tentative', 'Hold', 'Confirmed', 'Checked-in', 'Checked-out', 'Cancelled'].map(status => {
+                const count = filteredReservations.filter(r => r.status === status).length;
+                if (count === 0) return null;
+                return (
+                  <div key={status} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    fontSize: '13px',
+                    color: '#4c1d95'
+                  }}>
+                    <span style={{ fontWeight: '600' }}>{count}</span>
+                    <span>{status}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Payment Status Breakdown */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#ecfeff', 
+            borderRadius: '8px',
+            border: '1px solid #a5f3fc',
+            gridColumn: 'span 2'
+          }}>
+            <div style={{ fontSize: '12px', color: '#0e7490', fontWeight: '600', marginBottom: '8px' }}>
+              Payment Status
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {['Paid', 'Partial', 'Pending'].map(paymentStatus => {
+                const count = filteredReservations.filter(r => r.payment_status === paymentStatus).length;
+                if (count === 0) return null;
+                return (
+                  <div key={paymentStatus} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    fontSize: '13px',
+                    color: '#164e63'
+                  }}>
+                    <span style={{ fontWeight: '600' }}>{count}</span>
+                    <span>{paymentStatus}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="table-container">
@@ -860,11 +1008,11 @@ const Reservations = () => {
                     {/* Booking Source Badge with Agent Name */}
                     {reservation.booking_source === 'agent' ? (
                       <span className="booking-badge booking-badge-agent">
-                        👤 Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
+                        ðŸ‘¤ Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
                       </span>
                     ) : (
                       <span className="booking-badge booking-badge-direct">
-                        🏢 Direct
+                        ðŸ¢ Direct
                       </span>
                     )}
                     
@@ -1081,7 +1229,7 @@ const Reservations = () => {
               }}>
                 <strong>{selectedGuest.name}</strong>
                 <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} Ã¢â‚¬Â¢ {selectedGuest.email || 'No email'}
+                  {selectedGuest.phone} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {selectedGuest.email || 'No email'}
                 </p>
               </div>
             </div>
