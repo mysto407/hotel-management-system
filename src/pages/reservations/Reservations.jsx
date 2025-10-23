@@ -886,6 +886,41 @@ const Reservations = () => {
               })}
             </div>
           </div>
+
+          {/* Meal Plan Breakdown */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#fef2f2', 
+            borderRadius: '8px',
+            border: '1px solid #fecaca'
+          }}>
+            <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600', marginBottom: '8px' }}>
+              Meal Plans
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {[
+                { code: 'NM', label: 'No Meal' },
+                { code: 'BO', label: 'Breakfast Only' },
+                { code: 'HB', label: 'Half Board' },
+                { code: 'FB', label: 'Full Board' }
+              ].map(({ code, label }) => {
+                const count = filteredReservations.filter(r => r.meal_plan === code).length;
+                if (count === 0) return null;
+                return (
+                  <div key={code} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    fontSize: '13px',
+                    color: '#7f1d1d'
+                  }}>
+                    <span style={{ fontWeight: '600' }}>{count}</span>
+                    <span>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           {/* Total Revenue */}
           <div style={{ 
             padding: '16px', 
@@ -980,40 +1015,7 @@ const Reservations = () => {
             </div>
           </div>
 
-          {/* Meal Plan Breakdown */}
-          <div style={{ 
-            padding: '16px', 
-            background: '#fef2f2', 
-            borderRadius: '8px',
-            border: '1px solid #fecaca'
-          }}>
-            <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600', marginBottom: '8px' }}>
-              Meal Plans
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {[
-                { code: 'NM', label: 'No Meal' },
-                { code: 'BO', label: 'Breakfast Only' },
-                { code: 'HB', label: 'Half Board' },
-                { code: 'FB', label: 'Full Board' }
-              ].map(({ code, label }) => {
-                const count = filteredReservations.filter(r => r.meal_plan === code).length;
-                if (count === 0) return null;
-                return (
-                  <div key={code} style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '4px',
-                    fontSize: '13px',
-                    color: '#7f1d1d'
-                  }}>
-                    <span style={{ fontWeight: '600' }}>{count}</span>
-                    <span>{label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          
         </div>
       </div>
 
