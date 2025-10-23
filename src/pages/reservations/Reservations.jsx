@@ -968,6 +968,8 @@ const Reservations = () => {
               </div>
             </div>
           </div>
+            </div>
+          )}
         </div>
       </div>
 
