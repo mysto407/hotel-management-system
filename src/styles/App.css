@@ -960,11 +960,12 @@ body {
 .availability-row th,
 .availability-row td {
     position: sticky;
-    top: 105px;
-    /* Sticks below date header (adjust if date header height changes) */
+    top: 78px;
+    /* Adjust this based on your date header height - reduced from 105px */
     background: #f0f9ff;
-    border-top: 0;
-    /* Remove any top border that might cause gaps */
+    z-index: 17;
+    padding: 10px 8px;
+    border: 1px solid #bae6fd;
 }
 
 .availability-row th {
@@ -981,7 +982,8 @@ body {
 .availability-row .calendar-fixed-column {
     position: sticky;
     left: 0;
-    top: 105px;
+    top: 78px;
+    /* Same as above */
     z-index: 28;
     background: #f0f9ff;
 }
@@ -1008,6 +1010,57 @@ body {
     font-size: 16px;
     font-weight: 700;
     color: #1e40af;
+}
+
+
+/* Date Headers */
+
+.calendar-date-header {
+    min-width: 100px;
+    max-width: 100px;
+    padding: 12px 8px;
+    text-align: center;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 15;
+}
+
+.calendar-date-header.today {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+
+/* First column in date header row - make it sticky both ways */
+
+.calendar-table thead tr:first-child .calendar-fixed-column {
+    position: sticky;
+    left: 0;
+    top: 0;
+    z-index: 30;
+    background: white;
+}
+
+
+/* Fixed Column */
+
+.calendar-fixed-column {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 10;
+    min-width: 200px;
+    max-width: 200px;
+    border-right: 2px solid #d1d5db;
+    font-weight: 600;
+}
+
+.calendar-table thead .calendar-fixed-column {
+    z-index: 30;
+    background: white;
 }
 
 
