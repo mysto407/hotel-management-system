@@ -856,6 +856,36 @@ const Reservations = () => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
           gap: '16px'
         }}>
+          {/* Status Breakdown */}
+          <div style={{ 
+            padding: '16px', 
+            background: '#f5f3ff', 
+            borderRadius: '8px',
+            border: '1px solid #e9d5ff',
+            gridColumn: 'span 2'
+          }}>
+            <div style={{ fontSize: '12px', color: '#6b21a8', fontWeight: '600', marginBottom: '8px' }}>
+              Status Breakdown
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {['Inquiry', 'Tentative', 'Hold', 'Confirmed', 'Checked-in', 'Checked-out', 'Cancelled'].map(status => {
+                const count = filteredReservations.filter(r => r.status === status).length;
+                if (count === 0) return null;
+                return (
+                  <div key={status} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    fontSize: '13px',
+                    color: '#4c1d95'
+                  }}>
+                    <span style={{ fontWeight: '600' }}>{count}</span>
+                    <span>{status}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           {/* Total Revenue */}
           <div style={{ 
             padding: '16px', 
@@ -918,36 +948,7 @@ const Reservations = () => {
             </div>
           </div>
 
-          {/* Status Breakdown */}
-          <div style={{ 
-            padding: '16px', 
-            background: '#f5f3ff', 
-            borderRadius: '8px',
-            border: '1px solid #e9d5ff',
-            gridColumn: 'span 2'
-          }}>
-            <div style={{ fontSize: '12px', color: '#6b21a8', fontWeight: '600', marginBottom: '8px' }}>
-              Status Breakdown
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {['Inquiry', 'Tentative', 'Hold', 'Confirmed', 'Checked-in', 'Checked-out', 'Cancelled'].map(status => {
-                const count = filteredReservations.filter(r => r.status === status).length;
-                if (count === 0) return null;
-                return (
-                  <div key={status} style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '4px',
-                    fontSize: '13px',
-                    color: '#4c1d95'
-                  }}>
-                    <span style={{ fontWeight: '600' }}>{count}</span>
-                    <span>{status}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          
 
           {/* Payment Status Breakdown */}
           <div style={{ 
