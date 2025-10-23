@@ -610,10 +610,7 @@ const Reservations = () => {
           )}
 
           {/* Filter Shortcuts */}
-          <div style={{ 
-            borderTop: '1px solid #e5e7eb',
-            paddingTop: '16px'
-          }}>
+          <div>
             {/* Status Filters */}
             <div style={{ marginBottom: '16px' }}>
               <div style={{ 
