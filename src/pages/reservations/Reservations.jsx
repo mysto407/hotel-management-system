@@ -25,6 +25,11 @@ const Reservations = () => {
   const [dateFilterType, setDateFilterType] = useState('all'); // all, weekly, fortnightly, monthly, custom
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  // Additional filter states
+  const [filterMealPlan, setFilterMealPlan] = useState('all');
+  const [filterGuestCount, setFilterGuestCount] = useState('all'); // all, 1-2, 3-4, 5+
+  const [showFilters, setShowFilters] = useState(false);
 
   const [formData, setFormData] = useState({
     booking_source: 'direct',
@@ -98,6 +103,26 @@ const Reservations = () => {
     setStartDate(start.toISOString().split('T')[0]);
     setEndDate(end.toISOString().split('T')[0]);
     setDateFilterType(preset);
+  };
+
+  const clearAllFilters = () => {
+    setFilterStatus('all');
+    setSearchTerm('');
+    setFilterMealPlan('all');
+    setFilterGuestCount('all');
+    setDateFilterType('all');
+    setStartDate('');
+    setEndDate('');
+  };
+
+  const hasActiveFilters = () => {
+    return filterStatus !== 'all' || 
+           searchTerm !== '' || 
+           filterMealPlan !== 'all' || 
+           filterGuestCount !== 'all' || 
+           dateFilterType !== 'all' || 
+           startDate !== '' || 
+           endDate !== '';
   };
 
   const handleSubmit = async () => {
@@ -303,13 +328,34 @@ const Reservations = () => {
 
   const availableRooms = rooms.filter(r => r.status === 'Available');
 
-  // Enhanced filtering with date range
+  // Enhanced filtering with all filters
   const filteredReservations = reservations
     .filter(r => filterStatus === 'all' || r.status === filterStatus)
     .filter(r =>
       r.guests?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.guests?.phone?.includes(searchTerm)
     )
+    .filter(r => {
+      // Meal plan filter
+      if (filterMealPlan === 'all') return true;
+      return r.meal_plan === filterMealPlan;
+    })
+    .filter(r => {
+      // Guest count filter
+      if (filterGuestCount === 'all') return true;
+      const totalGuests = (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0);
+      
+      switch(filterGuestCount) {
+        case '1-2':
+          return totalGuests >= 1 && totalGuests <= 2;
+        case '3-4':
+          return totalGuests >= 3 && totalGuests <= 4;
+        case '5+':
+          return totalGuests >= 5;
+        default:
+          return true;
+      }
+    })
     .filter(r => {
       // Date range filter
       if (dateFilterType === 'all' || (!startDate && !endDate)) return true;
@@ -340,162 +386,434 @@ const Reservations = () => {
         </button>
       </div>
 
-      {/* Filters Bar */}
-      <div className="filters-bar">
-        <div className="search-box">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search by guest name or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="filter-group">
-          <Filter size={18} />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Reservations</option>
-            <option value="Inquiry">Inquiry</option>
-            <option value="Tentative">Tentative</option>
-            <option value="Hold">Hold</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Checked-in">Checked-in</option>
-            <option value="Checked-out">Checked-out</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Date Range Filters */}
+      {/* Consolidated Filters Panel */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ 
           background: 'white', 
-          padding: '20px', 
           borderRadius: '8px', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          overflow: 'hidden'
         }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '12px', 
-            marginBottom: '16px',
-            flexWrap: 'wrap'
-          }}>
-            <Calendar size={20} color="#3b82f6" />
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-              Filter by Date Range
-            </h3>
-          </div>
-
-          {/* Quick Date Presets */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setDatePreset('all')}
-              className={`quick-date-btn ${dateFilterType === 'all' ? 'active' : ''}`}
-              style={{
-                background: dateFilterType === 'all' ? '#3b82f6' : '#f3f4f6',
-                color: dateFilterType === 'all' ? 'white' : '#374151',
-                fontWeight: dateFilterType === 'all' ? '600' : '500'
-              }}
-            >
-              All Dates
-            </button>
-            <button
-              onClick={() => setDatePreset('weekly')}
-              className={`quick-date-btn ${dateFilterType === 'weekly' ? 'active' : ''}`}
-              style={{
-                background: dateFilterType === 'weekly' ? '#3b82f6' : '#f3f4f6',
-                color: dateFilterType === 'weekly' ? 'white' : '#374151',
-                fontWeight: dateFilterType === 'weekly' ? '600' : '500'
-              }}
-            >
-              Next 7 Days
-            </button>
-            <button
-              onClick={() => setDatePreset('fortnightly')}
-              className={`quick-date-btn ${dateFilterType === 'fortnightly' ? 'active' : ''}`}
-              style={{
-                background: dateFilterType === 'fortnightly' ? '#3b82f6' : '#f3f4f6',
-                color: dateFilterType === 'fortnightly' ? 'white' : '#374151',
-                fontWeight: dateFilterType === 'fortnightly' ? '600' : '500'
-              }}
-            >
-              Next 14 Days
-            </button>
-            <button
-              onClick={() => setDatePreset('monthly')}
-              className={`quick-date-btn ${dateFilterType === 'monthly' ? 'active' : ''}`}
-              style={{
-                background: dateFilterType === 'monthly' ? '#3b82f6' : '#f3f4f6',
-                color: dateFilterType === 'monthly' ? 'white' : '#374151',
-                fontWeight: dateFilterType === 'monthly' ? '600' : '500'
-              }}
-            >
-              Next 30 Days
-            </button>
-            <button
-              onClick={() => setDateFilterType('custom')}
-              className={`quick-date-btn ${dateFilterType === 'custom' ? 'active' : ''}`}
-              style={{
-                background: dateFilterType === 'custom' ? '#3b82f6' : '#f3f4f6',
-                color: dateFilterType === 'custom' ? 'white' : '#374151',
-                fontWeight: dateFilterType === 'custom' ? '600' : '500'
-              }}
-            >
-              Custom Range
-            </button>
-          </div>
-
-          {/* Custom Date Range Inputs */}
-          {dateFilterType === 'custom' && (
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <div className="form-group" style={{ margin: 0, minWidth: '200px' }}>
-                <label>From Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div className="form-group" style={{ margin: 0, minWidth: '200px' }}>
-                <label>To Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => {
-                    setStartDate('');
-                    setEndDate('');
-                  }}
-                  className="btn-secondary"
-                  style={{ alignSelf: 'flex-end' }}
-                >
-                  <XCircle size={18} /> Clear
-                </button>
+          {/* Filter Header */}
+          <div 
+            style={{ 
+              padding: '16px 20px',
+              background: '#f9fafb',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              cursor: 'pointer'
+            }}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Filter size={20} color="#3b82f6" />
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                Filters & Search
+              </h3>
+              {hasActiveFilters() && (
+                <span style={{
+                  background: '#3b82f6',
+                  color: 'white',
+                  fontSize: '12px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontWeight: '600'
+                }}>
+                  Active
+                </span>
               )}
             </div>
-          )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {hasActiveFilters() && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearAllFilters();
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    background: '#fee2e2',
+                    color: '#dc2626',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  Clear All
+                </button>
+              )}
+              <span style={{ 
+                color: '#6b7280', 
+                fontSize: '14px',
+                transition: 'transform 0.2s',
+                transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
+              }}>
+                ▼
+              </span>
+            </div>
+          </div>
 
-          {/* Active Filter Display */}
-          {dateFilterType !== 'all' && (startDate || endDate) && (
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '8px 12px', 
-              background: '#f0f9ff', 
-              borderRadius: '6px',
-              fontSize: '14px',
-              color: '#1e40af'
-            }}>
-              <strong>Active Filter:</strong> {startDate || '...'} to {endDate || '...'}
-              {dateFilterType !== 'custom' && ` (${dateFilterType.charAt(0).toUpperCase() + dateFilterType.slice(1)})`}
+          {/* Filter Content */}
+          {showFilters && (
+            <div style={{ padding: '20px' }}>
+              {/* Search Bar */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '13px', 
+                  fontWeight: '600', 
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Search Guest
+                </label>
+                <div className="search-box" style={{ width: '100%' }}>
+                  <Search size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search by guest name or phone..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              {/* Filter Grid */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '16px',
+                marginBottom: '20px'
+              }}>
+                {/* Status Filter */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Status
+                  </label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="all">All Status</option>
+                    <option value="Inquiry">Inquiry</option>
+                    <option value="Tentative">Tentative</option>
+                    <option value="Hold">Hold</option>
+                    <option value="Confirmed">Confirmed</option>
+                    <option value="Checked-in">Checked-in</option>
+                    <option value="Checked-out">Checked-out</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                {/* Meal Plan Filter */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Meal Plan
+                  </label>
+                  <select
+                    value={filterMealPlan}
+                    onChange={(e) => setFilterMealPlan(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="all">All Meal Plans</option>
+                    <option value="NM">No Meal</option>
+                    <option value="BO">Breakfast Only</option>
+                    <option value="HB">Half Board</option>
+                    <option value="FB">Full Board</option>
+                  </select>
+                </div>
+
+                {/* Guest Count Filter */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Number of Guests
+                  </label>
+                  <select
+                    value={filterGuestCount}
+                    onChange={(e) => setFilterGuestCount(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="all">All Guest Counts</option>
+                    <option value="1-2">1-2 Guests</option>
+                    <option value="3-4">3-4 Guests</option>
+                    <option value="5+">5+ Guests</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Date Range Filter */}
+              <div style={{ 
+                borderTop: '1px solid #e5e7eb',
+                paddingTop: '20px'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginBottom: '12px'
+                }}>
+                  <Calendar size={18} color="#3b82f6" />
+                  <label style={{ 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    margin: 0
+                  }}>
+                    Date Range
+                  </label>
+                </div>
+
+                {/* Quick Date Presets */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setDatePreset('all')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '13px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: dateFilterType === 'all' ? '#3b82f6' : 'white',
+                      color: dateFilterType === 'all' ? 'white' : '#374151',
+                      fontWeight: dateFilterType === 'all' ? '600' : '500'
+                    }}
+                  >
+                    All Dates
+                  </button>
+                  <button
+                    onClick={() => setDatePreset('weekly')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '13px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: dateFilterType === 'weekly' ? '#3b82f6' : 'white',
+                      color: dateFilterType === 'weekly' ? 'white' : '#374151',
+                      fontWeight: dateFilterType === 'weekly' ? '600' : '500'
+                    }}
+                  >
+                    Next 7 Days
+                  </button>
+                  <button
+                    onClick={() => setDatePreset('fortnightly')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '13px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: dateFilterType === 'fortnightly' ? '#3b82f6' : 'white',
+                      color: dateFilterType === 'fortnightly' ? 'white' : '#374151',
+                      fontWeight: dateFilterType === 'fortnightly' ? '600' : '500'
+                    }}
+                  >
+                    Next 14 Days
+                  </button>
+                  <button
+                    onClick={() => setDatePreset('monthly')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '13px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: dateFilterType === 'monthly' ? '#3b82f6' : 'white',
+                      color: dateFilterType === 'monthly' ? 'white' : '#374151',
+                      fontWeight: dateFilterType === 'monthly' ? '600' : '500'
+                    }}
+                  >
+                    Next 30 Days
+                  </button>
+                  <button
+                    onClick={() => setDateFilterType('custom')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '13px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: dateFilterType === 'custom' ? '#3b82f6' : 'white',
+                      color: dateFilterType === 'custom' ? 'white' : '#374151',
+                      fontWeight: dateFilterType === 'custom' ? '600' : '500'
+                    }}
+                  >
+                    Custom Range
+                  </button>
+                </div>
+
+                {/* Custom Date Range Inputs */}
+                {dateFilterType === 'custom' && (
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1', minWidth: '150px' }}>
+                      <label style={{ 
+                        display: 'block', 
+                        fontSize: '12px', 
+                        color: '#6b7280',
+                        marginBottom: '4px'
+                      }}>
+                        From Date
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                    </div>
+                    <div style={{ flex: '1', minWidth: '150px' }}>
+                      <label style={{ 
+                        display: 'block', 
+                        fontSize: '12px', 
+                        color: '#6b7280',
+                        marginBottom: '4px'
+                      }}>
+                        To Date
+                      </label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Active Date Filter Display */}
+                {dateFilterType !== 'all' && (startDate || endDate) && (
+                  <div style={{ 
+                    marginTop: '12px', 
+                    padding: '8px 12px', 
+                    background: '#f0f9ff', 
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    color: '#1e40af'
+                  }}>
+                    <strong>Date Filter:</strong> {startDate || '...'} to {endDate || '...'}
+                  </div>
+                )}
+              </div>
+
+              {/* Active Filters Summary */}
+              {hasActiveFilters() && (
+                <div style={{ 
+                  marginTop: '20px',
+                  padding: '12px',
+                  background: '#fef3c7',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  color: '#92400e'
+                }}>
+                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>Active Filters:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {searchTerm && (
+                      <span style={{ 
+                        padding: '2px 8px', 
+                        background: 'white', 
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        Search: "{searchTerm}"
+                      </span>
+                    )}
+                    {filterStatus !== 'all' && (
+                      <span style={{ 
+                        padding: '2px 8px', 
+                        background: 'white', 
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        Status: {filterStatus}
+                      </span>
+                    )}
+                    {filterMealPlan !== 'all' && (
+                      <span style={{ 
+                        padding: '2px 8px', 
+                        background: 'white', 
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        Meal: {getMealPlanLabel(filterMealPlan)}
+                      </span>
+                    )}
+                    {filterGuestCount !== 'all' && (
+                      <span style={{ 
+                        padding: '2px 8px', 
+                        background: 'white', 
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        Guests: {filterGuestCount}
+                      </span>
+                    )}
+                    {dateFilterType !== 'all' && (
+                      <span style={{ 
+                        padding: '2px 8px', 
+                        background: 'white', 
+                        borderRadius: '4px',
+                        fontSize: '12px'
+                      }}>
+                        Date Range Active
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -546,7 +864,7 @@ const Reservations = () => {
                     {getMealPlanLabel(reservation.meal_plan)}
                   </span>
                 </td>
-                <td>₹{reservation.total_amount}</td>
+                <td>â‚¹{reservation.total_amount}</td>
                 <td>
                   <span className={`status-badge ${
                     reservation.payment_status === 'Paid' ? 'status-available' :
@@ -732,7 +1050,7 @@ const Reservations = () => {
               }}>
                 <strong>{selectedGuest.name}</strong>
                 <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} • {selectedGuest.email || 'No email'}
+                  {selectedGuest.phone} â€¢ {selectedGuest.email || 'No email'}
                 </p>
               </div>
             </div>
