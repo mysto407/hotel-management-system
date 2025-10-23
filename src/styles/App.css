@@ -797,104 +797,51 @@ body {
 /* ========================================== */
 
 
-/* BOOKING CALENDAR STYLES */
+/* BOOKING CALENDAR FIXES */
 
 
 /* ========================================== */
 
 
-/* Calendar Controls */
-
-.calendar-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-
-/* Calendar Legend */
-
-.calendar-legend {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-}
-
-.legend-box {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    border: 1px solid #d1d5db;
-}
-
-.legend-available {
-    background: #d1fae5;
-}
-
-.legend-occupied {
-    background: #fee2e2;
-}
-
-.legend-maintenance {
-    background: #fef3c7;
-}
-
-.legend-blocked {
-    background: #e5e7eb;
-}
+/* Replace the calendar section in your index.css with this code */
 
 
 /* Calendar Table Container */
 
 .calendar-table-container {
-    overflow-x: auto;
-    overflow-y: auto;
+    overflow: auto;
     max-height: 70vh;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-}
-
-
-/* Calendar Table */
-
-.calendar-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
     position: relative;
 }
 
 
-/* Fixed Column */
+/* Calendar Table - Use border-separate for sticky positioning */
+
+.calendar-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+
+/* Fixed Column - Sticky Left */
 
 .calendar-fixed-column {
     position: sticky;
     left: 0;
     background: white;
-    z-index: 10;
     min-width: 200px;
     max-width: 200px;
     border-right: 2px solid #d1d5db;
     font-weight: 600;
-}
-
-.calendar-table thead .calendar-fixed-column {
-    z-index: 30;
-    /* Higher z-index for header first column */
-    background: white;
+    z-index: 3;
 }
 
 
-/* Make the first column in availability row extra sticky */
-
-.availability-row .calendar-fixed-column {
-    z-index: 28;
-    background: #f0f9ff;
-}
-
-
-/* Date Headers */
+/* Date Headers - Sticky Top */
 
 .calendar-date-header {
     min-width: 100px;
@@ -906,7 +853,7 @@ body {
     font-weight: 600;
     position: sticky;
     top: 0;
-    z-index: 15;
+    z-index: 2;
 }
 
 .calendar-date-header.today {
@@ -915,42 +862,19 @@ body {
 }
 
 
-/* First column in date header row - make it sticky both ways */
+/* Top-left corner cell - sticky both ways with highest z-index */
 
 .calendar-table thead tr:first-child .calendar-fixed-column {
     position: sticky;
     left: 0;
     top: 0;
-    z-index: 30;
+    z-index: 5;
     background: white;
-}
-
-.date-header-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.date-day {
-    font-size: 11px;
-    text-transform: uppercase;
-    color: #6b7280;
-    font-weight: 600;
-}
-
-.date-num {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1f2937;
-}
-
-.date-month {
-    font-size: 11px;
-    color: #6b7280;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 
-/* Availability Row - Make it sticky below date headers */
+/* Availability Row - Sticky below date headers */
 
 .availability-row {
     background: #f0f9ff;
@@ -961,53 +885,20 @@ body {
 .availability-row td {
     position: sticky;
     top: 105px;
-    /* Sticks below date header (adjust if date header height changes) */
+    /* Height of date header row - adjust if needed */
     background: #f0f9ff;
-    border-top: 0;
-    /* Remove any top border that might cause gaps */
-}
-
-.availability-row th {
-    z-index: 18;
-}
-
-.availability-row td {
-    z-index: 8;
+    z-index: 2;
 }
 
 
-/* First column in availability row - sticky both horizontally and vertically */
+/* Availability row first column - sticky both ways */
 
 .availability-row .calendar-fixed-column {
     position: sticky;
     left: 0;
     top: 105px;
-    z-index: 28;
+    z-index: 4;
     background: #f0f9ff;
-}
-
-.availability-label {
-    padding: 12px 16px;
-    color: #1e40af;
-    font-weight: 600;
-}
-
-.availability-cell {
-    text-align: center;
-    padding: 10px 8px;
-    border: 1px solid #bae6fd;
-}
-
-.availability-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.availability-numbers {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1e40af;
 }
 
 
@@ -1018,36 +909,8 @@ body {
     border-top: 2px solid #d1d5db;
 }
 
-.room-type-cell {
-    padding: 0;
-}
-
-.room-type-toggle {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.2s;
-}
-
-.room-type-toggle:hover {
-    background: #f3f4f6;
-}
-
-.room-type-toggle strong {
-    font-size: 14px;
-    color: #1f2937;
-}
-
-.room-count {
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: normal;
+.room-type-row .calendar-fixed-column {
+    background: #f9fafb;
 }
 
 
@@ -1056,31 +919,7 @@ body {
 .room-type-availability-cell {
     padding: 8px;
     border: 1px solid #e5e7eb;
-}
-
-.availability-bar-container {
-    position: relative;
-    width: 100%;
-    height: 28px;
-    background: #f3f4f6;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.availability-bar {
-    height: 100%;
-    transition: width 0.3s ease;
-}
-
-.availability-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 12px;
-    font-weight: 600;
-    color: #1f2937;
-    text-shadow: 0 0 3px white;
+    background: white;
 }
 
 
@@ -1094,164 +933,12 @@ body {
     background: #fafafa;
 }
 
-.room-cell {
-    padding: 10px 16px 10px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.room-row .calendar-fixed-column {
+    background: white;
 }
 
-.room-number {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1f2937;
-}
-
-.room-floor {
-    font-size: 11px;
-    color: #6b7280;
-}
-
-
-/* Calendar Cells */
-
-.calendar-cell {
-    min-width: 100px;
-    max-width: 100px;
-    height: 60px;
-    padding: 6px;
-    border: 1px solid #e5e7eb;
-    text-align: center;
-    vertical-align: middle;
-    position: relative;
-}
-
-.calendar-cell-available {
-    background: #d1fae5;
-}
-
-.calendar-cell-occupied {
-    background: #fee2e2;
-    cursor: pointer;
-}
-
-.calendar-cell-occupied:hover {
-    background: #fecaca;
-}
-
-.calendar-cell-maintenance {
-    background: #fef3c7;
-}
-
-.calendar-cell-blocked {
-    background: #e5e7eb;
-}
-
-.cell-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-}
-
-.guest-name {
-    font-size: 11px;
-    font-weight: 600;
-    color: #991b1b;
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 90px;
-}
-
-.reservation-status {
-    font-size: 10px;
-    padding: 2px 6px;
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 4px;
-    color: #7f1d1d;
-    font-weight: 500;
-}
-
-.status-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: #6b7280;
-}
-
-
-/* Reservation Status Styles */
-
-.status-inquiry {
-    background: #f3f4f6;
-    color: #374151;
-}
-
-.status-tentative {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.status-hold {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-
-/* Responsive Calendar */
-
-@media (max-width: 1024px) {
-    .calendar-controls {
-        flex-wrap: wrap;
-    }
-    .calendar-fixed-column {
-        min-width: 150px;
-        max-width: 150px;
-    }
-    .calendar-date-header {
-        min-width: 80px;
-        max-width: 80px;
-    }
-    .calendar-cell {
-        min-width: 80px;
-        max-width: 80px;
-    }
-}
-
-@media (max-width: 768px) {
-    .calendar-controls {
-        flex-direction: column;
-        width: 100%;
-    }
-    .calendar-controls button,
-    .calendar-controls select {
-        width: 100%;
-    }
-    .calendar-fixed-column {
-        min-width: 120px;
-        max-width: 120px;
-        font-size: 12px;
-    }
-    .calendar-date-header {
-        min-width: 70px;
-        max-width: 70px;
-    }
-    .calendar-cell {
-        min-width: 70px;
-        max-width: 70px;
-        height: 50px;
-        font-size: 10px;
-    }
-    .guest-name {
-        font-size: 10px;
-        max-width: 60px;
-    }
-    .reservation-status {
-        font-size: 9px;
-        padding: 1px 4px;
-    }
+.room-row:hover .calendar-fixed-column {
+    background: #fafafa;
 }
 
 
