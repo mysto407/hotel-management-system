@@ -375,6 +375,12 @@ const Reservations = () => {
       }
       
       return true;
+    })
+    .sort((a, b) => {
+      // Sort by check-in date in ascending order (earliest first)
+      const dateA = new Date(a.check_in_date);
+      const dateB = new Date(b.check_in_date);
+      return dateA - dateB;
     });
 
   return (
@@ -945,7 +951,8 @@ const Reservations = () => {
             padding: '16px', 
             background: '#ecfeff', 
             borderRadius: '8px',
-            border: '1px solid #a5f3fc'
+            border: '1px solid #a5f3fc',
+            gridColumn: 'span 2'
           }}>
             <div style={{ fontSize: '12px', color: '#0e7490', fontWeight: '600', marginBottom: '8px' }}>
               Payment Status
