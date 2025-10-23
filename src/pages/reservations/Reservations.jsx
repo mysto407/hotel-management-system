@@ -452,7 +452,7 @@ const Reservations = () => {
                 transition: 'transform 0.2s',
                 transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
               }}>
-                ▼
+                â–¼
               </span>
             </div>
           </div>
@@ -845,46 +845,25 @@ const Reservations = () => {
             {filteredReservations.map(reservation => (
               <tr key={reservation.id}>
                 <td>
-                  <div style={{ marginBottom: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {/* Booking Source Badge */}
-                    <span style={{
-                      fontSize: '11px',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontWeight: '600',
-                      background: reservation.booking_source === 'agent' ? '#dbeafe' : '#f0fdf4',
-                      color: reservation.booking_source === 'agent' ? '#1e40af' : '#15803d',
-                      border: `1px solid ${reservation.booking_source === 'agent' ? '#93c5fd' : '#86efac'}`
-                    }}>
-                      {reservation.booking_source === 'agent' ? '👤 Agent' : '🏢 Direct'}
-                    </span>
-                    
-                    {/* Agent Name Badge - Only show if booking source is agent */}
-                    {reservation.booking_source === 'agent' && reservation.agents && (
-                      <span style={{
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontWeight: '500',
-                        background: '#ede9fe',
-                        color: '#6b21a8',
-                        border: '1px solid #c4b5fd'
-                      }}>
-                        {reservation.agents.name}
+                  <div className="booking-badges">
+                    {/* Booking Source Badge with Agent Name */}
+                    {reservation.booking_source === 'agent' && reservation.agents ? (
+                      <span className="booking-badge booking-badge-agent">
+                        👤 Agent: {reservation.agents.name}
+                      </span>
+                    ) : reservation.booking_source === 'agent' ? (
+                      <span className="booking-badge booking-badge-agent">
+                        👤 Agent
+                      </span>
+                    ) : (
+                      <span className="booking-badge booking-badge-direct">
+                        🏢 Direct
                       </span>
                     )}
                     
                     {/* Direct Source Badge - Only show if booking source is direct and has direct_source */}
                     {reservation.booking_source === 'direct' && reservation.direct_source && (
-                      <span style={{
-                        fontSize: '11px',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontWeight: '500',
-                        background: '#fef3c7',
-                        color: '#92400e',
-                        border: '1px solid #fde68a'
-                      }}>
+                      <span className="booking-badge booking-badge-source">
                         {reservation.direct_source}
                       </span>
                     )}
@@ -1094,7 +1073,7 @@ const Reservations = () => {
               }}>
                 <strong>{selectedGuest.name}</strong>
                 <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} â€¢ {selectedGuest.email || 'No email'}
+                  {selectedGuest.phone} Ã¢â‚¬Â¢ {selectedGuest.email || 'No email'}
                 </p>
               </div>
             </div>
