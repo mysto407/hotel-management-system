@@ -420,9 +420,7 @@ const Reservations = () => {
             justifyContent: 'space-between',
             marginBottom: '16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={18} color="#3b82f6" />
-            </div>
+           
             {hasActiveFilters() && (
               <button
                 onClick={clearAllFilters}
