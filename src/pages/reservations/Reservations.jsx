@@ -1068,22 +1068,101 @@ const Reservations = () => {
             </div>
           </div>
 
-          {/* Total Guests */}
-          <div style={{ 
-            padding: '16px', 
-            background: '#fce7f3', 
-            borderRadius: '8px',
-            border: '1px solid #fbcfe8'
-          }}>
-            <div style={{ fontSize: '12px', color: '#9f1239', fontWeight: '600', marginBottom: '4px' }}>
-              Total Guests
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#881337' }}>
-              {filteredReservations.reduce((sum, r) => 
-                sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-              )}
-            </div>
-          </div>
+          {/* Total Guests - Enhanced */}
+<div style={{ 
+  padding: '16px', 
+  background: '#fce7f3', 
+  borderRadius: '8px',
+  border: '1px solid #fbcfe8',
+  gridColumn: 'span 2'
+}}>
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginBottom: '8px' 
+  }}>
+    <div style={{ fontSize: '12px', color: '#9f1239', fontWeight: '600' }}>
+      Total Guests
+    </div>
+    <div style={{ fontSize: '24px', fontWeight: '700', color: '#881337' }}>
+      {filteredReservations.reduce((sum, r) => 
+        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+      )}
+    </div>
+  </div>
+  
+  {/* Guest Breakdown by Status */}
+  <div style={{ 
+    borderTop: '1px solid #fbcfe8',
+    paddingTop: '8px',
+    display: 'flex', 
+    flexWrap: 'wrap', 
+    gap: '8px' 
+  }}>
+    {[
+      { status: 'Checked-in', color: '#3b82f6' },
+      { status: 'Confirmed', color: '#10b981' },
+      { status: 'Checked-out', color: '#6b7280' },
+      { status: 'Tentative', color: '#f59e0b' },
+      { status: 'Hold', color: '#fb923c' }
+    ].map(({ status, color }) => {
+      const guestCount = filteredReservations
+        .filter(r => r.status === status)
+        .reduce((sum, r) => 
+          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+        );
+      
+      if (guestCount === 0) return null;
+      
+      return (
+        <div key={status} style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '4px',
+          fontSize: '12px',
+          color: '#831843'
+        }}>
+          <span style={{ 
+            width: '8px', 
+            height: '8px', 
+            borderRadius: '50%', 
+            background: color 
+          }} />
+          <span style={{ fontWeight: '600' }}>{guestCount}</span>
+          <span>{status}</span>
+        </div>
+      );
+    })}
+  </div>
+  
+  {/* Guest Type Breakdown (Adults/Children/Infants) */}
+  <div style={{ 
+    borderTop: '1px solid #fbcfe8',
+    marginTop: '8px',
+    paddingTop: '8px',
+    display: 'flex',
+    gap: '12px',
+    fontSize: '12px',
+    color: '#831843'
+  }}>
+    <div>
+      <span style={{ fontWeight: '600' }}>
+        {filteredReservations.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}
+      </span> Adults
+    </div>
+    <div>
+      <span style={{ fontWeight: '600' }}>
+        {filteredReservations.reduce((sum, r) => sum + (r.number_of_children || 0), 0)}
+      </span> Children
+    </div>
+    <div>
+      <span style={{ fontWeight: '600' }}>
+        {filteredReservations.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}
+      </span> Infants
+    </div>
+  </div>
+</div>
 
           {/* Payment Status Breakdown */}
           <div style={{ 
