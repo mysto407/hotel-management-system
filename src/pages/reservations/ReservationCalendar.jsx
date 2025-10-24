@@ -1,5 +1,5 @@
 // src/pages/reservations/ReservationCalendar.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronRight, ChevronLeft, Calendar } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { useReservations } from '../../context/ReservationContext';
@@ -12,6 +12,12 @@ const ReservationCalendar = () => {
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState({});
+  
+  // Drag-to-scroll state
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const containerRef = useRef(null);
 
   // Generate dates for the calendar
   const generateDates = useMemo(() => {
@@ -101,6 +107,46 @@ const ReservationCalendar = () => {
     setStartDate(new Date());
   };
 
+  // Drag-to-scroll handlers
+  const handleMouseDown = (e) => {
+    if (!containerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - containerRef.current.offsetLeft);
+    setScrollLeft(containerRef.current.scrollLeft);
+    containerRef.current.style.cursor = 'grabbing';
+    containerRef.current.style.userSelect = 'none';
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || !containerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - containerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5; // Scroll speed multiplier
+    containerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => {
+    if (!containerRef.current) return;
+    setIsDragging(false);
+    containerRef.current.style.cursor = 'grab';
+    containerRef.current.style.userSelect = '';
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging && containerRef.current) {
+      setIsDragging(false);
+      containerRef.current.style.cursor = 'grab';
+      containerRef.current.style.userSelect = '';
+    }
+  };
+
+  // Set initial cursor style
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.cursor = 'grab';
+    }
+  }, []);
+
   // Get cell style based on status
   const getCellStyle = (status) => {
     switch (status) {
@@ -143,15 +189,39 @@ const ReservationCalendar = () => {
         </div>
       </div>
 
+      {/* Legend */}
+      <Card>
+        <div className="calendar-legend">
+          <div className="legend-item">
+            <div className="legend-box legend-available"></div>
+            <span>Available</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-box legend-occupied"></div>
+            <span>Occupied</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-box legend-maintenance"></div>
+            <span>Maintenance</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-box legend-blocked"></div>
+            <span>Blocked</span>
+          </div>
+        </div>
+      </Card>
+
       {/* Calendar Grid */}
       <Card>
-        <div className="calendar-table-container" style={{ 
-          overflowX: 'scroll', 
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'auto',
-          scrollbarColor: '#888 #f1f1f1'
-        }}>
-          <table className="calendar-table" style={{ minWidth: '1200px' }}>
+        <div 
+          className="calendar-table-container"
+          ref={containerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
+          <table className="calendar-table">
             <thead>
               {/* Date Headers */}
               <tr>
