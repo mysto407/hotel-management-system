@@ -250,30 +250,7 @@ const ReservationCalendar = () => {
         </div>
       </div>
 
-      {/* Legend */}
-      <Card className="calendar-legend-card">
-        <div className="calendar-legend">
-          <span className="legend-title">Legend:</span>
-          <div className="legend-items">
-            <div className="legend-item">
-              <div className="legend-box legend-available"></div>
-              <span>Available</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-box legend-occupied"></div>
-              <span>Occupied</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-box legend-maintenance"></div>
-              <span>Maintenance</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-box legend-blocked"></div>
-              <span>Blocked</span>
-            </div>
-          </div>
-        </div>
-      </Card>
+
 
       {/* Calendar Grid */}
       <Card className="calendar-grid-card">
