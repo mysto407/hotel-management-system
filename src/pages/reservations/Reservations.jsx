@@ -1052,7 +1052,7 @@ const Reservations = () => {
                 </div>
               </div>
 
-              {/* Meal Plan Breakdown - Enhanced (Guest-focused) */}
+              {/* Meal Plan Breakdown - Enhanced (Guest-focused, Active Only) */}
 <div style={{ 
   padding: '16px', 
   background: '#fef2f2', 
@@ -1070,9 +1070,11 @@ const Reservations = () => {
       Meal Plans
     </div>
     <div style={{ fontSize: '20px', fontWeight: '700', color: '#7f1d1d' }}>
-      {filteredReservations.reduce((sum, r) => 
-        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-      )} Guests
+      {filteredReservations
+        .filter(r => r.status !== 'Checked-out')
+        .reduce((sum, r) => 
+          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+        )} Guests
     </div>
   </div>
   
@@ -1091,7 +1093,7 @@ const Reservations = () => {
       { code: 'FB', label: 'Full Board', color: '#ec4899' }
     ].map(({ code, label, color }) => {
       const guestCount = filteredReservations
-        .filter(r => r.meal_plan === code)
+        .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
         .reduce((sum, r) => 
           sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
         );
@@ -1113,7 +1115,7 @@ const Reservations = () => {
             background: color 
           }} />
           <span style={{ fontWeight: '500' }}>{label}:</span>
-          <span style={{ fontWeight: '600', color: 'blue' }}>
+          <span style={{ fontWeight: '600', color: '#991b1b' }}>
             {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
           </span>
         </div>
@@ -1141,14 +1143,16 @@ const Reservations = () => {
         { code: 'FB', color: '#ec4899' }
       ].map(({ code, color }) => {
         const guestCount = filteredReservations
-          .filter(r => r.meal_plan === code)
+          .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
           .reduce((sum, r) => 
             sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
           );
         
-        const totalGuests = filteredReservations.reduce((sum, r) => 
-          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-        );
+        const totalGuests = filteredReservations
+          .filter(r => r.status !== 'Checked-out')
+          .reduce((sum, r) => 
+            sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+          );
         
         const percentage = totalGuests > 0 ? (guestCount / totalGuests * 100) : 0;
         
