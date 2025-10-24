@@ -1052,116 +1052,123 @@ const Reservations = () => {
                 </div>
               </div>
 
-              {/* Meal Plan Breakdown - Enhanced */}
-              <div style={{ 
-                padding: '16px', 
-                background: '#fef2f2', 
-                borderRadius: '8px',
-                border: '1px solid #fecaca',
-                gridColumn: 'span 2'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  marginBottom: '8px' 
-                }}>
-                  <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600' }}>
-                    Meal Plans
-                  </div>
-                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#7f1d1d' }}>
-                    {filteredReservations.length} Bookings
-                  </div>
-                </div>
-                
-                {/* Meal Plan Distribution */}
-                <div style={{ 
-                  borderTop: '1px solid #fecaca',
-                  paddingTop: '8px',
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  gap: '8px' 
-                }}>
-                  {[
-                    { code: 'NM', label: 'No Meal', color: '#64748b' },
-                    { code: 'BO', label: 'Breakfast Only', color: '#8b5cf6' },
-                    { code: 'HB', label: 'Half Board', color: '#d946ef' },
-                    { code: 'FB', label: 'Full Board', color: '#ec4899' }
-                  ].map(({ code, label, color }) => {
-                    const count = filteredReservations.filter(r => r.meal_plan === code).length;
-                    const guestCount = filteredReservations
-                      .filter(r => r.meal_plan === code)
-                      .reduce((sum, r) => 
-                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-                      );
-                    
-                    if (count === 0) return null;
-                    
-                    return (
-                      <div key={code} style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '4px',
-                        fontSize: '12px',
-                        color: '#7f1d1d'
-                      }}>
-                        <span style={{ 
-                          width: '8px', 
-                          height: '8px', 
-                          borderRadius: '50%', 
-                          background: color 
-                        }} />
-                        <span style={{ fontWeight: '600' }}>{count}</span>
-                        <span>{label}</span>
-                        <span style={{ color: '#991b1b', fontSize: '11px' }}>
-                          ({guestCount} guests)
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Meal Plan Percentage Bar */}
-                <div style={{ 
-                  marginTop: '8px',
-                  paddingTop: '8px',
-                  borderTop: '1px solid #fecaca'
-                }}>
-                  <div style={{ 
-                    height: '8px', 
-                    background: '#fee2e2', 
-                    borderRadius: '4px',
-                    overflow: 'hidden',
-                    display: 'flex'
-                  }}>
-                    {[
-                      { code: 'NM', color: '#64748b' },
-                      { code: 'BO', color: '#8b5cf6' },
-                      { code: 'HB', color: '#d946ef' },
-                      { code: 'FB', color: '#ec4899' }
-                    ].map(({ code, color }) => {
-                      const count = filteredReservations.filter(r => r.meal_plan === code).length;
-                      const percentage = filteredReservations.length > 0 
-                        ? (count / filteredReservations.length * 100) 
-                        : 0;
-                      
-                      if (percentage === 0) return null;
-                      
-                      return (
-                        <div 
-                          key={code}
-                          style={{ 
-                            width: `${percentage}%`,
-                            background: color,
-                            transition: 'width 0.3s ease'
-                          }}
-                          title={`${code}: ${percentage.toFixed(1)}%`}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              {/* Meal Plan Breakdown - Enhanced (Guest-focused) */}
+<div style={{ 
+  padding: '16px', 
+  background: '#fef2f2', 
+  borderRadius: '8px',
+  border: '1px solid #fecaca',
+  gridColumn: 'span 2'
+}}>
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginBottom: '8px' 
+  }}>
+    <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600' }}>
+      Meal Plans
+    </div>
+    <div style={{ fontSize: '20px', fontWeight: '700', color: '#7f1d1d' }}>
+      {filteredReservations.reduce((sum, r) => 
+        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+      )} Guests
+    </div>
+  </div>
+  
+  {/* Meal Plan Distribution */}
+  <div style={{ 
+    borderTop: '1px solid #fecaca',
+    paddingTop: '8px',
+    display: 'flex', 
+    flexWrap: 'wrap', 
+    gap: '8px' 
+  }}>
+    {[
+      { code: 'NM', label: 'No Meal', color: '#64748b' },
+      { code: 'BO', label: 'Breakfast Only', color: '#8b5cf6' },
+      { code: 'HB', label: 'Half Board', color: '#d946ef' },
+      { code: 'FB', label: 'Full Board', color: '#ec4899' }
+    ].map(({ code, label, color }) => {
+      const guestCount = filteredReservations
+        .filter(r => r.meal_plan === code)
+        .reduce((sum, r) => 
+          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+        );
+      
+      if (guestCount === 0) return null;
+      
+      return (
+        <div key={code} style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '4px',
+          fontSize: '12px',
+          color: '#7f1d1d'
+        }}>
+          <span style={{ 
+            width: '8px', 
+            height: '8px', 
+            borderRadius: '50%', 
+            background: color 
+          }} />
+          <span style={{ fontWeight: '500' }}>{label}:</span>
+          <span style={{ fontWeight: '600', color: '#991b1b' }}>
+            {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+          </span>
+        </div>
+      );
+    })}
+  </div>
+  
+  {/* Meal Plan Percentage Bar */}
+  <div style={{ 
+    marginTop: '8px',
+    paddingTop: '8px',
+    borderTop: '1px solid #fecaca'
+  }}>
+    <div style={{ 
+      height: '8px', 
+      background: '#fee2e2', 
+      borderRadius: '4px',
+      overflow: 'hidden',
+      display: 'flex'
+    }}>
+      {[
+        { code: 'NM', color: '#64748b' },
+        { code: 'BO', color: '#8b5cf6' },
+        { code: 'HB', color: '#d946ef' },
+        { code: 'FB', color: '#ec4899' }
+      ].map(({ code, color }) => {
+        const guestCount = filteredReservations
+          .filter(r => r.meal_plan === code)
+          .reduce((sum, r) => 
+            sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+          );
+        
+        const totalGuests = filteredReservations.reduce((sum, r) => 
+          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+        );
+        
+        const percentage = totalGuests > 0 ? (guestCount / totalGuests * 100) : 0;
+        
+        if (percentage === 0) return null;
+        
+        return (
+          <div 
+            key={code}
+            style={{ 
+              width: `${percentage}%`,
+              background: color,
+              transition: 'width 0.3s ease'
+            }}
+            title={`${code}: ${guestCount} guests (${percentage.toFixed(1)}%)`}
+          />
+        );
+      })}
+    </div>
+  </div>
+</div>
 
               {/* Total Guests - Enhanced */}
               <div style={{ 
