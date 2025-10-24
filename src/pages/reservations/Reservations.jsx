@@ -1195,50 +1195,125 @@ const Reservations = () => {
             </div>
           </div>
 
-          {/* Total Advance */}
-          <div style={{ 
-            padding: '16px', 
-            background: '#f0fdf4', 
-            borderRadius: '8px',
-            border: '1px solid #bbf7d0'
-          }}>
-            <div style={{ fontSize: '12px', color: '#15803d', fontWeight: '600', marginBottom: '4px' }}>
-              Advance Collected
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#14532d' }}>
-              ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
-            </div>
-          </div>
+          {/* Combined Financial Summary */}
+<div style={{ 
+  padding: '16px', 
+  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', 
+  borderRadius: '8px',
+  border: '1px solid #bbf7d0',
+  gridColumn: 'span 2'
+}}>
+  <div style={{ 
+    fontSize: '12px', 
+    color: '#15803d', 
+    fontWeight: '600', 
+    marginBottom: '12px' 
+  }}>
+    Financial Summary
+  </div>
+  
+  {/* Total Revenue - Primary */}
+  <div style={{ marginBottom: '12px' }}>
+    <div style={{ 
+      fontSize: '11px', 
+      color: '#166534', 
+      fontWeight: '500',
+      marginBottom: '2px' 
+    }}>
+      Total Revenue
+    </div>
+    <div style={{ 
+      fontSize: '28px', 
+      fontWeight: '700', 
+      color: '#14532d',
+      lineHeight: '1'
+    }}>
+      ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+    </div>
+  </div>
+  
+  {/* Advance & Balance - Side by Side */}
+  <div style={{ 
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    paddingTop: '12px',
+    borderTop: '1px solid #bbf7d0'
+  }}>
+    <div>
+      <div style={{ 
+        fontSize: '11px', 
+        color: '#166534', 
+        fontWeight: '500',
+        marginBottom: '4px' 
+      }}>
+        Advance Collected
+      </div>
+      <div style={{ 
+        fontSize: '20px', 
+        fontWeight: '700', 
+        color: '#15803d' 
+      }}>
+        ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
+      </div>
+    </div>
+    
+    <div>
+      <div style={{ 
+        fontSize: '11px', 
+        color: '#166534', 
+        fontWeight: '500',
+        marginBottom: '4px' 
+      }}>
+        Balance Due
+      </div>
+      <div style={{ 
+        fontSize: '20px', 
+        fontWeight: '700', 
+        color: '#92400e' 
+      }}>
+        ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
+      </div>
+    </div>
+  </div>
+  
+  {/* Payment Progress Bar */}
+  <div style={{ marginTop: '12px' }}>
+    <div style={{ 
+      height: '6px', 
+      background: '#e5e7eb', 
+      borderRadius: '3px',
+      overflow: 'hidden'
+    }}>
+      <div style={{ 
+        height: '100%',
+        background: '#15803d',
+        width: `${
+          filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0) > 0
+            ? (filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0) / 
+               filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0) * 100)
+            : 0
+        }%`,
+        transition: 'width 0.3s ease'
+      }} />
+    </div>
+    <div style={{ 
+      fontSize: '11px', 
+      color: '#6b7280', 
+      marginTop: '4px',
+      textAlign: 'center'
+    }}>
+      {filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0) > 0
+        ? Math.round(
+            (filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0) / 
+             filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0) * 100)
+          )
+        : 0}% Collected
+    </div>
+  </div>
+</div>
 
-          {/* Balance Due */}
-          <div style={{ 
-            padding: '16px', 
-            background: '#fef3c7', 
-            borderRadius: '8px',
-            border: '1px solid #fde68a'
-          }}>
-            <div style={{ fontSize: '12px', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>
-              Balance Due
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#78350f' }}>
-              ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
-            </div>
-          </div>
-
-          {/* Total Revenue */}
-          <div style={{ 
-            padding: '16px', 
-            background: '#f0f9ff', 
-            borderRadius: '8px',
-            border: '1px solid #bae6fd'
-          }}>
-            <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: '600', marginBottom: '4px' }}>
-              Total Revenue
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#0c4a6e' }}>
-              ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
-            </div>
-          </div>
+          
         </div>
       </div>
 
