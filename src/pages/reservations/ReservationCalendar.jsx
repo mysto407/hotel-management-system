@@ -143,31 +143,9 @@ const ReservationCalendar = () => {
         </div>
       </div>
 
-      {/* Legend */}
-      <Card>
-        <div className="calendar-legend">
-          <div className="legend-item">
-            <div className="legend-box legend-available"></div>
-            <span>Available</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-box legend-occupied"></div>
-            <span>Occupied</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-box legend-maintenance"></div>
-            <span>Maintenance</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-box legend-blocked"></div>
-            <span>Blocked</span>
-          </div>
-        </div>
-      </Card>
-
       {/* Calendar Grid */}
       <Card>
-        <div className="calendar-table-container">
+        <div className="calendar-table-container" style={{ overflowX: 'scroll' }}>
           <table className="calendar-table">
             <thead>
               {/* Date Headers */}
