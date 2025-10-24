@@ -8,6 +8,99 @@ import { useRooms } from '../../context/RoomContext';
 const ReservationCalendar = () => {
   const { reservations } = useReservations();
   const { rooms, roomTypes } = useRooms();
+
+  // Inject styles
+  useEffect(() => {
+    const styleId = 'reservation-calendar-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        .calendar-controls {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .date-picker-group {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 0.75rem;
+          background-color: #f3f4f6;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
+        }
+
+        .date-picker-label {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #374151;
+          margin: 0;
+        }
+
+        .date-picker-input {
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0.375rem;
+          font-size: 0.875rem;
+          background-color: white;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .date-picker-input:hover {
+          border-color: #9ca3af;
+        }
+
+        .date-picker-input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .divider {
+          width: 1px;
+          height: 2rem;
+          background-color: #e5e7eb;
+        }
+
+        .days-label {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #374151;
+          margin: 0;
+        }
+
+        @media (max-width: 768px) {
+          .calendar-controls {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          
+          .date-picker-group {
+            justify-content: space-between;
+          }
+          
+          .divider {
+            display: none;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    return () => {
+      const styleElement = document.getElementById(styleId);
+      if (styleElement) {
+        styleElement.remove();
+      }
+    };
+  }, []);
   
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
