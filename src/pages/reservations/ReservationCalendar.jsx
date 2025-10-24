@@ -107,6 +107,11 @@ const ReservationCalendar = () => {
     setStartDate(new Date());
   };
 
+  const handleDatePickerChange = (e) => {
+    const selectedDate = new Date(e.target.value);
+    setStartDate(selectedDate);
+  };
+
   // Drag-to-scroll handlers
   const handleMouseDown = (e) => {
     if (!containerRef.current) return;
@@ -177,6 +182,13 @@ const ReservationCalendar = () => {
           <button onClick={goToNextWeek} className="btn-secondary">
             Next Week <ChevronRight size={18} />
           </button>
+          <input
+            type="date"
+            value={startDate.toISOString().split('T')[0]}
+            onChange={handleDatePickerChange}
+            className="filter-select"
+            style={{ width: 'auto' }}
+          />
           <select
             value={daysToShow}
             onChange={(e) => setDaysToShow(parseInt(e.target.value))}
@@ -189,27 +201,7 @@ const ReservationCalendar = () => {
         </div>
       </div>
 
-      {/* Legend */}
-      <Card>
-        <div className="calendar-legend">
-          <div className="legend-item">
-            <div className="legend-box legend-available"></div>
-            <span>Available</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-box legend-occupied"></div>
-            <span>Occupied</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-box legend-maintenance"></div>
-            <span>Maintenance</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-box legend-blocked"></div>
-            <span>Blocked</span>
-          </div>
-        </div>
-      </Card>
+      
 
       {/* Calendar Grid */}
       <Card>
