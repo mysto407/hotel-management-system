@@ -145,8 +145,13 @@ const ReservationCalendar = () => {
 
       {/* Calendar Grid */}
       <Card>
-        <div className="calendar-table-container" style={{ overflowX: 'scroll' }}>
-          <table className="calendar-table">
+        <div className="calendar-table-container" style={{ 
+          overflowX: 'scroll', 
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'auto',
+          scrollbarColor: '#888 #f1f1f1'
+        }}>
+          <table className="calendar-table" style={{ minWidth: '1200px' }}>
             <thead>
               {/* Date Headers */}
               <tr>
