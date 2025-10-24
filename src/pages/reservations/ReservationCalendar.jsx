@@ -1,6 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
@@ -8,99 +8,6 @@ import { useRooms } from '../../context/RoomContext';
 const ReservationCalendar = () => {
   const { reservations } = useReservations();
   const { rooms, roomTypes } = useRooms();
-
-  // Inject styles
-  useEffect(() => {
-    const styleId = 'reservation-calendar-styles';
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-        .calendar-controls {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .date-picker-group {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background-color: #f3f4f6;
-          border-radius: 0.5rem;
-          border: 1px solid #e5e7eb;
-        }
-
-        .date-picker-label {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #374151;
-          margin: 0;
-        }
-
-        .date-picker-input {
-          padding: 0.5rem 0.75rem;
-          border: 1px solid #d1d5db;
-          border-radius: 0.375rem;
-          font-size: 0.875rem;
-          background-color: white;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .date-picker-input:hover {
-          border-color: #9ca3af;
-        }
-
-        .date-picker-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .divider {
-          width: 1px;
-          height: 2rem;
-          background-color: #e5e7eb;
-        }
-
-        .days-label {
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: #374151;
-          margin: 0;
-        }
-
-        @media (max-width: 768px) {
-          .calendar-controls {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          
-          .date-picker-group {
-            justify-content: space-between;
-          }
-          
-          .divider {
-            display: none;
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    return () => {
-      const styleElement = document.getElementById(styleId);
-      if (styleElement) {
-        styleElement.remove();
-      }
-    };
-  }, []);
   
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
@@ -183,7 +90,19 @@ const ReservationCalendar = () => {
     }));
   };
 
-  // Navigate to today
+  // Navigate dates
+  const goToPreviousWeek = () => {
+    const newDate = new Date(startDate);
+    newDate.setDate(startDate.getDate() - 7);
+    setStartDate(newDate);
+  };
+
+  const goToNextWeek = () => {
+    const newDate = new Date(startDate);
+    newDate.setDate(startDate.getDate() + 7);
+    setStartDate(newDate);
+  };
+
   const goToToday = () => {
     setStartDate(new Date());
   };
@@ -249,33 +168,22 @@ const ReservationCalendar = () => {
       <div className="page-header">
         <h1 className="page-title">Booking Calendar</h1>
         <div className="calendar-controls">
-          <div className="date-picker-group">
-            <label htmlFor="start-date" className="date-picker-label">
-              <Calendar size={18} />
-              Start Date:
-            </label>
-            <input
-              id="start-date"
-              type="date"
-              value={startDate.toISOString().split('T')[0]}
-              onChange={(e) => setStartDate(new Date(e.target.value))}
-              className="date-picker-input"
-            />
-          </div>
-          <button onClick={goToToday} className="btn-secondary">
-            Today
+          <button onClick={goToPreviousWeek} className="btn-secondary">
+            <ChevronLeft size={18} /> Previous Week
           </button>
-          <div className="divider"></div>
-          <label htmlFor="days-select" className="days-label">Show:</label>
+          <button onClick={goToToday} className="btn-secondary">
+            <Calendar size={18} /> Today
+          </button>
+          <button onClick={goToNextWeek} className="btn-secondary">
+            Next Week <ChevronRight size={18} />
+          </button>
           <select
-            id="days-select"
             value={daysToShow}
             onChange={(e) => setDaysToShow(parseInt(e.target.value))}
             className="filter-select"
           >
             <option value="7">7 Days</option>
             <option value="14">14 Days</option>
-            <option value="21">21 Days</option>
             <option value="30">30 Days</option>
           </select>
         </div>
