@@ -1,6 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
@@ -126,7 +126,7 @@ const ReservationCalendar = () => {
     if (!isDragging || !containerRef.current) return;
     e.preventDefault();
     const x = e.pageX - containerRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; // Scroll speed multiplier
+    const walk = (x - startX) * 1.5;
     containerRef.current.scrollLeft = scrollLeft - walk;
   };
 
@@ -168,43 +168,115 @@ const ReservationCalendar = () => {
     }
   };
 
+  // Calculate summary statistics
+  const totalAvailable = rooms.filter(r => {
+    const today = new Date().toISOString().split('T')[0];
+    const status = getRoomStatus(r.id, today);
+    return status.status === 'available';
+  }).length;
+
+  const totalOccupied = rooms.filter(r => {
+    const today = new Date().toISOString().split('T')[0];
+    const status = getRoomStatus(r.id, today);
+    return status.status === 'occupied';
+  }).length;
+
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">Booking Calendar</h1>
-        <div className="calendar-controls">
-          <button onClick={goToPreviousWeek} className="btn-secondary">
-            <ChevronLeft size={18} /> Previous Week
-          </button>
-          <button onClick={goToToday} className="btn-secondary">
-            <Calendar size={18} /> Today
-          </button>
-          <button onClick={goToNextWeek} className="btn-secondary">
-            Next Week <ChevronRight size={18} />
-          </button>
-          <input
-            type="date"
-            value={startDate.toISOString().split('T')[0]}
-            onChange={handleDatePickerChange}
-            className="filter-select"
-            style={{ width: 'auto' }}
-          />
-          <select
-            value={daysToShow}
-            onChange={(e) => setDaysToShow(parseInt(e.target.value))}
-            className="filter-select"
-          >
-            <option value="7">7 Days</option>
-            <option value="14">14 Days</option>
-            <option value="30">30 Days</option>
-          </select>
+    <div className="calendar-page">
+      {/* Enhanced Page Header */}
+      <div className="calendar-page-header">
+        <div className="calendar-header-top">
+          <div>
+            <h1 className="calendar-main-title">
+              <CalendarDays size={32} />
+              Booking Calendar
+            </h1>
+            <p className="calendar-subtitle">Manage room availability and reservations</p>
+          </div>
+          
+          {/* Quick Stats */}
+          <div className="calendar-quick-stats">
+            <div className="quick-stat-item stat-available">
+              <Home size={20} />
+              <div>
+                <div className="quick-stat-value">{totalAvailable}</div>
+                <div className="quick-stat-label">Available</div>
+              </div>
+            </div>
+            <div className="quick-stat-item stat-occupied">
+              <Users size={20} />
+              <div>
+                <div className="quick-stat-value">{totalOccupied}</div>
+                <div className="quick-stat-label">Occupied</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Controls */}
+        <div className="calendar-nav-controls">
+          <div className="calendar-nav-buttons">
+            <button onClick={goToPreviousWeek} className="calendar-nav-btn">
+              <ChevronLeft size={18} />
+              <span>Previous</span>
+            </button>
+            <button onClick={goToToday} className="calendar-nav-btn today-btn">
+              <Calendar size={18} />
+              <span>Today</span>
+            </button>
+            <button onClick={goToNextWeek} className="calendar-nav-btn">
+              <span>Next</span>
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
+          <div className="calendar-view-controls">
+            <input
+              type="date"
+              value={startDate.toISOString().split('T')[0]}
+              onChange={handleDatePickerChange}
+              className="calendar-date-input"
+            />
+            <select
+              value={daysToShow}
+              onChange={(e) => setDaysToShow(parseInt(e.target.value))}
+              className="calendar-days-select"
+            >
+              <option value="7">7 Days</option>
+              <option value="14">14 Days</option>
+              <option value="30">30 Days</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      
+      {/* Legend */}
+      <Card className="calendar-legend-card">
+        <div className="calendar-legend">
+          <span className="legend-title">Legend:</span>
+          <div className="legend-items">
+            <div className="legend-item">
+              <div className="legend-box legend-available"></div>
+              <span>Available</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-box legend-occupied"></div>
+              <span>Occupied</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-box legend-maintenance"></div>
+              <span>Maintenance</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-box legend-blocked"></div>
+              <span>Blocked</span>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Calendar Grid */}
-      <Card>
+      <Card className="calendar-grid-card">
         <div 
           className="calendar-table-container"
           ref={containerRef}
@@ -217,12 +289,21 @@ const ReservationCalendar = () => {
             <thead>
               {/* Date Headers */}
               <tr>
-                <th className="calendar-fixed-column">Room Type / Room</th>
+                <th className="calendar-fixed-column">
+                  <div className="fixed-column-header">
+                    <span>Room Type / Room</span>
+                  </div>
+                </th>
                 {generateDates.map(date => {
                   const dateObj = new Date(date);
                   const isToday = date === new Date().toISOString().split('T')[0];
+                  const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                  
                   return (
-                    <th key={date} className={`calendar-date-header ${isToday ? 'today' : ''}`}>
+                    <th 
+                      key={date} 
+                      className={`calendar-date-header ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
+                    >
                       <div className="date-header-content">
                         <div className="date-day">{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                         <div className="date-num">{dateObj.getDate()}</div>
@@ -237,12 +318,30 @@ const ReservationCalendar = () => {
             <tbody>
               {/* Total Availability Row */}
               <tr className="availability-row">
-                <th className="calendar-fixed-column availability-label">Total Availability</th>
+                <th className="calendar-fixed-column availability-label">
+                  <div className="availability-label-content">
+                    <CalendarDays size={16} />
+                    <span>Total Availability</span>
+                  </div>
+                </th>
                 {generateDates.map(date => {
                   const availability = getTotalAvailability(date);
+                  const percentage = (availability.available / availability.total) * 100;
+                  
                   return (
                     <td key={date} className="availability-cell">
                       <div className="availability-content">
+                        <div className="availability-progress">
+                          <div 
+                            className="availability-progress-bar"
+                            style={{ 
+                              width: `${percentage}%`,
+                              background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
+                                         percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
+                                         'linear-gradient(135deg, #ef4444, #dc2626)'
+                            }}
+                          />
+                        </div>
                         <span className="availability-numbers">
                           {availability.available}/{availability.total}
                         </span>
@@ -266,9 +365,13 @@ const ReservationCalendar = () => {
                           onClick={() => toggleRoomType(roomType.id)}
                           className="room-type-toggle"
                         >
-                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                          <strong>{roomType.name}</strong>
-                          <span className="room-count">({typeRooms.length} rooms)</span>
+                          <div className="room-type-icon">
+                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </div>
+                          <div className="room-type-info">
+                            <strong>{roomType.name}</strong>
+                            <span className="room-count">{typeRooms.length} rooms</span>
+                          </div>
                         </button>
                       </td>
                       {generateDates.map(date => {
@@ -282,7 +385,9 @@ const ReservationCalendar = () => {
                                 className="availability-bar" 
                                 style={{ 
                                   width: `${percentage}%`,
-                                  backgroundColor: percentage > 50 ? '#10b981' : percentage > 20 ? '#f59e0b' : '#ef4444'
+                                  background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
+                                             percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
+                                             'linear-gradient(135deg, #ef4444, #dc2626)'
                                 }}
                               />
                               <span className="availability-text">
@@ -298,8 +403,10 @@ const ReservationCalendar = () => {
                     {isExpanded && typeRooms.map(room => (
                       <tr key={room.id} className="room-row">
                         <td className="calendar-fixed-column room-cell">
-                          <span className="room-number">Room {room.room_number}</span>
-                          <span className="room-floor">Floor {room.floor}</span>
+                          <div className="room-info">
+                            <span className="room-number">Room {room.room_number}</span>
+                            <span className="room-floor">Floor {room.floor}</span>
+                          </div>
                         </td>
                         {generateDates.map(date => {
                           const roomStatus = getRoomStatus(room.id, date);
@@ -311,18 +418,18 @@ const ReservationCalendar = () => {
                               title={roomStatus.guestName || roomStatus.status}
                             >
                               {roomStatus.status === 'occupied' && (
-                                <div className="cell-content">
+                                <div className="cell-content occupied-content">
                                   <div className="guest-name">{roomStatus.guestName}</div>
                                   <div className="reservation-status">{roomStatus.statusType}</div>
                                 </div>
                               )}
                               {roomStatus.status === 'maintenance' && (
-                                <div className="cell-content">
+                                <div className="cell-content maintenance-content">
                                   <div className="status-label">Maintenance</div>
                                 </div>
                               )}
                               {roomStatus.status === 'blocked' && (
-                                <div className="cell-content">
+                                <div className="cell-content blocked-content">
                                   <div className="status-label">Blocked</div>
                                 </div>
                               )}
