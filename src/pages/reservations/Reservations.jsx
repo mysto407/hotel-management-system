@@ -1010,7 +1010,7 @@ const Reservations = () => {
             gridColumn: 'span 2'
           }}>
             <div style={{ fontSize: '12px', color: '#6b21a8', fontWeight: '600', marginBottom: '8px' }}>
-              Status Breakdown
+              Room Status Breakdown
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {['Inquiry', 'Tentative', 'Hold', 'Confirmed', 'Checked-in', 'Checked-out', 'Cancelled'].map(status => {
