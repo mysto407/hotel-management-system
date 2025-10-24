@@ -1,17 +1,18 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 
 const ReservationCalendar = () => {
-  const { reservations } = useReservations();
-  const { rooms, roomTypes } = useRooms();
+  const { reservations, fetchReservations } = useReservations();
+  const { rooms, roomTypes, fetchRooms } = useRooms();
   
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Drag-to-scroll state
   const [isDragging, setIsDragging] = useState(false);
@@ -112,6 +113,25 @@ const ReservationCalendar = () => {
     setStartDate(selectedDate);
   };
 
+  // Refresh calendar data
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Fetch both reservations and rooms data
+      if (fetchReservations) await fetchReservations();
+      if (fetchRooms) await fetchRooms();
+      
+      // Optional: Show success message or toast notification here
+      console.log('Calendar data refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing calendar data:', error);
+      // Optional: Show error message or toast notification here
+    } finally {
+      // Add a small delay to show the animation
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  };
+
   // Drag-to-scroll handlers
   const handleMouseDown = (e) => {
     if (!containerRef.current) return;
@@ -194,22 +214,35 @@ const ReservationCalendar = () => {
             <p className="calendar-subtitle">Manage room availability and reservations</p>
           </div>
           
-          {/* Quick Stats */}
-          <div className="calendar-quick-stats">
-            <div className="quick-stat-item stat-available">
-              <Home size={20} />
-              <div>
-                <div className="quick-stat-value">{totalAvailable}</div>
-                <div className="quick-stat-label">Available</div>
+          {/* Quick Stats and Refresh */}
+          <div className="calendar-header-actions">
+            <div className="calendar-quick-stats">
+              <div className="quick-stat-item stat-available">
+                <Home size={20} />
+                <div>
+                  <div className="quick-stat-value">{totalAvailable}</div>
+                  <div className="quick-stat-label">Available</div>
+                </div>
+              </div>
+              <div className="quick-stat-item stat-occupied">
+                <Users size={20} />
+                <div>
+                  <div className="quick-stat-value">{totalOccupied}</div>
+                  <div className="quick-stat-label">Occupied</div>
+                </div>
               </div>
             </div>
-            <div className="quick-stat-item stat-occupied">
-              <Users size={20} />
-              <div>
-                <div className="quick-stat-value">{totalOccupied}</div>
-                <div className="quick-stat-label">Occupied</div>
-              </div>
-            </div>
+            
+            {/* Refresh Button */}
+            <button 
+              onClick={handleRefresh} 
+              className={`calendar-refresh-btn ${isRefreshing ? 'refreshing' : ''}`}
+              disabled={isRefreshing}
+              title="Refresh calendar data"
+            >
+              <RefreshCw size={20} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
           </div>
         </div>
 
