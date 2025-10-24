@@ -1,6 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, Calendar } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
@@ -90,19 +90,7 @@ const ReservationCalendar = () => {
     }));
   };
 
-  // Navigate dates
-  const goToPreviousWeek = () => {
-    const newDate = new Date(startDate);
-    newDate.setDate(startDate.getDate() - 7);
-    setStartDate(newDate);
-  };
-
-  const goToNextWeek = () => {
-    const newDate = new Date(startDate);
-    newDate.setDate(startDate.getDate() + 7);
-    setStartDate(newDate);
-  };
-
+  // Navigate to today
   const goToToday = () => {
     setStartDate(new Date());
   };
@@ -168,22 +156,33 @@ const ReservationCalendar = () => {
       <div className="page-header">
         <h1 className="page-title">Booking Calendar</h1>
         <div className="calendar-controls">
-          <button onClick={goToPreviousWeek} className="btn-secondary">
-            <ChevronLeft size={18} /> Previous Week
-          </button>
+          <div className="date-picker-group">
+            <label htmlFor="start-date" className="date-picker-label">
+              <Calendar size={18} />
+              Start Date:
+            </label>
+            <input
+              id="start-date"
+              type="date"
+              value={startDate.toISOString().split('T')[0]}
+              onChange={(e) => setStartDate(new Date(e.target.value))}
+              className="date-picker-input"
+            />
+          </div>
           <button onClick={goToToday} className="btn-secondary">
-            <Calendar size={18} /> Today
+            Today
           </button>
-          <button onClick={goToNextWeek} className="btn-secondary">
-            Next Week <ChevronRight size={18} />
-          </button>
+          <div className="divider"></div>
+          <label htmlFor="days-select" className="days-label">Show:</label>
           <select
+            id="days-select"
             value={daysToShow}
             onChange={(e) => setDaysToShow(parseInt(e.target.value))}
             className="filter-select"
           >
             <option value="7">7 Days</option>
             <option value="14">14 Days</option>
+            <option value="21">21 Days</option>
             <option value="30">30 Days</option>
           </select>
         </div>
