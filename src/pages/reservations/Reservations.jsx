@@ -1113,7 +1113,7 @@ const Reservations = () => {
             background: color 
           }} />
           <span style={{ fontWeight: '500' }}>{label}:</span>
-          <span style={{ fontWeight: '600', color: '#aaaa' }}>
+          <span style={{ fontWeight: '600', color: '#dc2626' }}>
             {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
           </span>
         </div>
