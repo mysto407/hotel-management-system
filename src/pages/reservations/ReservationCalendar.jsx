@@ -733,9 +733,7 @@ const ReservationCalendar = () => {
               })}
             </tbody>
           </table>
-        </div>
-
-      {/* Action Menu Popup */}
+          {/* Action Menu Popup */}
       {actionMenu.visible && (
         <div
           ref={actionMenuRef}
@@ -837,6 +835,9 @@ const ReservationCalendar = () => {
           </button>
         </div>
       )}
+        </div>
+
+      
 
       {/* Quick Booking Modal */}
       <Modal
