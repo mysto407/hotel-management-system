@@ -1193,6 +1193,86 @@ body {
     animation: rotate 1s linear infinite;
 }
 
+
+/* Calendar Drag Selection Styles */
+
+
+/* Selected cell highlighting */
+
+.calendar-cell.cell-selected {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border: 2px solid #3b82f6 !important;
+    position: relative;
+}
+
+.calendar-cell.cell-selected::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+    pointer-events: none;
+    z-index: 1;
+}
+
+.selection-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px solid #3b82f6;
+    pointer-events: none;
+    z-index: 2;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+
+/* Prevent text selection during drag */
+
+.calendar-cell {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+
+/* Visual feedback when selecting */
+
+.calendar-cell.calendar-cell-available:hover {
+    background: rgba(59, 130, 246, 0.05);
+    transition: background 0.15s ease;
+}
+
+
+/* Enhanced cursor for available cells */
+
+.calendar-cell.calendar-cell-available {
+    cursor: crosshair;
+}
+
+
+/* Multi-select indicator */
+
+.calendar-cell.cell-selected .cell-content {
+    position: relative;
+    z-index: 3;
+}
+
 @keyframes rotate {
     from {
         transform: rotate(0deg);
