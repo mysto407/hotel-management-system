@@ -740,7 +740,7 @@ const ReservationCalendar = () => {
         <div
           ref={actionMenuRef}
           style={{
-            position: 'fixed',
+            position: 'absolute',
             left: `${actionMenu.position.x}px`,
             top: `${actionMenu.position.y}px`,
             background: 'white',
