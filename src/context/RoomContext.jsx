@@ -138,8 +138,9 @@ export const RoomProvider = ({ children }) => {
       // Ensure all field names are in snake_case and types are correct
       const roomData = {
         room_number: room.room_number,
-        floor: parseInt(room.floor),
+        floor: room.floor ? parseInt(room.floor) : null,
         room_type_id: room.room_type_id,
+        category: room.category || 'main building',
         status: room.status || 'Available'
       };
 
@@ -171,8 +172,9 @@ export const RoomProvider = ({ children }) => {
       // Ensure all field names are in snake_case and types are correct
       const roomData = {
         room_number: updatedRoom.room_number,
-        floor: parseInt(updatedRoom.floor),
+        floor: updatedRoom.floor ? parseInt(updatedRoom.floor) : null,
         room_type_id: updatedRoom.room_type_id,
+        category: updatedRoom.category || 'main building',
         status: updatedRoom.status
       };
 
@@ -253,6 +255,10 @@ export const RoomProvider = ({ children }) => {
     return rooms.filter(r => r.floor === floor);
   };
 
+  const getRoomsByCategory = (category) => {
+    return rooms.filter(r => r.category === category);
+  };
+
   const getAvailableRooms = () => {
     return rooms.filter(r => r.status === 'Available');
   };
@@ -284,6 +290,7 @@ export const RoomProvider = ({ children }) => {
       getRoomsByType,
       getRoomsByStatus,
       getRoomsByFloor,
+      getRoomsByCategory,
       getAvailableRooms,
       getRoomStats
     }}>
