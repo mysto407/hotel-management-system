@@ -1,7 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw } from 'lucide-react';
-import { Card } from '../../components/common/Card';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 
@@ -286,7 +285,12 @@ const ReservationCalendar = () => {
 
 
       {/* Calendar Grid */}
-      <Card className="calendar-grid-card">
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        overflow: 'hidden'
+      }}>
         <div 
           className="calendar-table-container"
           ref={containerRef}
@@ -294,6 +298,11 @@ const ReservationCalendar = () => {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
+          style={{
+            overflowX: 'auto',
+            overflowY: 'visible',
+            width: '100%'
+          }}
         >
           <table className="calendar-table">
             <thead>
@@ -454,7 +463,7 @@ const ReservationCalendar = () => {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
