@@ -22,6 +22,7 @@ const ReservationCalendar = () => {
     visible: false,
     roomId: null,
     date: null,
+    endDate: null, // For multi-date selections
     position: { x: 0, y: 0 }
   });
   
@@ -216,6 +217,7 @@ const handleCellClick = (e, roomId, date) => {
     visible: true,
     roomId,
     date,
+    endDate: null, // Single click has no end date
     position: { x, y } // Use new relative x and y
   });
 };
@@ -291,10 +293,10 @@ const handleCellClick = (e, roomId, date) => {
     }));
   };
 
-  const handleCellMouseUp = (roomId, date) => {
+  const handleCellMouseUp = (e, roomId, date) => {
     if (!dragSelection.isSelecting) return;
     
-    // If only one date selected, show action menu instead
+    // If only one date selected, show action menu at that position
     if (dragSelection.selectedDates.length === 1) {
       setDragSelection({
         isSelecting: false,
@@ -306,37 +308,34 @@ const handleCellClick = (e, roomId, date) => {
       return;
     }
     
-    // Open booking modal for multiple dates
+    // Show action menu for multiple dates selection
     if (dragSelection.selectedDates.length > 1) {
-      const firstDate = dragSelection.selectedDates[0];
-      const lastDate = dragSelection.selectedDates[dragSelection.selectedDates.length - 1];
-      const checkOutDate = new Date(lastDate);
-      checkOutDate.setDate(checkOutDate.getDate() + 1);
+      if (!containerRef.current) return;
+
+      const cellRect = e.currentTarget.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
       
-      setBookingData({
-        room_id: roomId,
-        check_in_date: firstDate,
-        check_out_date: checkOutDate.toISOString().split('T')[0],
-        guest_id: '',
-        number_of_adults: 1,
-        number_of_children: 0,
-        number_of_infants: 0,
-        meal_plan: 'NM',
-        status: 'Confirmed',
-        special_requests: ''
+      const scrollLeft = containerRef.current.scrollLeft;
+      const scrollTop = containerRef.current.scrollTop;
+
+      // Calculate position relative to the container
+      const x = cellRect.right - containerRect.left + scrollLeft + 10;
+      const y = cellRect.top - containerRect.top + scrollTop;
+      
+      setActionMenu({
+        visible: true,
+        roomId,
+        date: dragSelection.startDate, // Use the start date
+        endDate: dragSelection.selectedDates[dragSelection.selectedDates.length - 1], // Store end date
+        position: { x, y }
       });
-      
-      setIsBookingModalOpen(true);
     }
     
-    // Reset selection
-    setDragSelection({
-      isSelecting: false,
-      roomId: null,
-      startDate: null,
-      endDate: null,
-      selectedDates: []
-    });
+    // Keep selection visible until action is taken
+    setDragSelection(prev => ({
+      ...prev,
+      isSelecting: false
+    }));
   };
 
   const handleGlobalMouseUp = () => {
@@ -357,7 +356,16 @@ const handleCellClick = (e, roomId, date) => {
       visible: false,
       roomId: null,
       date: null,
+      endDate: null,
       position: { x: 0, y: 0 }
+    });
+    // Also clear drag selection
+    setDragSelection({
+      isSelecting: false,
+      roomId: null,
+      startDate: null,
+      endDate: null,
+      selectedDates: []
     });
   };
 
@@ -381,15 +389,22 @@ const handleCellClick = (e, roomId, date) => {
   const handleHoldRoom = async () => {
     if (!actionMenu.roomId || !actionMenu.date) return;
     
-    // Set default check-out to next day
-    const checkIn = new Date(actionMenu.date);
-    const checkOut = new Date(actionMenu.date);
-    checkOut.setDate(checkOut.getDate() + 1);
+    // Calculate check-out date based on whether it's a multi-date selection or single date
+    let checkOutDate;
+    if (actionMenu.endDate) {
+      // Multi-date selection - check out the day after the last selected date
+      checkOutDate = new Date(actionMenu.endDate);
+      checkOutDate.setDate(checkOutDate.getDate() + 1);
+    } else {
+      // Single date selection - default to next day
+      checkOutDate = new Date(actionMenu.date);
+      checkOutDate.setDate(checkOutDate.getDate() + 1);
+    }
     
     setBookingData({
       room_id: actionMenu.roomId,
       check_in_date: actionMenu.date,
-      check_out_date: checkOut.toISOString().split('T')[0],
+      check_out_date: checkOutDate.toISOString().split('T')[0],
       guest_id: '',
       number_of_adults: 1,
       number_of_children: 0,
@@ -407,15 +422,22 @@ const handleCellClick = (e, roomId, date) => {
   const handleBookRoom = () => {
     if (!actionMenu.roomId || !actionMenu.date) return;
     
-    // Set default check-out to next day
-    const checkIn = new Date(actionMenu.date);
-    const checkOut = new Date(actionMenu.date);
-    checkOut.setDate(checkOut.getDate() + 1);
+    // Calculate check-out date based on whether it's a multi-date selection or single date
+    let checkOutDate;
+    if (actionMenu.endDate) {
+      // Multi-date selection - check out the day after the last selected date
+      checkOutDate = new Date(actionMenu.endDate);
+      checkOutDate.setDate(checkOutDate.getDate() + 1);
+    } else {
+      // Single date selection - default to next day
+      checkOutDate = new Date(actionMenu.date);
+      checkOutDate.setDate(checkOutDate.getDate() + 1);
+    }
     
     setBookingData({
       room_id: actionMenu.roomId,
       check_in_date: actionMenu.date,
-      check_out_date: checkOut.toISOString().split('T')[0],
+      check_out_date: checkOutDate.toISOString().split('T')[0],
       guest_id: '',
       number_of_adults: 1,
       number_of_children: 0,
@@ -858,7 +880,7 @@ const handleCellClick = (e, roomId, date) => {
                               onClick={(e) => handleCellClick(e, room.id, date)}
                               onMouseDown={(e) => handleCellMouseDown(e, room.id, date)}
                               onMouseEnter={() => handleCellMouseEnter(room.id, date)}
-                              onMouseUp={() => handleCellMouseUp(room.id, date)}
+                              onMouseUp={(e) => handleCellMouseUp(e, room.id, date)}
                               style={{ 
                                 cursor: roomStatus.status === 'available' ? 'pointer' : 'default',
                                 position: 'relative',
@@ -919,8 +941,30 @@ const handleCellClick = (e, roomId, date) => {
           }}>
             {(() => {
               const room = rooms.find(r => r.id === actionMenu.roomId);
-              return room ? `Room ${room.room_number}` : 'Room';
-            })()} - {new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              const roomText = room ? `Room ${room.room_number}` : 'Room';
+              
+              if (actionMenu.endDate && actionMenu.date !== actionMenu.endDate) {
+                // Multi-date selection
+                const startDate = new Date(actionMenu.date);
+                const endDate = new Date(actionMenu.endDate);
+                const nights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                
+                return (
+                  <>
+                    <div>{roomText}</div>
+                    <div style={{ marginTop: '2px', fontWeight: '600', color: '#3b82f6' }}>
+                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                    <div style={{ marginTop: '2px', fontSize: '11px', color: '#059669' }}>
+                      {nights} night{nights !== 1 ? 's' : ''} selected
+                    </div>
+                  </>
+                );
+              } else {
+                // Single date selection
+                return `${roomText} - ${new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+              }
+            })()}
           </div>
           
           <button
