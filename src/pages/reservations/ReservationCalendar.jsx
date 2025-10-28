@@ -142,8 +142,15 @@ const ReservationCalendar = () => {
   };
 
   // Drag-to-scroll handlers
+  // Drag-to-scroll handlers
   const handleMouseDown = (e) => {
     if (!containerRef.current) return;
+    
+    // Don't start scrolling if clicking on a calendar cell (let cell selection handle it)
+    if (e.target.closest('.calendar-cell')) {
+      return;
+    }
+    
     setIsDragging(true);
     setStartX(e.pageX - containerRef.current.offsetLeft);
     setScrollLeft(containerRef.current.scrollLeft);
@@ -172,6 +179,14 @@ const ReservationCalendar = () => {
       containerRef.current.style.cursor = 'grab';
       containerRef.current.style.userSelect = '';
     }
+    
+    // Also reset cell selection if mouse leaves during selection
+    if (isSelecting) {
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectionEnd(null);
+      setSelectedCells(new Set());
+    }
   };
 
   // Set initial cursor style
@@ -195,21 +210,33 @@ const ReservationCalendar = () => {
 
   // Cell selection handlers for creating reservations
   const handleCellMouseDown = (e, roomId, date) => {
-    // Don't start selection if it's a drag-to-scroll
-    if (e.button !== 0) return; // Only left click
+    // Don't start selection if it's not a left click
+    if (e.button !== 0) return;
     
     const roomStatus = getRoomStatus(roomId, date);
     if (roomStatus.status !== 'available') return; // Only allow selection on available rooms
     
+    // Prevent default drag behavior and stop propagation to prevent scroll
+    e.preventDefault();
     e.stopPropagation();
+    
+    // Clear any previous selection state and start fresh
     setIsSelecting(true);
     setSelectionStart({ roomId, date });
     setSelectionEnd({ roomId, date });
     setSelectedCells(new Set([`${roomId}-${date}`]));
   };
 
-  const handleCellMouseEnter = (roomId, date) => {
+  const handleCellMouseEnter = (e, roomId, date) => {
+    // Only continue selection if:
+    // 1. A selection has been started (isSelecting is true)
+    // 2. We have a starting point
+    // 3. The left mouse button is currently being held down (buttons === 1)
     if (!isSelecting || !selectionStart) return;
+    
+    // Use nativeEvent for more reliable button state detection
+    const buttons = e.nativeEvent ? e.nativeEvent.buttons : e.buttons;
+    if (buttons !== 1) return; // Left button must be pressed
     
     const roomStatus = getRoomStatus(roomId, date);
     if (roomStatus.status !== 'available') return;
@@ -219,10 +246,18 @@ const ReservationCalendar = () => {
   };
 
   const handleCellMouseUp = () => {
-    if (isSelecting && selectedCells.size > 0) {
+    if (!isSelecting) return;
+    
+    // Open modal if we have a valid selection
+    if (selectedCells.size > 0) {
       openReservationModalWithSelection();
     }
+    
+    // Always clear selection state after mouseup
     setIsSelecting(false);
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    // Note: selectedCells is cleared in closeReservationModal or openReservationModalWithSelection
   };
 
   const updateSelectedCells = (start, end) => {
@@ -601,7 +636,7 @@ const ReservationCalendar = () => {
                               className={`calendar-cell ${getCellStyle(roomStatus.status)} ${isSelected ? 'calendar-cell-selected' : ''}`}
                               title={roomStatus.guestName || roomStatus.status}
                               onMouseDown={(e) => handleCellMouseDown(e, room.id, date)}
-                              onMouseEnter={() => handleCellMouseEnter(room.id, date)}
+                              onMouseEnter={(e) => handleCellMouseEnter(e, room.id, date)}
                               onMouseUp={handleCellMouseUp}
                               style={{
                                 cursor: roomStatus.status === 'available' ? 'pointer' : 'default',
