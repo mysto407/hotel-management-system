@@ -1,33 +1,65 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus, Lock, Calendar as CalendarIcon } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
-import { useAgents } from '../../context/AgentContext';
+import { Modal } from '../../components/common/Modal';
+import { updateRoomStatus } from '../../lib/supabase';
 
 const ReservationCalendar = () => {
-  const { reservations, fetchReservations } = useReservations();
+  const { reservations, fetchReservations, addReservation } = useReservations();
   const { rooms, roomTypes, fetchRooms } = useRooms();
+  const { guests, addGuest } = useGuests();
   
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState({});
   const [isRefreshing, setIsRefreshing] = useState(false);
   
+  // Action menu state
+  const [actionMenu, setActionMenu] = useState({
+    visible: false,
+    roomId: null,
+    date: null,
+    position: { x: 0, y: 0 }
+  });
+  
+  // Quick booking modal state
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [bookingData, setBookingData] = useState({
+    room_id: '',
+    check_in_date: '',
+    check_out_date: '',
+    guest_id: '',
+    number_of_adults: 1,
+    number_of_children: 0,
+    number_of_infants: 0,
+    meal_plan: 'NM',
+    status: 'Confirmed',
+    special_requests: ''
+  });
+  
+  const [guestFormData, setGuestFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    id_proof_type: 'AADHAR',
+    id_proof_number: '',
+    address: '',
+    city: '',
+    state: '',
+    country: 'India',
+    guest_type: 'Regular'
+  });
+  
   // Drag-to-scroll state
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const containerRef = useRef(null);
-  
-  // Selection state for creating reservations
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState(null);
-  const [selectionEnd, setSelectionEnd] = useState(null);
-  const [selectedCells, setSelectedCells] = useState(new Set());
-  const [showReservationModal, setShowReservationModal] = useState(false);
-  const [prefilledReservationData, setPrefilledReservationData] = useState(null);
+  const actionMenuRef = useRef(null);
 
   // Generate dates for the calendar
   const generateDates = useMemo(() => {
@@ -141,16 +173,219 @@ const ReservationCalendar = () => {
     }
   };
 
-  // Drag-to-scroll handlers
-  // Drag-to-scroll handlers
-  const handleMouseDown = (e) => {
-    if (!containerRef.current) return;
+  // Handle cell click to show action menu
+  const handleCellClick = (e, roomId, date) => {
+    // Only show menu for available cells
+    const roomStatus = getRoomStatus(roomId, date);
+    if (roomStatus.status !== 'available') {
+      return;
+    }
+
+    // Prevent drag-to-scroll interference
+    if (isDragging) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    setActionMenu({
+      visible: true,
+      roomId,
+      date,
+      position: {
+        x: rect.right + 10, // Position to the right of the cell
+        y: rect.top
+      }
+    });
+  };
+
+  // Close action menu
+  const closeActionMenu = () => {
+    setActionMenu({
+      visible: false,
+      roomId: null,
+      date: null,
+      position: { x: 0, y: 0 }
+    });
+  };
+
+  // Handle Block action
+  const handleBlockRoom = async () => {
+    if (!actionMenu.roomId) return;
     
-    // Don't start scrolling if clicking on a calendar cell (let cell selection handle it)
-    if (e.target.closest('.calendar-cell')) {
+    try {
+      await updateRoomStatus(actionMenu.roomId, 'Blocked');
+      await fetchRooms(); // Refresh rooms data
+      alert('Room blocked successfully');
+    } catch (error) {
+      console.error('Error blocking room:', error);
+      alert('Failed to block room: ' + error.message);
+    }
+    
+    closeActionMenu();
+  };
+
+  // Handle Hold action - Create a hold reservation
+  const handleHoldRoom = async () => {
+    if (!actionMenu.roomId || !actionMenu.date) return;
+    
+    // For hold, we'll create a minimal reservation without guest
+    // Set check-out to next day by default
+    const checkIn = new Date(actionMenu.date);
+    const checkOut = new Date(actionMenu.date);
+    checkOut.setDate(checkOut.getDate() + 1);
+    
+    try {
+      // Create a placeholder guest for the hold if needed
+      // Or you can modify this to require guest selection
+      const room = rooms.find(r => r.id === actionMenu.roomId);
+      
+      // For now, require guest selection
+      alert('Please use the Book option to create a reservation. Hold requires guest information.');
+      closeActionMenu();
+      return;
+      
+    } catch (error) {
+      console.error('Error creating hold:', error);
+      alert('Failed to create hold: ' + error.message);
+    }
+  };
+
+  // Handle Book action - Open quick booking modal
+  const handleBookRoom = () => {
+    if (!actionMenu.roomId || !actionMenu.date) return;
+    
+    // Set default check-out to next day
+    const checkIn = new Date(actionMenu.date);
+    const checkOut = new Date(actionMenu.date);
+    checkOut.setDate(checkOut.getDate() + 1);
+    
+    setBookingData({
+      room_id: actionMenu.roomId,
+      check_in_date: actionMenu.date,
+      check_out_date: checkOut.toISOString().split('T')[0],
+      guest_id: '',
+      number_of_adults: 1,
+      number_of_children: 0,
+      number_of_infants: 0,
+      meal_plan: 'NM',
+      status: 'Confirmed',
+      special_requests: ''
+    });
+    
+    closeActionMenu();
+    setIsBookingModalOpen(true);
+  };
+
+  // Submit quick booking
+  const handleQuickBooking = async () => {
+    if (!bookingData.guest_id) {
+      alert('Please select a guest');
       return;
     }
     
+    if (!bookingData.check_out_date) {
+      alert('Please select check-out date');
+      return;
+    }
+    
+    try {
+      const room = rooms.find(r => r.id === bookingData.room_id);
+      const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
+      
+      // Calculate nights and total
+      const checkIn = new Date(bookingData.check_in_date);
+      const checkOut = new Date(bookingData.check_out_date);
+      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+      const totalAmount = (roomType?.base_price || 0) * nights;
+      
+      const reservationData = {
+        booking_source: 'direct',
+        direct_source: 'Calendar',
+        guest_id: bookingData.guest_id,
+        room_id: bookingData.room_id,
+        check_in_date: bookingData.check_in_date,
+        check_out_date: bookingData.check_out_date,
+        number_of_adults: parseInt(bookingData.number_of_adults),
+        number_of_children: parseInt(bookingData.number_of_children),
+        number_of_infants: parseInt(bookingData.number_of_infants),
+        number_of_guests: parseInt(bookingData.number_of_adults) + parseInt(bookingData.number_of_children) + parseInt(bookingData.number_of_infants),
+        meal_plan: bookingData.meal_plan,
+        total_amount: totalAmount,
+        advance_payment: 0,
+        payment_status: 'Pending',
+        status: bookingData.status,
+        special_requests: bookingData.special_requests
+      };
+      
+      await addReservation(reservationData);
+      await fetchReservations();
+      
+      // Reset and close
+      setIsBookingModalOpen(false);
+      setBookingData({
+        room_id: '',
+        check_in_date: '',
+        check_out_date: '',
+        guest_id: '',
+        number_of_adults: 1,
+        number_of_children: 0,
+        number_of_infants: 0,
+        meal_plan: 'NM',
+        status: 'Confirmed',
+        special_requests: ''
+      });
+      
+      alert('Booking created successfully!');
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Failed to create booking: ' + error.message);
+    }
+  };
+
+  // Guest modal handlers
+  const handleCreateGuest = async () => {
+    if (!guestFormData.name) {
+      alert('Please enter guest name');
+      return;
+    }
+
+    const newGuest = await addGuest(guestFormData);
+    if (newGuest) {
+      setBookingData({ ...bookingData, guest_id: newGuest.id });
+      setGuestFormData({
+        name: '',
+        email: '',
+        phone: '',
+        id_proof_type: 'AADHAR',
+        id_proof_number: '',
+        address: '',
+        city: '',
+        state: '',
+        country: 'India',
+        guest_type: 'Regular'
+      });
+      setIsGuestModalOpen(false);
+    }
+  };
+
+  // Close action menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        closeActionMenu();
+      }
+    };
+
+    if (actionMenu.visible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [actionMenu.visible]);
+
+  // Drag-to-scroll handlers
+  const handleMouseDown = (e) => {
+    if (!containerRef.current) return;
     setIsDragging(true);
     setStartX(e.pageX - containerRef.current.offsetLeft);
     setScrollLeft(containerRef.current.scrollLeft);
@@ -179,14 +414,6 @@ const ReservationCalendar = () => {
       containerRef.current.style.cursor = 'grab';
       containerRef.current.style.userSelect = '';
     }
-    
-    // Also reset cell selection if mouse leaves during selection
-    if (isSelecting) {
-      setIsSelecting(false);
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      setSelectedCells(new Set());
-    }
   };
 
   // Set initial cursor style
@@ -195,159 +422,6 @@ const ReservationCalendar = () => {
       containerRef.current.style.cursor = 'grab';
     }
   }, []);
-
-  // Add global mouseup handler for selection
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isSelecting) {
-        handleCellMouseUp();
-      }
-    };
-    
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, [isSelecting, selectedCells]);
-
-  // Cell selection handlers for creating reservations
-  const handleCellMouseDown = (e, roomId, date) => {
-    // Don't start selection if it's not a left click
-    if (e.button !== 0) return;
-    
-    const roomStatus = getRoomStatus(roomId, date);
-    if (roomStatus.status !== 'available') return; // Only allow selection on available rooms
-    
-    // Prevent default drag behavior and stop propagation to prevent scroll
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Clear any previous selection state and start fresh
-    setIsSelecting(true);
-    setSelectionStart({ roomId, date });
-    setSelectionEnd({ roomId, date });
-    setSelectedCells(new Set([`${roomId}-${date}`]));
-  };
-
-  const handleCellMouseEnter = (e, roomId, date) => {
-    // Only continue selection if:
-    // 1. A selection has been started (isSelecting is true)
-    // 2. We have a starting point
-    // 3. The left mouse button is currently being held down (buttons === 1)
-    if (!isSelecting || !selectionStart) return;
-    
-    // Use nativeEvent for more reliable button state detection
-    const buttons = e.nativeEvent ? e.nativeEvent.buttons : e.buttons;
-    if (buttons !== 1) return; // Left button must be pressed
-    
-    const roomStatus = getRoomStatus(roomId, date);
-    if (roomStatus.status !== 'available') return;
-    
-    setSelectionEnd({ roomId, date });
-    updateSelectedCells(selectionStart, { roomId, date });
-  };
-
-  const handleCellMouseUp = () => {
-    if (!isSelecting) return;
-    
-    // Open modal if we have a valid selection
-    if (selectedCells.size > 0) {
-      openReservationModalWithSelection();
-    }
-    
-    // Always clear selection state after mouseup
-    setIsSelecting(false);
-    setSelectionStart(null);
-    setSelectionEnd(null);
-    // Note: selectedCells is cleared in closeReservationModal or openReservationModalWithSelection
-  };
-
-  const updateSelectedCells = (start, end) => {
-    if (!start || !end) return;
-    
-    const newSelectedCells = new Set();
-    const dates = generateDates;
-    
-    // Find the room type of the start room
-    const startRoom = rooms.find(r => r.id === start.roomId);
-    if (!startRoom) return;
-    
-    // Get all rooms of the same type
-    const sameTypeRooms = rooms.filter(r => r.room_type_id === startRoom.room_type_id);
-    
-    // Find date range
-    const startDateIndex = dates.indexOf(start.date);
-    const endDateIndex = dates.indexOf(end.date);
-    const minDateIndex = Math.min(startDateIndex, endDateIndex);
-    const maxDateIndex = Math.max(startDateIndex, endDateIndex);
-    
-    // Find room range
-    const startRoomIndex = sameTypeRooms.findIndex(r => r.id === start.roomId);
-    const endRoomIndex = sameTypeRooms.findIndex(r => r.id === end.roomId);
-    const minRoomIndex = Math.min(startRoomIndex, endRoomIndex);
-    const maxRoomIndex = Math.max(startRoomIndex, endRoomIndex);
-    
-    // Select all cells in the rectangle, but only if they're available
-    for (let ri = minRoomIndex; ri <= maxRoomIndex; ri++) {
-      for (let di = minDateIndex; di <= maxDateIndex; di++) {
-        const room = sameTypeRooms[ri];
-        const date = dates[di];
-        const status = getRoomStatus(room.id, date);
-        
-        if (status.status === 'available') {
-          newSelectedCells.add(`${room.id}-${date}`);
-        }
-      }
-    }
-    
-    setSelectedCells(newSelectedCells);
-  };
-
-  const openReservationModalWithSelection = () => {
-    if (selectedCells.size === 0) return;
-    
-    // Parse selected cells
-    const cellsArray = Array.from(selectedCells).map(cell => {
-      const [roomId, date] = cell.split('-');
-      return { roomId, date };
-    });
-    
-    // Get unique rooms and dates
-    const uniqueRoomIds = [...new Set(cellsArray.map(c => c.roomId))];
-    const uniqueDates = [...new Set(cellsArray.map(c => c.date))].sort();
-    
-    // Get room info
-    const firstRoom = rooms.find(r => r.id === uniqueRoomIds[0]);
-    const roomType = roomTypes.find(rt => rt.id === firstRoom?.room_type_id);
-    
-    // Calculate check-in and check-out dates
-    const checkInDate = uniqueDates[0];
-    const checkOutDate = new Date(uniqueDates[uniqueDates.length - 1]);
-    checkOutDate.setDate(checkOutDate.getDate() + 1); // Check-out is next day
-    const checkOutDateStr = checkOutDate.toISOString().split('T')[0];
-    
-    // Prepare prefilled data
-    const prefilledData = {
-      roomTypeId: roomType?.id,
-      roomTypeName: roomType?.name,
-      numberOfRooms: uniqueRoomIds.length,
-      checkInDate: checkInDate,
-      checkOutDate: checkOutDateStr,
-      selectedRoomIds: uniqueRoomIds
-    };
-    
-    setPrefilledReservationData(prefilledData);
-    setShowReservationModal(true);
-    setSelectedCells(new Set()); // Clear selection
-  };
-
-  const isCellSelected = (roomId, date) => {
-    return selectedCells.has(`${roomId}-${date}`);
-  };
-
-  const closeReservationModal = () => {
-    setShowReservationModal(false);
-    setPrefilledReservationData(null);
-    setSelectedCells(new Set());
-  };
 
   // Get cell style based on status
   const getCellStyle = (status) => {
@@ -457,25 +531,6 @@ const ReservationCalendar = () => {
               <option value="30">30 Days</option>
             </select>
           </div>
-        </div>
-
-        {/* Instructions for calendar interaction */}
-        <div style={{
-          padding: '12px 16px',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          borderRadius: '8px',
-          fontSize: '13px',
-          color: '#1e40af',
-          marginTop: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <CalendarDays size={16} />
-          <span>
-            <strong>Tip:</strong> Click on available rooms to create a reservation, or click and drag to select multiple rooms/dates for group bookings.
-          </span>
         </div>
       </div>
 
@@ -628,19 +683,16 @@ const ReservationCalendar = () => {
                         </td>
                         {generateDates.map(date => {
                           const roomStatus = getRoomStatus(room.id, date);
-                          const isSelected = isCellSelected(room.id, date);
                           
                           return (
                             <td 
                               key={date} 
-                              className={`calendar-cell ${getCellStyle(roomStatus.status)} ${isSelected ? 'calendar-cell-selected' : ''}`}
+                              className={`calendar-cell ${getCellStyle(roomStatus.status)}`}
                               title={roomStatus.guestName || roomStatus.status}
-                              onMouseDown={(e) => handleCellMouseDown(e, room.id, date)}
-                              onMouseEnter={(e) => handleCellMouseEnter(e, room.id, date)}
-                              onMouseUp={handleCellMouseUp}
-                              style={{
+                              onClick={(e) => handleCellClick(e, room.id, date)}
+                              style={{ 
                                 cursor: roomStatus.status === 'available' ? 'pointer' : 'default',
-                                userSelect: 'none'
+                                position: 'relative'
                               }}
                             >
                               {roomStatus.status === 'occupied' && (
@@ -671,901 +723,371 @@ const ReservationCalendar = () => {
           </table>
         </div>
 
-      {/* Quick Reservation Modal */}
-      {showReservationModal && (
-        <QuickReservationModal
-          prefilledData={prefilledReservationData}
-          onClose={closeReservationModal}
-          onSuccess={() => {
-            closeReservationModal();
-            handleRefresh();
+      {/* Action Menu Popup */}
+      {actionMenu.visible && (
+        <div
+          ref={actionMenuRef}
+          style={{
+            position: 'fixed',
+            left: `${actionMenu.position.x}px`,
+            top: `${actionMenu.position.y}px`,
+            background: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            padding: '8px',
+            zIndex: 1000,
+            minWidth: '160px'
           }}
-        />
+        >
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#6b7280', 
+            padding: '4px 8px',
+            borderBottom: '1px solid #e5e7eb',
+            marginBottom: '4px'
+          }}>
+            {(() => {
+              const room = rooms.find(r => r.id === actionMenu.roomId);
+              return room ? `Room ${room.room_number}` : 'Room';
+            })()} - {new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+          
+          <button
+            onClick={handleBookRoom}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'transparent',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#059669',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <CalendarIcon size={16} />
+            Book
+          </button>
+          
+          <button
+            onClick={handleHoldRoom}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'transparent',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#f59e0b',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#fffbeb'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <Lock size={16} />
+            Hold
+          </button>
+          
+          <button
+            onClick={handleBlockRoom}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'transparent',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#dc2626',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <X size={16} />
+            Block
+          </button>
+        </div>
       )}
 
-      {/* CSS for selected cells */}
-      <style jsx>{`
-        .calendar-cell-selected {
-          background: rgba(59, 130, 246, 0.2) !important;
-          border: 2px solid #3b82f6 !important;
-          box-shadow: inset 0 0 0 1px #3b82f6;
-        }
-        
-        .calendar-cell-selected:hover {
-          background: rgba(59, 130, 246, 0.3) !important;
-        }
-        
-        .calendar-cell.calendar-cell-available {
-          transition: all 0.15s ease;
-        }
-        
-        .calendar-cell.calendar-cell-available:hover {
-          background: rgba(59, 130, 246, 0.1);
-          cursor: pointer;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// Quick Reservation Modal Component
-const QuickReservationModal = ({ prefilledData, onClose, onSuccess }) => {
-  const { addReservation } = useReservations();
-  const { rooms } = useRooms();
-  const { guests, addGuest, getGuestByPhone } = useGuests();
-  const { agents, addAgent } = useAgents();
-  
-  const [formData, setFormData] = useState({
-    booking_source: 'direct',
-    agent_id: '',
-    direct_source: '',
-    guest_id: '',
-    meal_plan: 'NM',
-    total_amount: 0,
-    advance_payment: 0,
-    payment_status: 'Pending',
-    status: 'Confirmed',
-    special_requests: ''
-  });
-
-  const [roomDetails, setRoomDetails] = useState(
-    prefilledData?.selectedRoomIds?.map(roomId => ({
-      room_id: roomId,
-      number_of_adults: 1,
-      number_of_children: 0,
-      number_of_infants: 0
-    })) || []
-  );
-
-  const [selectedGuest, setSelectedGuest] = useState(null);
-  const [showGuestForm, setShowGuestForm] = useState(false);
-  const [showAgentForm, setShowAgentForm] = useState(false);
-  const [guestFormData, setGuestFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    id_proof_type: 'AADHAR',
-    id_proof_number: '',
-    address: '',
-    city: '',
-    state: '',
-    country: 'India',
-    guest_type: 'Regular'
-  });
-
-  const [agentFormData, setAgentFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    commission: '',
-    address: ''
-  });
-
-  // Calculate total amount based on room type and dates
-  useEffect(() => {
-    if (prefilledData) {
-      const checkIn = new Date(prefilledData.checkInDate);
-      const checkOut = new Date(prefilledData.checkOutDate);
-      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-      
-      // Get room type to get base price
-      const firstRoom = rooms.find(r => r.id === prefilledData.selectedRoomIds[0]);
-      const basePrice = firstRoom?.room_types?.base_price || 0;
-      
-      const total = basePrice * nights * prefilledData.numberOfRooms;
-      setFormData(prev => ({ ...prev, total_amount: total }));
-    }
-  }, [prefilledData, rooms]);
-
-  const handleGuestSearch = (phone) => {
-    const guest = getGuestByPhone(phone);
-    if (guest) {
-      setFormData(prev => ({ ...prev, guest_id: guest.id }));
-      setSelectedGuest(guest);
-    } else {
-      setFormData(prev => ({ ...prev, guest_id: '' }));
-      setSelectedGuest(null);
-    }
-  };
-
-  const handleGuestSelect = (guestId) => {
-    const guest = guests.find(g => g.id === guestId);
-    setFormData(prev => ({ ...prev, guest_id: guestId }));
-    setSelectedGuest(guest);
-  };
-
-  const handleCreateGuest = async () => {
-    if (!guestFormData.name) {
-      alert('Please enter guest name');
-      return;
-    }
-
-    const newGuest = await addGuest(guestFormData);
-    if (newGuest) {
-      setFormData(prev => ({ ...prev, guest_id: newGuest.id }));
-      setSelectedGuest(newGuest);
-      setShowGuestForm(false);
-      setGuestFormData({
-        name: '',
-        email: '',
-        phone: '',
-        id_proof_type: 'AADHAR',
-        id_proof_number: '',
-        address: '',
-        city: '',
-        state: '',
-        country: 'India',
-        guest_type: 'Regular'
-      });
-    }
-  };
-
-  const handleCreateAgent = async () => {
-    if (!agentFormData.name) {
-      alert('Please enter agent name');
-      return;
-    }
-
-    const agentData = {
-      name: agentFormData.name,
-      email: agentFormData.email || null,
-      phone: agentFormData.phone || null,
-      commission: agentFormData.commission && agentFormData.commission !== '' 
-        ? parseFloat(agentFormData.commission) 
-        : null,
-      address: agentFormData.address || null
-    };
-
-    const newAgent = await addAgent(agentData);
-    if (newAgent) {
-      setFormData(prev => ({ ...prev, agent_id: newAgent.id }));
-      setShowAgentForm(false);
-      setAgentFormData({
-        name: '',
-        email: '',
-        phone: '',
-        commission: '',
-        address: ''
-      });
-    }
-  };
-
-  const updateRoomDetail = (index, field, value) => {
-    const updated = [...roomDetails];
-    updated[index] = { ...updated[index], [field]: value };
-    setRoomDetails(updated);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.guest_id) {
-      alert('Please select a guest');
-      return;
-    }
-
-    try {
-      const totalAmount = parseFloat(formData.total_amount) || 0;
-      const amountPerRoom = totalAmount / prefilledData.numberOfRooms;
-      const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / prefilledData.numberOfRooms;
-
-      for (let i = 0; i < roomDetails.length; i++) {
-        const roomDetail = roomDetails[i];
-        const reservationData = {
-          booking_source: formData.booking_source,
-          agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
-          direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
-          guest_id: formData.guest_id,
-          room_id: roomDetail.room_id,
-          check_in_date: prefilledData.checkInDate,
-          check_out_date: prefilledData.checkOutDate,
-          number_of_adults: parseInt(roomDetail.number_of_adults),
-          number_of_children: parseInt(roomDetail.number_of_children),
-          number_of_infants: parseInt(roomDetail.number_of_infants),
-          number_of_guests: parseInt(roomDetail.number_of_adults) + parseInt(roomDetail.number_of_children) + parseInt(roomDetail.number_of_infants),
-          meal_plan: formData.meal_plan,
-          total_amount: amountPerRoom,
-          advance_payment: advancePerRoom,
-          payment_status: formData.payment_status,
-          status: formData.status,
-          special_requests: formData.special_requests
-        };
-        await addReservation(reservationData);
-      }
-      
-      alert(`Successfully created ${prefilledData.numberOfRooms} reservation(s)!`);
-      onSuccess();
-    } catch (error) {
-      console.error('Error creating reservations:', error);
-      alert('Failed to create reservation: ' + error.message);
-    }
-  };
-
-  const calculateNights = () => {
-    if (!prefilledData) return 0;
-    const checkIn = new Date(prefilledData.checkInDate);
-    const checkOut = new Date(prefilledData.checkOutDate);
-    return Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-  };
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '20px'
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        maxWidth: '800px',
-        width: '100%',
-        maxHeight: '90vh',
-        overflow: 'auto',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-      }}>
-        {/* Modal Header */}
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: '#f9fafb'
-        }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#111827' }}>
-              Quick Reservation
-            </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-              {prefilledData?.roomTypeName} • {prefilledData?.numberOfRooms} Room(s) • {calculateNights()} Night(s)
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px',
+      {/* Quick Booking Modal */}
+      <Modal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        title="Quick Booking"
+        size="medium"
+      >
+        <div className="form-grid">
+          {/* Room and Date Info */}
+          <div className="form-group full-width">
+            <div style={{ 
+              padding: '12px', 
+              background: '#f0f9ff', 
+              border: '1px solid #bae6fd',
               borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <X size={20} color="#6b7280" />
-          </button>
-        </div>
-
-        {/* Modal Content */}
-        <div style={{ padding: '24px' }}>
-          {/* Booking Summary */}
-          <div style={{
-            padding: '16px',
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe',
-            borderRadius: '8px',
-            marginBottom: '24px'
-          }}>
-            <div style={{ fontSize: '13px', color: '#1e40af', marginBottom: '8px' }}>
-              <strong>Booking Summary:</strong>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', color: '#1e40af' }}>
-              <div>Check-in: <strong>{prefilledData?.checkInDate}</strong></div>
-              <div>Check-out: <strong>{prefilledData?.checkOutDate}</strong></div>
-              <div>Rooms: <strong>{roomDetails.map((rd, i) => {
-                const room = rooms.find(r => r.id === rd.room_id);
-                return room?.room_number;
-              }).join(', ')}</strong></div>
-              <div>Nights: <strong>{calculateNights()}</strong></div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {/* Booking Source */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Booking Source *
-              </label>
-              <select
-                value={formData.booking_source}
-                onChange={(e) => setFormData(prev => ({ ...prev, booking_source: e.target.value, agent_id: '', direct_source: '' }))}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="direct">Direct</option>
-                <option value="agent">Agent</option>
-              </select>
-            </div>
-
-            {/* Direct Source or Agent */}
-            {formData.booking_source === 'direct' ? (
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                  Direct Source
-                </label>
-                <input
-                  type="text"
-                  value={formData.direct_source}
-                  onChange={(e) => setFormData(prev => ({ ...prev, direct_source: e.target.value }))}
-                  placeholder="e.g., Walk-in, Phone"
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-            ) : (
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                  Select Agent *
-                </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <select
-                    value={formData.agent_id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, agent_id: e.target.value }))}
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="">Select Agent</option>
-                    {agents.map(agent => (
-                      <option key={agent.id} value={agent.id}>
-                        {agent.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => setShowAgentForm(true)}
-                    style={{
-                      padding: '8px',
-                      background: '#f3f4f6',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <UserPlus size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Guest Selection */}
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Select Guest *
-              </label>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <select
-                  value={formData.guest_id}
-                  onChange={(e) => handleGuestSelect(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="">Select Guest</option>
-                  {guests.map(guest => (
-                    <option key={guest.id} value={guest.id}>
-                      {guest.name} - {guest.phone}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => setShowGuestForm(true)}
-                  style={{
-                    padding: '8px',
-                    background: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <UserPlus size={16} />
-                </button>
-              </div>
-              
-              {/* Quick phone search */}
-              <input
-                type="tel"
-                placeholder="Or search by phone number"
-                onBlur={(e) => handleGuestSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '13px'
-                }}
-              />
-
-              {selectedGuest && (
-                <div style={{
-                  marginTop: '8px',
-                  padding: '12px',
-                  background: '#f0f9ff',
-                  border: '1px solid #bae6fd',
-                  borderRadius: '6px',
-                  fontSize: '13px'
-                }}>
-                  <strong>{selectedGuest.name}</strong> • {selectedGuest.phone}
-                </div>
-              )}
-            </div>
-
-            {/* Room Details */}
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '12px' }}>
-                Guest Count per Room
-              </label>
-              {roomDetails.map((rd, index) => {
-                const room = rooms.find(r => r.id === rd.room_id);
-                return (
-                  <div key={index} style={{
-                    padding: '12px',
-                    background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '6px',
-                    marginBottom: '8px'
-                  }}>
-                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                      Room {room?.room_number}
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                      <div>
-                        <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
-                          Adults *
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={rd.number_of_adults}
-                          onChange={(e) => updateRoomDetail(index, 'number_of_adults', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '6px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '4px',
-                            fontSize: '13px'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
-                          Children
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={rd.number_of_children}
-                          onChange={(e) => updateRoomDetail(index, 'number_of_children', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '6px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '4px',
-                            fontSize: '13px'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
-                          Infants
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={rd.number_of_infants}
-                          onChange={(e) => updateRoomDetail(index, 'number_of_infants', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '6px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '4px',
-                            fontSize: '13px'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Meal Plan */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Meal Plan *
-              </label>
-              <select
-                value={formData.meal_plan}
-                onChange={(e) => setFormData(prev => ({ ...prev, meal_plan: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="NM">No Meal</option>
-                <option value="BO">Breakfast Only</option>
-                <option value="HB">Half Board</option>
-                <option value="FB">Full Board</option>
-              </select>
-            </div>
-
-            {/* Status */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="Inquiry">Inquiry</option>
-                <option value="Tentative">Tentative</option>
-                <option value="Hold">Hold</option>
-                <option value="Confirmed">Confirmed</option>
-              </select>
-            </div>
-
-            {/* Total Amount */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Total Amount *
-              </label>
-              <input
-                type="number"
-                value={formData.total_amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, total_amount: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-
-            {/* Advance Payment */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Advance Payment
-              </label>
-              <input
-                type="number"
-                value={formData.advance_payment}
-                onChange={(e) => setFormData(prev => ({ ...prev, advance_payment: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-
-            {/* Payment Status */}
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Payment Status
-              </label>
-              <select
-                value={formData.payment_status}
-                onChange={(e) => setFormData(prev => ({ ...prev, payment_status: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="Pending">Pending</option>
-                <option value="Partial">Partial</option>
-                <option value="Paid">Paid</option>
-              </select>
-            </div>
-
-            {/* Special Requests */}
-            <div style={{ gridColumn: 'span 2' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Special Requests
-              </label>
-              <textarea
-                value={formData.special_requests}
-                onChange={(e) => setFormData(prev => ({ ...prev, special_requests: e.target.value }))}
-                rows="2"
-                placeholder="Any special requirements..."
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Guest Form Modal */}
-          {showGuestForm && (
-            <div style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: 'white',
-              padding: '24px',
-              borderRadius: '8px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-              zIndex: 10000,
-              maxWidth: '500px',
-              width: '90%',
-              maxHeight: '80vh',
-              overflow: 'auto'
+              marginBottom: '8px'
             }}>
-              <h3 style={{ margin: '0 0 16px 0' }}>Add New Guest</h3>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <input
-                  type="text"
-                  placeholder="Full Name *"
-                  value={guestFormData.name}
-                  onChange={(e) => setGuestFormData(prev => ({ ...prev, name: e.target.value }))}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone"
-                  value={guestFormData.phone}
-                  onChange={(e) => setGuestFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={guestFormData.email}
-                  onChange={(e) => setGuestFormData(prev => ({ ...prev, email: e.target.value }))}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button
-                    onClick={() => setShowGuestForm(false)}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      background: '#f3f4f6',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCreateGuest}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      background: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Add Guest
-                  </button>
-                </div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#0369a1' }}>
+                {(() => {
+                  const room = rooms.find(r => r.id === bookingData.room_id);
+                  const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
+                  return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
+                })()}
+              </div>
+              <div style={{ fontSize: '13px', color: '#0369a1', marginTop: '4px' }}>
+                Check-in: {bookingData.check_in_date}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Agent Form Modal */}
-          {showAgentForm && (
-            <div style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: 'white',
-              padding: '24px',
-              borderRadius: '8px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-              zIndex: 10000,
-              maxWidth: '500px',
-              width: '90%'
-            }}>
-              <h3 style={{ margin: '0 0 16px 0' }}>Add New Agent</h3>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                <input
-                  type="text"
-                  placeholder="Agent Name *"
-                  value={agentFormData.name}
-                  onChange={(e) => setAgentFormData(prev => ({ ...prev, name: e.target.value }))}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone"
-                  value={agentFormData.phone}
-                  onChange={(e) => setAgentFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <input
-                  type="number"
-                  placeholder="Commission %"
-                  value={agentFormData.commission}
-                  onChange={(e) => setAgentFormData(prev => ({ ...prev, commission: e.target.value }))}
-                  style={{
-                    padding: '8px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                />
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <button
-                    onClick={() => setShowAgentForm(false)}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      background: '#f3f4f6',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCreateAgent}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      background: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Add Agent
-                  </button>
-                </div>
-              </div>
+          {/* Guest Selection */}
+          <div className="form-group full-width">
+            <label>Select Guest *</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                style={{ flex: 1 }}
+                value={bookingData.guest_id}
+                onChange={(e) => setBookingData({ ...bookingData, guest_id: e.target.value })}
+              >
+                <option value="">Select Guest</option>
+                {guests.map(guest => (
+                  <option key={guest.id} value={guest.id}>
+                    {guest.name} - {guest.phone}
+                  </option>
+                ))}
+              </select>
+              <button 
+                onClick={() => setIsGuestModalOpen(true)} 
+                className="btn-secondary"
+                type="button"
+              >
+                <UserPlus size={18} />
+              </button>
             </div>
-          )}
+          </div>
+
+          {/* Check-out Date */}
+          <div className="form-group">
+            <label>Check-out Date *</label>
+            <input
+              type="date"
+              value={bookingData.check_out_date}
+              onChange={(e) => setBookingData({ ...bookingData, check_out_date: e.target.value })}
+              min={bookingData.check_in_date}
+            />
+          </div>
+
+          {/* Status */}
+          <div className="form-group">
+            <label>Status</label>
+            <select
+              value={bookingData.status}
+              onChange={(e) => setBookingData({ ...bookingData, status: e.target.value })}
+            >
+              <option value="Confirmed">Confirmed</option>
+              <option value="Hold">Hold</option>
+              <option value="Tentative">Tentative</option>
+            </select>
+          </div>
+
+          {/* Number of Guests */}
+          <div className="form-group">
+            <label>Adults *</label>
+            <input
+              type="number"
+              min="1"
+              value={bookingData.number_of_adults}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_adults: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Children</label>
+            <input
+              type="number"
+              min="0"
+              value={bookingData.number_of_children}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_children: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Infants</label>
+            <input
+              type="number"
+              min="0"
+              value={bookingData.number_of_infants}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_infants: e.target.value })}
+            />
+          </div>
+
+          {/* Meal Plan */}
+          <div className="form-group">
+            <label>Meal Plan</label>
+            <select
+              value={bookingData.meal_plan}
+              onChange={(e) => setBookingData({ ...bookingData, meal_plan: e.target.value })}
+            >
+              <option value="NM">No Meal</option>
+              <option value="BO">Breakfast Only</option>
+              <option value="HB">Half Board</option>
+              <option value="FB">Full Board</option>
+            </select>
+          </div>
+
+          {/* Special Requests */}
+          <div className="form-group full-width">
+            <label>Special Requests</label>
+            <textarea
+              value={bookingData.special_requests}
+              onChange={(e) => setBookingData({ ...bookingData, special_requests: e.target.value })}
+              rows="2"
+              placeholder="Any special requirements..."
+            />
+          </div>
         </div>
 
-        {/* Modal Footer */}
-        <div style={{
-          padding: '16px 24px',
-          borderTop: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '12px',
-          background: '#f9fafb'
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              background: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151'
-            }}
-          >
-            Cancel
+        <div className="modal-actions">
+          <button onClick={() => setIsBookingModalOpen(false)} className="btn-secondary">
+            <X size={18} /> Cancel
           </button>
-          <button
-            onClick={handleSubmit}
-            style={{
-              padding: '8px 16px',
-              background: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Save size={16} />
-            Create Reservation
+          <button onClick={handleQuickBooking} className="btn-primary">
+            <Save size={18} /> Create Booking
           </button>
         </div>
-      </div>
+      </Modal>
+
+      {/* Quick Add Guest Modal */}
+      <Modal
+        isOpen={isGuestModalOpen}
+        onClose={() => setIsGuestModalOpen(false)}
+        title="Add New Guest"
+        size="large"
+      >
+        <div className="form-grid">
+          <div className="form-group">
+            <label>Full Name *</label>
+            <input
+              type="text"
+              value={guestFormData.name}
+              onChange={(e) => setGuestFormData({ ...guestFormData, name: e.target.value })}
+              placeholder="John Doe"
+            />
+          </div>
+          <div className="form-group">
+            <label>Phone</label>
+            <input
+              type="tel"
+              value={guestFormData.phone}
+              onChange={(e) => setGuestFormData({ ...guestFormData, phone: e.target.value })}
+              placeholder="9876543210"
+            />
+          </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={guestFormData.email}
+              onChange={(e) => setGuestFormData({ ...guestFormData, email: e.target.value })}
+              placeholder="john@example.com"
+            />
+          </div>
+          <div className="form-group">
+            <label>ID Proof Type</label>
+            <select
+              value={guestFormData.id_proof_type}
+              onChange={(e) => setGuestFormData({ ...guestFormData, id_proof_type: e.target.value })}
+            >
+              <option value="AADHAR">AADHAR</option>
+              <option value="PAN">PAN</option>
+              <option value="Passport">Passport</option>
+              <option value="Driving License">Driving License</option>
+              <option value="Voter ID">Voter ID</option>
+              <option value="N/A">N/A</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>ID Proof Number</label>
+            <input
+              type="text"
+              value={guestFormData.id_proof_number}
+              onChange={(e) => setGuestFormData({ ...guestFormData, id_proof_number: e.target.value })}
+              placeholder="AADHAR-1234"
+            />
+          </div>
+          <div className="form-group">
+            <label>Guest Type</label>
+            <select
+              value={guestFormData.guest_type}
+              onChange={(e) => setGuestFormData({ ...guestFormData, guest_type: e.target.value })}
+            >
+              <option value="Regular">Regular</option>
+              <option value="VIP">VIP</option>
+              <option value="Corporate">Corporate</option>
+            </select>
+          </div>
+          <div className="form-group full-width">
+            <label>Address</label>
+            <input
+              type="text"
+              value={guestFormData.address}
+              onChange={(e) => setGuestFormData({ ...guestFormData, address: e.target.value })}
+              placeholder="123 Main Street"
+            />
+          </div>
+          <div className="form-group">
+            <label>City</label>
+            <input
+              type="text"
+              value={guestFormData.city}
+              onChange={(e) => setGuestFormData({ ...guestFormData, city: e.target.value })}
+              placeholder="Mumbai"
+            />
+          </div>
+          <div className="form-group">
+            <label>State</label>
+            <input
+              type="text"
+              value={guestFormData.state}
+              onChange={(e) => setGuestFormData({ ...guestFormData, state: e.target.value })}
+              placeholder="Maharashtra"
+            />
+          </div>
+          <div className="form-group">
+            <label>Country</label>
+            <input
+              type="text"
+              value={guestFormData.country}
+              onChange={(e) => setGuestFormData({ ...guestFormData, country: e.target.value })}
+              placeholder="India"
+            />
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button onClick={() => setIsGuestModalOpen(false)} className="btn-secondary">
+            <X size={18} /> Cancel
+          </button>
+          <button onClick={handleCreateGuest} className="btn-primary">
+            <Save size={18} /> Add Guest
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };
