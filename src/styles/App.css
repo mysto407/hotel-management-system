@@ -1200,9 +1200,10 @@ body {
 /* Selected cell highlighting */
 
 .calendar-cell.cell-selected {
-    background: rgba(59, 130, 246, 0.2) !important;
+    background: rgba(59, 130, 246, 0.25) !important;
     border: 2px solid #3b82f6 !important;
     position: relative;
+    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3);
 }
 
 .calendar-cell.cell-selected::after {
@@ -1212,7 +1213,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
     pointer-events: none;
     z-index: 1;
 }
@@ -1223,7 +1224,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(59, 130, 246, 0.15);
     border: 2px solid #3b82f6;
     pointer-events: none;
     z-index: 2;
@@ -1236,7 +1237,7 @@ body {
         opacity: 1;
     }
     50% {
-        opacity: 0.5;
+        opacity: 0.6;
     }
 }
 
@@ -1254,7 +1255,7 @@ body {
 /* Visual feedback when selecting */
 
 .calendar-cell.calendar-cell-available:hover {
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(59, 130, 246, 0.08);
     transition: background 0.15s ease;
 }
 
@@ -1271,6 +1272,20 @@ body {
 .calendar-cell.cell-selected .cell-content {
     position: relative;
     z-index: 3;
+}
+
+
+/* Multi-row selection - add stronger visual connection */
+
+.calendar-cell.cell-selected+.calendar-cell.cell-selected {
+    border-left-color: #3b82f6;
+}
+
+
+/* Enhance visibility during active drag */
+
+.calendar-table tbody tr:has(.cell-selected) {
+    background: rgba(59, 130, 246, 0.02);
 }
 
 @keyframes rotate {

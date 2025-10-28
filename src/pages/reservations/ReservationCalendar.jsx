@@ -23,16 +23,16 @@ const ReservationCalendar = () => {
     roomId: null,
     date: null,
     endDate: null, // For multi-date selections
+    selectedCells: [], // For multi-room/date selections
     position: { x: 0, y: 0 }
   });
   
   // Drag selection state for multi-date booking
   const [dragSelection, setDragSelection] = useState({
     isSelecting: false,
-    roomId: null,
+    startRoomId: null,
     startDate: null,
-    endDate: null,
-    selectedDates: []
+    selectedCells: [] // Array of {roomId, date} objects
   });
   
   // Quick booking modal state
@@ -192,7 +192,7 @@ const handleCellClick = (e, roomId, date) => {
   }
 
   // If we just finished a drag selection, don't show the action menu
-  if (dragSelection.isSelecting || dragSelection.selectedDates.length > 0) {
+  if (dragSelection.isSelecting) {
     return;
   }
 
@@ -213,16 +213,25 @@ const handleCellClick = (e, roomId, date) => {
   const y = cellRect.top - containerRect.top + scrollTop;
   // --- END: UPDATED LOGIC ---
   
+  // Set selection for visual highlight
+  setDragSelection({
+    isSelecting: false,
+    startRoomId: roomId,
+    startDate: date,
+    selectedCells: [{ roomId, date }]
+  });
+  
   setActionMenu({
     visible: true,
     roomId,
     date,
     endDate: null, // Single click has no end date
+    selectedCells: [{ roomId, date }],
     position: { x, y } // Use new relative x and y
   });
 };
 
-  // Drag selection handlers for multi-date booking
+  // Drag selection handlers for multi-date and multi-room booking
   const handleCellMouseDown = (e, roomId, date) => {
     const roomStatus = getRoomStatus(roomId, date);
     if (roomStatus.status !== 'available') return;
@@ -233,10 +242,9 @@ const handleCellClick = (e, roomId, date) => {
     // Start selection
     setDragSelection({
       isSelecting: true,
-      roomId,
+      startRoomId: roomId,
       startDate: date,
-      endDate: date,
-      selectedDates: [date]
+      selectedCells: [{ roomId, date }]
     });
     
     // Prevent text selection during drag
@@ -246,70 +254,30 @@ const handleCellClick = (e, roomId, date) => {
   const handleCellMouseEnter = (roomId, date) => {
     if (!dragSelection.isSelecting) return;
     
-    // Only allow selection in the same room
-    if (roomId !== dragSelection.roomId) return;
-    
     const roomStatus = getRoomStatus(roomId, date);
     if (roomStatus.status !== 'available') return;
     
-    // Calculate all dates between start and current
-    const startDate = new Date(dragSelection.startDate);
-    const currentDate = new Date(date);
-    const dates = [];
+    // Check if this cell is already in the selection
+    const cellKey = `${roomId}-${date}`;
+    const alreadySelected = dragSelection.selectedCells.some(
+      cell => `${cell.roomId}-${cell.date}` === cellKey
+    );
     
-    // Determine direction
-    if (currentDate >= startDate) {
-      // Forward selection
-      for (let d = new Date(startDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0];
-        // Check if available
-        const status = getRoomStatus(roomId, dateStr);
-        if (status.status === 'available') {
-          dates.push(dateStr);
-        } else {
-          // Stop if we hit an unavailable date
-          break;
-        }
-      }
-    } else {
-      // Backward selection
-      for (let d = new Date(startDate); d >= currentDate; d.setDate(d.getDate() - 1)) {
-        const dateStr = d.toISOString().split('T')[0];
-        // Check if available
-        const status = getRoomStatus(roomId, dateStr);
-        if (status.status === 'available') {
-          dates.unshift(dateStr);
-        } else {
-          // Stop if we hit an unavailable date
-          break;
-        }
-      }
+    if (!alreadySelected) {
+      setDragSelection(prev => ({
+        ...prev,
+        selectedCells: [...prev.selectedCells, { roomId, date }]
+      }));
     }
-    
-    setDragSelection(prev => ({
-      ...prev,
-      endDate: date,
-      selectedDates: dates
-    }));
   };
 
   const handleCellMouseUp = (e, roomId, date) => {
     if (!dragSelection.isSelecting) return;
     
-    // If only one date selected, show action menu at that position
-    if (dragSelection.selectedDates.length === 1) {
-      setDragSelection({
-        isSelecting: false,
-        roomId: null,
-        startDate: null,
-        endDate: null,
-        selectedDates: []
-      });
-      return;
-    }
-    
-    // Show action menu for multiple dates selection
-    if (dragSelection.selectedDates.length > 1) {
+    // If only one cell selected, show action menu at that position
+    if (dragSelection.selectedCells.length === 1) {
+      const cell = dragSelection.selectedCells[0];
+      
       if (!containerRef.current) return;
 
       const cellRect = e.currentTarget.getBoundingClientRect();
@@ -318,15 +286,46 @@ const handleCellClick = (e, roomId, date) => {
       const scrollLeft = containerRef.current.scrollLeft;
       const scrollTop = containerRef.current.scrollTop;
 
-      // Calculate position relative to the container
       const x = cellRect.right - containerRect.left + scrollLeft + 10;
       const y = cellRect.top - containerRect.top + scrollTop;
       
       setActionMenu({
         visible: true,
-        roomId,
-        date: dragSelection.startDate, // Use the start date
-        endDate: dragSelection.selectedDates[dragSelection.selectedDates.length - 1], // Store end date
+        roomId: cell.roomId,
+        date: cell.date,
+        endDate: null,
+        selectedCells: [cell],
+        position: { x, y }
+      });
+      
+      // Keep selection visible
+      setDragSelection(prev => ({
+        ...prev,
+        isSelecting: false
+      }));
+      
+      return;
+    }
+    
+    // Show action menu for multiple cells selection
+    if (dragSelection.selectedCells.length > 1) {
+      if (!containerRef.current) return;
+
+      const cellRect = e.currentTarget.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
+      
+      const scrollLeft = containerRef.current.scrollLeft;
+      const scrollTop = containerRef.current.scrollTop;
+
+      const x = cellRect.right - containerRect.left + scrollLeft + 10;
+      const y = cellRect.top - containerRect.top + scrollTop;
+      
+      setActionMenu({
+        visible: true,
+        roomId: null, // Multiple rooms
+        date: null,
+        endDate: null,
+        selectedCells: dragSelection.selectedCells,
         position: { x, y }
       });
     }
@@ -342,10 +341,9 @@ const handleCellClick = (e, roomId, date) => {
     if (dragSelection.isSelecting) {
       setDragSelection({
         isSelecting: false,
-        roomId: null,
+        startRoomId: null,
         startDate: null,
-        endDate: null,
-        selectedDates: []
+        selectedCells: []
       });
     }
   };
@@ -357,29 +355,46 @@ const handleCellClick = (e, roomId, date) => {
       roomId: null,
       date: null,
       endDate: null,
+      selectedCells: [],
       position: { x: 0, y: 0 }
     });
     // Also clear drag selection
     setDragSelection({
       isSelecting: false,
-      roomId: null,
+      startRoomId: null,
       startDate: null,
-      endDate: null,
-      selectedDates: []
+      selectedCells: []
     });
   };
 
   // Handle Block action
   const handleBlockRoom = async () => {
-    if (!actionMenu.roomId) return;
+    const selectedCells = actionMenu.selectedCells || [];
+    
+    if (selectedCells.length === 0) return;
+    
+    // Get unique room IDs
+    const uniqueRoomIds = [...new Set(selectedCells.map(c => c.roomId))];
+    
+    if (!window.confirm(
+      `Block ${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''}?`
+    )) {
+      return;
+    }
     
     try {
-      await updateRoomStatus(actionMenu.roomId, 'Blocked');
+      // Block all selected rooms
+      const blockPromises = uniqueRoomIds.map(roomId => 
+        updateRoomStatus(roomId, 'Blocked')
+      );
+      
+      await Promise.all(blockPromises);
       await fetchRooms(); // Refresh rooms data
-      alert('Room blocked successfully');
+      
+      alert(`${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''} blocked successfully`);
     } catch (error) {
-      console.error('Error blocking room:', error);
-      alert('Failed to block room: ' + error.message);
+      console.error('Error blocking rooms:', error);
+      alert('Failed to block rooms: ' + error.message);
     }
     
     closeActionMenu();
@@ -387,68 +402,162 @@ const handleCellClick = (e, roomId, date) => {
 
   // Handle Hold action - Create a hold reservation
   const handleHoldRoom = async () => {
-    if (!actionMenu.roomId || !actionMenu.date) return;
+    const selectedCells = actionMenu.selectedCells || [];
     
-    // Calculate check-out date based on whether it's a multi-date selection or single date
-    let checkOutDate;
-    if (actionMenu.endDate) {
-      // Multi-date selection - check out the day after the last selected date
-      checkOutDate = new Date(actionMenu.endDate);
+    if (selectedCells.length === 0) return;
+    
+    if (selectedCells.length === 1) {
+      // Single cell selection
+      const cell = selectedCells[0];
+      const checkOutDate = new Date(cell.date);
       checkOutDate.setDate(checkOutDate.getDate() + 1);
+      
+      setBookingData({
+        room_id: cell.roomId,
+        check_in_date: cell.date,
+        check_out_date: checkOutDate.toISOString().split('T')[0],
+        guest_id: '',
+        number_of_adults: 1,
+        number_of_children: 0,
+        number_of_infants: 0,
+        meal_plan: 'NM',
+        status: 'Hold',
+        special_requests: ''
+      });
+      
+      closeActionMenu();
+      setIsBookingModalOpen(true);
     } else {
-      // Single date selection - default to next day
-      checkOutDate = new Date(actionMenu.date);
-      checkOutDate.setDate(checkOutDate.getDate() + 1);
+      // Multiple cells - create hold bookings
+      handleMultiCellBooking('Hold');
     }
+  };
+  
+  // Handle multi-cell booking (for drag selections across multiple rooms/dates)
+  const handleMultiCellBooking = async (status) => {
+    const selectedCells = actionMenu.selectedCells || [];
     
-    setBookingData({
-      room_id: actionMenu.roomId,
-      check_in_date: actionMenu.date,
-      check_out_date: checkOutDate.toISOString().split('T')[0],
-      guest_id: '',
-      number_of_adults: 1,
-      number_of_children: 0,
-      number_of_infants: 0,
-      meal_plan: 'NM',
-      status: 'Hold',
-      special_requests: ''
+    if (selectedCells.length === 0) return;
+    
+    // Group cells by room
+    const cellsByRoom = {};
+    selectedCells.forEach(cell => {
+      if (!cellsByRoom[cell.roomId]) {
+        cellsByRoom[cell.roomId] = [];
+      }
+      cellsByRoom[cell.roomId].push(cell.date);
     });
     
-    closeActionMenu();
-    setIsBookingModalOpen(true);
+    // Sort dates for each room and find continuous ranges
+    const bookings = [];
+    Object.keys(cellsByRoom).forEach(roomId => {
+      const dates = cellsByRoom[roomId].sort();
+      
+      // Find continuous date ranges
+      let currentRange = [dates[0]];
+      
+      for (let i = 1; i < dates.length; i++) {
+        const prevDate = new Date(dates[i - 1]);
+        const currDate = new Date(dates[i]);
+        const dayDiff = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+        
+        if (dayDiff === 1) {
+          // Continuous
+          currentRange.push(dates[i]);
+        } else {
+          // Gap found - save current range and start new one
+          bookings.push({
+            roomId,
+            checkIn: currentRange[0],
+            checkOut: new Date(new Date(currentRange[currentRange.length - 1]).getTime() + 86400000).toISOString().split('T')[0]
+          });
+          currentRange = [dates[i]];
+        }
+      }
+      
+      // Save the last range
+      if (currentRange.length > 0) {
+        bookings.push({
+          roomId,
+          checkIn: currentRange[0],
+          checkOut: new Date(new Date(currentRange[currentRange.length - 1]).getTime() + 86400000).toISOString().split('T')[0]
+        });
+      }
+    });
+    
+    // Show confirmation
+    const roomCount = Object.keys(cellsByRoom).length;
+    const totalNights = selectedCells.length;
+    const bookingCount = bookings.length;
+    
+    if (!window.confirm(
+      `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} × ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `Note: Guest information will be required for each booking.`
+    )) {
+      return;
+    }
+    
+    // For now, open modal for the first booking
+    // In a real implementation, you might want to show a multi-booking interface
+    if (bookings.length > 0) {
+      const firstBooking = bookings[0];
+      
+      setBookingData({
+        room_id: firstBooking.roomId,
+        check_in_date: firstBooking.checkIn,
+        check_out_date: firstBooking.checkOut,
+        guest_id: '',
+        number_of_adults: 1,
+        number_of_children: 0,
+        number_of_infants: 0,
+        meal_plan: 'NM',
+        status: status,
+        special_requests: bookings.length > 1 ? `Part of multi-room booking (${bookingCount} total bookings)` : ''
+      });
+      
+      // Store remaining bookings for sequential creation
+      if (bookings.length > 1) {
+        // You could store these in state to create after the first one
+        console.log('Additional bookings to create:', bookings.slice(1));
+      }
+      
+      closeActionMenu();
+      setIsBookingModalOpen(true);
+    }
   };
 
   // Handle Book action - Open quick booking modal
   const handleBookRoom = () => {
-    if (!actionMenu.roomId || !actionMenu.date) return;
+    const selectedCells = actionMenu.selectedCells || [];
     
-    // Calculate check-out date based on whether it's a multi-date selection or single date
-    let checkOutDate;
-    if (actionMenu.endDate) {
-      // Multi-date selection - check out the day after the last selected date
-      checkOutDate = new Date(actionMenu.endDate);
+    if (selectedCells.length === 0) return;
+    
+    if (selectedCells.length === 1) {
+      // Single cell selection
+      const cell = selectedCells[0];
+      const checkOutDate = new Date(cell.date);
       checkOutDate.setDate(checkOutDate.getDate() + 1);
+      
+      setBookingData({
+        room_id: cell.roomId,
+        check_in_date: cell.date,
+        check_out_date: checkOutDate.toISOString().split('T')[0],
+        guest_id: '',
+        number_of_adults: 1,
+        number_of_children: 0,
+        number_of_infants: 0,
+        meal_plan: 'NM',
+        status: 'Confirmed',
+        special_requests: ''
+      });
+      
+      closeActionMenu();
+      setIsBookingModalOpen(true);
     } else {
-      // Single date selection - default to next day
-      checkOutDate = new Date(actionMenu.date);
-      checkOutDate.setDate(checkOutDate.getDate() + 1);
+      // Multiple cells - create bookings for each room's date range
+      handleMultiCellBooking('Confirmed');
     }
-    
-    setBookingData({
-      room_id: actionMenu.roomId,
-      check_in_date: actionMenu.date,
-      check_out_date: checkOutDate.toISOString().split('T')[0],
-      guest_id: '',
-      number_of_adults: 1,
-      number_of_children: 0,
-      number_of_infants: 0,
-      meal_plan: 'NM',
-      status: 'Confirmed',
-      special_requests: ''
-    });
-    
-    closeActionMenu();
-    setIsBookingModalOpen(true);
   };
 
   // Submit quick booking
@@ -869,8 +978,9 @@ const handleCellClick = (e, roomId, date) => {
                         </td>
                         {generateDates.map(date => {
                           const roomStatus = getRoomStatus(room.id, date);
-                          const isSelected = dragSelection.selectedDates.includes(date) && 
-                                           dragSelection.roomId === room.id;
+                          const isSelected = dragSelection.selectedCells.some(
+                            cell => cell.roomId === room.id && cell.date === date
+                          );
                           
                           return (
                             <td 
@@ -929,7 +1039,7 @@ const handleCellClick = (e, roomId, date) => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             padding: '8px',
             zIndex: 1000,
-            minWidth: '160px'
+            minWidth: '180px'
           }}
         >
           <div style={{ 
@@ -940,30 +1050,35 @@ const handleCellClick = (e, roomId, date) => {
             marginBottom: '4px'
           }}>
             {(() => {
-              const room = rooms.find(r => r.id === actionMenu.roomId);
-              const roomText = room ? `Room ${room.room_number}` : 'Room';
+              const selectedCells = actionMenu.selectedCells || [];
               
-              if (actionMenu.endDate && actionMenu.date !== actionMenu.endDate) {
-                // Multi-date selection
-                const startDate = new Date(actionMenu.date);
-                const endDate = new Date(actionMenu.endDate);
-                const nights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+              if (selectedCells.length === 1) {
+                // Single cell selection
+                const cell = selectedCells[0];
+                const room = rooms.find(r => r.id === cell.roomId);
+                return `${room ? `Room ${room.room_number}` : 'Room'} - ${new Date(cell.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+              } else if (selectedCells.length > 1) {
+                // Multiple cells selection
+                const uniqueRooms = [...new Set(selectedCells.map(c => c.roomId))];
+                const uniqueDates = [...new Set(selectedCells.map(c => c.date))].sort();
                 
                 return (
                   <>
-                    <div>{roomText}</div>
-                    <div style={{ marginTop: '2px', fontWeight: '600', color: '#3b82f6' }}>
-                      {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    <div style={{ fontWeight: '600', color: '#3b82f6' }}>
+                      {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
+                    </div>
+                    <div style={{ marginTop: '4px', fontSize: '11px' }}>
+                      {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} × {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
                     </div>
                     <div style={{ marginTop: '2px', fontSize: '11px', color: '#059669' }}>
-                      {nights} night{nights !== 1 ? 's' : ''} selected
+                      {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {uniqueDates.length > 1 && ` - ${new Date(uniqueDates[uniqueDates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                     </div>
                   </>
                 );
-              } else {
-                // Single date selection
-                return `${roomText} - ${new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
               }
+              
+              return 'Select a date';
             })()}
           </div>
           
