@@ -285,6 +285,7 @@ export const RoomProvider = ({ children }) => {
       updateRoom,
       deleteRoom,
       updateRoomStatus,
+      fetchRooms: loadRooms,
       getRoomById,
       getRoomTypeById,
       getRoomsByType,

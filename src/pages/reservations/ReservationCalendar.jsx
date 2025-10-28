@@ -236,26 +236,26 @@ const handleCellClick = (e, roomId, date) => {
   const handleHoldRoom = async () => {
     if (!actionMenu.roomId || !actionMenu.date) return;
     
-    // For hold, we'll create a minimal reservation without guest
-    // Set check-out to next day by default
+    // Set default check-out to next day
     const checkIn = new Date(actionMenu.date);
     const checkOut = new Date(actionMenu.date);
     checkOut.setDate(checkOut.getDate() + 1);
     
-    try {
-      // Create a placeholder guest for the hold if needed
-      // Or you can modify this to require guest selection
-      const room = rooms.find(r => r.id === actionMenu.roomId);
-      
-      // For now, require guest selection
-      alert('Please use the Book option to create a reservation. Hold requires guest information.');
-      closeActionMenu();
-      return;
-      
-    } catch (error) {
-      console.error('Error creating hold:', error);
-      alert('Failed to create hold: ' + error.message);
-    }
+    setBookingData({
+      room_id: actionMenu.roomId,
+      check_in_date: actionMenu.date,
+      check_out_date: checkOut.toISOString().split('T')[0],
+      guest_id: '',
+      number_of_adults: 1,
+      number_of_children: 0,
+      number_of_infants: 0,
+      meal_plan: 'NM',
+      status: 'Hold',
+      special_requests: ''
+    });
+    
+    closeActionMenu();
+    setIsBookingModalOpen(true);
   };
 
   // Handle Book action - Open quick booking modal
