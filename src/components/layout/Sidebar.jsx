@@ -1,20 +1,28 @@
 import { useState } from 'react';
-import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown } from 'lucide-react';
+import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   const { user } = useAuth();
+  
+  // Load sidebar collapsed state from localStorage
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+  
+  // All categories collapsed by default
   const [expandedCategories, setExpandedCategories] = useState({
-    'Room Management': true,
-    'Reservations': true,
-    'Guests & Agents': true,
-    'Financial': true,
-    'Operations': true
+    'Room Management': false,
+    'Reservations': false,
+    'Guests & Agents': false,
+    'Financial': false,
+    'Operations': false
   });
   
   const menuCategories = [
     {
-      category: null, // No category for Dashboard
+      category: null,
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: Home, roles: ['Admin', 'Front Desk', 'Accounts'] }
       ]
@@ -56,14 +64,13 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
-      category: null, // No category for Settings
+      category: null,
       items: [
         { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin'] }
       ]
     }
   ];
 
-  // Filter categories and items based on user role
   const filteredCategories = menuCategories
     .map(category => ({
       ...category,
@@ -83,43 +90,69 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     }));
   };
 
+  const toggleSidebarCollapse = () => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
+  };
+
   return (
     <>
       {isOpen && <div className="overlay mobile-only" onClick={onClose} />}
       
-      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <Hotel size={32} />
-            <span>HMS</span>
+            {!sidebarCollapsed && <span>HMS</span>}
           </div>
           <button onClick={onClose} className="close-btn mobile-only">
             <X size={24} />
           </button>
         </div>
         
+        {/* Collapse/Expand Toggle Button */}
+        <button 
+          className="sidebar-collapse-btn desktop-only" 
+          onClick={toggleSidebarCollapse}
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        </button>
+        
         <nav className="sidebar-nav">
           {filteredCategories.map((category, categoryIndex) => (
             <div key={categoryIndex}>
-              {/* Category with Collapse Toggle */}
               {category.category ? (
                 <>
                   <button
                     className="nav-category-toggle"
                     onClick={() => toggleCategory(category.category)}
+                    title={sidebarCollapsed ? category.category : ''}
                   >
-                    <span className="nav-category-label">{category.category}</span>
-                    <ChevronDown 
-                      size={16} 
-                      style={{
-                        transform: expandedCategories[category.category] ? 'rotate(0deg)' : 'rotate(-90deg)',
-                        transition: 'transform 0.2s ease'
-                      }}
-                    />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="nav-category-label">{category.category}</span>
+                        <ChevronDown 
+                          size={16} 
+                          style={{
+                            transform: expandedCategories[category.category] ? 'rotate(0deg)' : 'rotate(-90deg)',
+                            transition: 'transform 0.2s ease'
+                          }}
+                        />
+                      </>
+                    )}
+                    {sidebarCollapsed && (
+                      <div className="collapsed-category-icon">
+                        {category.items[0] && (() => {
+                          const Icon = category.items[0].icon;
+                          return <Icon size={20} />;
+                        })()}
+                      </div>
+                    )}
                   </button>
                   
-                  {/* Collapsible Category Items */}
-                  {expandedCategories[category.category] && (
+                  {!sidebarCollapsed && expandedCategories[category.category] && (
                     <div className="nav-category-items">
                       {category.items.map((item) => {
                         const Icon = item.icon;
@@ -136,9 +169,26 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
                       })}
                     </div>
                   )}
+                  
+                  {sidebarCollapsed && (
+                    <div className="collapsed-category-items">
+                      {category.items.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => handleNavigate(item.id)}
+                            className={`nav-item collapsed ${currentPage === item.id ? 'active' : ''}`}
+                            title={item.label}
+                          >
+                            <Icon size={20} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </>
               ) : (
-                // Items without category (Dashboard & Settings)
                 <>
                   {category.items.map((item) => {
                     const Icon = item.icon;
@@ -146,18 +196,18 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
                       <button
                         key={item.id}
                         onClick={() => handleNavigate(item.id)}
-                        className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                        className={`nav-item ${currentPage === item.id ? 'active' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}
+                        title={sidebarCollapsed ? item.label : ''}
                       >
                         <Icon size={20} />
-                        <span>{item.label}</span>
+                        {!sidebarCollapsed && <span>{item.label}</span>}
                       </button>
                     );
                   })}
                 </>
               )}
               
-              {/* Category Separator */}
-              {categoryIndex < filteredCategories.length - 1 && (
+              {categoryIndex < filteredCategories.length - 1 && !sidebarCollapsed && (
                 <div className="nav-separator"></div>
               )}
             </div>
