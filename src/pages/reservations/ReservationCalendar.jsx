@@ -184,25 +184,16 @@ const ReservationCalendar = () => {
     // Prevent drag-to-scroll interference
     if (isDragging) return;
 
-    // --- START: UPDATED LOGIC ---
-    if (!containerRef.current) return; // Guard clause
-
-    const cellRect = e.currentTarget.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
-    
-    const scrollLeft = containerRef.current.scrollLeft;
-    const scrollTop = containerRef.current.scrollTop;
-
-    // Calculate position relative to the container, including scroll
-    const x = cellRect.right - containerRect.left + scrollLeft + 10; // 10px to the right
-    const y = cellRect.top - containerRect.top + scrollTop;
-    // --- END: UPDATED LOGIC ---
+    const rect = e.currentTarget.getBoundingClientRect();
     
     setActionMenu({
       visible: true,
       roomId,
       date,
-      position: { x, y } // Use new relative x and y
+      position: {
+        x: rect.right + 10, // Position to the right of the cell
+        y: rect.top
+      }
     });
   };
 
@@ -384,16 +375,24 @@ const ReservationCalendar = () => {
       }
     };
 
-    // --- REMOVED SCROLL HANDLER ---
-    
+    const handleScroll = () => {
+      closeActionMenu();
+    };
+
     if (actionMenu.visible) {
       document.addEventListener('mousedown', handleClickOutside);
+      if (containerRef.current) {
+        containerRef.current.addEventListener('scroll', handleScroll);
+      }
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('scroll', handleScroll);
+      }
     };
-  }, [actionMenu.visible]); // --- REMOVED containerRef from dependency array ---
+  }, [actionMenu.visible]);
 
   // Drag-to-scroll handlers
   const handleMouseDown = (e) => {
@@ -565,7 +564,7 @@ const ReservationCalendar = () => {
           background: 'white',
           borderRadius: '8px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          position: 'relative' // <-- ADDED
+          position: 'relative' //
         }}
       >
         <table className="calendar-table" style={{ 
@@ -652,7 +651,7 @@ const ReservationCalendar = () => {
                           className="room-type-toggle"
                         >
                           <div className="room-type-icon">
-                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={1B} />}
+                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </div>
                           <div className="room-type-info">
                             <strong>{roomType.name}</strong>
@@ -734,111 +733,110 @@ const ReservationCalendar = () => {
               })}
             </tbody>
           </table>
+        </div>
 
-        {/* Action Menu Popup (MOVED HERE) */}
-        {actionMenu.visible && (
-          <div
-            ref={actionMenuRef}
-            style={{
-              position: 'absolute', // <-- CHANGED
-              left: `${actionMenu.position.x}px`,
-              top: `${actionMenu.position.y}px`,
-              background: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              padding: '8px',
-              zIndex: 1000,
-              minWidth: '160px'
-            }}
-          >
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#6b7280', 
-              padding: '4px 8px',
-              borderBottom: '1px solid #e5e7eb',
-              marginBottom: '4px'
-            }}>
-              {(() => {
-                const room = rooms.find(r => r.id === actionMenu.roomId);
-                return room ? `Room ${room.room_number}` : 'Room';
-              })()} - {new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </div>
-            
-            <button
-              onClick={handleBookRoom}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'transparent',
-                textAlign: 'left',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#059669',
-                fontWeight: '500'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <CalendarIcon size={16} />
-              Book
-            </button>
-            
-            <button
-              onClick={handleHoldRoom}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'transparent',
-                textAlign: 'left',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#f59e0b',
-                fontWeight: '500'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#fffbeb'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <Lock size={16} />
-              Hold
-            </button>
-            
-            <button
-              onClick={handleBlockRoom}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                background: 'transparent',
-                textAlign: 'left',
-                cursor: 'pointer',
-                borderRadius: '4px',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#dc2626',
-                fontWeight: '500'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <X size={16} />
-              Block
-            </button>
+      {/* Action Menu Popup */}
+      {actionMenu.visible && (
+        <div
+          ref={actionMenuRef}
+          style={{
+            position: 'fixed',
+            left: `${actionMenu.position.x}px`,
+            top: `${actionMenu.position.y}px`,
+            background: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            padding: '8px',
+            zIndex: 1000,
+            minWidth: '160px'
+          }}
+        >
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#6b7280', 
+            padding: '4px 8px',
+            borderBottom: '1px solid #e5e7eb',
+            marginBottom: '4px'
+          }}>
+            {(() => {
+              const room = rooms.find(r => r.id === actionMenu.roomId);
+              return room ? `Room ${room.room_number}` : 'Room';
+            })()} - {new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </div>
-        )}
-      </div> {/* <-- End of containerRef div */}
-
+          
+          <button
+            onClick={handleBookRoom}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'transparent',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#059669',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <CalendarIcon size={16} />
+            Book
+          </button>
+          
+          <button
+            onClick={handleHoldRoom}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'transparent',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#f59e0b',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#fffbeb'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <Lock size={16} />
+            Hold
+          </button>
+          
+          <button
+            onClick={handleBlockRoom}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'transparent',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#dc2626',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <X size={16} />
+            Block
+          </button>
+        </div>
+      )}
 
       {/* Quick Booking Modal */}
       <Modal
@@ -961,7 +959,7 @@ const ReservationCalendar = () => {
               <option value="NM">No Meal</option>
               <option value="BO">Breakfast Only</option>
               <option value="HB">Half Board</option>
-              <option value"FB">Full Board</option>
+              <option value="FB">Full Board</option>
             </select>
           </div>
 
