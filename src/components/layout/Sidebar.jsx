@@ -1,4 +1,4 @@
-import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen } from 'lucide-react';
+import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
@@ -15,6 +15,7 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'Accounts'] },
     { id: 'inventory', label: 'Inventory', icon: Package, roles: ['Admin', 'Store'] },
     { id: 'guests', label: 'Guests', icon: Users, roles: ['Admin', 'Front Desk'] },
+    { id: 'agents', label: 'Agents', icon: UserCog, roles: ['Admin', 'Front Desk'] }, // ADD THIS LINE
     { id: 'expenses', label: 'Expenses', icon: Receipt, roles: ['Admin', 'Accounts'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin'] }
   ];
