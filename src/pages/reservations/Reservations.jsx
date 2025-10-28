@@ -200,8 +200,19 @@ const Reservations = () => {
       alert('Please enter agent name');
       return;
     }
-
-    const newAgent = await addAgent(agentFormData);
+  
+    // Transform the data - convert empty strings to null for numeric fields
+    const agentData = {
+      name: agentFormData.name,
+      email: agentFormData.email || null,
+      phone: agentFormData.phone || null,
+      commission: agentFormData.commission && agentFormData.commission !== '' 
+        ? parseFloat(agentFormData.commission) 
+        : null,
+      address: agentFormData.address || null
+    };
+  
+    const newAgent = await addAgent(agentData);
     if (newAgent) {
       setFormData({ ...formData, agent_id: newAgent.id });
       resetAgentForm();
