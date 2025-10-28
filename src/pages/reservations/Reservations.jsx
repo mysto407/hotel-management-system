@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, Save, XCircle, CheckCircle, LogOut, Search, Filter, UserPlus, Calendar } from 'lucide-react';
+import { Plus, Edit2, XOctagon, Save, XCircle, CheckCircle, LogOut, Search, Filter, UserPlus, Calendar, User, Building, ChevronDown } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
@@ -587,14 +587,14 @@ const Reservations = () => {
                   Clear All
                 </button>
               )}
-              <span style={{ 
-                color: '#6b7280', 
-                fontSize: '14px',
-                transition: 'transform 0.2s',
-                transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
-              }}>
-                â–¼
-              </span>
+              <ChevronDown 
+                size={16}
+                style={{ 
+                  color: '#6b7280',
+                  transition: 'transform 0.2s',
+                  transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
+                }}
+              />
             </div>
           </div>
 
@@ -1124,14 +1124,14 @@ const Reservations = () => {
               <strong style={{ color: '#1f2937' }}>{reservations.length}</strong> reservations
             </div>
           </div>
-          <span style={{ 
-            color: '#6b7280', 
-            fontSize: '14px',
-            transition: 'transform 0.2s',
-            transform: showSummary ? 'rotate(180deg)' : 'rotate(0deg)'
-          }}>
-            â–¼
-          </span>
+          <ChevronDown 
+            size={16}
+            style={{ 
+              color: '#6b7280',
+              transition: 'transform 0.2s',
+              transform: showSummary ? 'rotate(180deg)' : 'rotate(0deg)'
+            }}
+          />
         </div>
 
         {/* Summary Content */}
@@ -1479,7 +1479,7 @@ const Reservations = () => {
                     color: '#14532d',
                     lineHeight: '1'
                   }}>
-                    â‚¹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+                    ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
                   </div>
                 </div>
                 
@@ -1505,7 +1505,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#15803d' 
                     }}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
+                      ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
                     </div>
                   </div>
                   
@@ -1523,7 +1523,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#92400e' 
                     }}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
+                      ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -1603,11 +1603,12 @@ const Reservations = () => {
                     {/* Booking Source Badge with Agent Name */}
                     {reservation.booking_source === 'agent' ? (
                       <span className="booking-badge booking-badge-agent">
-                        ðŸ‘¤ Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
+                        <User size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                        Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
                       </span>
                     ) : (
                       <span className="booking-badge booking-badge-direct">
-                        ðŸ¢ Direct
+                        <Building size={14} style={{ display: 'inline', marginRight: '4px' }} />Direct
                       </span>
                     )}
                     
