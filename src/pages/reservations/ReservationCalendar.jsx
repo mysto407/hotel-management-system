@@ -173,29 +173,38 @@ const ReservationCalendar = () => {
     }
   };
 
-  // Handle cell click to show action menu
-  const handleCellClick = (e, roomId, date) => {
-    // Only show menu for available cells
-    const roomStatus = getRoomStatus(roomId, date);
-    if (roomStatus.status !== 'available') {
-      return;
-    }
+// Handle cell click to show action menu
+const handleCellClick = (e, roomId, date) => {
+  // Only show menu for available cells
+  const roomStatus = getRoomStatus(roomId, date);
+  if (roomStatus.status !== 'available') {
+    return;
+  }
 
-    // Prevent drag-to-scroll interference
-    if (isDragging) return;
+  // Prevent drag-to-scroll interference
+  if (isDragging) return;
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    
-    setActionMenu({
-      visible: true,
-      roomId,
-      date,
-      position: {
-        x: rect.right + 10, // Position to the right of the cell
-        y: rect.top
-      }
-    });
-  };
+  // --- START: UPDATED LOGIC ---
+  if (!containerRef.current) return; // Guard clause
+
+  const cellRect = e.currentTarget.getBoundingClientRect();
+  const containerRect = containerRef.current.getBoundingClientRect();
+  
+  const scrollLeft = containerRef.current.scrollLeft;
+  const scrollTop = containerRef.current.scrollTop;
+
+  // Calculate position relative to the container, including scroll
+  const x = cellRect.right - containerRect.left + scrollLeft + 10; // 10px to the right
+  const y = cellRect.top - containerRect.top + scrollTop;
+  // --- END: UPDATED LOGIC ---
+  
+  setActionMenu({
+    visible: true,
+    roomId,
+    date,
+    position: { x, y } // Use new relative x and y
+  });
+};
 
   // Close action menu
   const closeActionMenu = () => {
