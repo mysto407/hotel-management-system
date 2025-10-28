@@ -1,17 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   const { user } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Load sidebar collapsed state from localStorage
+  // Detect mobile/desktop
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // Load sidebar collapsed state from localStorage (desktop only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved ? JSON.parse(saved) : false;
   });
   
-  // All categories collapsed by default
+  // All categories collapsed by default (desktop only)
   const [expandedCategories, setExpandedCategories] = useState({
     'Room Management': false,
     'Reservations': false,
@@ -19,6 +30,23 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     'Financial': false,
     'Operations': false
   });
+  
+  // Simple flat menu for mobile (original style)
+  const flatMenuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home, roles: ['Admin', 'Front Desk', 'Accounts'] },
+    { id: 'room-types', label: 'Room Types', icon: Building2, roles: ['Admin'] },
+    { id: 'rooms', label: 'Rooms', icon: DoorOpen, roles: ['Admin', 'Front Desk'] },
+    { id: 'room-status', label: 'Room Status', icon: Hotel, roles: ['Admin', 'Front Desk'] },
+    { id: 'reservations', label: 'Reservations', icon: Calendar, roles: ['Admin', 'Front Desk'] },
+    { id: 'reservation-calendar', label: 'Booking Calendar', icon: CalendarDays, roles: ['Admin', 'Front Desk'] },
+    { id: 'billing', label: 'Billing', icon: CreditCard, roles: ['Admin', 'Front Desk', 'Accounts'] },
+    { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'Accounts'] },
+    { id: 'inventory', label: 'Inventory', icon: Package, roles: ['Admin', 'Store'] },
+    { id: 'guests', label: 'Guests', icon: Users, roles: ['Admin', 'Front Desk'] },
+    { id: 'agents', label: 'Agents', icon: UserCog, roles: ['Admin', 'Front Desk'] },
+    { id: 'expenses', label: 'Expenses', icon: FileText, roles: ['Admin', 'Accounts'] },
+    { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin'] }
+  ];
   
   const menuCategories = [
     {
@@ -78,6 +106,8 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     }))
     .filter(category => category.items.length > 0);
   
+  const filteredFlatItems = flatMenuItems.filter(item => item.roles.includes(user?.role));
+  
   const handleNavigate = (pageId) => {
     onNavigate(pageId);
     onClose();
@@ -96,6 +126,44 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
 
+  // Mobile: Render simple flat menu
+  if (isMobile) {
+    return (
+      <>
+        {isOpen && <div className="overlay mobile-only" onClick={onClose} />}
+        
+        <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+          <div className="sidebar-header">
+            <div className="sidebar-logo">
+              <Hotel size={32} />
+              <span>HMS</span>
+            </div>
+            <button onClick={onClose} className="close-btn mobile-only">
+              <X size={24} />
+            </button>
+          </div>
+          
+          <nav className="sidebar-nav">
+            {filteredFlatItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavigate(item.id)}
+                  className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                >
+                  <Icon size={20} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+      </>
+    );
+  }
+
+  // Desktop: Render categorized collapsible menu
   return (
     <>
       {isOpen && <div className="overlay mobile-only" onClick={onClose} />}
