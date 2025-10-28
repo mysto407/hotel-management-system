@@ -1,12 +1,20 @@
-import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays } from 'lucide-react';
+import { useState } from 'react';
+import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   const { user } = useAuth();
+  const [expandedCategories, setExpandedCategories] = useState({
+    'Room Management': true,
+    'Reservations': true,
+    'Guests & Agents': true,
+    'Financial': true,
+    'Operations': true
+  });
   
   const menuCategories = [
     {
-      category: null, // No category label for Dashboard
+      category: null, // No category for Dashboard
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: Home, roles: ['Admin', 'Front Desk', 'Accounts'] }
       ]
@@ -48,7 +56,7 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
-      category: null, // No category label for Settings
+      category: null, // No category for Settings
       items: [
         { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin'] }
       ]
@@ -66,6 +74,13 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   const handleNavigate = (pageId) => {
     onNavigate(pageId);
     onClose();
+  };
+
+  const toggleCategory = (categoryName) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryName]: !prev[categoryName]
+    }));
   };
 
   return (
@@ -86,29 +101,62 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
         <nav className="sidebar-nav">
           {filteredCategories.map((category, categoryIndex) => (
             <div key={categoryIndex}>
-              {/* Category Label */}
-              {category.category && (
-                <div className="nav-category-label">
-                  {category.category}
-                </div>
+              {/* Category with Collapse Toggle */}
+              {category.category ? (
+                <>
+                  <button
+                    className="nav-category-toggle"
+                    onClick={() => toggleCategory(category.category)}
+                  >
+                    <span className="nav-category-label">{category.category}</span>
+                    <ChevronDown 
+                      size={16} 
+                      style={{
+                        transform: expandedCategories[category.category] ? 'rotate(0deg)' : 'rotate(-90deg)',
+                        transition: 'transform 0.2s ease'
+                      }}
+                    />
+                  </button>
+                  
+                  {/* Collapsible Category Items */}
+                  {expandedCategories[category.category] && (
+                    <div className="nav-category-items">
+                      {category.items.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => handleNavigate(item.id)}
+                            className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                          >
+                            <Icon size={20} />
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Items without category (Dashboard & Settings)
+                <>
+                  {category.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleNavigate(item.id)}
+                        className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                      >
+                        <Icon size={20} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </>
               )}
               
-              {/* Category Items */}
-              {category.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavigate(item.id)}
-                    className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
-                  >
-                    <Icon size={20} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-              
-              {/* Category Separator (except for last category) */}
+              {/* Category Separator */}
               {categoryIndex < filteredCategories.length - 1 && (
                 <div className="nav-separator"></div>
               )}
