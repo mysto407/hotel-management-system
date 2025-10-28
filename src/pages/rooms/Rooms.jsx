@@ -12,14 +12,16 @@ const Rooms = () => {
     room_number: '',
     floor: '',
     room_type_id: '',
+    category: 'main building',
     status: 'Available'
   });
 
   const handleSubmit = async () => {
     const roomData = {
       room_number: formData.room_number,
-      floor: parseInt(formData.floor),
+      floor: formData.floor ? parseInt(formData.floor) : null,
       room_type_id: formData.room_type_id,
+      category: formData.category,
       status: formData.status
     };
 
@@ -36,6 +38,7 @@ const Rooms = () => {
       room_number: '',
       floor: '',
       room_type_id: '',
+      category: 'main building',
       status: 'Available'
     });
     setEditingRoom(null);
@@ -46,8 +49,9 @@ const Rooms = () => {
     setEditingRoom(room);
     setFormData({
       room_number: room.room_number,
-      floor: room.floor,
+      floor: room.floor || '',
       room_type_id: room.room_type_id,
+      category: room.category || 'main building',
       status: room.status
     });
     setIsModalOpen(true);
@@ -79,6 +83,7 @@ const Rooms = () => {
             <tr>
               <th>Room Number</th>
               <th>Floor</th>
+              <th>Category</th>
               <th>Room Type</th>
               <th>Status</th>
               <th>Actions</th>
@@ -88,7 +93,8 @@ const Rooms = () => {
             {rooms.map(room => (
               <tr key={room.id}>
                 <td><strong>{room.room_number}</strong></td>
-                <td>Floor {room.floor}</td>
+                <td>{room.floor ? `Floor ${room.floor}` : '-'}</td>
+                <td>{room.category || 'main building'}</td>
                 <td>{getRoomTypeName(room.room_type_id)}</td>
                 <td>
                   <span className={`status-badge status-${room.status.toLowerCase()}`}>
@@ -134,6 +140,16 @@ const Rooms = () => {
               onChange={(e) => setFormData({...formData, floor: e.target.value})}
               placeholder="1"
             />
+          </div>
+          <div className="form-group">
+            <label>Category</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({...formData, category: e.target.value})}
+            >
+              <option value="main building">Main Building</option>
+              <option value="cottage">Cottage</option>
+            </select>
           </div>
           <div className="form-group">
             <label>Room Type</label>
