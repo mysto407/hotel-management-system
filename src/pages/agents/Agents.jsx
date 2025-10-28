@@ -26,10 +26,10 @@ const Agents = () => {
 
     const agentData = {
       name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      commission: formData.commission ? parseFloat(formData.commission) : null,
-      address: formData.address
+      email: formData.email || null,
+      phone: formData.phone || null,
+      commission: formData.commission && formData.commission !== '' ? parseFloat(formData.commission) : null,
+      address: formData.address || null
     };
 
     if (editingAgent) {
@@ -88,6 +88,7 @@ const Agents = () => {
 
   // Calculate total commission earned
   const calculateCommission = (agentId, agent) => {
+    if (!agent.commission) return null; // Return null if no commission set
     const agentReservations = reservations.filter(r => r.agent_id === agentId);
     const totalRevenue = agentReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0);
     const commission = agent.commission || 0;
@@ -159,7 +160,12 @@ const Agents = () => {
         }}>
           <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Commission</div>
           <div style={{ fontSize: '32px', fontWeight: '700' }}>
-            ₹{agents.reduce((sum, agent) => sum + calculateCommission(agent.id, agent), 0).toLocaleString()}
+            ₹{agents
+              .reduce((sum, agent) => {
+                const commission = calculateCommission(agent.id, agent);
+                return sum + (commission || 0);
+              }, 0)
+              .toLocaleString()}
           </div>
         </div>
       </div>
@@ -227,7 +233,17 @@ const Agents = () => {
                         {agent.commission}%
                       </div>
                     ) : (
-                      <span style={{ color: '#9ca3af', fontSize: '13px' }}>Not set</span>
+                      <span style={{ 
+                        color: '#9ca3af', 
+                        fontSize: '13px',
+                        fontStyle: 'italic',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <Percent size={12} />
+                        Not set
+                      </span>
                     )}
                   </td>
                   <td>
@@ -254,17 +270,23 @@ const Agents = () => {
                     </div>
                   </td>
                   <td>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '4px',
-                      fontWeight: '700',
-                      color: '#7c3aed',
-                      fontSize: '15px'
-                    }}>
-                      <TrendingUp size={16} />
-                      ₹{commissionEarned.toLocaleString()}
-                    </div>
+                    {commissionEarned !== null ? (
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        fontWeight: '700',
+                        color: '#7c3aed',
+                        fontSize: '15px'
+                      }}>
+                        <TrendingUp size={16} />
+                        ₹{commissionEarned.toLocaleString()}
+                      </div>
+                    ) : (
+                      <span style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>
+                        No commission set
+                      </span>
+                    )}
                   </td>
                   <td>
                     <div className="action-buttons">
@@ -344,16 +366,18 @@ const Agents = () => {
             />
           </div>
           <div className="form-group full-width">
-            <label>Commission Rate (%)</label>
+            <label>Commission Rate (%) <span style={{ color: '#9ca3af', fontWeight: 'normal' }}>- Optional</span></label>
             <input
               type="number"
               step="0.01"
+              min="0"
+              max="100"
               value={formData.commission}
               onChange={(e) => setFormData({...formData, commission: e.target.value})}
-              placeholder="10.00"
+              placeholder="e.g., 10.00"
             />
             <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-              Enter the commission percentage this agent receives on bookings
+              Commission percentage this agent receives on bookings (leave empty if not applicable)
             </small>
           </div>
           <div className="form-group full-width">
