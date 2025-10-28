@@ -185,6 +185,7 @@ const ReservationCalendar = () => {
     if (isDragging) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
+    
     setActionMenu({
       visible: true,
       roomId,
@@ -374,12 +375,22 @@ const ReservationCalendar = () => {
       }
     };
 
+    const handleScroll = () => {
+      closeActionMenu();
+    };
+
     if (actionMenu.visible) {
       document.addEventListener('mousedown', handleClickOutside);
+      if (containerRef.current) {
+        containerRef.current.addEventListener('scroll', handleScroll);
+      }
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('scroll', handleScroll);
+      }
     };
   }, [actionMenu.visible]);
 
