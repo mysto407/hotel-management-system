@@ -132,7 +132,7 @@ export const ReservationProvider = ({ children }) => {
         alert('Guest checked in successfully, but failed to create room charge bill. Please create manually.');
       } else {
         console.log('Room charge bill created successfully:', billResult);
-        alert(`Guest checked in successfully! Room charge bill created for ${nights} night(s) - Total: â‚¹${total.toFixed(2)}`);
+        alert(`Guest checked in successfully! Room charge bill created for ${nights} night(s) - Total: ₹${total.toFixed(2)}`);
       }
 
     } catch (error) {
@@ -165,7 +165,6 @@ export const ReservationProvider = ({ children }) => {
     <ReservationContext.Provider value={{
       reservations,
       loading,
-      fetchReservations: loadReservations,
       addReservation,
       updateReservation,
       deleteReservation,

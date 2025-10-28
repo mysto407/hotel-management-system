@@ -37,18 +37,12 @@ const Reservations = () => {
     agent_id: '',
     direct_source: '',
     guest_id: '',
-    room_type_id: '',
-    number_of_rooms: 1,
-    rooms: [
-      {
-        room_id: 'auto',
-        number_of_adults: 1,
-        number_of_children: 0,
-        number_of_infants: 0
-      }
-    ],
+    room_id: '',
     check_in_date: '',
     check_out_date: '',
+    number_of_adults: 1,
+    number_of_children: 0,
+    number_of_infants: 0,
     meal_plan: 'NM',
     total_amount: 0,
     advance_payment: 0,
@@ -133,71 +127,37 @@ const Reservations = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.guest_id || !formData.room_type_id || !formData.check_in_date || !formData.check_out_date) {
+    if (!formData.guest_id || !formData.room_id || !formData.check_in_date || !formData.check_out_date) {
       alert('Please fill all required fields');
       return;
     }
 
-    // Validate that all rooms have either auto-assign or a selected room
-    const invalidRooms = formData.rooms.some(room => !room.room_id);
-    if (invalidRooms) {
-      alert('Please select a room number for all rooms or choose auto-assign');
-      return;
+    const reservationData = {
+      booking_source: formData.booking_source,
+      agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
+      direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
+      guest_id: formData.guest_id,
+      room_id: formData.room_id,
+      check_in_date: formData.check_in_date,
+      check_out_date: formData.check_out_date,
+      number_of_adults: parseInt(formData.number_of_adults),
+      number_of_children: parseInt(formData.number_of_children),
+      number_of_infants: parseInt(formData.number_of_infants),
+      number_of_guests: parseInt(formData.number_of_adults) + parseInt(formData.number_of_children) + parseInt(formData.number_of_infants),
+      meal_plan: formData.meal_plan,
+      total_amount: parseFloat(formData.total_amount),
+      advance_payment: parseFloat(formData.advance_payment),
+      payment_status: formData.payment_status,
+      status: formData.status,
+      special_requests: formData.special_requests
+    };
+
+    if (editingReservation) {
+      await updateReservation(editingReservation.id, reservationData);
+    } else {
+      await addReservation(reservationData);
     }
-
-    // Generate a unique booking reference for this multi-room booking
-    const bookingReference = `BK${Date.now()}`;
-
-    try {
-      // Create a reservation for each room
-      for (let i = 0; i < formData.rooms.length; i++) {
-        const roomData = formData.rooms[i];
-        
-        // If auto-assign, find an available room of the selected type
-        let assignedRoomId = roomData.room_id;
-        if (assignedRoomId === 'auto') {
-          const availableRoomsOfType = availableRooms.filter(
-            r => r.room_type_id === formData.room_type_id && 
-            !formData.rooms.slice(0, i).some(prevRoom => prevRoom.room_id === r.id)
-          );
-          
-          if (availableRoomsOfType.length === 0) {
-            alert(`No available rooms of the selected type for Room ${i + 1}`);
-            return;
-          }
-          assignedRoomId = availableRoomsOfType[0].id;
-        }
-
-        const reservationData = {
-          booking_reference: bookingReference,
-          booking_source: formData.booking_source,
-          agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
-          direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
-          guest_id: formData.guest_id,
-          room_id: assignedRoomId,
-          check_in_date: formData.check_in_date,
-          check_out_date: formData.check_out_date,
-          number_of_adults: parseInt(roomData.number_of_adults),
-          number_of_children: parseInt(roomData.number_of_children),
-          number_of_infants: parseInt(roomData.number_of_infants),
-          number_of_guests: parseInt(roomData.number_of_adults) + parseInt(roomData.number_of_children) + parseInt(roomData.number_of_infants),
-          meal_plan: formData.meal_plan,
-          total_amount: parseFloat(formData.total_amount) / formData.rooms.length, // Distribute amount across rooms
-          advance_payment: i === 0 ? parseFloat(formData.advance_payment) : 0, // Only add advance to first room
-          payment_status: formData.payment_status,
-          status: formData.status,
-          special_requests: i === 0 ? formData.special_requests : `Part of booking ${bookingReference}`
-        };
-
-        await addReservation(reservationData);
-      }
-
-      alert(`Successfully created booking with ${formData.rooms.length} room(s)!`);
-      resetForm();
-    } catch (error) {
-      console.error('Error creating multi-room booking:', error);
-      alert('Failed to create booking: ' + error.message);
-    }
+    resetForm();
   };
 
   const resetForm = () => {
@@ -206,18 +166,12 @@ const Reservations = () => {
       agent_id: '',
       direct_source: '',
       guest_id: '',
-      room_type_id: '',
-      number_of_rooms: 1,
-      rooms: [
-        {
-          room_id: 'auto',
-          number_of_adults: 1,
-          number_of_children: 0,
-          number_of_infants: 0
-        }
-      ],
+      room_id: '',
       check_in_date: '',
       check_out_date: '',
+      number_of_adults: 1,
+      number_of_children: 0,
+      number_of_infants: 0,
       meal_plan: 'NM',
       total_amount: 0,
       advance_payment: 0,
@@ -239,43 +193,6 @@ const Reservations = () => {
       address: ''
     });
     setIsAgentModalOpen(false);
-  };
-
-  // Handle number of rooms change
-  const handleNumberOfRoomsChange = (count) => {
-    const numRooms = parseInt(count);
-    const currentRooms = formData.rooms;
-    
-    if (numRooms > currentRooms.length) {
-      // Add more rooms
-      const newRooms = [...currentRooms];
-      for (let i = currentRooms.length; i < numRooms; i++) {
-        newRooms.push({
-          room_id: 'auto',
-          number_of_adults: 1,
-          number_of_children: 0,
-          number_of_infants: 0
-        });
-      }
-      setFormData({ ...formData, number_of_rooms: numRooms, rooms: newRooms });
-    } else if (numRooms < currentRooms.length) {
-      // Remove excess rooms
-      setFormData({ 
-        ...formData, 
-        number_of_rooms: numRooms, 
-        rooms: currentRooms.slice(0, numRooms) 
-      });
-    }
-  };
-
-  // Update individual room data
-  const updateRoomData = (index, field, value) => {
-    const updatedRooms = [...formData.rooms];
-    updatedRooms[index] = {
-      ...updatedRooms[index],
-      [field]: value
-    };
-    setFormData({ ...formData, rooms: updatedRooms });
   };
 
   const handleCreateAgent = async () => {
@@ -350,11 +267,6 @@ const Reservations = () => {
   };
 
   const handleEdit = (reservation) => {
-    // For now, disable editing - multi-room bookings need special handling
-    alert('Editing reservations is currently disabled. Please cancel and create a new booking if changes are needed.');
-    return;
-    
-    /* Original single-room edit code - kept for reference
     setEditingReservation(reservation);
     setSelectedGuest(reservation.guests);
     setFormData({
@@ -376,7 +288,6 @@ const Reservations = () => {
       special_requests: reservation.special_requests || ''
     });
     setIsModalOpen(true);
-    */
   };
 
   const handleCheckIn = (reservation) => {
@@ -398,13 +309,15 @@ const Reservations = () => {
   };
 
   const calculateTotal = () => {
-    if (formData.room_type_id && formData.check_in_date && formData.check_out_date) {
-      const roomType = roomTypes.find(rt => rt.id === formData.room_type_id);
-      if (roomType) {
-        const days = calculateDays(formData.check_in_date, formData.check_out_date);
-        const totalPerRoom = roomType.base_price * days;
-        const total = totalPerRoom * formData.number_of_rooms;
-        setFormData(prev => ({ ...prev, total_amount: total }));
+    if (formData.room_id && formData.check_in_date && formData.check_out_date) {
+      const room = rooms.find(r => r.id === formData.room_id);
+      if (room) {
+        const roomType = roomTypes.find(rt => rt.id === room.room_type_id);
+        if (roomType) {
+          const days = calculateDays(formData.check_in_date, formData.check_out_date);
+          const total = roomType.base_price * days;
+          setFormData(prev => ({ ...prev, total_amount: total }));
+        }
       }
     }
   };
@@ -570,7 +483,7 @@ const Reservations = () => {
                 transition: 'transform 0.2s',
                 transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)'
               }}>
-                â–¼
+                ▼
               </span>
             </div>
           </div>
@@ -1107,7 +1020,7 @@ const Reservations = () => {
             transition: 'transform 0.2s',
             transform: showSummary ? 'rotate(180deg)' : 'rotate(0deg)'
           }}>
-            â–¼
+            ▼
           </span>
         </div>
 
@@ -1456,7 +1369,7 @@ const Reservations = () => {
                     color: '#14532d',
                     lineHeight: '1'
                   }}>
-                    â‚¹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+                    ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
                   </div>
                 </div>
                 
@@ -1482,7 +1395,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#15803d' 
                     }}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
+                      ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
                     </div>
                   </div>
                   
@@ -1500,7 +1413,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#92400e' 
                     }}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
+                      ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -1577,34 +1490,14 @@ const Reservations = () => {
               <tr key={reservation.id}>
                 <td>
                   <div className="booking-badges">
-                    {/* Booking Reference - Show if present */}
-                    {reservation.booking_reference && (
-                      <span 
-                        className="booking-badge" 
-                        style={{
-                          background: '#dbeafe',
-                          color: '#1e40af',
-                          fontSize: '10px',
-                          padding: '2px 6px',
-                          borderRadius: '3px',
-                          fontWeight: '600',
-                          marginRight: '4px',
-                          display: 'inline-block'
-                        }}
-                        title={`Booking Reference: ${reservation.booking_reference}`}
-                      >
-                        📦 {reservation.booking_reference.substring(0, 12)}...
-                      </span>
-                    )}
-                    
                     {/* Booking Source Badge with Agent Name */}
                     {reservation.booking_source === 'agent' ? (
                       <span className="booking-badge booking-badge-agent">
-                        ðŸ‘¤ Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
+                        👤 Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
                       </span>
                     ) : (
                       <span className="booking-badge booking-badge-direct">
-                        ðŸ¢ Direct
+                        🏢 Direct
                       </span>
                     )}
                     
@@ -1821,176 +1714,65 @@ const Reservations = () => {
               }}>
                 <strong>{selectedGuest.name}</strong>
                 <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} â€¢ {selectedGuest.email || 'No email'}
+                  {selectedGuest.phone} • {selectedGuest.email || 'No email'}
                 </p>
               </div>
             </div>
           )}
 
-          {/* Room Type Selection */}
+          {/* Room Selection */}
           <div className="form-group">
-            <label>Room Type *</label>
+            <label>Room *</label>
             <select
-              value={formData.room_type_id}
+              value={formData.room_id}
               onChange={(e) => {
-                setFormData({...formData, room_type_id: e.target.value});
+                setFormData({...formData, room_id: e.target.value});
                 setTimeout(calculateTotal, 0);
               }}
+              disabled={editingReservation}
             >
-              <option value="">Select Room Type</option>
-              {roomTypes.map(roomType => {
-                const availableCount = availableRooms.filter(r => r.room_type_id === roomType.id).length;
-                return (
-                  <option key={roomType.id} value={roomType.id}>
-                    {roomType.name} - ₹{roomType.base_price}/night ({availableCount} available)
-                  </option>
-                );
-              })}
+              <option value="">Select Room</option>
+              {availableRooms.map(room => (
+                <option key={room.id} value={room.id}>{getRoomInfo(room)}</option>
+              ))}
             </select>
           </div>
 
-          {/* Number of Rooms */}
-          <div className="form-group">
-            <label>Number of Rooms *</label>
-            <input
-              type="number"
-              min="1"
-              max={formData.room_type_id ? availableRooms.filter(r => r.room_type_id === formData.room_type_id).length : 10}
-              value={formData.number_of_rooms}
-              onChange={(e) => {
-                handleNumberOfRoomsChange(e.target.value);
-                setTimeout(calculateTotal, 0);
-              }}
-              disabled={!formData.room_type_id}
-            />
-            {formData.room_type_id && (
-              <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
-                {availableRooms.filter(r => r.room_type_id === formData.room_type_id).length} rooms available
-              </small>
-            )}
-          </div>
-
-          {/* Individual Room Configurations */}
-          {formData.room_type_id && formData.rooms.map((room, index) => (
-            <div key={index} className="form-group full-width" style={{
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '16px',
-              background: '#f9fafb',
-              marginTop: '16px'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '12px'
-              }}>
-                <h4 style={{ margin: 0, color: '#1f2937', fontSize: '14px', fontWeight: '600' }}>
-                  Room {index + 1} Configuration
-                </h4>
-              </div>
-
-              {/* Room Number Selection */}
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ fontSize: '13px', color: '#374151', marginBottom: '4px', display: 'block' }}>
-                  Room Number *
-                </label>
-                <select
-                  value={room.room_id}
-                  onChange={(e) => updateRoomData(index, 'room_id', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="auto">🤖 Auto-assign available room</option>
-                  {availableRooms
-                    .filter(r => r.room_type_id === formData.room_type_id)
-                    .filter(r => !formData.rooms.some((rm, i) => i !== index && rm.room_id === r.id))
-                    .map(r => (
-                      <option key={r.id} value={r.id}>
-                        Room {r.room_number} - Floor {r.floor}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* Guest Configuration for this room */}
+          <div className="form-group full-width">
+            <label>Number of Guests *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               <div>
-                <label style={{ 
-                  fontSize: '13px', 
-                  color: '#374151', 
-                  marginBottom: '8px', 
-                  display: 'block',
-                  fontWeight: '500'
-                }}>
-                  Number of Guests for this Room
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>
-                      Adults *
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={room.number_of_adults}
-                      onChange={(e) => updateRoomData(index, 'number_of_adults', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '6px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>
-                      Children
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={room.number_of_children}
-                      onChange={(e) => updateRoomData(index, 'number_of_children', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '6px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>
-                      Infants
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={room.number_of_infants}
-                      onChange={(e) => updateRoomData(index, 'number_of_infants', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '6px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </div>
-                </div>
-                <small style={{ color: '#6b7280', marginTop: '6px', display: 'block', fontSize: '11px' }}>
-                  Total: {parseInt(room.number_of_adults || 0) + parseInt(room.number_of_children || 0) + parseInt(room.number_of_infants || 0)} guests in this room
-                </small>
+                <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Adults</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.number_of_adults}
+                  onChange={(e) => setFormData({...formData, number_of_adults: e.target.value})}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Children</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.number_of_children}
+                  onChange={(e) => setFormData({...formData, number_of_children: e.target.value})}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Infants</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.number_of_infants}
+                  onChange={(e) => setFormData({...formData, number_of_infants: e.target.value})}
+                />
               </div>
             </div>
-          ))}
+            <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
+              Total: {parseInt(formData.number_of_adults || 0) + parseInt(formData.number_of_children || 0) + parseInt(formData.number_of_infants || 0)} guests
+            </small>
+          </div>
 
           <div className="form-group">
             <label>Meal Plan *</label>
