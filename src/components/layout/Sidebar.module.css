@@ -7,7 +7,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    position: static;
+    position: relative;
     transition: width 0.3s ease, transform 0.3s ease;
 }
 
