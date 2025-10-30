@@ -194,43 +194,7 @@ const ReservationCalendar = () => {
   const handleCellClick = (e, roomId, date) => {
     const roomStatus = getRoomStatus(roomId, date);
     
-    // If cell is occupied, show reservation details and edit options
-    if (roomStatus.status === 'occupied') {
-      if (!containerRef.current) return;
-
-      const cellRect = e.currentTarget.getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
-      
-      const scrollLeft = containerRef.current.scrollLeft;
-      const scrollTop = containerRef.current.scrollTop;
-
-      const x = cellRect.right - containerRect.left + scrollLeft + 10;
-      const y = cellRect.top - containerRect.top + scrollTop;
-      
-      setActionMenu({
-        visible: true,
-        roomId,
-        date,
-        endDate: null,
-        selectedCells: [{ roomId, date }],
-        position: { x, y },
-        isOccupied: true,
-        reservation: roomStatus.reservation
-      });
-      return;
-    }
-    
-    // Handle available cells (existing logic)
-    if (roomStatus.status !== 'available') {
-      return;
-    }
-
-    if (dragSelection.isSelecting) {
-      return;
-    }
-
     if (isDragging) return;
-
     if (!containerRef.current) return;
 
     const cellRect = e.currentTarget.getBoundingClientRect();
@@ -242,22 +206,61 @@ const ReservationCalendar = () => {
     const x = cellRect.right - containerRect.left + scrollLeft + 10;
     const y = cellRect.top - containerRect.top + scrollTop;
     
-    setDragSelection({
-      isSelecting: false,
-      startRoomId: roomId,
-      startDate: date,
-      selectedCells: [{ roomId, date }]
-    });
+    // If cell is occupied, show reservation details and edit options
+    if (roomStatus.status === 'occupied') {
+      setActionMenu({
+        visible: true,
+        roomId,
+        date,
+        endDate: null,
+        selectedCells: [{ roomId, date }],
+        position: { x, y },
+        isOccupied: true,
+        reservation: roomStatus.reservation,
+        cellStatus: 'occupied'
+      });
+      return;
+    }
     
-    setActionMenu({
-      visible: true,
-      roomId,
-      date,
-      endDate: null,
-      selectedCells: [{ roomId, date }],
-      position: { x, y },
-      isOccupied: false
-    });
+    // If cell is blocked or maintenance, show room status change option
+    if (roomStatus.status === 'blocked' || roomStatus.status === 'maintenance') {
+      setActionMenu({
+        visible: true,
+        roomId,
+        date,
+        endDate: null,
+        selectedCells: [{ roomId, date }],
+        position: { x, y },
+        isOccupied: false,
+        cellStatus: roomStatus.status
+      });
+      return;
+    }
+    
+    // Handle available cells (existing logic)
+    if (roomStatus.status === 'available') {
+      if (dragSelection.isSelecting) {
+        return;
+      }
+
+      setDragSelection({
+        isSelecting: false,
+        startRoomId: roomId,
+        startDate: date,
+        selectedCells: [{ roomId, date }]
+      });
+      
+      setActionMenu({
+        visible: true,
+        roomId,
+        date,
+        endDate: null,
+        selectedCells: [{ roomId, date }],
+        position: { x, y },
+        isOccupied: false,
+        cellStatus: 'available'
+      });
+    }
   };
 
   // Drag selection handlers for multi-date and multi-room booking
@@ -1153,7 +1156,7 @@ const ReservationCalendar = () => {
                             onMouseEnter={() => handleCellMouseEnter(room.id, date)}
                             onMouseUp={(e) => handleCellMouseUp(e, room.id, date)}
                             style={{ 
-                              cursor: (roomStatus.status === 'available' || roomStatus.status === 'occupied') ? 'pointer' : 'default',
+                              cursor: 'pointer',
                               position: 'relative',
                               userSelect: 'none'
                             }}
@@ -1214,9 +1217,10 @@ const ReservationCalendar = () => {
               fontWeight: '600'
             }}>
               {(() => {
+                const room = rooms.find(r => r.id === actionMenu.roomId);
+                
                 // Show reservation details if occupied
                 if (actionMenu.isOccupied && actionMenu.reservation) {
-                  const room = rooms.find(r => r.id === actionMenu.roomId);
                   return (
                     <>
                       <div style={{ fontWeight: '800', color: '#0ea5e9', fontSize: '14px' }}>
@@ -1248,11 +1252,32 @@ const ReservationCalendar = () => {
                   );
                 }
                 
+                // Show blocked/maintenance status
+                if (actionMenu.cellStatus === 'blocked' || actionMenu.cellStatus === 'maintenance') {
+                  return (
+                    <>
+                      <div style={{ fontWeight: '800', color: '#0ea5e9', fontSize: '14px' }}>
+                        Room {room?.room_number || ''}
+                      </div>
+                      <div style={{ marginTop: '6px', fontSize: '13px', color: '#1e293b' }}>
+                        Status: <strong style={{ 
+                          color: actionMenu.cellStatus === 'blocked' ? '#dc2626' : '#f59e0b',
+                          textTransform: 'capitalize'
+                        }}>
+                          {actionMenu.cellStatus}
+                        </strong>
+                      </div>
+                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                        {new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    </>
+                  );
+                }
+                
                 const selectedCells = actionMenu.selectedCells || [];
                 
                 if (selectedCells.length === 1) {
                   const cell = selectedCells[0];
-                  const room = rooms.find(r => r.id === cell.roomId);
                   return `${room ? `Room ${room.room_number}` : 'Room'} - ${new Date(cell.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
                 } else if (selectedCells.length > 1) {
                   const uniqueRooms = [...new Set(selectedCells.map(c => c.roomId))];
@@ -1278,8 +1303,9 @@ const ReservationCalendar = () => {
               })()}
             </div>
             
-            {/* Show different options based on whether cell is occupied */}
+            {/* Show different options based on cell status */}
             {actionMenu.isOccupied ? (
+              // Options for occupied cells
               <>
                 <button
                   onClick={handleEditReservation}
@@ -1343,7 +1369,42 @@ const ReservationCalendar = () => {
                   Change Room Status
                 </button>
               </>
+            ) : actionMenu.cellStatus === 'blocked' || actionMenu.cellStatus === 'maintenance' ? (
+              // Options for blocked/maintenance cells
+              <>
+                <button
+                  onClick={handleChangeRoomStatus}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#8b5cf6',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f5f3ff';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <Home size={18} strokeWidth={2.5} />
+                  Change Room Status
+                </button>
+              </>
             ) : (
+              // Options for available cells
               <>
                 <button
                   onClick={handleBookRoom}
