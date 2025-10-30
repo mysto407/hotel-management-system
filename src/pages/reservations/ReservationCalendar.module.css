@@ -1,27 +1,33 @@
 /* ========================================== */
 
 
-/* PROFESSIONAL / CORPORATE CALENDAR STYLES */
+/* PROFESSIONAL / COLOR CALENDAR STYLES */
 
 
 /* ========================================== */
 
 
-/* Grays: 
+/*
+   Greys: 
    #111827 (Black)
    #374151 (Dark)
    #6b7280 (Medium)
-   #9ca3af (Light)
-   #d1d5db (Border Light)
    #e2e8f0 (Border)
    #f1f5f9 (Header BG)
    #f8fafc (Light BG)
    #f9fafb (Hover)
    
-   Accent:
-   #4f46e5 (Primary)
-   #eef2ff (Light BG)
-   #c7d2fe (Border)
+   Accent (Blue):
+   #3b82f6 (Primary)
+   #2563eb (Dark)
+   #dbeafe (Light BG)
+   #bfdbfe (Border)
+
+   Status Colors:
+   Green (Available): #f0fdf4 (BG), #dcfce7 (Hover), #166534 (Text)
+   Rose (Occupied):   #fff1f2 (BG), #ffe4e6 (Hover), #9f1239 (Text)
+   Amber (Maint.):    #fffbeb (BG), #fef3c7 (Hover), #92400e (Text)
+   Gray (Blocked):    #f3f4f6 (BG), #e5e7eb (Hover), #4b5563 (Text)
 */
 
 
@@ -111,15 +117,15 @@
 }
 
 .todayBtn {
-    background: #eef2ff;
-    color: #4f46e5;
+    background: #dbeafe;
+    color: #2563eb;
     font-weight: 700;
-    border-color: #c7d2fe;
+    border-color: #bfdbfe;
 }
 
 .todayBtn:hover {
-    background: #e0e7ff;
-    border-color: #a5b4fc;
+    background: #bfdbfe;
+    border-color: #93c5fd;
 }
 
 .calendarViewControls {
@@ -143,8 +149,8 @@
 .calendarDateInput:focus,
 .calendarDaysSelect:focus {
     outline: none;
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .calendarHeaderActions {
@@ -238,10 +244,10 @@
 /* Calendar Drag Selection Styles */
 
 .calendarCell.cellSelected {
-    background: rgba(79, 70, 229, 0.1) !important;
-    border: 1px solid #4f46e5 !important;
+    background: rgba(59, 130, 246, 0.1) !important;
+    border: 1px solid #3b82f6 !important;
     position: relative;
-    box-shadow: inset 0 0 0 2px rgba(79, 70, 229, 0.2);
+    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .selectionOverlay {
@@ -250,8 +256,8 @@
     left: -1px;
     right: -1px;
     bottom: -1px;
-    background: rgba(79, 70, 229, 0.1);
-    border: 2px solid #4f46e5;
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px solid #3b82f6;
     pointer-events: none;
     z-index: 2;
 }
@@ -336,8 +342,8 @@
 }
 
 .calendarDateHeader.today {
-    background: #eef2ff;
-    border-bottom-color: #4f46e5;
+    background: #dbeafe;
+    border-bottom-color: #3b82f6;
 }
 
 .calendarDateHeader.weekend {
@@ -374,7 +380,7 @@
 }
 
 .calendarDateHeader.today .dateNum {
-    color: #4f46e5;
+    color: #2563eb;
 }
 
 .dateMonth {
@@ -448,7 +454,7 @@
     height: 100%;
     transition: width 0.5s ease;
     border-radius: 3px;
-    background: #6b7280;
+    /* Color is set inline via JSX */
 }
 
 .availabilityNumbers {
@@ -492,14 +498,14 @@
     justify-content: center;
     width: 24px;
     height: 24px;
-    background: #eef2ff;
-    color: #4f46e5;
+    background: #dbeafe;
+    color: #2563eb;
     border-radius: 6px;
     transition: all 0.2s ease;
 }
 
 .roomTypeToggle:hover .roomTypeIcon {
-    background: #e0e7ff;
+    background: #bfdbfe;
 }
 
 .roomTypeInfo {
@@ -541,7 +547,7 @@
 .availabilityBar {
     height: 100%;
     transition: width 0.5s ease;
-    background: #6b7280;
+    /* Color is set inline via JSX */
 }
 
 .availabilityText {
@@ -606,45 +612,42 @@
 }
 
 .calendarCellAvailable {
-    background: #ffffff;
+    background: #f0fdf4;
 }
 
 .calendarCellAvailable:hover {
-    background: #eef2ff;
-    box-shadow: 0 0 0 2px #4f46e5 inset;
+    background: #dcfce7;
+    box-shadow: 0 0 0 2px #10b981 inset;
     z-index: 5;
 }
 
 .calendarCellOccupied {
-    background: #f1f5f9;
-    background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, #e2e8f0 5px, #e2e8f0 10px);
+    background: #fff1f2;
     cursor: pointer;
 }
 
 .calendarCellOccupied:hover {
-    background-color: #e2e8f0;
-    box-shadow: 0 0 0 2px #9ca3af inset;
+    background: #ffe4e6;
+    box-shadow: 0 0 0 2px #f43f5e inset;
     z-index: 5;
 }
 
 .calendarCellMaintenance {
-    background: #f8fafc;
-    background-image: repeating-linear-gradient(45deg, transparent, transparent 3px, #eef2ff 3px, #eef2ff 6px);
+    background: #fffbeb;
 }
 
 .calendarCellMaintenance:hover {
-    background-color: #eef2ff;
-    box-shadow: 0 0 0 2px #6366f1 inset;
+    background: #fef3c7;
+    box-shadow: 0 0 0 2px #f59e0b inset;
     z-index: 5;
 }
 
 .calendarCellBlocked {
-    background-color: #e5e7eb;
-    background-image: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239ca3af' fill-opacity='0.4' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E");
+    background: #f3f4f6;
 }
 
 .calendarCellBlocked:hover {
-    background-color: #d1d5db;
+    background: #e5e7eb;
     box-shadow: 0 0 0 2px #6b7280 inset;
     z-index: 5;
 }
@@ -662,7 +665,7 @@
 .occupiedContent .guestName {
     font-size: 12px;
     font-weight: 600;
-    color: #111827;
+    color: #9f1239;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -672,15 +675,21 @@
 .occupiedContent .reservationStatus {
     font-size: 10px;
     padding: 2px 6px;
-    background: #ffffff;
+    background: #ffe4e6;
     border-radius: 4px;
-    color: #374151;
+    color: #9f1239;
     font-weight: 600;
-    border: 1px solid #d1d5db;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #fecdd3;
 }
 
-.maintenanceContent .statusLabel,
+.maintenanceContent .statusLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #92400e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .blockedContent .statusLabel {
     font-size: 12px;
     font-weight: 600;
@@ -770,7 +779,7 @@
 }
 
 .actionMenuItemWarning {
-    color: #d97706;
+    color: #92400e;
 }
 
 .actionMenuItemWarning:hover {
@@ -778,19 +787,19 @@
 }
 
 .actionMenuItemDanger {
-    color: #dc2626;
+    color: #9f1239;
 }
 
 .actionMenuItemDanger:hover {
-    background: #fef2f2;
+    background: #fff1f2;
 }
 
 .actionMenuItemAccent {
-    color: #4f46e5;
+    color: #2563eb;
 }
 
 .actionMenuItemAccent:hover {
-    background: #eef2ff;
+    background: #dbeafe;
 }
 
 .actionMenuItemNeutral {
@@ -814,20 +823,20 @@
     padding: 16px;
     border-radius: 8px;
     margin-bottom: 16px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
 }
 
 .modalInfoBoxTitle {
     font-size: 15px;
     font-weight: 700;
-    color: #374151;
+    color: #1e40af;
     margin-bottom: 6px;
 }
 
 .modalInfoBoxText {
     font-size: 14px;
-    color: #475569;
+    color: #1d4ed8;
     margin-top: 4px;
     font-weight: 500;
 }
