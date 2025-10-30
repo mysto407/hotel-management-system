@@ -1867,16 +1867,22 @@ const Reservations = () => {
           {!editingReservation && (
             <div className="form-group">
               <label>Number of Rooms *</label>
-              <input
-                type="number"
-                min="1"
-                max={10}
+              <select
                 value={formData.number_of_rooms}
                 onChange={(e) => {
                   handleNumberOfRoomsChange(e.target.value);
                   setTimeout(calculateTotal, 0);
                 }}
-              />
+              >
+                {Array.from({ length: Math.min(availableRooms.length, 10) }, (_, i) => i + 1).map(num => (
+                  <option key={num} value={num}>
+                    {num} {num === 1 ? 'Room' : 'Rooms'}
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
+                {availableRooms.length} rooms currently available
+              </small>
             </div>
           )}
 
@@ -1921,9 +1927,9 @@ const Reservations = () => {
                   Room {index + 1}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {/* Room Type Selection */}
-                  <div style={{ gridColumn: 'span 2' }}>
+                  <div>
                     <label style={{ 
                       display: 'block', 
                       fontSize: '12px', 
@@ -1933,11 +1939,15 @@ const Reservations = () => {
                       Room Type *
                     </label>
                     <select
-                      value={roomDetail.room_type_id}
+                      value={roomDetail.room_type_id || ''}
                       onChange={(e) => {
-                        updateRoomDetail(index, 'room_type_id', e.target.value);
-                        // Reset room number when room type changes
-                        updateRoomDetail(index, 'room_id', '');
+                        const updated = [...roomDetails];
+                        updated[index] = {
+                          ...updated[index],
+                          room_type_id: e.target.value,
+                          room_id: '' // Reset room number when room type changes
+                        };
+                        setRoomDetails(updated);
                         setTimeout(calculateTotal, 0);
                       }}
                       disabled={editingReservation}
@@ -1963,7 +1973,7 @@ const Reservations = () => {
 
                   {/* Room Number Selection */}
                   {roomDetail.room_type_id && (
-                    <div style={{ gridColumn: 'span 2' }}>
+                    <div>
                       <label style={{ 
                         display: 'block', 
                         fontSize: '12px', 
@@ -1973,7 +1983,7 @@ const Reservations = () => {
                         Room Number *
                       </label>
                       <select
-                        value={roomDetail.room_id}
+                        value={roomDetail.room_id || ''}
                         onChange={(e) => updateRoomDetail(index, 'room_id', e.target.value)}
                         style={{
                           width: '100%',
@@ -1998,81 +2008,78 @@ const Reservations = () => {
                     </div>
                   )}
 
-                  {/* Guest Counts */}
+                  {/* Guest Counts - Compact Single Row */}
                   <div>
                     <label style={{ 
                       display: 'block', 
                       fontSize: '12px', 
                       color: '#6b7280',
-                      marginBottom: '4px'
+                      marginBottom: '6px'
                     }}>
-                      Adults *
+                      Number of Guests *
                     </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={roomDetail.number_of_adults}
-                      onChange={(e) => updateRoomDetail(index, 'number_of_adults', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontSize: '12px', 
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Children
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={roomDetail.number_of_children}
-                      onChange={(e) => updateRoomDetail(index, 'number_of_children', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontSize: '12px', 
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Infants
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={roomDetail.number_of_infants}
-                      onChange={(e) => updateRoomDetail(index, 'number_of_infants', e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <input
+                          type="number"
+                          min="1"
+                          value={roomDetail.number_of_adults || 1}
+                          onChange={(e) => updateRoomDetail(index, 'number_of_adults', e.target.value)}
+                          placeholder="Adults"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', textAlign: 'center' }}>
+                          Adults
+                        </div>
+                      </div>
+                      <div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={roomDetail.number_of_children || 0}
+                          onChange={(e) => updateRoomDetail(index, 'number_of_children', e.target.value)}
+                          placeholder="Children"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', textAlign: 'center' }}>
+                          Children
+                        </div>
+                      </div>
+                      <div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={roomDetail.number_of_infants || 0}
+                          onChange={(e) => updateRoomDetail(index, 'number_of_infants', e.target.value)}
+                          placeholder="Infants"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', textAlign: 'center' }}>
+                          Infants
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div style={{ 
-                    gridColumn: 'span 2',
                     fontSize: '12px',
                     color: '#6b7280',
                     paddingTop: '4px'
