@@ -1073,7 +1073,12 @@ const ReservationCalendar = () => {
                       <div className={styles.availabilityProgress}>
                         <div 
                           className={styles.availabilityProgressBar}
-                          style={{ width: `${percentage}%` }}
+                          style={{ 
+                            width: `${percentage}%`,
+                            background: percentage > 60 ? '#10b981' : 
+                                       percentage > 30 ? '#f59e0b' : 
+                                       '#ef4444'
+                          }}
                         />
                       </div>
                       <span className={styles.availabilityNumbers}>
@@ -1117,7 +1122,12 @@ const ReservationCalendar = () => {
                           <div className={styles.availabilityBarContainer}>
                             <div 
                               className={styles.availabilityBar} 
-                              style={{ width: `${percentage}%` }}
+                              style={{ 
+                                width: `${percentage}%`,
+                                background: percentage > 60 ? '#10b981' : 
+                                           percentage > 30 ? '#f59e0b' : 
+                                           '#ef4444'
+                              }}
                             />
                             <span className={styles.availabilityText}>
                               {availability.available}/{availability.total}
