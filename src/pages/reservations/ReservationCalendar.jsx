@@ -1,6 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus, Lock, Calendar as CalendarIcon, Edit2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus, Lock, Calendar as CalendarIcon, Edit2, XOctagon } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
@@ -9,7 +9,7 @@ import { updateRoomStatus } from '../../lib/supabase';
 import styles from './ReservationCalendar.module.css';
 
 const ReservationCalendar = () => {
-  const { reservations, fetchReservations, addReservation, updateReservation } = useReservations();
+  const { reservations, fetchReservations, addReservation, updateReservation, cancelReservation } = useReservations();
   const { rooms, roomTypes, fetchRooms } = useRooms();
   const { guests, addGuest } = useGuests();
   
@@ -442,6 +442,29 @@ const ReservationCalendar = () => {
     
     closeActionMenu();
     setIsEditModalOpen(true);
+  };
+
+  // Handle Cancel Reservation action
+  const handleCancelReservation = async () => {
+    if (!actionMenu.reservation) return;
+    
+    const guestName = actionMenu.reservation.guests?.name || 'Unknown';
+    
+    if (!window.confirm(`Are you sure you want to cancel the reservation for ${guestName}?`)) {
+      return;
+    }
+    
+    try {
+      await cancelReservation(actionMenu.reservation.id);
+      await fetchReservations();
+      await fetchRooms();
+      
+      alert('Reservation cancelled successfully!');
+      closeActionMenu();
+    } catch (error) {
+      console.error('Error cancelling reservation:', error);
+      alert('Failed to cancel reservation: ' + error.message);
+    }
   };
 
   // Handle Change Room Status action
@@ -1339,6 +1362,37 @@ const ReservationCalendar = () => {
                 </button>
                 
                 <button
+                  onClick={handleCancelReservation}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#dc2626',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#fef2f2';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <XOctagon size={18} strokeWidth={2.5} />
+                  Cancel Reservation
+                </button>
+                
+                <button
                   onClick={handleChangeRoomStatus}
                   style={{
                     width: '100%',
@@ -1354,7 +1408,10 @@ const ReservationCalendar = () => {
                     gap: '12px',
                     color: '#8b5cf6',
                     fontWeight: '700',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    marginTop: '8px',
+                    borderTop: '1px solid #f1f5f9',
+                    paddingTop: '12px'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = '#f5f3ff';
@@ -2055,20 +2112,6 @@ const ReservationCalendar = () => {
               >
                 <Home size={18} />
                 <span>Available</span>
-              </button>
-
-              <button
-                onClick={() => handleSubmitRoomStatus('Occupied')}
-                className="btn-secondary"
-                style={{
-                  justifyContent: 'flex-start',
-                  padding: '12px 16px',
-                  background: selectedRoomForStatus.status === 'Occupied' ? '#dbeafe' : 'white',
-                  border: selectedRoomForStatus.status === 'Occupied' ? '2px solid #3b82f6' : '1px solid #d1d5db'
-                }}
-              >
-                <Users size={18} />
-                <span>Occupied</span>
               </button>
 
               <button
