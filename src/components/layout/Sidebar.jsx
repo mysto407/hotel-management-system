@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import styles from './sidebar.module.css'; // Import the CSS module
 
 export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   const { user } = useAuth();
@@ -126,31 +127,43 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
   };
 
+  // --- Compile class names ---
+  const sidebarClasses = [
+    styles.sidebar,
+    isOpen ? styles.open : '',
+    !isMobile && sidebarCollapsed ? styles.collapsed : ''
+  ].filter(Boolean).join(' ');
+
   // Mobile: Render simple flat menu
   if (isMobile) {
     return (
       <>
-        {isOpen && <div className="overlay mobile-only" onClick={onClose} />}
+        {isOpen && <div className={`${styles.overlay} ${styles.mobileOnly}`} onClick={onClose} />}
         
-        <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-          <div className="sidebar-header">
-            <div className="sidebar-logo">
+        <aside className={sidebarClasses}>
+          <div className={styles.sidebarHeader}>
+            <div className={styles.sidebarLogo}>
               <Hotel size={32} />
               <span>HMS</span>
             </div>
-            <button onClick={onClose} className="close-btn mobile-only">
+            <button onClick={onClose} className={`${styles.closeBtn} ${styles.mobileOnly}`}>
               <X size={24} />
             </button>
           </div>
           
-          <nav className="sidebar-nav">
+          <nav className={styles.sidebarNav}>
             {filteredFlatItems.map((item) => {
               const Icon = item.icon;
+              const itemClasses = [
+                styles.navItem,
+                currentPage === item.id ? styles.active : ''
+              ].filter(Boolean).join(' ');
+
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavigate(item.id)}
-                  className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                  className={itemClasses}
                 >
                   <Icon size={20} />
                   <span>{item.label}</span>
@@ -166,41 +179,39 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   // Desktop: Render categorized collapsible menu
   return (
     <>
-      {isOpen && <div className="overlay mobile-only" onClick={onClose} />}
+      {/* Overlay is not used in desktop mode, but kept for consistency if needed */}
       
-      <aside className={`sidebar ${isOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
+      <aside className={sidebarClasses}>
+        <div className={styles.sidebarHeader}>
+          <div className={styles.sidebarLogo}>
             <Hotel size={32} />
             {!sidebarCollapsed && <span>HMS</span>}
           </div>
-          <button onClick={onClose} className="close-btn mobile-only">
-            <X size={24} />
-          </button>
+          {/* Close button is mobile only, so not rendered here */}
         </div>
         
         {/* Collapse/Expand Toggle Button */}
         <button 
-          className="sidebar-collapse-btn desktop-only" 
+          className={styles.sidebarCollapseBtn} 
           onClick={toggleSidebarCollapse}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
         
-        <nav className="sidebar-nav">
+        <nav className={styles.sidebarNav}>
           {filteredCategories.map((category, categoryIndex) => (
             <div key={categoryIndex}>
               {category.category ? (
                 <>
                   <button
-                    className="nav-category-toggle"
+                    className={styles.navCategoryToggle}
                     onClick={() => toggleCategory(category.category)}
                     title={sidebarCollapsed ? category.category : ''}
                   >
                     {!sidebarCollapsed && (
                       <>
-                        <span className="nav-category-label">{category.category}</span>
+                        <span className={styles.navCategoryLabel}>{category.category}</span>
                         <ChevronDown 
                           size={16} 
                           style={{
@@ -211,7 +222,7 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
                       </>
                     )}
                     {sidebarCollapsed && (
-                      <div className="collapsed-category-icon">
+                      <div className={styles.collapsedCategoryIcon}>
                         {category.items[0] && (() => {
                           const Icon = category.items[0].icon;
                           return <Icon size={20} />;
@@ -221,14 +232,18 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
                   </button>
                   
                   {!sidebarCollapsed && expandedCategories[category.category] && (
-                    <div className="nav-category-items">
+                    <div className={styles.navCategoryItems}>
                       {category.items.map((item) => {
                         const Icon = item.icon;
+                        const itemClasses = [
+                          styles.navItem,
+                          currentPage === item.id ? styles.active : ''
+                        ].filter(Boolean).join(' ');
                         return (
                           <button
                             key={item.id}
                             onClick={() => handleNavigate(item.id)}
-                            className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                            className={itemClasses}
                           >
                             <Icon size={20} />
                             <span>{item.label}</span>
@@ -239,14 +254,19 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
                   )}
                   
                   {sidebarCollapsed && (
-                    <div className="collapsed-category-items">
+                    <div className={styles.collapsedCategoryItems}>
                       {category.items.map((item) => {
                         const Icon = item.icon;
+                        const itemClasses = [
+                          styles.navItem,
+                          styles.collapsed,
+                          currentPage === item.id ? styles.active : ''
+                        ].filter(Boolean).join(' ');
                         return (
                           <button
                             key={item.id}
                             onClick={() => handleNavigate(item.id)}
-                            className={`nav-item collapsed ${currentPage === item.id ? 'active' : ''}`}
+                            className={itemClasses}
                             title={item.label}
                           >
                             <Icon size={20} />
@@ -260,11 +280,16 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
                 <>
                   {category.items.map((item) => {
                     const Icon = item.icon;
+                    const itemClasses = [
+                      styles.navItem,
+                      currentPage === item.id ? styles.active : '',
+                      sidebarCollapsed ? styles.collapsed : ''
+                    ].filter(Boolean).join(' ');
                     return (
                       <button
                         key={item.id}
                         onClick={() => handleNavigate(item.id)}
-                        className={`nav-item ${currentPage === item.id ? 'active' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}
+                        className={itemClasses}
                         title={sidebarCollapsed ? item.label : ''}
                       >
                         <Icon size={20} />
@@ -276,7 +301,7 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
               )}
               
               {categoryIndex < filteredCategories.length - 1 && !sidebarCollapsed && (
-                <div className="nav-separator"></div>
+                <div className={styles.navSeparator}></div>
               )}
             </div>
           ))}
