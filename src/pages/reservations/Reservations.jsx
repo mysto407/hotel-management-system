@@ -52,6 +52,7 @@ const Reservations = () => {
 
   // State for individual room details
   const [roomDetails, setRoomDetails] = useState([{
+    room_type_id: '',
     room_id: '',
     number_of_adults: 1,
     number_of_children: 0,
@@ -88,6 +89,7 @@ const Reservations = () => {
     const newRoomDetails = [];
     for (let i = 0; i < numRooms; i++) {
       newRoomDetails.push(roomDetails[i] || {
+        room_type_id: '',
         room_id: '',
         number_of_adults: 1,
         number_of_children: 0,
@@ -112,12 +114,19 @@ const Reservations = () => {
 
   // Auto-assign rooms
   const autoAssignRooms = () => {
-    const availableRooms = getAvailableRoomsByType(formData.room_type_id);
     const updated = [...roomDetails];
     
-    for (let i = 0; i < updated.length && i < availableRooms.length; i++) {
-      if (!updated[i].room_id) {
-        updated[i].room_id = availableRooms[i].id;
+    for (let i = 0; i < updated.length; i++) {
+      if (!updated[i].room_id && updated[i].room_type_id) {
+        const availableRooms = getAvailableRoomsByType(updated[i].room_type_id);
+        // Filter out rooms already assigned
+        const unassignedRooms = availableRooms.filter(room => 
+          !updated.some(rd => rd.room_id === room.id)
+        );
+        
+        if (unassignedRooms.length > 0) {
+          updated[i].room_id = unassignedRooms[0].id;
+        }
       }
     }
     
@@ -179,8 +188,15 @@ const Reservations = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.guest_id || !formData.room_type_id || !formData.check_in_date || !formData.check_out_date) {
+    if (!formData.guest_id || !formData.check_in_date || !formData.check_out_date) {
       alert('Please fill all required fields');
+      return;
+    }
+
+    // Validate all rooms have room types selected
+    const unselectedRoomTypes = roomDetails.filter(rd => !rd.room_type_id);
+    if (unselectedRoomTypes.length > 0) {
+      alert(`Please select room type for all ${formData.number_of_rooms} room(s)`);
       return;
     }
 
@@ -225,11 +241,16 @@ const Reservations = () => {
       } else {
         // For new booking, create multiple reservations (one per room)
         const totalAmount = parseFloat(formData.total_amount) || 0;
-        const amountPerRoom = totalAmount / formData.number_of_rooms;
         const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / formData.number_of_rooms;
 
         for (let i = 0; i < roomDetails.length; i++) {
           const roomDetail = roomDetails[i];
+          
+          // Calculate amount for this specific room
+          const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
+          const days = calculateDays(formData.check_in_date, formData.check_out_date);
+          const roomAmount = roomType ? roomType.base_price * days : 0;
+          
           const reservationData = {
             booking_source: formData.booking_source,
             agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
@@ -243,7 +264,7 @@ const Reservations = () => {
             number_of_infants: parseInt(roomDetail.number_of_infants),
             number_of_guests: parseInt(roomDetail.number_of_adults) + parseInt(roomDetail.number_of_children) + parseInt(roomDetail.number_of_infants),
             meal_plan: formData.meal_plan,
-            total_amount: amountPerRoom,
+            total_amount: roomAmount,
             advance_payment: advancePerRoom,
             payment_status: formData.payment_status,
             status: formData.status,
@@ -277,6 +298,7 @@ const Reservations = () => {
       special_requests: ''
     });
     setRoomDetails([{
+      room_type_id: '',
       room_id: '',
       number_of_adults: 1,
       number_of_children: 0,
@@ -395,6 +417,7 @@ const Reservations = () => {
     });
     
     setRoomDetails([{
+      room_type_id: roomTypeId,
       room_id: reservation.room_id,
       number_of_adults: reservation.number_of_adults || 1,
       number_of_children: reservation.number_of_children || 0,
@@ -423,13 +446,21 @@ const Reservations = () => {
   };
 
   const calculateTotal = () => {
-    if (formData.room_type_id && formData.check_in_date && formData.check_out_date) {
-      const roomType = roomTypes.find(rt => rt.id === formData.room_type_id);
-      if (roomType) {
-        const days = calculateDays(formData.check_in_date, formData.check_out_date);
-        const total = roomType.base_price * days * formData.number_of_rooms;
-        setFormData(prev => ({ ...prev, total_amount: total }));
-      }
+    if (formData.check_in_date && formData.check_out_date && roomDetails.length > 0) {
+      const days = calculateDays(formData.check_in_date, formData.check_out_date);
+      let total = 0;
+      
+      // Calculate total for each room based on its room type
+      roomDetails.forEach(roomDetail => {
+        if (roomDetail.room_type_id) {
+          const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
+          if (roomType) {
+            total += roomType.base_price * days;
+          }
+        }
+      });
+      
+      setFormData(prev => ({ ...prev, total_amount: total }));
     }
   };
 
@@ -1480,7 +1511,7 @@ const Reservations = () => {
                     color: '#14532d',
                     lineHeight: '1'
                   }}>
-                    ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+                    â‚¹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
                   </div>
                 </div>
                 
@@ -1506,7 +1537,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#15803d' 
                     }}>
-                      ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
+                      â‚¹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
                     </div>
                   </div>
                   
@@ -1524,7 +1555,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#92400e' 
                     }}>
-                      ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
+                      â‚¹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -1826,36 +1857,11 @@ const Reservations = () => {
               }}>
                 <strong>{selectedGuest.name}</strong>
                 <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} • {selectedGuest.email || 'No email'}
+                  {selectedGuest.phone} â€¢ {selectedGuest.email || 'No email'}
                 </p>
               </div>
             </div>
           )}
-
-          {/* Room Type Selection */}
-          <div className="form-group">
-            <label>Room Type *</label>
-            <select
-              value={formData.room_type_id}
-              onChange={(e) => {
-                setFormData({...formData, room_type_id: e.target.value});
-                // Reset room assignments when room type changes
-                setRoomDetails(roomDetails.map(rd => ({ ...rd, room_id: '' })));
-                setTimeout(calculateTotal, 0);
-              }}
-              disabled={editingReservation}
-            >
-              <option value="">Select Room Type</option>
-              {roomTypes.map(roomType => {
-                const availableCount = getAvailableRoomsByType(roomType.id).length;
-                return (
-                  <option key={roomType.id} value={roomType.id}>
-                    {roomType.name} - {availableCount} available
-                  </option>
-                );
-              })}
-            </select>
-          </div>
 
           {/* Number of Rooms */}
           {!editingReservation && (
@@ -1864,65 +1870,99 @@ const Reservations = () => {
               <input
                 type="number"
                 min="1"
-                max={formData.room_type_id ? getAvailableRoomsByType(formData.room_type_id).length : 10}
+                max={10}
                 value={formData.number_of_rooms}
                 onChange={(e) => {
                   handleNumberOfRoomsChange(e.target.value);
                   setTimeout(calculateTotal, 0);
                 }}
               />
-              {formData.room_type_id && (
-                <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                  Maximum: {getAvailableRoomsByType(formData.room_type_id).length} rooms available
-                </small>
-              )}
             </div>
           )}
 
           {/* Room Details for Each Room */}
-          {formData.room_type_id && (
-            <div className="form-group full-width">
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '12px'
-              }}>
-                <label style={{ margin: 0 }}>Room Details *</label>
-                {!editingReservation && formData.number_of_rooms > 0 && (
-                  <button
-                    type="button"
-                    onClick={autoAssignRooms}
-                    className="btn-secondary"
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
-                  >
-                    Auto-Assign Rooms
-                  </button>
-                )}
-              </div>
-
-              {roomDetails.map((roomDetail, index) => (
-                <div 
-                  key={index}
-                  style={{
-                    padding: '16px',
-                    background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    marginBottom: '12px'
-                  }}
+          <div className="form-group full-width">
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '12px'
+            }}>
+              <label style={{ margin: 0 }}>Room Details *</label>
+              {!editingReservation && formData.number_of_rooms > 0 && (
+                <button
+                  type="button"
+                  onClick={autoAssignRooms}
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '13px' }}
                 >
-                  <div style={{ 
-                    fontSize: '14px', 
-                    fontWeight: '600', 
-                    color: '#374151',
-                    marginBottom: '12px'
-                  }}>
-                    Room {index + 1}
+                  Auto-Assign Rooms
+                </button>
+              )}
+            </div>
+
+            {roomDetails.map((roomDetail, index) => (
+              <div 
+                key={index}
+                style={{
+                  padding: '16px',
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  marginBottom: '12px'
+                }}
+              >
+                <div style={{ 
+                  fontSize: '14px', 
+                  fontWeight: '600', 
+                  color: '#374151',
+                  marginBottom: '12px'
+                }}>
+                  Room {index + 1}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {/* Room Type Selection */}
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ 
+                      display: 'block', 
+                      fontSize: '12px', 
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Room Type *
+                    </label>
+                    <select
+                      value={roomDetail.room_type_id}
+                      onChange={(e) => {
+                        updateRoomDetail(index, 'room_type_id', e.target.value);
+                        // Reset room number when room type changes
+                        updateRoomDetail(index, 'room_id', '');
+                        setTimeout(calculateTotal, 0);
+                      }}
+                      disabled={editingReservation}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="">Select Room Type</option>
+                      {roomTypes.map(roomType => {
+                        const availableCount = getAvailableRoomsByType(roomType.id).length;
+                        return (
+                          <option key={roomType.id} value={roomType.id}>
+                            {roomType.name} - ₹{roomType.base_price}/night ({availableCount} available)
+                          </option>
+                        );
+                      })}
+                    </select>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {/* Room Number Selection */}
+                  {/* Room Number Selection */}
+                  {roomDetail.room_type_id && (
                     <div style={{ gridColumn: 'span 2' }}>
                       <label style={{ 
                         display: 'block', 
@@ -1944,7 +1984,7 @@ const Reservations = () => {
                         }}
                       >
                         <option value="">Select Room Number</option>
-                        {getAvailableRoomsByType(formData.room_type_id)
+                        {getAvailableRoomsByType(roomDetail.room_type_id)
                           .filter(room => 
                             room.id === roomDetail.room_id || 
                             !roomDetails.some(rd => rd.room_id === room.id)
@@ -1956,112 +1996,133 @@ const Reservations = () => {
                           ))}
                       </select>
                     </div>
+                  )}
 
-                    {/* Guest Counts */}
-                    <div>
-                      <label style={{ 
-                        display: 'block', 
-                        fontSize: '12px', 
-                        color: '#6b7280',
-                        marginBottom: '4px'
-                      }}>
-                        Adults *
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={roomDetail.number_of_adults}
-                        onChange={(e) => updateRoomDetail(index, 'number_of_adults', e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ 
-                        display: 'block', 
-                        fontSize: '12px', 
-                        color: '#6b7280',
-                        marginBottom: '4px'
-                      }}>
-                        Children
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={roomDetail.number_of_children}
-                        onChange={(e) => updateRoomDetail(index, 'number_of_children', e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ 
-                        display: 'block', 
-                        fontSize: '12px', 
-                        color: '#6b7280',
-                        marginBottom: '4px'
-                      }}>
-                        Infants
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={roomDetail.number_of_infants}
-                        onChange={(e) => updateRoomDetail(index, 'number_of_infants', e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ 
-                      gridColumn: 'span 2',
-                      fontSize: '12px',
+                  {/* Guest Counts */}
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      fontSize: '12px', 
                       color: '#6b7280',
-                      paddingTop: '4px'
+                      marginBottom: '4px'
                     }}>
-                      Total: {parseInt(roomDetail.number_of_adults || 0) + 
-                               parseInt(roomDetail.number_of_children || 0) + 
-                               parseInt(roomDetail.number_of_infants || 0)} guests
-                    </div>
+                      Adults *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={roomDetail.number_of_adults}
+                      onChange={(e) => updateRoomDetail(index, 'number_of_adults', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      fontSize: '12px', 
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Children
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={roomDetail.number_of_children}
+                      onChange={(e) => updateRoomDetail(index, 'number_of_children', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      fontSize: '12px', 
+                      color: '#6b7280',
+                      marginBottom: '4px'
+                    }}>
+                      Infants
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={roomDetail.number_of_infants}
+                      onChange={(e) => updateRoomDetail(index, 'number_of_infants', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ 
+                    gridColumn: 'span 2',
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    paddingTop: '4px'
+                  }}>
+                    Total: {parseInt(roomDetail.number_of_adults || 0) + 
+                             parseInt(roomDetail.number_of_children || 0) + 
+                             parseInt(roomDetail.number_of_infants || 0)} guests
+                    {roomDetail.room_type_id && formData.check_in_date && formData.check_out_date && (
+                      <span style={{ marginLeft: '12px', fontWeight: '600', color: '#374151' }}>
+                        • ₹{(() => {
+                          const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
+                          const days = calculateDays(formData.check_in_date, formData.check_out_date);
+                          return roomType ? (roomType.base_price * days).toLocaleString() : 0;
+                        })()} 
+                        {formData.check_in_date && formData.check_out_date && 
+                          ` (${calculateDays(formData.check_in_date, formData.check_out_date)} nights)`
+                        }
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
 
-              {/* Total Guests Across All Rooms */}
+            {/* Total Summary */}
+            {roomDetails.length > 0 && (
               <div style={{
                 padding: '12px',
                 background: '#eff6ff',
                 border: '1px solid #bfdbfe',
                 borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '600',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                fontSize: '13px',
                 color: '#1e40af'
               }}>
-                Total Guests Across All Rooms: {roomDetails.reduce((sum, rd) => 
-                  sum + parseInt(rd.number_of_adults || 0) + 
-                  parseInt(rd.number_of_children || 0) + 
-                  parseInt(rd.number_of_infants || 0), 0
-                )}
+                <div>
+                  <strong>Total Rooms:</strong> {roomDetails.length}
+                </div>
+                <div>
+                  <strong>Total Guests:</strong> {roomDetails.reduce((sum, rd) => 
+                    sum + parseInt(rd.number_of_adults || 0) + 
+                    parseInt(rd.number_of_children || 0) + 
+                    parseInt(rd.number_of_infants || 0), 0
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="form-group">
             <label>Meal Plan *</label>
@@ -2107,9 +2168,9 @@ const Reservations = () => {
               value={formData.total_amount}
               onChange={(e) => setFormData({...formData, total_amount: e.target.value})}
             />
-            {!editingReservation && formData.number_of_rooms > 1 && (
+            {!editingReservation && formData.number_of_rooms > 1 && formData.total_amount > 0 && (
               <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                ₹{(formData.total_amount / formData.number_of_rooms).toFixed(2)} per room
+                Calculated from individual room rates
               </small>
             )}
           </div>
@@ -2121,9 +2182,9 @@ const Reservations = () => {
               value={formData.advance_payment}
               onChange={(e) => setFormData({...formData, advance_payment: e.target.value})}
             />
-            {!editingReservation && formData.number_of_rooms > 1 && (
+            {!editingReservation && formData.number_of_rooms > 1 && formData.advance_payment > 0 && (
               <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                ₹{(formData.advance_payment / formData.number_of_rooms).toFixed(2)} per room
+                â‚¹{(formData.advance_payment / formData.number_of_rooms).toFixed(2)} per room
               </small>
             )}
           </div>
