@@ -1,6 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus, Lock, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus, Lock, Calendar as CalendarIcon, Edit2 } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
@@ -9,7 +9,7 @@ import { updateRoomStatus } from '../../lib/supabase';
 import styles from './ReservationCalendar.module.css';
 
 const ReservationCalendar = () => {
-  const { reservations, fetchReservations, addReservation } = useReservations();
+  const { reservations, fetchReservations, addReservation, updateReservation } = useReservations();
   const { rooms, roomTypes, fetchRooms } = useRooms();
   const { guests, addGuest } = useGuests();
   
@@ -51,6 +51,14 @@ const ReservationCalendar = () => {
     status: 'Confirmed',
     special_requests: ''
   });
+  
+  // Edit reservation modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingReservation, setEditingReservation] = useState(null);
+  
+  // Room status modal state
+  const [isRoomStatusModalOpen, setIsRoomStatusModalOpen] = useState(false);
+  const [selectedRoomForStatus, setSelectedRoomForStatus] = useState(null);
   
   const [guestFormData, setGuestFormData] = useState({
     name: '',
@@ -185,6 +193,34 @@ const ReservationCalendar = () => {
   // Handle cell click to show action menu
   const handleCellClick = (e, roomId, date) => {
     const roomStatus = getRoomStatus(roomId, date);
+    
+    // If cell is occupied, show reservation details and edit options
+    if (roomStatus.status === 'occupied') {
+      if (!containerRef.current) return;
+
+      const cellRect = e.currentTarget.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
+      
+      const scrollLeft = containerRef.current.scrollLeft;
+      const scrollTop = containerRef.current.scrollTop;
+
+      const x = cellRect.right - containerRect.left + scrollLeft + 10;
+      const y = cellRect.top - containerRect.top + scrollTop;
+      
+      setActionMenu({
+        visible: true,
+        roomId,
+        date,
+        endDate: null,
+        selectedCells: [{ roomId, date }],
+        position: { x, y },
+        isOccupied: true,
+        reservation: roomStatus.reservation
+      });
+      return;
+    }
+    
+    // Handle available cells (existing logic)
     if (roomStatus.status !== 'available') {
       return;
     }
@@ -219,7 +255,8 @@ const ReservationCalendar = () => {
       date,
       endDate: null,
       selectedCells: [{ roomId, date }],
-      position: { x, y }
+      position: { x, y },
+      isOccupied: false
     });
   };
 
@@ -381,6 +418,120 @@ const ReservationCalendar = () => {
     closeActionMenu();
   };
 
+  // Handle Edit Reservation action
+  const handleEditReservation = () => {
+    if (!actionMenu.reservation) return;
+    
+    setEditingReservation(actionMenu.reservation);
+    
+    setBookingData({
+      room_id: actionMenu.reservation.room_id,
+      check_in_date: actionMenu.reservation.check_in_date,
+      check_out_date: actionMenu.reservation.check_out_date,
+      guest_id: actionMenu.reservation.guest_id,
+      number_of_adults: actionMenu.reservation.number_of_adults || 1,
+      number_of_children: actionMenu.reservation.number_of_children || 0,
+      number_of_infants: actionMenu.reservation.number_of_infants || 0,
+      meal_plan: actionMenu.reservation.meal_plan || 'NM',
+      status: actionMenu.reservation.status,
+      special_requests: actionMenu.reservation.special_requests || ''
+    });
+    
+    closeActionMenu();
+    setIsEditModalOpen(true);
+  };
+
+  // Handle Change Room Status action
+  const handleChangeRoomStatus = () => {
+    if (!actionMenu.roomId) return;
+    
+    const room = rooms.find(r => r.id === actionMenu.roomId);
+    setSelectedRoomForStatus(room);
+    
+    closeActionMenu();
+    setIsRoomStatusModalOpen(true);
+  };
+
+  // Submit edit reservation
+  const handleUpdateReservation = async () => {
+    if (!bookingData.guest_id) {
+      alert('Please select a guest');
+      return;
+    }
+    
+    if (!bookingData.check_out_date) {
+      alert('Please select check-out date');
+      return;
+    }
+    
+    try {
+      const room = rooms.find(r => r.id === bookingData.room_id);
+      const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
+      
+      const checkIn = new Date(bookingData.check_in_date);
+      const checkOut = new Date(bookingData.check_out_date);
+      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+      const totalAmount = (roomType?.base_price || 0) * nights;
+      
+      const reservationData = {
+        guest_id: bookingData.guest_id,
+        room_id: bookingData.room_id,
+        check_in_date: bookingData.check_in_date,
+        check_out_date: bookingData.check_out_date,
+        number_of_adults: parseInt(bookingData.number_of_adults),
+        number_of_children: parseInt(bookingData.number_of_children),
+        number_of_infants: parseInt(bookingData.number_of_infants),
+        number_of_guests: parseInt(bookingData.number_of_adults) + parseInt(bookingData.number_of_children) + parseInt(bookingData.number_of_infants),
+        meal_plan: bookingData.meal_plan,
+        total_amount: totalAmount,
+        status: bookingData.status,
+        special_requests: bookingData.special_requests
+      };
+      
+      await updateReservation(editingReservation.id, reservationData);
+      await fetchReservations();
+      
+      alert('Reservation updated successfully!');
+      
+      setIsEditModalOpen(false);
+      setEditingReservation(null);
+      setBookingData({
+        room_id: '',
+        check_in_date: '',
+        check_out_date: '',
+        guest_id: '',
+        number_of_adults: 1,
+        number_of_children: 0,
+        number_of_infants: 0,
+        meal_plan: 'NM',
+        status: 'Confirmed',
+        special_requests: ''
+      });
+      
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+      alert('Failed to update reservation: ' + error.message);
+    }
+  };
+
+  // Submit room status change
+  const handleSubmitRoomStatus = async (newStatus) => {
+    if (!selectedRoomForStatus) return;
+    
+    try {
+      await updateRoomStatus(selectedRoomForStatus.id, newStatus);
+      await fetchRooms();
+      
+      alert(`Room ${selectedRoomForStatus.room_number} status changed to ${newStatus}`);
+      
+      setIsRoomStatusModalOpen(false);
+      setSelectedRoomForStatus(null);
+    } catch (error) {
+      console.error('Error updating room status:', error);
+      alert('Failed to update room status: ' + error.message);
+    }
+  };
+
   // Handle Hold action - Create a hold reservation
   const handleHoldRoom = async () => {
     const selectedCells = actionMenu.selectedCells || [];
@@ -464,7 +615,7 @@ const ReservationCalendar = () => {
     
     if (!window.confirm(
       `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} × ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} Ã— ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
       `You'll enter guest details once, and all bookings will be created with the same guest.`
     )) {
       return;
@@ -1002,7 +1153,7 @@ const ReservationCalendar = () => {
                             onMouseEnter={() => handleCellMouseEnter(room.id, date)}
                             onMouseUp={(e) => handleCellMouseUp(e, room.id, date)}
                             style={{ 
-                              cursor: roomStatus.status === 'available' ? 'pointer' : 'default',
+                              cursor: (roomStatus.status === 'available' || roomStatus.status === 'occupied') ? 'pointer' : 'default',
                               position: 'relative',
                               userSelect: 'none'
                             }}
@@ -1063,6 +1214,40 @@ const ReservationCalendar = () => {
               fontWeight: '600'
             }}>
               {(() => {
+                // Show reservation details if occupied
+                if (actionMenu.isOccupied && actionMenu.reservation) {
+                  const room = rooms.find(r => r.id === actionMenu.roomId);
+                  return (
+                    <>
+                      <div style={{ fontWeight: '800', color: '#0ea5e9', fontSize: '14px' }}>
+                        Room {room?.room_number || ''}
+                      </div>
+                      <div style={{ marginTop: '6px', fontSize: '13px', color: '#1e293b' }}>
+                        Guest: <strong>{actionMenu.reservation.guests?.name || 'Unknown'}</strong>
+                      </div>
+                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                        {new Date(actionMenu.reservation.check_in_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {' - '}
+                        {new Date(actionMenu.reservation.check_out_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                      <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                        <span style={{ 
+                          padding: '2px 8px', 
+                          borderRadius: '4px',
+                          background: actionMenu.reservation.status === 'Confirmed' ? '#dcfce7' : 
+                                     actionMenu.reservation.status === 'Checked-in' ? '#dbeafe' : 
+                                     actionMenu.reservation.status === 'Hold' ? '#fed7aa' : '#e5e7eb',
+                          color: actionMenu.reservation.status === 'Confirmed' ? '#166534' : 
+                                actionMenu.reservation.status === 'Checked-in' ? '#1e40af' : 
+                                actionMenu.reservation.status === 'Hold' ? '#9a3412' : '#374151'
+                        }}>
+                          {actionMenu.reservation.status}
+                        </span>
+                      </div>
+                    </>
+                  );
+                }
+                
                 const selectedCells = actionMenu.selectedCells || [];
                 
                 if (selectedCells.length === 1) {
@@ -1093,98 +1278,201 @@ const ReservationCalendar = () => {
               })()}
             </div>
             
-            <button
-              onClick={handleBookRoom}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: 'none',
-                background: 'transparent',
-                textAlign: 'left',
-                cursor: 'pointer',
-                borderRadius: '10px',
-                fontSize: '15px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                color: '#059669',
-                fontWeight: '700',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f0fdf4';
-                e.currentTarget.style.transform = 'translateX(4px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.transform = 'translateX(0)';
-              }}
-            >
-              <CalendarIcon size={18} strokeWidth={2.5} />
-              Book
-            </button>
-            
-            <button
-              onClick={handleHoldRoom}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: 'none',
-                background: 'transparent',
-                textAlign: 'left',
-                cursor: 'pointer',
-                borderRadius: '10px',
-                fontSize: '15px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                color: '#f59e0b',
-                fontWeight: '700',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#fffbeb';
-                e.currentTarget.style.transform = 'translateX(4px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.transform = 'translateX(0)';
-              }}
-            >
-              <Lock size={18} strokeWidth={2.5} />
-              Hold
-            </button>
-            
-            <button
-              onClick={handleBlockRoom}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: 'none',
-                background: 'transparent',
-                textAlign: 'left',
-                cursor: 'pointer',
-                borderRadius: '10px',
-                fontSize: '15px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                color: '#dc2626',
-                fontWeight: '700',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#fef2f2';
-                e.currentTarget.style.transform = 'translateX(4px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.transform = 'translateX(0)';
-              }}
-            >
-              <X size={18} strokeWidth={2.5} />
-              Block
-            </button>
+            {/* Show different options based on whether cell is occupied */}
+            {actionMenu.isOccupied ? (
+              <>
+                <button
+                  onClick={handleEditReservation}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#3b82f6',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#dbeafe';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <Edit2 size={18} strokeWidth={2.5} />
+                  Edit Reservation
+                </button>
+                
+                <button
+                  onClick={handleChangeRoomStatus}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#8b5cf6',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f5f3ff';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <Home size={18} strokeWidth={2.5} />
+                  Change Room Status
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleBookRoom}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#059669',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f0fdf4';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <CalendarIcon size={18} strokeWidth={2.5} />
+                  Book
+                </button>
+                
+                <button
+                  onClick={handleHoldRoom}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#f59e0b',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#fffbeb';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <Lock size={18} strokeWidth={2.5} />
+                  Hold
+                </button>
+                
+                <button
+                  onClick={handleBlockRoom}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#dc2626',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#fef2f2';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <X size={18} strokeWidth={2.5} />
+                  Block
+                </button>
+                
+                <button
+                  onClick={handleChangeRoomStatus}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '10px',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#8b5cf6',
+                    fontWeight: '700',
+                    transition: 'all 0.2s',
+                    marginTop: '8px',
+                    borderTop: '1px solid #f1f5f9',
+                    paddingTop: '12px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f5f3ff';
+                    e.currentTarget.style.transform = 'translateX(4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <Home size={18} strokeWidth={2.5} />
+                  Change Room Status
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -1211,7 +1499,7 @@ const ReservationCalendar = () => {
                 marginBottom: '12px'
               }}>
                 <div style={{ fontSize: '15px', fontWeight: '800', color: '#92400e', marginBottom: '6px' }}>
-                  📋 Multi-Room Booking
+                  ðŸ“‹ Multi-Room Booking
                 </div>
                 <div style={{ fontSize: '14px', color: '#92400e', marginTop: '6px', lineHeight: '1.5' }}>
                   You're creating <strong>{pendingBookings.length} bookings</strong> at once. Enter guest details once, and all bookings will use the same information.
@@ -1490,6 +1778,281 @@ const ReservationCalendar = () => {
             <Save size={18} /> Add Guest
           </button>
         </div>
+      </Modal>
+
+      {/* Edit Reservation Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingReservation(null);
+        }}
+        title="Edit Reservation"
+        size="medium"
+      >
+        <div className="form-grid">
+          {/* Room and Date Info */}
+          <div className="form-group full-width">
+            <div style={{ 
+              padding: '16px', 
+              background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', 
+              border: '2px solid #60a5fa',
+              borderRadius: '12px',
+              marginBottom: '12px'
+            }}>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#075985', marginBottom: '6px' }}>
+                {(() => {
+                  const room = rooms.find(r => r.id === bookingData.room_id);
+                  const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
+                  return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
+                })()}
+              </div>
+              <div style={{ fontSize: '14px', color: '#075985', marginTop: '6px', fontWeight: '600' }}>
+                Check-in: {bookingData.check_in_date}
+              </div>
+              <div style={{ fontSize: '14px', color: '#075985', marginTop: '4px', fontWeight: '600' }}>
+                Check-out: {bookingData.check_out_date}
+              </div>
+              {bookingData.check_in_date && bookingData.check_out_date && (
+                <div style={{ fontSize: '13px', color: '#075985', marginTop: '6px', fontWeight: '800' }}>
+                  {(() => {
+                    const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
+                    return `${nights} night${nights !== 1 ? 's' : ''}`;
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Guest Selection */}
+          <div className="form-group full-width">
+            <label>Select Guest *</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                style={{ flex: 1 }}
+                value={bookingData.guest_id}
+                onChange={(e) => setBookingData({ ...bookingData, guest_id: e.target.value })}
+              >
+                <option value="">Select Guest</option>
+                {guests.map(guest => (
+                  <option key={guest.id} value={guest.id}>
+                    {guest.name} - {guest.phone}
+                  </option>
+                ))}
+              </select>
+              <button 
+                onClick={() => setIsGuestModalOpen(true)} 
+                className="btn-secondary"
+                type="button"
+              >
+                <UserPlus size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Check-out Date */}
+          <div className="form-group">
+            <label>Check-out Date *</label>
+            <input
+              type="date"
+              value={bookingData.check_out_date}
+              onChange={(e) => setBookingData({ ...bookingData, check_out_date: e.target.value })}
+              min={bookingData.check_in_date}
+            />
+          </div>
+
+          {/* Status */}
+          <div className="form-group">
+            <label>Status</label>
+            <select
+              value={bookingData.status}
+              onChange={(e) => setBookingData({ ...bookingData, status: e.target.value })}
+            >
+              <option value="Confirmed">Confirmed</option>
+              <option value="Hold">Hold</option>
+              <option value="Tentative">Tentative</option>
+              <option value="Checked-in">Checked-in</option>
+            </select>
+          </div>
+
+          {/* Number of Guests */}
+          <div className="form-group">
+            <label>Adults *</label>
+            <input
+              type="number"
+              min="1"
+              value={bookingData.number_of_adults}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_adults: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Children</label>
+            <input
+              type="number"
+              min="0"
+              value={bookingData.number_of_children}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_children: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Infants</label>
+            <input
+              type="number"
+              min="0"
+              value={bookingData.number_of_infants}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_infants: e.target.value })}
+            />
+          </div>
+
+          {/* Meal Plan */}
+          <div className="form-group">
+            <label>Meal Plan</label>
+            <select
+              value={bookingData.meal_plan}
+              onChange={(e) => setBookingData({ ...bookingData, meal_plan: e.target.value })}
+            >
+              <option value="NM">No Meal</option>
+              <option value="BO">Breakfast Only</option>
+              <option value="HB">Half Board</option>
+              <option value="FB">Full Board</option>
+            </select>
+          </div>
+
+          {/* Special Requests */}
+          <div className="form-group full-width">
+            <label>Special Requests</label>
+            <textarea
+              value={bookingData.special_requests}
+              onChange={(e) => setBookingData({ ...bookingData, special_requests: e.target.value })}
+              rows="2"
+              placeholder="Any special requirements..."
+            />
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button onClick={() => setIsEditModalOpen(false)} className="btn-secondary">
+            <X size={18} /> Cancel
+          </button>
+          <button onClick={handleUpdateReservation} className="btn-primary">
+            <Save size={18} /> Update Reservation
+          </button>
+        </div>
+      </Modal>
+
+      {/* Room Status Change Modal */}
+      <Modal
+        isOpen={isRoomStatusModalOpen}
+        onClose={() => {
+          setIsRoomStatusModalOpen(false);
+          setSelectedRoomForStatus(null);
+        }}
+        title="Change Room Status"
+        size="small"
+      >
+        {selectedRoomForStatus && (
+          <div>
+            <div style={{ 
+              padding: '16px', 
+              background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', 
+              border: '2px solid #38bdf8',
+              borderRadius: '12px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#075985' }}>
+                Room {selectedRoomForStatus.room_number}
+              </div>
+              <div style={{ fontSize: '14px', color: '#0369a1', marginTop: '4px' }}>
+                Floor {selectedRoomForStatus.floor}
+              </div>
+              <div style={{ fontSize: '13px', color: '#0c4a6e', marginTop: '8px' }}>
+                Current Status: <strong>{selectedRoomForStatus.status}</strong>
+              </div>
+            </div>
+
+            <div style={{ 
+              fontSize: '14px', 
+              fontWeight: '600', 
+              color: '#374151',
+              marginBottom: '12px'
+            }}>
+              Select New Status:
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={() => handleSubmitRoomStatus('Available')}
+                className="btn-secondary"
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  background: selectedRoomForStatus.status === 'Available' ? '#f0fdf4' : 'white',
+                  border: selectedRoomForStatus.status === 'Available' ? '2px solid #10b981' : '1px solid #d1d5db'
+                }}
+              >
+                <Home size={18} />
+                <span>Available</span>
+              </button>
+
+              <button
+                onClick={() => handleSubmitRoomStatus('Occupied')}
+                className="btn-secondary"
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  background: selectedRoomForStatus.status === 'Occupied' ? '#dbeafe' : 'white',
+                  border: selectedRoomForStatus.status === 'Occupied' ? '2px solid #3b82f6' : '1px solid #d1d5db'
+                }}
+              >
+                <Users size={18} />
+                <span>Occupied</span>
+              </button>
+
+              <button
+                onClick={() => handleSubmitRoomStatus('Maintenance')}
+                className="btn-secondary"
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  background: selectedRoomForStatus.status === 'Maintenance' ? '#fef3c7' : 'white',
+                  border: selectedRoomForStatus.status === 'Maintenance' ? '2px solid #f59e0b' : '1px solid #d1d5db'
+                }}
+              >
+                <RefreshCw size={18} />
+                <span>Maintenance</span>
+              </button>
+
+              <button
+                onClick={() => handleSubmitRoomStatus('Blocked')}
+                className="btn-secondary"
+                style={{
+                  justifyContent: 'flex-start',
+                  padding: '12px 16px',
+                  background: selectedRoomForStatus.status === 'Blocked' ? '#fee2e2' : 'white',
+                  border: selectedRoomForStatus.status === 'Blocked' ? '2px solid #ef4444' : '1px solid #d1d5db'
+                }}
+              >
+                <Lock size={18} />
+                <span>Blocked</span>
+              </button>
+            </div>
+
+            <div className="modal-actions" style={{ marginTop: '24px' }}>
+              <button 
+                onClick={() => {
+                  setIsRoomStatusModalOpen(false);
+                  setSelectedRoomForStatus(null);
+                }} 
+                className="btn-secondary"
+                style={{ width: '100%' }}
+              >
+                <X size={18} /> Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
