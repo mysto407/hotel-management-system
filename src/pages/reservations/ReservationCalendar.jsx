@@ -6,6 +6,7 @@ import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
 import { Modal } from '../../components/common/Modal';
 import { updateRoomStatus } from '../../lib/supabase';
+import styles from './ReservationCalendar.module.css';
 
 const ReservationCalendar = () => {
   const { reservations, fetchReservations, addReservation } = useReservations();
@@ -495,7 +496,7 @@ const handleCellClick = (e, roomId, date) => {
     
     if (!window.confirm(
       `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} × ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} Ã— ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
       `You'll enter guest details once, and all bookings will be created with the same guest.`
     )) {
       return;
@@ -777,13 +778,13 @@ const handleCellClick = (e, roomId, date) => {
   const getCellStyle = (status) => {
     switch (status) {
       case 'available':
-        return 'calendar-cell-available';
+        return styles.cellAvailable;
       case 'occupied':
-        return 'calendar-cell-occupied';
+        return styles.cellOccupied;
       case 'maintenance':
-        return 'calendar-cell-maintenance';
+        return styles.cellMaintenance;
       case 'blocked':
-        return 'calendar-cell-blocked';
+        return styles.cellBlocked;
       default:
         return '';
     }
@@ -803,33 +804,33 @@ const handleCellClick = (e, roomId, date) => {
   }).length;
 
   return (
-    <div className="calendar-page">
+    <div className={styles.calendarPage}>
       {/* Enhanced Page Header */}
-      <div className="calendar-page-header">
-        <div className="calendar-header-top">
+      <div className={styles.pageHeader}>
+        <div className={styles.headerTop}>
           <div>
-            <h1 className="calendar-main-title">
+            <h1 className={styles.mainTitle}>
               <CalendarDays size={32} />
               Booking Calendar
             </h1>
-            <p className="calendar-subtitle">Manage room availability and reservations</p>
+            <p className={styles.subtitle}>Manage room availability and reservations</p>
           </div>
           
           {/* Quick Stats and Refresh */}
-          <div className="calendar-header-actions">
-            <div className="calendar-quick-stats">
-              <div className="quick-stat-item stat-available">
+          <div className={styles.headerActions}>
+            <div className={styles.quickStats}>
+              <div className={`${styles.statItem} ${styles.statAvailable}`}>
                 <Home size={20} />
                 <div>
-                  <div className="quick-stat-value">{totalAvailable}</div>
-                  <div className="quick-stat-label">Available</div>
+                  <div className={styles.statValue}>{totalAvailable}</div>
+                  <div className={styles.statLabel}>Available</div>
                 </div>
               </div>
-              <div className="quick-stat-item stat-occupied">
+              <div className={`${styles.statItem} ${styles.statOccupied}`}>
                 <Users size={20} />
                 <div>
-                  <div className="quick-stat-value">{totalOccupied}</div>
-                  <div className="quick-stat-label">Occupied</div>
+                  <div className={styles.statValue}>{totalOccupied}</div>
+                  <div className={styles.statLabel}>Occupied</div>
                 </div>
               </div>
             </div>
@@ -837,7 +838,7 @@ const handleCellClick = (e, roomId, date) => {
             {/* Refresh Button */}
             <button 
               onClick={handleRefresh} 
-              className={`calendar-refresh-btn ${isRefreshing ? 'refreshing' : ''}`}
+              className={`${styles.refreshBtn} ${isRefreshing ? styles.refreshing : ""}`}
               disabled={isRefreshing}
               title="Refresh calendar data"
             >
@@ -848,33 +849,33 @@ const handleCellClick = (e, roomId, date) => {
         </div>
 
         {/* Navigation Controls */}
-        <div className="calendar-nav-controls">
-          <div className="calendar-nav-buttons">
-            <button onClick={goToPreviousWeek} className="calendar-nav-btn">
+        <div className={styles.navControls}>
+          <div className={styles.navButtons}>
+            <button onClick={goToPreviousWeek} className={styles.navBtn}>
               <ChevronLeft size={18} />
               <span>Previous</span>
             </button>
-            <button onClick={goToToday} className="calendar-nav-btn today-btn">
+            <button onClick={goToToday} className={`${styles.navBtn} ${styles.todayBtn}`}>
               <Calendar size={18} />
               <span>Today</span>
             </button>
-            <button onClick={goToNextWeek} className="calendar-nav-btn">
+            <button onClick={goToNextWeek} className={styles.navBtn}>
               <span>Next</span>
               <ChevronRight size={18} />
             </button>
           </div>
 
-          <div className="calendar-view-controls">
+          <div className={styles.viewControls}>
             <input
               type="date"
               value={startDate.toISOString().split('T')[0]}
               onChange={handleDatePickerChange}
-              className="calendar-date-input"
+              className={styles.dateInput}
             />
             <select
               value={daysToShow}
               onChange={(e) => setDaysToShow(parseInt(e.target.value))}
-              className="calendar-days-select"
+              className={styles.daysSelect}
             >
               <option value="7">7 Days</option>
               <option value="14">14 Days</option>
@@ -887,34 +888,21 @@ const handleCellClick = (e, roomId, date) => {
 
 
       {/* Calendar Grid */}
-      <div 
-        ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        style={{
-          overflowX: 'auto',
-          overflowY: 'visible',
-          width: '100%',
-          height: 'auto',
-          maxHeight: 'none',
-          minHeight: 'auto',
-          background: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          position: 'relative' //
-        }}
-      >
-        <table className="calendar-table" style={{ 
-          width: '100%',
-          display: 'table'
-        }}>
+      <div className={styles.calendarContainer}>
+        <div 
+          ref={containerRef}
+          className={styles.calendarScroll}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
+          <table className={styles.calendarTable}>
             <thead>
               {/* Date Headers */}
               <tr>
-                <th className="calendar-fixed-column">
-                  <div className="fixed-column-header">
+                <th className={styles.fixedColumn}>
+                  <div className={styles.fixedColumnHeader}>
                     <span>Room Type / Room</span>
                   </div>
                 </th>
@@ -926,12 +914,12 @@ const handleCellClick = (e, roomId, date) => {
                   return (
                     <th 
                       key={date} 
-                      className={`calendar-date-header ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}`}
+                      className={`${styles.dateHeader} ${isToday ? styles.today : ""} ${isWeekend ? styles.weekend : ""}`}
                     >
-                      <div className="date-header-content">
-                        <div className="date-day">{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                        <div className="date-num">{dateObj.getDate()}</div>
-                        <div className="date-month">{dateObj.toLocaleDateString('en-US', { month: 'short' })}</div>
+                      <div className={styles.dateHeaderContent}>
+                        <div className={styles.dateDay}>{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                        <div className={styles.dateNum}>{dateObj.getDate()}</div>
+                        <div className={styles.dateMonth}>{dateObj.toLocaleDateString('en-US', { month: 'short' })}</div>
                       </div>
                     </th>
                   );
@@ -941,9 +929,9 @@ const handleCellClick = (e, roomId, date) => {
 
             <tbody>
               {/* Total Availability Row */}
-              <tr className="availability-row">
+              <tr className={styles.availabilityRow}>
                 <th className="calendar-fixed-column availability-label">
-                  <div className="availability-label-content">
+                  <div className={styles.availabilityLabelContent}>
                     <CalendarDays size={16} />
                     <span>Total Availability</span>
                   </div>
@@ -953,11 +941,11 @@ const handleCellClick = (e, roomId, date) => {
                   const percentage = (availability.available / availability.total) * 100;
                   
                   return (
-                    <td key={date} className="availability-cell">
-                      <div className="availability-content">
-                        <div className="availability-progress">
+                    <td key={date} className={styles.availabilityCell}>
+                      <div className={styles.availabilityContent}>
+                        <div className={styles.availabilityProgress}>
                           <div 
-                            className="availability-progress-bar"
+                            className={styles.availabilityProgressBar}
                             style={{ 
                               width: `${percentage}%`,
                               background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
@@ -966,7 +954,7 @@ const handleCellClick = (e, roomId, date) => {
                             }}
                           />
                         </div>
-                        <span className="availability-numbers">
+                        <span className={styles.availabilityNumbers}>
                           {availability.available}/{availability.total}
                         </span>
                       </div>
@@ -983,18 +971,18 @@ const handleCellClick = (e, roomId, date) => {
                 return (
                   <>
                     {/* Room Type Row */}
-                    <tr key={roomType.id} className="room-type-row">
+                    <tr key={roomType.id} className={styles.roomTypeRow}>
                       <td className="calendar-fixed-column room-type-cell">
                         <button
                           onClick={() => toggleRoomType(roomType.id)}
-                          className="room-type-toggle"
+                          className={styles.roomTypeToggle}
                         >
-                          <div className="room-type-icon">
+                          <div className={styles.roomTypeIcon}>
                             {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                           </div>
-                          <div className="room-type-info">
+                          <div className={styles.roomTypeInfo}>
                             <strong>{roomType.name}</strong>
-                            <span className="room-count">{typeRooms.length} rooms</span>
+                            <span className={styles.roomCount}>{typeRooms.length} rooms</span>
                           </div>
                         </button>
                       </td>
@@ -1003,10 +991,10 @@ const handleCellClick = (e, roomId, date) => {
                         const percentage = (availability.available / availability.total) * 100;
                         
                         return (
-                          <td key={date} className="room-type-availability-cell">
-                            <div className="availability-bar-container">
+                          <td key={date} className={styles.roomTypeAvailabilityCell}>
+                            <div className={styles.availabilityBarContainer}>
                               <div 
-                                className="availability-bar" 
+                                className={styles.availabilityBar} 
                                 style={{ 
                                   width: `${percentage}%`,
                                   background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
@@ -1014,7 +1002,7 @@ const handleCellClick = (e, roomId, date) => {
                                              'linear-gradient(135deg, #ef4444, #dc2626)'
                                 }}
                               />
-                              <span className="availability-text">
+                              <span className={styles.availabilityText}>
                                 {availability.available}/{availability.total}
                               </span>
                             </div>
@@ -1025,11 +1013,11 @@ const handleCellClick = (e, roomId, date) => {
 
                     {/* Individual Room Rows (when expanded) */}
                     {isExpanded && typeRooms.map(room => (
-                      <tr key={room.id} className="room-row">
+                      <tr key={room.id} className={styles.roomRow}>
                         <td className="calendar-fixed-column room-cell">
-                          <div className="room-info">
-                            <span className="room-number">Room {room.room_number}</span>
-                            <span className="room-floor">Floor {room.floor}</span>
+                          <div className={styles.roomInfo}>
+                            <span className={styles.roomNumber}>Room {room.room_number}</span>
+                            <span className={styles.roomFloor}>Floor {room.floor}</span>
                           </div>
                         </td>
                         {generateDates.map(date => {
@@ -1041,7 +1029,7 @@ const handleCellClick = (e, roomId, date) => {
                           return (
                             <td 
                               key={date} 
-                              className={`calendar-cell ${getCellStyle(roomStatus.status)} ${isSelected ? 'cell-selected' : ''}`}
+                              className={`${styles.calendarCell} ${getCellStyle(roomStatus.status)} ${isSelected ? styles.cellSelected : ""}`}
                               title={roomStatus.guestName || roomStatus.status}
                               onClick={(e) => handleCellClick(e, room.id, date)}
                               onMouseDown={(e) => handleCellMouseDown(e, room.id, date)}
@@ -1054,23 +1042,23 @@ const handleCellClick = (e, roomId, date) => {
                               }}
                             >
                               {roomStatus.status === 'occupied' && (
-                                <div className="cell-content occupied-content">
-                                  <div className="guest-name">{roomStatus.guestName}</div>
-                                  <div className="reservation-status">{roomStatus.statusType}</div>
+                                <div className={`${styles.cellContent} ${styles.occupiedContent}`}>
+                                  <div className={styles.guestName}>{roomStatus.guestName}</div>
+                                  <div className={styles.reservationStatus}>{roomStatus.statusType}</div>
                                 </div>
                               )}
                               {roomStatus.status === 'maintenance' && (
-                                <div className="cell-content maintenance-content">
-                                  <div className="status-label">Maintenance</div>
+                                <div className={`${styles.cellContent} ${styles.maintenanceContent}`}>
+                                  <div className={styles.statusLabel}>Maintenance</div>
                                 </div>
                               )}
                               {roomStatus.status === 'blocked' && (
-                                <div className="cell-content blocked-content">
-                                  <div className="status-label">Blocked</div>
+                                <div className={`${styles.cellContent} ${styles.blockedContent}`}>
+                                  <div className={styles.statusLabel}>Blocked</div>
                                 </div>
                               )}
                               {isSelected && (
-                                <div className="selection-overlay"></div>
+                                <div className={styles.selectionOverlay}></div>
                               )}
                             </td>
                           );
@@ -1086,25 +1074,13 @@ const handleCellClick = (e, roomId, date) => {
       {actionMenu.visible && (
         <div
           ref={actionMenuRef}
+          className={styles.actionMenu}
           style={{
-            position: 'absolute',
             left: `${actionMenu.position.x}px`,
-            top: `${actionMenu.position.y}px`,
-            background: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            padding: '8px',
-            zIndex: 1000,
-            minWidth: '180px'
+            top: `${actionMenu.position.y}px`
           }}
         >
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#6b7280', 
-            padding: '4px 8px',
-            borderBottom: '1px solid #e5e7eb',
-            marginBottom: '4px'
-          }}>
+          <div className={styles.actionMenuHeader}>
             {(() => {
               const selectedCells = actionMenu.selectedCells || [];
               
@@ -1120,13 +1096,13 @@ const handleCellClick = (e, roomId, date) => {
                 
                 return (
                   <>
-                    <div style={{ fontWeight: '600', color: '#3b82f6' }}>
+                    <div className={styles.actionMenuTitle}>
                       {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
                     </div>
-                    <div style={{ marginTop: '4px', fontSize: '11px' }}>
-                      {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} × {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
+                    <div className={styles.actionMenuDetails}>
+                      {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} Ã— {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
                     </div>
-                    <div style={{ marginTop: '2px', fontSize: '11px', color: '#059669' }}>
+                    <div className={styles.actionMenuDetails}>
                       {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       {uniqueDates.length > 1 && ` - ${new Date(uniqueDates[uniqueDates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                     </div>
@@ -1139,81 +1115,35 @@ const handleCellClick = (e, roomId, date) => {
           </div>
           
           <button
+
             onClick={handleBookRoom}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: 'none',
-              background: 'transparent',
-              textAlign: 'left',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#059669',
-              fontWeight: '500'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            className={`${styles.actionMenuBtn} ${styles.bookBtn}`}
           >
             <CalendarIcon size={16} />
             Book
           </button>
           
           <button
+
             onClick={handleHoldRoom}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: 'none',
-              background: 'transparent',
-              textAlign: 'left',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#f59e0b',
-              fontWeight: '500'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#fffbeb'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            className={`${styles.actionMenuBtn} ${styles.holdBtn}`}
           >
             <Lock size={16} />
             Hold
           </button>
           
           <button
+
             onClick={handleBlockRoom}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: 'none',
-              background: 'transparent',
-              textAlign: 'left',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#dc2626',
-              fontWeight: '500'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            className={`${styles.actionMenuBtn} ${styles.blockBtn}`}
           >
             <X size={16} />
             Block
           </button>
         </div>
       )}
-        </div>
-
-      
+          </div>
+      </div>
 
       {/* Quick Booking Modal */}
       <Modal
@@ -1225,24 +1155,18 @@ const handleCellClick = (e, roomId, date) => {
         title={pendingBookings.length > 1 ? `Quick Booking (Creating ${pendingBookings.length} bookings)` : "Quick Booking"}
         size="medium"
       >
-        <div className="form-grid">
+        <div className={styles.formGrid}>
           {/* Multi-booking indicator */}
           {pendingBookings.length > 1 && (
-            <div className="form-group full-width">
-              <div style={{ 
-                padding: '12px', 
-                background: '#fef3c7', 
-                border: '1px solid #fbbf24',
-                borderRadius: '6px',
-                marginBottom: '8px'
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
-                  📋 Multi-Room Booking
+            <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+              <div className={styles.multiBookingAlert}>
+                <div className={styles.multiBookingAlertTitle}>
+                  ðŸ“‹ Multi-Room Booking
                 </div>
-                <div style={{ fontSize: '13px', color: '#92400e', marginTop: '4px' }}>
+                <div className={styles.multiBookingAlertText}>
                   You're creating <strong>{pendingBookings.length} bookings</strong> at once. Enter guest details once, and all bookings will use the same information.
                 </div>
-                <div style={{ fontSize: '12px', color: '#92400e', marginTop: '6px', fontStyle: 'italic' }}>
+                <div className={styles.multiBookingAlertRooms}>
                   Rooms: {pendingBookings.map((b, i) => {
                     const room = rooms.find(r => r.id === b.roomId);
                     return room?.room_number || '?';
@@ -1253,29 +1177,23 @@ const handleCellClick = (e, roomId, date) => {
           )}
           
           {/* Room and Date Info */}
-          <div className="form-group full-width">
-            <div style={{ 
-              padding: '12px', 
-              background: '#f0f9ff', 
-              border: '1px solid #bae6fd',
-              borderRadius: '6px',
-              marginBottom: '8px'
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#0369a1' }}>
+          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+            <div className={styles.infoBox}>
+              <div className={styles.infoBoxTitle}>
                 {(() => {
                   const room = rooms.find(r => r.id === bookingData.room_id);
                   const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
                   return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
                 })()}
               </div>
-              <div style={{ fontSize: '13px', color: '#0369a1', marginTop: '4px' }}>
+              <div className={styles.infoBoxDetail}>
                 Check-in: {bookingData.check_in_date}
               </div>
-              <div style={{ fontSize: '13px', color: '#0369a1', marginTop: '2px' }}>
+              <div className={styles.infoBoxDetail}>
                 Check-out: {bookingData.check_out_date}
               </div>
               {bookingData.check_in_date && bookingData.check_out_date && (
-                <div style={{ fontSize: '12px', color: '#0369a1', marginTop: '4px', fontWeight: '600' }}>
+                <div className={styles.infoBoxNights}>
                   {(() => {
                     const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
                     return `${nights} night${nights !== 1 ? 's' : ''}`;
@@ -1286,11 +1204,10 @@ const handleCellClick = (e, roomId, date) => {
           </div>
 
           {/* Guest Selection */}
-          <div className="form-group full-width">
+          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
             <label>Select Guest *</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className={styles.guestSelectContainer}>
               <select
-                style={{ flex: 1 }}
                 value={bookingData.guest_id}
                 onChange={(e) => setBookingData({ ...bookingData, guest_id: e.target.value })}
               >
@@ -1303,7 +1220,7 @@ const handleCellClick = (e, roomId, date) => {
               </select>
               <button 
                 onClick={() => setIsGuestModalOpen(true)} 
-                className="btn-secondary"
+                className={styles.btnSecondary}
                 type="button"
               >
                 <UserPlus size={18} />
@@ -1312,7 +1229,7 @@ const handleCellClick = (e, roomId, date) => {
           </div>
 
           {/* Check-out Date */}
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Check-out Date *</label>
             <input
               type="date"
@@ -1323,7 +1240,7 @@ const handleCellClick = (e, roomId, date) => {
           </div>
 
           {/* Status */}
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Status</label>
             <select
               value={bookingData.status}
@@ -1336,7 +1253,7 @@ const handleCellClick = (e, roomId, date) => {
           </div>
 
           {/* Number of Guests */}
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Adults *</label>
             <input
               type="number"
@@ -1346,7 +1263,7 @@ const handleCellClick = (e, roomId, date) => {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Children</label>
             <input
               type="number"
@@ -1356,7 +1273,7 @@ const handleCellClick = (e, roomId, date) => {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Infants</label>
             <input
               type="number"
@@ -1367,7 +1284,7 @@ const handleCellClick = (e, roomId, date) => {
           </div>
 
           {/* Meal Plan */}
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Meal Plan</label>
             <select
               value={bookingData.meal_plan}
@@ -1381,7 +1298,7 @@ const handleCellClick = (e, roomId, date) => {
           </div>
 
           {/* Special Requests */}
-          <div className="form-group full-width">
+          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
             <label>Special Requests</label>
             <textarea
               value={bookingData.special_requests}
@@ -1392,11 +1309,11 @@ const handleCellClick = (e, roomId, date) => {
           </div>
         </div>
 
-        <div className="modal-actions">
-          <button onClick={() => setIsBookingModalOpen(false)} className="btn-secondary">
+        <div className={styles.modalActions}>
+          <button onClick={() => setIsBookingModalOpen(false)} className={styles.btnSecondary}>
             <X size={18} /> Cancel
           </button>
-          <button onClick={handleQuickBooking} className="btn-primary">
+          <button onClick={handleQuickBooking} className={styles.btnPrimary}>
             <Save size={18} /> Create Booking
           </button>
         </div>
@@ -1409,8 +1326,8 @@ const handleCellClick = (e, roomId, date) => {
         title="Add New Guest"
         size="large"
       >
-        <div className="form-grid">
-          <div className="form-group">
+        <div className={styles.formGrid}>
+          <div className={styles.formGroup}>
             <label>Full Name *</label>
             <input
               type="text"
@@ -1419,7 +1336,7 @@ const handleCellClick = (e, roomId, date) => {
               placeholder="John Doe"
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Phone</label>
             <input
               type="tel"
@@ -1428,7 +1345,7 @@ const handleCellClick = (e, roomId, date) => {
               placeholder="9876543210"
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Email</label>
             <input
               type="email"
@@ -1437,7 +1354,7 @@ const handleCellClick = (e, roomId, date) => {
               placeholder="john@example.com"
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>ID Proof Type</label>
             <select
               value={guestFormData.id_proof_type}
@@ -1451,7 +1368,7 @@ const handleCellClick = (e, roomId, date) => {
               <option value="N/A">N/A</option>
             </select>
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>ID Proof Number</label>
             <input
               type="text"
@@ -1460,7 +1377,7 @@ const handleCellClick = (e, roomId, date) => {
               placeholder="AADHAR-1234"
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Guest Type</label>
             <select
               value={guestFormData.guest_type}
@@ -1471,7 +1388,7 @@ const handleCellClick = (e, roomId, date) => {
               <option value="Corporate">Corporate</option>
             </select>
           </div>
-          <div className="form-group full-width">
+          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
             <label>Address</label>
             <input
               type="text"
@@ -1480,7 +1397,7 @@ const handleCellClick = (e, roomId, date) => {
               placeholder="123 Main Street"
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>City</label>
             <input
               type="text"
@@ -1489,7 +1406,7 @@ const handleCellClick = (e, roomId, date) => {
               placeholder="Mumbai"
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>State</label>
             <input
               type="text"
@@ -1498,7 +1415,7 @@ const handleCellClick = (e, roomId, date) => {
               placeholder="Maharashtra"
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Country</label>
             <input
               type="text"
@@ -1508,11 +1425,11 @@ const handleCellClick = (e, roomId, date) => {
             />
           </div>
         </div>
-        <div className="modal-actions">
-          <button onClick={() => setIsGuestModalOpen(false)} className="btn-secondary">
+        <div className={styles.modalActions}>
+          <button onClick={() => setIsGuestModalOpen(false)} className={styles.btnSecondary}>
             <X size={18} /> Cancel
           </button>
-          <button onClick={handleCreateGuest} className="btn-primary">
+          <button onClick={handleCreateGuest} className={styles.btnPrimary}>
             <Save size={18} /> Add Guest
           </button>
         </div>

@@ -1,0 +1,1217 @@
+/* ========================================== */
+
+
+/* MODERN MINIMALIST BOOKING CALENDAR STYLES */
+
+
+/* ========================================== */
+
+
+/* Page Container */
+
+.calendarPage {
+    animation: fadeIn 0.4s ease-out;
+    padding: 24px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* ========================================== */
+
+
+/* HEADER SECTION */
+
+
+/* ========================================== */
+
+.pageHeader {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.headerTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 24px;
+}
+
+.headerTitle {
+    flex: 1;
+}
+
+.mainTitle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 28px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.02em;
+}
+
+.mainTitle svg {
+    color: #3b82f6;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 400;
+}
+
+
+/* Quick Stats */
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.quickStats {
+    display: flex;
+    gap: 12px;
+}
+
+.statItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.statItem:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.statItem svg {
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
+.statItem.statAvailable svg {
+    color: #10b981;
+}
+
+.statItem.statOccupied svg {
+    color: #ef4444;
+}
+
+.statContent {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.statValue {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+}
+
+.statLabel {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+
+/* Refresh Button */
+
+.refreshBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+.refreshBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.refreshBtn.refreshing svg {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* Navigation Controls */
+
+.navControls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.navButtons {
+    display: flex;
+    gap: 8px;
+}
+
+.navBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.navBtn:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+.navBtn.todayBtn {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.navBtn.todayBtn:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+.viewControls {
+    display: flex;
+    gap: 8px;
+}
+
+.dateInput,
+.daysSelect {
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dateInput:focus,
+.daysSelect:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+
+/* ========================================== */
+
+
+/* CALENDAR GRID */
+
+
+/* ========================================== */
+
+.calendarContainer {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.calendarScroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 400px);
+    min-height: 400px;
+}
+
+.calendarScroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.calendarScroll::-webkit-scrollbar-track {
+    background: #f9fafb;
+}
+
+.calendarScroll::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 5px;
+}
+
+.calendarScroll::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+.calendarTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+}
+
+
+/* Fixed Column */
+
+.fixedColumn {
+    position: sticky;
+    left: 0;
+    background: #ffffff;
+    z-index: 10;
+    min-width: 200px;
+    max-width: 200px;
+    border-right: 2px solid #f3f4f6;
+}
+
+.calendarTable thead .fixedColumn {
+    z-index: 30;
+    background: #fafbfc;
+}
+
+.fixedColumnHeader {
+    padding: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+
+/* Date Headers */
+
+.dateHeader {
+    min-width: 100px;
+    max-width: 100px;
+    padding: 16px 8px;
+    text-align: center;
+    background: #fafbfc;
+    border-right: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    transition: background 0.2s ease;
+}
+
+.dateHeader:hover {
+    background: #f3f4f6;
+}
+
+.dateHeader.today {
+    background: #eff6ff;
+    border-bottom: 2px solid #3b82f6;
+}
+
+.dateHeader.weekend {
+    background: #fef9f3;
+}
+
+.calendarTable thead tr:first-child .fixedColumn {
+    position: sticky;
+    left: 0;
+    top: 0;
+    z-index: 30;
+    background: #fafbfc;
+}
+
+.dateHeaderContent {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dateDay {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #9ca3af;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.dateNum {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+}
+
+.dateHeader.today .dateNum {
+    color: #3b82f6;
+}
+
+.dateMonth {
+    font-size: 10px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+
+/* Availability Row */
+
+.availabilityRow {
+    background: #fafbfc;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.availabilityRow th,
+.availabilityRow td {
+    position: sticky;
+    top: 81px;
+    background: #fafbfc;
+    z-index: 17;
+    padding: 12px;
+    border-right: 1px solid #f3f4f6;
+}
+
+.availabilityRow th {
+    z-index: 18;
+}
+
+.availabilityRow .fixedColumn {
+    position: sticky;
+    left: 0;
+    top: 81px;
+    z-index: 28;
+    background: #fafbfc;
+}
+
+.availabilityLabelContent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px;
+    color: #374151;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.availabilityCell {
+    text-align: center;
+}
+
+.availabilityContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.availabilityProgress {
+    width: 100%;
+    height: 4px;
+    background: #f3f4f6;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.availabilityProgressBar {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+.availabilityNumbers {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+
+/* Room Type Row */
+
+.roomTypeRow {
+    background: #fafbfc;
+    border-top: 1px solid #f3f4f6;
+    transition: background 0.15s ease;
+}
+
+.roomTypeRow:hover {
+    background: #f9fafb;
+}
+
+.roomTypeCell {
+    padding: 0;
+}
+
+.roomTypeToggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.roomTypeToggle:hover {
+    padding-left: 20px;
+}
+
+.roomTypeIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: #3b82f6;
+    color: #ffffff;
+    border-radius: 6px;
+    transition: transform 0.2s ease;
+}
+
+.roomTypeToggle:hover .roomTypeIcon {
+    transform: scale(1.05);
+}
+
+.roomTypeInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.roomTypeInfo strong {
+    font-size: 14px;
+    color: #111827;
+    font-weight: 600;
+}
+
+.roomCount {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+
+/* Room Type Availability Cell */
+
+.roomTypeAvailabilityCell {
+    padding: 10px;
+    border-right: 1px solid #f3f4f6;
+    background: #ffffff;
+}
+
+.availabilityBarContainer {
+    position: relative;
+    width: 100%;
+    height: 28px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.availabilityBar {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 6px;
+}
+
+.availabilityText {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    z-index: 1;
+}
+
+
+/* Room Row */
+
+.roomRow {
+    border-top: 1px solid #f9fafb;
+    transition: background 0.15s ease;
+}
+
+.roomRow:hover {
+    background: #fafbfc;
+}
+
+.roomCell {
+    padding: 12px 16px 12px 32px;
+}
+
+.roomInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.roomNumber {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.roomFloor {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+
+/* Calendar Cells */
+
+.calendarCell {
+    min-width: 100px;
+    max-width: 100px;
+    height: 64px;
+    padding: 6px;
+    border-right: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f9fafb;
+    text-align: center;
+    vertical-align: middle;
+    position: relative;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.cellAvailable {
+    background: #ffffff;
+    cursor: crosshair;
+}
+
+.cellAvailable:hover {
+    background: #f0f9ff;
+    box-shadow: inset 0 0 0 1px #3b82f6;
+}
+
+.cellOccupied {
+    background: #fef2f2;
+    cursor: pointer;
+}
+
+.cellOccupied:hover {
+    background: #fee2e2;
+    box-shadow: inset 0 0 0 1px #ef4444;
+}
+
+.cellMaintenance {
+    background: #fffbeb;
+}
+
+.cellMaintenance:hover {
+    background: #fef3c7;
+    box-shadow: inset 0 0 0 1px #f59e0b;
+}
+
+.cellBlocked {
+    background: #f9fafb;
+}
+
+.cellBlocked:hover {
+    background: #f3f4f6;
+    box-shadow: inset 0 0 0 1px #9ca3af;
+}
+
+
+/* Cell Selection */
+
+.cellSelected {
+    background: #dbeafe !important;
+    box-shadow: inset 0 0 0 2px #3b82f6 !important;
+    z-index: 5;
+}
+
+.selectionOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px solid #3b82f6;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.cellContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+.occupiedContent .guestName {
+    font-size: 11px;
+    font-weight: 600;
+    color: #991b1b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 90px;
+}
+
+.occupiedContent .reservationStatus {
+    font-size: 9px;
+    padding: 2px 6px;
+    background: #ffffff;
+    border-radius: 4px;
+    color: #7f1d1d;
+    font-weight: 600;
+    border: 1px solid #fecaca;
+}
+
+.maintenanceContent .statusLabel,
+.blockedContent .statusLabel {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+
+/* ========================================== */
+
+
+/* ACTION MENU */
+
+
+/* ========================================== */
+
+.actionMenu {
+    position: absolute;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 6px;
+    z-index: 1000;
+    min-width: 180px;
+    animation: menuFadeIn 0.15s ease-out;
+}
+
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.actionMenuHeader {
+    font-size: 11px;
+    color: #6b7280;
+    padding: 8px 10px;
+    border-bottom: 1px solid #f3f4f6;
+    margin-bottom: 4px;
+}
+
+.actionMenuTitle {
+    font-weight: 600;
+    color: #3b82f6;
+    margin-bottom: 4px;
+}
+
+.actionMenuDetails {
+    font-size: 10px;
+    color: #9ca3af;
+}
+
+.actionMenuBtn {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: background 0.15s ease;
+}
+
+.actionMenuBtn:hover {
+    background: #f9fafb;
+}
+
+.actionMenuBtn.bookBtn {
+    color: #10b981;
+}
+
+.actionMenuBtn.bookBtn:hover {
+    background: #f0fdf4;
+}
+
+.actionMenuBtn.holdBtn {
+    color: #f59e0b;
+}
+
+.actionMenuBtn.holdBtn:hover {
+    background: #fffbeb;
+}
+
+.actionMenuBtn.blockBtn {
+    color: #ef4444;
+}
+
+.actionMenuBtn.blockBtn:hover {
+    background: #fef2f2;
+}
+
+
+/* ========================================== */
+
+
+/* MODAL STYLES */
+
+
+/* ========================================== */
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: overlayFadeIn 0.2s ease-out;
+}
+
+@keyframes overlayFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modalContent {
+    background: #ffffff;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.modalTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.modalClose {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    color: #9ca3af;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modalClose:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.modalBody {
+    padding: 24px;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid #f3f4f6;
+}
+
+
+/* Form Elements */
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.formGroup.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.formGroup label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    background: #ffffff;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.formGroup textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+
+/* Info Box */
+
+.infoBox {
+    padding: 14px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.infoBoxTitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.infoBoxDetail {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.infoBoxNights {
+    font-size: 11px;
+    color: #3b82f6;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+
+/* Multi-booking Alert */
+
+.multiBookingAlert {
+    padding: 14px;
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.multiBookingAlertTitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 6px;
+}
+
+.multiBookingAlertText {
+    font-size: 12px;
+    color: #92400e;
+    margin-top: 4px;
+}
+
+.multiBookingAlertRooms {
+    font-size: 11px;
+    color: #92400e;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+
+/* Buttons */
+
+.btnPrimary {
+    background: #3b82f6;
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btnPrimary:hover {
+    background: #2563eb;
+}
+
+.btnSecondary {
+    background: #ffffff;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btnSecondary:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+.btnIcon {
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btnIcon:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+}
+
+
+/* Guest Select Container */
+
+.guestSelectContainer {
+    display: flex;
+    gap: 8px;
+}
+
+.guestSelectContainer select {
+    flex: 1;
+}
+
+
+/* ========================================== */
+
+
+/* RESPONSIVE */
+
+
+/* ========================================== */
+
+@media (max-width: 1024px) {
+    .pageHeader {
+        padding: 24px;
+    }
+    .headerTop {
+        flex-direction: column;
+    }
+    .headerActions {
+        width: 100%;
+        flex-direction: column;
+    }
+    .quickStats {
+        width: 100%;
+    }
+    .statItem {
+        flex: 1;
+    }
+    .refreshBtn {
+        width: 100%;
+        justify-content: center;
+    }
+    .navControls {
+        flex-direction: column;
+    }
+    .navButtons,
+    .viewControls {
+        width: 100%;
+    }
+    .navBtn {
+        flex: 1;
+    }
+    .fixedColumn {
+        min-width: 160px;
+        max-width: 160px;
+    }
+    .dateHeader,
+    .calendarCell {
+        min-width: 85px;
+        max-width: 85px;
+    }
+}
+
+@media (max-width: 768px) {
+    .calendarPage {
+        padding: 16px;
+    }
+    .mainTitle {
+        font-size: 22px;
+    }
+    .quickStats {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .navButtons {
+        flex-direction: column;
+    }
+    .fixedColumn {
+        min-width: 130px;
+        max-width: 130px;
+        font-size: 11px;
+    }
+    .dateHeader,
+    .calendarCell {
+        min-width: 70px;
+        max-width: 70px;
+        height: 56px;
+        font-size: 11px;
+    }
+    .dateNum {
+        font-size: 16px;
+    }
+    .guestName {
+        font-size: 10px;
+        max-width: 60px;
+    }
+    .reservationStatus {
+        font-size: 8px;
+        padding: 2px 4px;
+    }
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+    .modalContent {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .pageHeader {
+        padding: 20px;
+    }
+    .mainTitle {
+        font-size: 20px;
+    }
+    .modalHeader,
+    .modalBody {
+        padding: 20px;
+    }
+    .modalActions {
+        padding: 12px 20px;
+    }
+}
