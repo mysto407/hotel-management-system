@@ -23,8 +23,8 @@ const ReservationCalendar = () => {
     visible: false,
     roomId: null,
     date: null,
-    endDate: null, // For multi-date selections
-    selectedCells: [], // For multi-room/date selections
+    endDate: null,
+    selectedCells: [],
     position: { x: 0, y: 0 }
   });
   
@@ -33,7 +33,7 @@ const ReservationCalendar = () => {
     isSelecting: false,
     startRoomId: null,
     startDate: null,
-    selectedCells: [] // Array of {roomId, date} objects
+    selectedCells: []
   });
   
   // Quick booking modal state
@@ -172,78 +172,64 @@ const ReservationCalendar = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Fetch both reservations and rooms data
       if (fetchReservations) await fetchReservations();
       if (fetchRooms) await fetchRooms();
-      
-      // Optional: Show success message or toast notification here
       console.log('Calendar data refreshed successfully');
     } catch (error) {
       console.error('Error refreshing calendar data:', error);
-      // Optional: Show error message or toast notification here
     } finally {
-      // Add a small delay to show the animation
       setTimeout(() => setIsRefreshing(false), 500);
     }
   };
 
-// Handle cell click to show action menu
-const handleCellClick = (e, roomId, date) => {
-  // Only show menu for available cells
-  const roomStatus = getRoomStatus(roomId, date);
-  if (roomStatus.status !== 'available') {
-    return;
-  }
+  // Handle cell click to show action menu
+  const handleCellClick = (e, roomId, date) => {
+    const roomStatus = getRoomStatus(roomId, date);
+    if (roomStatus.status !== 'available') {
+      return;
+    }
 
-  // If we just finished a drag selection, don't show the action menu
-  if (dragSelection.isSelecting) {
-    return;
-  }
+    if (dragSelection.isSelecting) {
+      return;
+    }
 
-  // Prevent drag-to-scroll interference
-  if (isDragging) return;
+    if (isDragging) return;
 
-  // --- START: UPDATED LOGIC ---
-  if (!containerRef.current) return; // Guard clause
+    if (!containerRef.current) return;
 
-  const cellRect = e.currentTarget.getBoundingClientRect();
-  const containerRect = containerRef.current.getBoundingClientRect();
-  
-  const scrollLeft = containerRef.current.scrollLeft;
-  const scrollTop = containerRef.current.scrollTop;
+    const cellRect = e.currentTarget.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
 
-  // Calculate position relative to the container, including scroll
-  const x = cellRect.right - containerRect.left + scrollLeft + 10; // 10px to the right
-  const y = cellRect.top - containerRect.top + scrollTop;
-  // --- END: UPDATED LOGIC ---
-  
-  // Set selection for visual highlight
-  setDragSelection({
-    isSelecting: false,
-    startRoomId: roomId,
-    startDate: date,
-    selectedCells: [{ roomId, date }]
-  });
-  
-  setActionMenu({
-    visible: true,
-    roomId,
-    date,
-    endDate: null, // Single click has no end date
-    selectedCells: [{ roomId, date }],
-    position: { x, y } // Use new relative x and y
-  });
-};
+    const x = cellRect.right - containerRect.left + scrollLeft + 10;
+    const y = cellRect.top - containerRect.top + scrollTop;
+    
+    setDragSelection({
+      isSelecting: false,
+      startRoomId: roomId,
+      startDate: date,
+      selectedCells: [{ roomId, date }]
+    });
+    
+    setActionMenu({
+      visible: true,
+      roomId,
+      date,
+      endDate: null,
+      selectedCells: [{ roomId, date }],
+      position: { x, y }
+    });
+  };
 
   // Drag selection handlers for multi-date and multi-room booking
   const handleCellMouseDown = (e, roomId, date) => {
     const roomStatus = getRoomStatus(roomId, date);
     if (roomStatus.status !== 'available') return;
     
-    // Prevent if already dragging to scroll
     if (isDragging) return;
     
-    // Start selection
     setDragSelection({
       isSelecting: true,
       startRoomId: roomId,
@@ -251,7 +237,6 @@ const handleCellClick = (e, roomId, date) => {
       selectedCells: [{ roomId, date }]
     });
     
-    // Prevent text selection during drag
     e.preventDefault();
   };
 
@@ -261,7 +246,6 @@ const handleCellClick = (e, roomId, date) => {
     const roomStatus = getRoomStatus(roomId, date);
     if (roomStatus.status !== 'available') return;
     
-    // Check if this cell is already in the selection
     const cellKey = `${roomId}-${date}`;
     const alreadySelected = dragSelection.selectedCells.some(
       cell => `${cell.roomId}-${cell.date}` === cellKey
@@ -278,7 +262,6 @@ const handleCellClick = (e, roomId, date) => {
   const handleCellMouseUp = (e, roomId, date) => {
     if (!dragSelection.isSelecting) return;
     
-    // If only one cell selected, show action menu at that position
     if (dragSelection.selectedCells.length === 1) {
       const cell = dragSelection.selectedCells[0];
       
@@ -302,7 +285,6 @@ const handleCellClick = (e, roomId, date) => {
         position: { x, y }
       });
       
-      // Keep selection visible
       setDragSelection(prev => ({
         ...prev,
         isSelecting: false
@@ -311,7 +293,6 @@ const handleCellClick = (e, roomId, date) => {
       return;
     }
     
-    // Show action menu for multiple cells selection
     if (dragSelection.selectedCells.length > 1) {
       if (!containerRef.current) return;
 
@@ -326,7 +307,7 @@ const handleCellClick = (e, roomId, date) => {
       
       setActionMenu({
         visible: true,
-        roomId: null, // Multiple rooms
+        roomId: null,
         date: null,
         endDate: null,
         selectedCells: dragSelection.selectedCells,
@@ -334,7 +315,6 @@ const handleCellClick = (e, roomId, date) => {
       });
     }
     
-    // Keep selection visible until action is taken
     setDragSelection(prev => ({
       ...prev,
       isSelecting: false
@@ -362,7 +342,6 @@ const handleCellClick = (e, roomId, date) => {
       selectedCells: [],
       position: { x: 0, y: 0 }
     });
-    // Also clear drag selection
     setDragSelection({
       isSelecting: false,
       startRoomId: null,
@@ -377,7 +356,6 @@ const handleCellClick = (e, roomId, date) => {
     
     if (selectedCells.length === 0) return;
     
-    // Get unique room IDs
     const uniqueRoomIds = [...new Set(selectedCells.map(c => c.roomId))];
     
     if (!window.confirm(
@@ -387,13 +365,12 @@ const handleCellClick = (e, roomId, date) => {
     }
     
     try {
-      // Block all selected rooms
       const blockPromises = uniqueRoomIds.map(roomId => 
         updateRoomStatus(roomId, 'Blocked')
       );
       
       await Promise.all(blockPromises);
-      await fetchRooms(); // Refresh rooms data
+      await fetchRooms();
       
       alert(`${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''} blocked successfully`);
     } catch (error) {
@@ -411,7 +388,6 @@ const handleCellClick = (e, roomId, date) => {
     if (selectedCells.length === 0) return;
     
     if (selectedCells.length === 1) {
-      // Single cell selection
       const cell = selectedCells[0];
       const checkOutDate = new Date(cell.date);
       checkOutDate.setDate(checkOutDate.getDate() + 1);
@@ -432,7 +408,6 @@ const handleCellClick = (e, roomId, date) => {
       closeActionMenu();
       setIsBookingModalOpen(true);
     } else {
-      // Multiple cells - create hold bookings
       handleMultiCellBooking('Hold');
     }
   };
@@ -443,7 +418,6 @@ const handleCellClick = (e, roomId, date) => {
     
     if (selectedCells.length === 0) return;
     
-    // Group cells by room
     const cellsByRoom = {};
     selectedCells.forEach(cell => {
       if (!cellsByRoom[cell.roomId]) {
@@ -452,12 +426,10 @@ const handleCellClick = (e, roomId, date) => {
       cellsByRoom[cell.roomId].push(cell.date);
     });
     
-    // Sort dates for each room and find continuous ranges
     const bookings = [];
     Object.keys(cellsByRoom).forEach(roomId => {
       const dates = cellsByRoom[roomId].sort();
       
-      // Find continuous date ranges
       let currentRange = [dates[0]];
       
       for (let i = 1; i < dates.length; i++) {
@@ -466,10 +438,8 @@ const handleCellClick = (e, roomId, date) => {
         const dayDiff = (currDate - prevDate) / (1000 * 60 * 60 * 24);
         
         if (dayDiff === 1) {
-          // Continuous
           currentRange.push(dates[i]);
         } else {
-          // Gap found - save current range and start new one
           bookings.push({
             roomId,
             checkIn: currentRange[0],
@@ -479,7 +449,6 @@ const handleCellClick = (e, roomId, date) => {
         }
       }
       
-      // Save the last range
       if (currentRange.length > 0) {
         bookings.push({
           roomId,
@@ -489,23 +458,20 @@ const handleCellClick = (e, roomId, date) => {
       }
     });
     
-    // Show confirmation
     const roomCount = Object.keys(cellsByRoom).length;
     const totalNights = selectedCells.length;
     const bookingCount = bookings.length;
     
     if (!window.confirm(
       `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} Ã— ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} × ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
       `You'll enter guest details once, and all bookings will be created with the same guest.`
     )) {
       return;
     }
     
-    // Store all bookings including the first one
     setPendingBookings(bookings);
     
-    // Open modal for the first booking with indication of multi-booking
     const firstBooking = bookings[0];
     
     setBookingData({
@@ -532,7 +498,6 @@ const handleCellClick = (e, roomId, date) => {
     if (selectedCells.length === 0) return;
     
     if (selectedCells.length === 1) {
-      // Single cell selection
       const cell = selectedCells[0];
       const checkOutDate = new Date(cell.date);
       checkOutDate.setDate(checkOutDate.getDate() + 1);
@@ -553,7 +518,6 @@ const handleCellClick = (e, roomId, date) => {
       closeActionMenu();
       setIsBookingModalOpen(true);
     } else {
-      // Multiple cells - create bookings for each room's date range
       handleMultiCellBooking('Confirmed');
     }
   };
@@ -574,7 +538,6 @@ const handleCellClick = (e, roomId, date) => {
       const room = rooms.find(r => r.id === bookingData.room_id);
       const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
       
-      // Calculate nights and total for the first booking
       const checkIn = new Date(bookingData.check_in_date);
       const checkOut = new Date(bookingData.check_out_date);
       const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
@@ -599,15 +562,12 @@ const handleCellClick = (e, roomId, date) => {
         special_requests: bookingData.special_requests
       };
       
-      // Create the first booking
       await addReservation(reservationData);
       
-      // If there are pending bookings (multi-room selection), create them too
       if (pendingBookings.length > 1) {
-        let successCount = 1; // Already created the first one
+        let successCount = 1;
         let failCount = 0;
         
-        // Create remaining bookings with the same guest and meal plan
         for (let i = 1; i < pendingBookings.length; i++) {
           const booking = pendingBookings[i];
           const bookingRoom = rooms.find(r => r.id === booking.roomId);
@@ -644,10 +604,8 @@ const handleCellClick = (e, roomId, date) => {
           }
         }
         
-        // Clear pending bookings
         setPendingBookings([]);
         
-        // Show summary
         await fetchReservations();
         
         if (failCount > 0) {
@@ -656,13 +614,11 @@ const handleCellClick = (e, roomId, date) => {
           alert(`All ${successCount} bookings created successfully!`);
         }
       } else {
-        // Single booking
         await fetchReservations();
         alert('Booking created successfully!');
-        setPendingBookings([]); // Clear any pending bookings just in case
+        setPendingBookings([]);
       }
       
-      // Reset and close
       setIsBookingModalOpen(false);
       setBookingData({
         room_id: '',
@@ -725,7 +681,6 @@ const handleCellClick = (e, roomId, date) => {
       document.addEventListener('mousedown', handleClickOutside);
     }
     
-    // Always listen for mouse up to handle drag selection
     document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
@@ -810,7 +765,7 @@ const handleCellClick = (e, roomId, date) => {
         <div className={styles.calendarHeaderTop}>
           <div>
             <h1 className={styles.calendarMainTitle}>
-              <CalendarDays size={32} />
+              <CalendarDays size={36} strokeWidth={2.5} />
               Booking Calendar
             </h1>
             <p className={styles.calendarSubtitle}>Manage room availability and reservations</p>
@@ -820,14 +775,14 @@ const handleCellClick = (e, roomId, date) => {
           <div className={styles.calendarHeaderActions}>
             <div className={styles.calendarQuickStats}>
               <div className={`${styles.quickStatItem} ${styles.statAvailable}`}>
-                <Home size={20} />
+                <Home size={24} strokeWidth={2.5} />
                 <div>
                   <div className={styles.quickStatValue}>{totalAvailable}</div>
                   <div className={styles.quickStatLabel}>Available</div>
                 </div>
               </div>
               <div className={`${styles.quickStatItem} ${styles.statOccupied}`}>
-                <Users size={20} />
+                <Users size={24} strokeWidth={2.5} />
                 <div>
                   <div className={styles.quickStatValue}>{totalOccupied}</div>
                   <div className={styles.quickStatLabel}>Occupied</div>
@@ -842,7 +797,7 @@ const handleCellClick = (e, roomId, date) => {
               disabled={isRefreshing}
               title="Refresh calendar data"
             >
-              <RefreshCw size={20} />
+              <RefreshCw size={20} strokeWidth={2.5} />
               <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
@@ -852,16 +807,16 @@ const handleCellClick = (e, roomId, date) => {
         <div className={styles.calendarNavControls}>
           <div className={styles.calendarNavButtons}>
             <button onClick={goToPreviousWeek} className={styles.calendarNavBtn}>
-              <ChevronLeft size={18} />
+              <ChevronLeft size={20} strokeWidth={2.5} />
               <span>Previous</span>
             </button>
             <button onClick={goToToday} className={`${styles.calendarNavBtn} ${styles.todayBtn}`}>
-              <Calendar size={18} />
+              <Calendar size={20} strokeWidth={2.5} />
               <span>Today</span>
             </button>
             <button onClick={goToNextWeek} className={styles.calendarNavBtn}>
               <span>Next</span>
-              <ChevronRight size={18} />
+              <ChevronRight size={20} strokeWidth={2.5} />
             </button>
           </div>
 
@@ -885,8 +840,6 @@ const handleCellClick = (e, roomId, date) => {
         </div>
       </div>
 
-
-
       {/* Calendar Grid */}
       <div 
         ref={containerRef}
@@ -902,326 +855,346 @@ const handleCellClick = (e, roomId, date) => {
           maxHeight: 'none',
           minHeight: 'auto',
           background: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          position: 'relative' //
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          position: 'relative'
         }}
       >
         <table className={styles.calendarTable} style={{ 
           width: '100%',
           display: 'table'
         }}>
-            <thead>
-              {/* Date Headers */}
-              <tr>
-                <th className={styles.calendarFixedColumn}>
-                  <div className={styles.fixedColumnHeader}>
-                    <span>Room Type / Room</span>
-                  </div>
-                </th>
-                {generateDates.map(date => {
-                  const dateObj = new Date(date);
-                  const isToday = date === new Date().toISOString().split('T')[0];
-                  const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-                  
-                  return (
-                    <th 
-                      key={date} 
-                      className={`${styles.calendarDateHeader} ${isToday ? styles.today : ''} ${isWeekend ? styles.weekend : ''}`}
-                    >
-                      <div className={styles.dateHeaderContent}>
-                        <div className={styles.dateDay}>{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                        <div className={styles.dateNum}>{dateObj.getDate()}</div>
-                        <div className={styles.dateMonth}>{dateObj.toLocaleDateString('en-US', { month: 'short' })}</div>
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-
-            <tbody>
-              {/* Total Availability Row */}
-              <tr className={styles.availabilityRow}>
-                <th className={`${styles.calendarFixedColumn} ${styles.availabilityLabel}`}>
-                  <div className={styles.availabilityLabelContent}>
-                    <CalendarDays size={16} />
-                    <span>Total Availability</span>
-                  </div>
-                </th>
-                {generateDates.map(date => {
-                  const availability = getTotalAvailability(date);
-                  const percentage = (availability.available / availability.total) * 100;
-                  
-                  return (
-                    <td key={date} className={styles.availabilityCell}>
-                      <div className={styles.availabilityContent}>
-                        <div className={styles.availabilityProgress}>
-                          <div 
-                            className={styles.availabilityProgressBar}
-                            style={{ 
-                              width: `${percentage}%`,
-                              background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
-                                         percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
-                                         'linear-gradient(135deg, #ef4444, #dc2626)'
-                            }}
-                          />
-                        </div>
-                        <span className={styles.availabilityNumbers}>
-                          {availability.available}/{availability.total}
-                        </span>
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-
-              {/* Room Types and Rooms */}
-              {roomTypes.map(roomType => {
-                const typeRooms = rooms.filter(r => r.room_type_id === roomType.id);
-                const isExpanded = expandedRoomTypes[roomType.id];
-
+          <thead>
+            {/* Date Headers */}
+            <tr>
+              <th className={styles.calendarFixedColumn}>
+                <div className={styles.fixedColumnHeader}>
+                  <span>Room Type / Room</span>
+                </div>
+              </th>
+              {generateDates.map(date => {
+                const dateObj = new Date(date);
+                const isToday = date === new Date().toISOString().split('T')[0];
+                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                
                 return (
-                  <>
-                    {/* Room Type Row */}
-                    <tr key={roomType.id} className={styles.roomTypeRow}>
-                      <td className={`${styles.calendarFixedColumn} ${styles.roomTypeCell}`}>
-                        <button
-                          onClick={() => toggleRoomType(roomType.id)}
-                          className={styles.roomTypeToggle}
-                        >
-                          <div className={styles.roomTypeIcon}>
-                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  <th 
+                    key={date} 
+                    className={`${styles.calendarDateHeader} ${isToday ? styles.today : ''} ${isWeekend ? styles.weekend : ''}`}
+                  >
+                    <div className={styles.dateHeaderContent}>
+                      <div className={styles.dateDay}>{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div className={styles.dateNum}>{dateObj.getDate()}</div>
+                      <div className={styles.dateMonth}>{dateObj.toLocaleDateString('en-US', { month: 'short' })}</div>
+                    </div>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+
+          <tbody>
+            {/* Total Availability Row */}
+            <tr className={styles.availabilityRow}>
+              <th className={`${styles.calendarFixedColumn} ${styles.availabilityLabel}`}>
+                <div className={styles.availabilityLabelContent}>
+                  <CalendarDays size={18} strokeWidth={2.5} />
+                  <span>Total Availability</span>
+                </div>
+              </th>
+              {generateDates.map(date => {
+                const availability = getTotalAvailability(date);
+                const percentage = (availability.available / availability.total) * 100;
+                
+                return (
+                  <td key={date} className={styles.availabilityCell}>
+                    <div className={styles.availabilityContent}>
+                      <div className={styles.availabilityProgress}>
+                        <div 
+                          className={styles.availabilityProgressBar}
+                          style={{ 
+                            width: `${percentage}%`,
+                            background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
+                                       percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
+                                       'linear-gradient(135deg, #ef4444, #dc2626)'
+                          }}
+                        />
+                      </div>
+                      <span className={styles.availabilityNumbers}>
+                        {availability.available}/{availability.total}
+                      </span>
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+
+            {/* Room Types and Rooms */}
+            {roomTypes.map(roomType => {
+              const typeRooms = rooms.filter(r => r.room_type_id === roomType.id);
+              const isExpanded = expandedRoomTypes[roomType.id];
+
+              return (
+                <>
+                  {/* Room Type Row */}
+                  <tr key={roomType.id} className={styles.roomTypeRow}>
+                    <td className={`${styles.calendarFixedColumn} ${styles.roomTypeCell}`}>
+                      <button
+                        onClick={() => toggleRoomType(roomType.id)}
+                        className={styles.roomTypeToggle}
+                      >
+                        <div className={styles.roomTypeIcon}>
+                          {isExpanded ? <ChevronDown size={18} strokeWidth={2.5} /> : <ChevronRight size={18} strokeWidth={2.5} />}
+                        </div>
+                        <div className={styles.roomTypeInfo}>
+                          <strong>{roomType.name}</strong>
+                          <span className={styles.roomCount}>{typeRooms.length} rooms</span>
+                        </div>
+                      </button>
+                    </td>
+                    {generateDates.map(date => {
+                      const availability = getAvailabilityForType(roomType.id, date);
+                      const percentage = (availability.available / availability.total) * 100;
+                      
+                      return (
+                        <td key={date} className={styles.roomTypeAvailabilityCell}>
+                          <div className={styles.availabilityBarContainer}>
+                            <div 
+                              className={styles.availabilityBar} 
+                              style={{ 
+                                width: `${percentage}%`,
+                                background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
+                                           percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
+                                           'linear-gradient(135deg, #ef4444, #dc2626)'
+                              }}
+                            />
+                            <span className={styles.availabilityText}>
+                              {availability.available}/{availability.total}
+                            </span>
                           </div>
-                          <div className={styles.roomTypeInfo}>
-                            <strong>{roomType.name}</strong>
-                            <span className={styles.roomCount}>{typeRooms.length} rooms</span>
-                          </div>
-                        </button>
+                        </td>
+                      );
+                    })}
+                  </tr>
+
+                  {/* Individual Room Rows (when expanded) */}
+                  {isExpanded && typeRooms.map(room => (
+                    <tr key={room.id} className={styles.roomRow}>
+                      <td className={`${styles.calendarFixedColumn} ${styles.roomCell}`}>
+                        <div className={styles.roomInfo}>
+                          <span className={styles.roomNumber}>Room {room.room_number}</span>
+                          <span className={styles.roomFloor}>Floor {room.floor}</span>
+                        </div>
                       </td>
                       {generateDates.map(date => {
-                        const availability = getAvailabilityForType(roomType.id, date);
-                        const percentage = (availability.available / availability.total) * 100;
+                        const roomStatus = getRoomStatus(room.id, date);
+                        const isSelected = dragSelection.selectedCells.some(
+                          cell => cell.roomId === room.id && cell.date === date
+                        );
                         
                         return (
-                          <td key={date} className={styles.roomTypeAvailabilityCell}>
-                            <div className={styles.availabilityBarContainer}>
-                              <div 
-                                className={styles.availabilityBar} 
-                                style={{ 
-                                  width: `${percentage}%`,
-                                  background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
-                                             percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
-                                             'linear-gradient(135deg, #ef4444, #dc2626)'
-                                }}
-                              />
-                              <span className={styles.availabilityText}>
-                                {availability.available}/{availability.total}
-                              </span>
-                            </div>
+                          <td 
+                            key={date} 
+                            className={`${styles.calendarCell} ${getCellStyle(roomStatus.status)} ${isSelected ? styles.cellSelected : ''}`}
+                            title={roomStatus.guestName || roomStatus.status}
+                            onClick={(e) => handleCellClick(e, room.id, date)}
+                            onMouseDown={(e) => handleCellMouseDown(e, room.id, date)}
+                            onMouseEnter={() => handleCellMouseEnter(room.id, date)}
+                            onMouseUp={(e) => handleCellMouseUp(e, room.id, date)}
+                            style={{ 
+                              cursor: roomStatus.status === 'available' ? 'pointer' : 'default',
+                              position: 'relative',
+                              userSelect: 'none'
+                            }}
+                          >
+                            {roomStatus.status === 'occupied' && (
+                              <div className={`${styles.cellContent} ${styles.occupiedContent}`}>
+                                <div className={styles.guestName}>{roomStatus.guestName}</div>
+                                <div className={styles.reservationStatus}>{roomStatus.statusType}</div>
+                              </div>
+                            )}
+                            {roomStatus.status === 'maintenance' && (
+                              <div className={`${styles.cellContent} ${styles.maintenanceContent}`}>
+                                <div className={styles.statusLabel}>Maintenance</div>
+                              </div>
+                            )}
+                            {roomStatus.status === 'blocked' && (
+                              <div className={`${styles.cellContent} ${styles.blockedContent}`}>
+                                <div className={styles.statusLabel}>Blocked</div>
+                              </div>
+                            )}
+                            {isSelected && (
+                              <div className={styles.selectionOverlay}></div>
+                            )}
                           </td>
                         );
                       })}
                     </tr>
-
-                    {/* Individual Room Rows (when expanded) */}
-                    {isExpanded && typeRooms.map(room => (
-                      <tr key={room.id} className={styles.roomRow}>
-                        <td className={`${styles.calendarFixedColumn} ${styles.roomCell}`}>
-                          <div className={styles.roomInfo}>
-                            <span className={styles.roomNumber}>Room {room.room_number}</span>
-                            <span className={styles.roomFloor}>Floor {room.floor}</span>
-                          </div>
-                        </td>
-                        {generateDates.map(date => {
-                          const roomStatus = getRoomStatus(room.id, date);
-                          const isSelected = dragSelection.selectedCells.some(
-                            cell => cell.roomId === room.id && cell.date === date
-                          );
-                          
-                          return (
-                            <td 
-                              key={date} 
-                              className={`${styles.calendarCell} ${getCellStyle(roomStatus.status)} ${isSelected ? styles.cellSelected : ''}`}
-                              title={roomStatus.guestName || roomStatus.status}
-                              onClick={(e) => handleCellClick(e, room.id, date)}
-                              onMouseDown={(e) => handleCellMouseDown(e, room.id, date)}
-                              onMouseEnter={() => handleCellMouseEnter(room.id, date)}
-                              onMouseUp={(e) => handleCellMouseUp(e, room.id, date)}
-                              style={{ 
-                                cursor: roomStatus.status === 'available' ? 'pointer' : 'default',
-                                position: 'relative',
-                                userSelect: 'none'
-                              }}
-                            >
-                              {roomStatus.status === 'occupied' && (
-                                <div className={`${styles.cellContent} ${styles.occupiedContent}`}>
-                                  <div className={styles.guestName}>{roomStatus.guestName}</div>
-                                  <div className={styles.reservationStatus}>{roomStatus.statusType}</div>
-                                </div>
-                              )}
-                              {roomStatus.status === 'maintenance' && (
-                                <div className={`${styles.cellContent} ${styles.maintenanceContent}`}>
-                                  <div className={styles.statusLabel}>Maintenance</div>
-                                </div>
-                              )}
-                              {roomStatus.status === 'blocked' && (
-                                <div className={`${styles.cellContent} ${styles.blockedContent}`}>
-                                  <div className={styles.statusLabel}>Blocked</div>
-                                </div>
-                              )}
-                              {isSelected && (
-                                <div className={styles.selectionOverlay}></div>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </>
-                );
-              })}
-            </tbody>
-          </table>
-          {/* Action Menu Popup */}
-      {actionMenu.visible && (
-        <div
-          ref={actionMenuRef}
-          style={{
-            position: 'absolute',
-            left: `${actionMenu.position.x}px`,
-            top: `${actionMenu.position.y}px`,
-            background: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            padding: '8px',
-            zIndex: 1000,
-            minWidth: '180px'
-          }}
-        >
-          <div style={{ 
-            fontSize: '12px', 
-            color: '#6b7280', 
-            padding: '4px 8px',
-            borderBottom: '1px solid #e5e7eb',
-            marginBottom: '4px'
-          }}>
-            {(() => {
-              const selectedCells = actionMenu.selectedCells || [];
-              
-              if (selectedCells.length === 1) {
-                // Single cell selection
-                const cell = selectedCells[0];
-                const room = rooms.find(r => r.id === cell.roomId);
-                return `${room ? `Room ${room.room_number}` : 'Room'} - ${new Date(cell.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-              } else if (selectedCells.length > 1) {
-                // Multiple cells selection
-                const uniqueRooms = [...new Set(selectedCells.map(c => c.roomId))];
-                const uniqueDates = [...new Set(selectedCells.map(c => c.date))].sort();
+                  ))}
+                </>
+              );
+            })}
+          </tbody>
+        </table>
+        
+        {/* Action Menu Popup */}
+        {actionMenu.visible && (
+          <div
+            ref={actionMenuRef}
+            style={{
+              position: 'absolute',
+              left: `${actionMenu.position.x}px`,
+              top: `${actionMenu.position.y}px`,
+              background: 'white',
+              borderRadius: '16px',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1)',
+              padding: '12px',
+              zIndex: 1000,
+              minWidth: '220px',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            <div style={{ 
+              fontSize: '13px', 
+              color: '#64748b', 
+              padding: '8px 12px',
+              borderBottom: '2px solid #f1f5f9',
+              marginBottom: '8px',
+              fontWeight: '600'
+            }}>
+              {(() => {
+                const selectedCells = actionMenu.selectedCells || [];
                 
-                return (
-                  <>
-                    <div style={{ fontWeight: '600', color: '#3b82f6' }}>
-                      {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
-                    </div>
-                    <div style={{ marginTop: '4px', fontSize: '11px' }}>
-                      {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} Ã— {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
-                    </div>
-                    <div style={{ marginTop: '2px', fontSize: '11px', color: '#059669' }}>
-                      {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      {uniqueDates.length > 1 && ` - ${new Date(uniqueDates[uniqueDates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-                    </div>
-                  </>
-                );
-              }
-              
-              return 'Select a date';
-            })()}
+                if (selectedCells.length === 1) {
+                  const cell = selectedCells[0];
+                  const room = rooms.find(r => r.id === cell.roomId);
+                  return `${room ? `Room ${room.room_number}` : 'Room'} - ${new Date(cell.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                } else if (selectedCells.length > 1) {
+                  const uniqueRooms = [...new Set(selectedCells.map(c => c.roomId))];
+                  const uniqueDates = [...new Set(selectedCells.map(c => c.date))].sort();
+                  
+                  return (
+                    <>
+                      <div style={{ fontWeight: '800', color: '#0ea5e9', fontSize: '14px' }}>
+                        {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
+                      </div>
+                      <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                        {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} × {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
+                      </div>
+                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#059669', fontWeight: '700' }}>
+                        {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {uniqueDates.length > 1 && ` - ${new Date(uniqueDates[uniqueDates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                      </div>
+                    </>
+                  );
+                }
+                
+                return 'Select a date';
+              })()}
+            </div>
+            
+            <button
+              onClick={handleBookRoom}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                background: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                borderRadius: '10px',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                color: '#059669',
+                fontWeight: '700',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f0fdf4';
+                e.currentTarget.style.transform = 'translateX(4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateX(0)';
+              }}
+            >
+              <CalendarIcon size={18} strokeWidth={2.5} />
+              Book
+            </button>
+            
+            <button
+              onClick={handleHoldRoom}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                background: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                borderRadius: '10px',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                color: '#f59e0b',
+                fontWeight: '700',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fffbeb';
+                e.currentTarget.style.transform = 'translateX(4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateX(0)';
+              }}
+            >
+              <Lock size={18} strokeWidth={2.5} />
+              Hold
+            </button>
+            
+            <button
+              onClick={handleBlockRoom}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                background: 'transparent',
+                textAlign: 'left',
+                cursor: 'pointer',
+                borderRadius: '10px',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                color: '#dc2626',
+                fontWeight: '700',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fef2f2';
+                e.currentTarget.style.transform = 'translateX(4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateX(0)';
+              }}
+            >
+              <X size={18} strokeWidth={2.5} />
+              Block
+            </button>
           </div>
-          
-          <button
-            onClick={handleBookRoom}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: 'none',
-              background: 'transparent',
-              textAlign: 'left',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#059669',
-              fontWeight: '500'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >
-            <CalendarIcon size={16} />
-            Book
-          </button>
-          
-          <button
-            onClick={handleHoldRoom}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: 'none',
-              background: 'transparent',
-              textAlign: 'left',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#f59e0b',
-              fontWeight: '500'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#fffbeb'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >
-            <Lock size={16} />
-            Hold
-          </button>
-          
-          <button
-            onClick={handleBlockRoom}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: 'none',
-              background: 'transparent',
-              textAlign: 'left',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#dc2626',
-              fontWeight: '500'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-          >
-            <X size={16} />
-            Block
-          </button>
-        </div>
-      )}
-        </div>
-
-      
+        )}
+      </div>
 
       {/* Quick Booking Modal */}
       <Modal
         isOpen={isBookingModalOpen}
         onClose={() => {
           setIsBookingModalOpen(false);
-          setPendingBookings([]); // Clear pending bookings on close
+          setPendingBookings([]);
         }}
         title={pendingBookings.length > 1 ? `Quick Booking (Creating ${pendingBookings.length} bookings)` : "Quick Booking"}
         size="medium"
@@ -1231,19 +1204,19 @@ const handleCellClick = (e, roomId, date) => {
           {pendingBookings.length > 1 && (
             <div className="form-group full-width">
               <div style={{ 
-                padding: '12px', 
-                background: '#fef3c7', 
-                border: '1px solid #fbbf24',
-                borderRadius: '6px',
-                marginBottom: '8px'
+                padding: '16px', 
+                background: 'linear-gradient(135deg, #fef3c7, #fde68a)', 
+                border: '2px solid #fbbf24',
+                borderRadius: '12px',
+                marginBottom: '12px'
               }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
-                  ðŸ“‹ Multi-Room Booking
+                <div style={{ fontSize: '15px', fontWeight: '800', color: '#92400e', marginBottom: '6px' }}>
+                  📋 Multi-Room Booking
                 </div>
-                <div style={{ fontSize: '13px', color: '#92400e', marginTop: '4px' }}>
+                <div style={{ fontSize: '14px', color: '#92400e', marginTop: '6px', lineHeight: '1.5' }}>
                   You're creating <strong>{pendingBookings.length} bookings</strong> at once. Enter guest details once, and all bookings will use the same information.
                 </div>
-                <div style={{ fontSize: '12px', color: '#92400e', marginTop: '6px', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '13px', color: '#92400e', marginTop: '8px', fontStyle: 'italic', fontWeight: '600' }}>
                   Rooms: {pendingBookings.map((b, i) => {
                     const room = rooms.find(r => r.id === b.roomId);
                     return room?.room_number || '?';
@@ -1256,27 +1229,27 @@ const handleCellClick = (e, roomId, date) => {
           {/* Room and Date Info */}
           <div className="form-group full-width">
             <div style={{ 
-              padding: '12px', 
-              background: '#f0f9ff', 
-              border: '1px solid #bae6fd',
-              borderRadius: '6px',
-              marginBottom: '8px'
+              padding: '16px', 
+              background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', 
+              border: '2px solid #60a5fa',
+              borderRadius: '12px',
+              marginBottom: '12px'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#0369a1' }}>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#075985', marginBottom: '6px' }}>
                 {(() => {
                   const room = rooms.find(r => r.id === bookingData.room_id);
                   const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
                   return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
                 })()}
               </div>
-              <div style={{ fontSize: '13px', color: '#0369a1', marginTop: '4px' }}>
+              <div style={{ fontSize: '14px', color: '#075985', marginTop: '6px', fontWeight: '600' }}>
                 Check-in: {bookingData.check_in_date}
               </div>
-              <div style={{ fontSize: '13px', color: '#0369a1', marginTop: '2px' }}>
+              <div style={{ fontSize: '14px', color: '#075985', marginTop: '4px', fontWeight: '600' }}>
                 Check-out: {bookingData.check_out_date}
               </div>
               {bookingData.check_in_date && bookingData.check_out_date && (
-                <div style={{ fontSize: '12px', color: '#0369a1', marginTop: '4px', fontWeight: '600' }}>
+                <div style={{ fontSize: '13px', color: '#075985', marginTop: '6px', fontWeight: '800' }}>
                   {(() => {
                     const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
                     return `${nights} night${nights !== 1 ? 's' : ''}`;
