@@ -1,7 +1,7 @@
 /* ========================================== */
 
 
-/* BOOKING CALENDAR STYLES */
+/* MODERN BOOKING CALENDAR STYLES */
 
 
 /* ========================================== */
@@ -10,13 +10,16 @@
 /* Calendar Page Layout */
 
 .calendarPage {
-    animation: fadeIn 0.3s ease-in;
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 24px;
+    background: #f8fafc;
+    min-height: 100vh;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(20px);
     }
     to {
         opacity: 1;
@@ -28,38 +31,55 @@
 /* Enhanced Page Header */
 
 .calendarPageHeader {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    border-radius: 16px;
-    padding: 32px;
-    margin-bottom: 24px;
-    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 28px;
+    box-shadow: 0 20px 60px rgba(14, 165, 233, 0.25), 0 10px 20px rgba(14, 165, 233, 0.15);
     color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.calendarPageHeader::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
 }
 
 .calendarHeaderTop {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
     flex-wrap: wrap;
-    gap: 24px;
+    gap: 28px;
+    position: relative;
+    z-index: 1;
 }
 
 .calendarMainTitle {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 32px;
-    font-weight: 700;
+    gap: 16px;
+    font-size: 36px;
+    font-weight: 800;
     color: white;
-    margin: 0 0 8px 0;
+    margin: 0 0 10px 0;
+    letter-spacing: -0.5px;
 }
 
 .calendarSubtitle {
-    font-size: 15px;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
     margin: 0;
     font-weight: 400;
+    letter-spacing: 0.2px;
 }
 
 
@@ -68,7 +88,7 @@
 .calendarHeaderActions {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
     flex-wrap: wrap;
 }
 
@@ -83,47 +103,43 @@
 .quickStatItem {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
+    gap: 14px;
+    padding: 18px 24px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .quickStatItem:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.28);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
 .quickStatItem svg {
     color: white;
-    opacity: 0.9;
+    opacity: 0.95;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .quickStatValue {
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 28px;
+    font-weight: 800;
     color: white;
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
 }
 
 .quickStatLabel {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.9);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
-}
-
-.statAvailable {
-    /* Additional styling for available stat if needed */
-}
-
-.statOccupied {
-    /* Additional styling for occupied stat if needed */
+    letter-spacing: 0.8px;
+    font-weight: 600;
 }
 
 
@@ -132,32 +148,33 @@
 .calendarRefreshBtn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    color: #2563eb;
-    font-size: 14px;
-    font-weight: 600;
+    gap: 10px;
+    padding: 14px 24px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    color: #0284c7;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .calendarRefreshBtn:hover:not(:disabled) {
     background: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    border-color: white;
 }
 
 .calendarRefreshBtn:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(-2px);
 }
 
 .calendarRefreshBtn:disabled {
-    opacity: 0.8;
+    opacity: 0.7;
     cursor: not-allowed;
 }
 
@@ -182,43 +199,49 @@
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
 }
 
 .calendarNavButtons {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .calendarNavBtn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
     color: white;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .calendarNavBtn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.28);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
 .todayBtn {
-    background: rgba(255, 255, 255, 0.95);
-    color: #2563eb;
+    background: rgba(255, 255, 255, 0.98);
+    color: #0284c7;
+    font-weight: 700;
+    border: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 .todayBtn:hover {
     background: white;
+    border-color: white;
 }
 
 .calendarViewControls {
@@ -228,35 +251,34 @@
 
 .calendarDateInput,
 .calendarDaysSelect {
-    padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #1f2937;
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .calendarDateInput:focus,
 .calendarDaysSelect:focus {
     outline: none;
     background: white;
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+    border-color: white;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
 }
 
 
 /* Calendar Drag Selection Styles */
 
-
-/* Selected cell highlighting */
-
 .calendarCell.cellSelected {
-    background: rgba(59, 130, 246, 0.25) !important;
-    border: 2px solid #3b82f6 !important;
+    background: rgba(14, 165, 233, 0.3) !important;
+    border: 2px solid #0ea5e9 !important;
     position: relative;
-    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+    box-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.4), 0 4px 12px rgba(14, 165, 233, 0.2);
 }
 
 .calendarCell.cellSelected::after {
@@ -266,7 +288,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2));
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(2, 132, 199, 0.25));
     pointer-events: none;
     z-index: 1;
 }
@@ -277,8 +299,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(59, 130, 246, 0.15);
-    border: 2px solid #3b82f6;
+    background: rgba(14, 165, 233, 0.2);
+    border: 3px solid #0ea5e9;
+    border-radius: 4px;
     pointer-events: none;
     z-index: 2;
     animation: pulse 1.5s ease-in-out infinite;
@@ -288,9 +311,11 @@
     0%,
     100% {
         opacity: 1;
+        transform: scale(1);
     }
     50% {
-        opacity: 0.6;
+        opacity: 0.7;
+        transform: scale(0.98);
     }
 }
 
@@ -308,8 +333,8 @@
 /* Visual feedback when selecting */
 
 .calendarCellAvailable:hover {
-    background: rgba(59, 130, 246, 0.08);
-    transition: background 0.15s ease;
+    background: rgba(14, 165, 233, 0.12);
+    transition: background 0.2s ease;
 }
 
 
@@ -328,20 +353,6 @@
 }
 
 
-/* Multi-row selection - add stronger visual connection */
-
-.calendarCell.cellSelected+.calendarCell.cellSelected {
-    border-left-color: #3b82f6;
-}
-
-
-/* Enhance visibility during active drag */
-
-.calendarTable tbody tr:has(.cellSelected) {
-    background: rgba(59, 130, 246, 0.02);
-}
-
-
 /* Calendar Table Container */
 
 .calendarTableContainer {
@@ -351,22 +362,23 @@
 }
 
 .calendarTableContainer::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
 }
 
 .calendarTableContainer::-webkit-scrollbar-track {
-    background: #f3f4f6;
-    border-radius: 6px;
+    background: #f1f5f9;
+    border-radius: 8px;
 }
 
 .calendarTableContainer::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    border-radius: 6px;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    border-radius: 8px;
+    border: 3px solid #f1f5f9;
 }
 
 .calendarTableContainer::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #2563eb, #1e40af);
+    background: linear-gradient(135deg, #0284c7, #0369a1);
 }
 
 
@@ -376,7 +388,11 @@
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 13px;
+    font-size: 14px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 
@@ -385,11 +401,11 @@
 .calendarFixedColumn {
     position: sticky;
     left: 0;
-    background: linear-gradient(to right, #ffffff, #fafbfc);
+    background: linear-gradient(to right, #ffffff, #f8fafc);
     z-index: 10;
-    min-width: 220px;
-    max-width: 220px;
-    border-right: 3px solid #e5e7eb;
+    min-width: 240px;
+    max-width: 240px;
+    border-right: 3px solid #e2e8f0;
     font-weight: 600;
 }
 
@@ -399,44 +415,48 @@
 }
 
 .fixedColumnHeader {
-    padding: 16px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #6b7280;
+    padding: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #475569;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 
 /* Date Headers */
 
 .calendarDateHeader {
-    min-width: 110px;
-    max-width: 110px;
-    padding: 16px 8px;
+    min-width: 120px;
+    max-width: 120px;
+    padding: 20px 12px;
     text-align: center;
-    background: linear-gradient(to bottom, #fafbfc, #f3f4f6);
-    border-bottom: 2px solid #e5e7eb;
-    border-right: 1px solid #e5e7eb;
+    background: linear-gradient(to bottom, #ffffff, #f8fafc);
+    border-bottom: 3px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
     font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 15;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .calendarDateHeader:hover {
-    background: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .calendarDateHeader.today {
     background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-    border-bottom-color: #3b82f6;
-    border-bottom-width: 3px;
+    border-bottom-color: #0ea5e9;
+    border-bottom-width: 4px;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
 }
 
 .calendarDateHeader.weekend {
     background: linear-gradient(to bottom, #fef3c7, #fde68a);
+    border-bottom-color: #f59e0b;
 }
 
 .calendarTable thead tr:first-child .calendarFixedColumn {
@@ -450,50 +470,52 @@
 .dateHeaderContent {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .dateDay {
-    font-size: 11px;
+    font-size: 12px;
     text-transform: uppercase;
-    color: #6b7280;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    color: #64748b;
+    font-weight: 800;
+    letter-spacing: 1px;
 }
 
 .dateNum {
-    font-size: 22px;
-    font-weight: 800;
-    color: #1f2937;
+    font-size: 26px;
+    font-weight: 900;
+    color: #1e293b;
     line-height: 1;
+    letter-spacing: -1px;
 }
 
 .calendarDateHeader.today .dateNum {
-    color: #2563eb;
+    color: #0284c7;
 }
 
 .dateMonth {
-    font-size: 11px;
-    color: #6b7280;
-    font-weight: 500;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 
 /* Availability Row */
 
 .availabilityRow {
-    background: linear-gradient(135deg, #eff6ff, #dbeafe);
-    border-bottom: 3px solid #3b82f6;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border-bottom: 4px solid #0ea5e9;
 }
 
 .availabilityRow th,
 .availabilityRow td {
     position: sticky;
-    top: 81px;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    top: 89px;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
     z-index: 17;
-    padding: 14px 12px;
-    border-right: 1px solid #bae6fd;
+    padding: 16px 14px;
+    border-right: 1px solid #7dd3fc;
 }
 
 .availabilityRow th {
@@ -503,64 +525,67 @@
 .availabilityRow .calendarFixedColumn {
     position: sticky;
     left: 0;
-    top: 81px;
+    top: 89px;
     z-index: 28;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
 }
 
 .availabilityLabelContent {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 0 16px;
-    color: #1e40af;
-    font-weight: 700;
-    font-size: 14px;
+    gap: 12px;
+    padding: 0 20px;
+    color: #075985;
+    font-weight: 800;
+    font-size: 15px;
 }
 
 .availabilityCell {
     text-align: center;
-    padding: 12px 8px;
+    padding: 14px 10px;
 }
 
 .availabilityContent {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .availabilityProgress {
     width: 100%;
-    height: 6px;
-    background: rgba(59, 130, 246, 0.15);
-    border-radius: 3px;
+    height: 8px;
+    background: rgba(14, 165, 233, 0.2);
+    border-radius: 6px;
     overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .availabilityProgressBar {
     height: 100%;
-    transition: width 0.4s ease;
-    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .availabilityNumbers {
-    font-size: 15px;
-    font-weight: 700;
-    color: #1e40af;
+    font-size: 16px;
+    font-weight: 800;
+    color: #075985;
+    letter-spacing: -0.3px;
 }
 
 
 /* Room Type Row */
 
 .roomTypeRow {
-    background: linear-gradient(to right, #fafbfc, #f9fafb);
-    border-top: 2px solid #e5e7eb;
-    transition: all 0.2s;
+    background: linear-gradient(to right, #f8fafc, #f1f5f9);
+    border-top: 2px solid #e2e8f0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .roomTypeRow:hover {
-    background: linear-gradient(to right, #f3f4f6, #f0f1f3);
+    background: linear-gradient(to right, #f1f5f9, #e2e8f0);
 }
 
 .roomTypeCell {
@@ -571,76 +596,80 @@
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
+    gap: 14px;
+    padding: 18px 24px;
     background: transparent;
     border: none;
     cursor: pointer;
     text-align: left;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .roomTypeToggle:hover {
-    padding-left: 24px;
+    padding-left: 28px;
 }
 
 .roomTypeIcon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
     color: white;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
 .roomTypeToggle:hover .roomTypeIcon {
-    transform: rotate(90deg) scale(1.1);
+    transform: rotate(90deg) scale(1.15);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
 }
 
 .roomTypeInfo {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 }
 
 .roomTypeInfo strong {
-    font-size: 15px;
-    color: #1f2937;
-    font-weight: 700;
+    font-size: 16px;
+    color: #1e293b;
+    font-weight: 800;
+    letter-spacing: -0.2px;
 }
 
 .roomCount {
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 500;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 600;
 }
 
 
 /* Room Type Availability Cell */
 
 .roomTypeAvailabilityCell {
-    padding: 12px;
-    border-right: 1px solid #e5e7eb;
+    padding: 14px;
+    border-right: 1px solid #e2e8f0;
     background: white;
 }
 
 .availabilityBarContainer {
     position: relative;
     width: 100%;
-    height: 32px;
-    background: #f3f4f6;
-    border-radius: 8px;
+    height: 36px;
+    background: #f1f5f9;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .availabilityBar {
     height: 100%;
-    transition: width 0.4s ease;
-    border-radius: 8px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .availabilityText {
@@ -648,61 +677,63 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 13px;
-    font-weight: 700;
-    color: #1f2937;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    font-weight: 800;
+    color: #1e293b;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
     z-index: 1;
+    letter-spacing: -0.3px;
 }
 
 
 /* Room Row */
 
 .roomRow {
-    border-top: 1px solid #f3f4f6;
-    transition: all 0.2s;
+    border-top: 1px solid #f1f5f9;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .roomRow:hover {
-    background: linear-gradient(to right, #fafbfc, #f9fafb);
+    background: linear-gradient(to right, #fafbfc, #f8fafc);
 }
 
 .roomCell {
-    padding: 14px 20px 14px 40px;
+    padding: 16px 24px 16px 48px;
 }
 
 .roomInfo {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
 }
 
 .roomNumber {
-    font-size: 14px;
-    font-weight: 700;
-    color: #1f2937;
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.2px;
 }
 
 .roomFloor {
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 500;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 600;
 }
 
 
 /* Calendar Cells */
 
 .calendarCell {
-    min-width: 110px;
-    max-width: 110px;
-    height: 70px;
-    padding: 8px;
-    border-right: 1px solid #e5e7eb;
-    border-bottom: 1px solid #f3f4f6;
+    min-width: 120px;
+    max-width: 120px;
+    height: 80px;
+    padding: 10px;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #f1f5f9;
     text-align: center;
     vertical-align: middle;
     position: relative;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .calendarCellAvailable {
@@ -711,9 +742,10 @@
 
 .calendarCellAvailable:hover {
     background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    transform: scale(1.02);
-    box-shadow: inset 0 0 0 2px #10b981;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px #10b981, 0 8px 20px rgba(16, 185, 129, 0.2);
     z-index: 5;
+    border-radius: 8px;
 }
 
 .calendarCellOccupied {
@@ -723,9 +755,10 @@
 
 .calendarCellOccupied:hover {
     background: linear-gradient(135deg, #fee2e2, #fecaca);
-    transform: scale(1.02);
-    box-shadow: inset 0 0 0 2px #ef4444;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px #ef4444, 0 8px 20px rgba(239, 68, 68, 0.2);
     z-index: 5;
+    border-radius: 8px;
 }
 
 .calendarCellMaintenance {
@@ -734,9 +767,10 @@
 
 .calendarCellMaintenance:hover {
     background: linear-gradient(135deg, #fef3c7, #fde68a);
-    transform: scale(1.02);
-    box-shadow: inset 0 0 0 2px #f59e0b;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px #f59e0b, 0 8px 20px rgba(245, 158, 11, 0.2);
     z-index: 5;
+    border-radius: 8px;
 }
 
 .calendarCellBlocked {
@@ -745,9 +779,10 @@
 
 .calendarCellBlocked:hover {
     background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-    transform: scale(1.02);
-    box-shadow: inset 0 0 0 2px #9ca3af;
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px #9ca3af, 0 8px 20px rgba(156, 163, 175, 0.2);
     z-index: 5;
+    border-radius: 8px;
 }
 
 .cellContent {
@@ -756,36 +791,39 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    gap: 6px;
+    gap: 8px;
 }
 
 .occupiedContent .guestName {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 800;
     color: #991b1b;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 95px;
+    max-width: 100px;
+    letter-spacing: -0.2px;
 }
 
 .occupiedContent .reservationStatus {
-    font-size: 10px;
-    padding: 3px 8px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 6px;
+    font-size: 11px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
     color: #7f1d1d;
-    font-weight: 600;
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-weight: 700;
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
+    letter-spacing: 0.3px;
 }
 
 .maintenanceContent .statusLabel,
 .blockedContent .statusLabel {
-    font-size: 11px;
-    font-weight: 700;
-    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 
@@ -793,7 +831,7 @@
 
 @media (max-width: 1024px) {
     .calendarPageHeader {
-        padding: 24px;
+        padding: 28px;
     }
     .calendarHeaderTop {
         flex-direction: column;
@@ -825,19 +863,22 @@
         flex: 1;
     }
     .calendarFixedColumn {
-        min-width: 160px;
-        max-width: 160px;
+        min-width: 180px;
+        max-width: 180px;
     }
     .calendarDateHeader,
     .calendarCell {
-        min-width: 90px;
-        max-width: 90px;
+        min-width: 100px;
+        max-width: 100px;
     }
 }
 
 @media (max-width: 768px) {
+    .calendarPage {
+        padding: 16px;
+    }
     .calendarMainTitle {
-        font-size: 24px;
+        font-size: 28px;
     }
     .calendarQuickStats {
         flex-direction: column;
@@ -847,26 +888,26 @@
         flex-direction: column;
     }
     .calendarFixedColumn {
-        min-width: 130px;
-        max-width: 130px;
-        font-size: 12px;
+        min-width: 140px;
+        max-width: 140px;
+        font-size: 13px;
     }
     .calendarDateHeader,
     .calendarCell {
-        min-width: 75px;
-        max-width: 75px;
-        height: 60px;
-        font-size: 11px;
+        min-width: 85px;
+        max-width: 85px;
+        height: 70px;
+        font-size: 12px;
     }
     .dateNum {
-        font-size: 18px;
+        font-size: 20px;
     }
     .guestName {
-        font-size: 10px;
-        max-width: 65px;
+        font-size: 11px;
+        max-width: 70px;
     }
     .reservationStatus {
-        font-size: 9px;
-        padding: 2px 6px;
+        font-size: 10px;
+        padding: 3px 8px;
     }
 }
