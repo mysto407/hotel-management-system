@@ -480,7 +480,56 @@ const Reservations = () => {
     return `${room.room_number} - ${roomType?.name || 'Unknown'}`;
   };
 
+  // Group reservations that belong to the same booking
+  const groupReservations = (reservations) => {
+    const groups = [];
+    const processed = new Set();
+
+    reservations.forEach(reservation => {
+      if (processed.has(reservation.id)) return;
+
+      // Find all reservations that match this one (same booking)
+      const group = reservations.filter(r => {
+        if (processed.has(r.id)) return false;
+        
+        // Match by guest, dates, and booking source
+        const sameGuest = r.guest_id === reservation.guest_id;
+        const sameDates = r.check_in_date === reservation.check_in_date && 
+                         r.check_out_date === reservation.check_out_date;
+        const sameSource = r.booking_source === reservation.booking_source && 
+                          r.agent_id === reservation.agent_id;
+        const sameMealPlan = r.meal_plan === reservation.meal_plan;
+        
+        // Check if created within 30 seconds of each other (same booking session)
+        const timeDiff = Math.abs(new Date(r.created_at) - new Date(reservation.created_at));
+        const createdTogether = timeDiff < 30000; // 30 seconds
+        
+        return sameGuest && sameDates && sameSource && sameMealPlan && createdTogether;
+      });
+
+      group.forEach(r => processed.add(r.id));
+      groups.push(group);
+    });
+
+    return groups;
+  };
+
   const availableRooms = rooms.filter(r => r.status === 'Available');
+
+  // State for expanded groups
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
+
+  const toggleGroupExpansion = (groupId) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
 
   // Enhanced filtering with all filters
   const filteredReservations = reservations
@@ -1152,8 +1201,8 @@ const Reservations = () => {
               Summary
             </h3>
             <div style={{ color: '#6b7280', fontSize: '14px' }}>
-              Showing <strong style={{ color: '#1f2937' }}>{filteredReservations.length}</strong> of{' '}
-              <strong style={{ color: '#1f2937' }}>{reservations.length}</strong> reservations
+              Showing <strong style={{ color: '#1f2937' }}>{groupReservations(filteredReservations).length}</strong> {groupReservations(filteredReservations).length === 1 ? 'booking' : 'bookings'} ({filteredReservations.length} {filteredReservations.length === 1 ? 'room' : 'rooms'}) of{' '}
+              <strong style={{ color: '#1f2937' }}>{groupReservations(reservations).length}</strong> total bookings
             </div>
           </div>
           <ChevronDown 
@@ -1617,121 +1666,265 @@ const Reservations = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredReservations.map(reservation => {
-              // Debug: Log reservation structure for agent bookings
-              if (reservation.booking_source === 'agent') {
-                console.log('Agent reservation:', {
-                  id: reservation.id,
-                  booking_source: reservation.booking_source,
-                  agent_id: reservation.agent_id,
-                  agents: reservation.agents
-                });
-              }
+            {groupReservations(filteredReservations).map((group, groupIndex) => {
+              const isMultiRoom = group.length > 1;
+              const primaryReservation = group[0];
+              const groupId = `${primaryReservation.guest_id}-${primaryReservation.check_in_date}-${groupIndex}`;
+              const isExpanded = expandedGroups.has(groupId);
+              
+              // Calculate totals for the group
+              const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+              const totalGuests = group.reduce((sum, r) => 
+                sum + (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0), 0
+              );
               
               return (
-              <tr key={reservation.id}>
-                <td>
-                  <div className={styles.bookingBadges}>
-                    {/* Booking Source Badge with Agent Name */}
-                    {reservation.booking_source === 'agent' ? (
-                      <span className={`${styles.bookingBadge} ${styles.bookingBadgeAgent}`}>
-                        <User size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                        Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
+                <>
+                  {/* Main Group Row */}
+                  <tr key={groupId} style={{ background: isMultiRoom ? '#f9fafb' : 'white' }}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {isMultiRoom && (
+                          <button
+                            onClick={() => toggleGroupExpansion(groupId)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: '#3b82f6'
+                            }}
+                            title={isExpanded ? 'Collapse rooms' : 'Expand rooms'}
+                          >
+                            <ChevronDown 
+                              size={16} 
+                              style={{ 
+                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s'
+                              }} 
+                            />
+                          </button>
+                        )}
+                        <div>
+                          <div className={styles.bookingBadges}>
+                            {/* Multi-room badge */}
+                            {isMultiRoom && (
+                              <span className={`${styles.bookingBadge}`} style={{
+                                background: '#dbeafe',
+                                color: '#1e40af',
+                                border: '1px solid #93c5fd',
+                                fontWeight: '600'
+                              }}>
+                                {group.length} Rooms
+                              </span>
+                            )}
+                            
+                            {/* Booking Source Badge */}
+                            {primaryReservation.booking_source === 'agent' ? (
+                              <span className={`${styles.bookingBadge} ${styles.bookingBadgeAgent}`}>
+                                <User size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                                Agent{primaryReservation.agents?.name ? `: ${primaryReservation.agents.name}` : ''}
+                              </span>
+                            ) : (
+                              <span className={`${styles.bookingBadge} ${styles.bookingBadgeDirect}`}>
+                                <Building size={14} style={{ display: 'inline', marginRight: '4px' }} />Direct
+                              </span>
+                            )}
+                            
+                            {/* Direct Source Badge */}
+                            {primaryReservation.booking_source === 'direct' && primaryReservation.direct_source && (
+                              <span className={`${styles.bookingBadge} ${styles.bookingBadgeSource}`}>
+                                {primaryReservation.direct_source}
+                              </span>
+                            )}
+                          </div>
+                          <strong>{primaryReservation.guests?.name || 'Unknown'}</strong>
+                          <br />
+                          <small style={{color: '#6b7280'}}>
+                            {primaryReservation.guests?.phone || 'N/A'}
+                          </small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      {isMultiRoom ? (
+                        <div>
+                          <strong>{group.length} Rooms</strong>
+                          <br />
+                          <small style={{color: '#6b7280'}}>
+                            {group.map(r => r.rooms?.room_number).filter(Boolean).join(', ')}
+                          </small>
+                        </div>
+                      ) : (
+                        getRoomInfo(primaryReservation.rooms)
+                      )}
+                    </td>
+                    <td>{primaryReservation.check_in_date}</td>
+                    <td>{primaryReservation.check_out_date}</td>
+                    <td>
+                      {totalGuests} Total
+                      {isMultiRoom && (
+                        <>
+                          <br />
+                          <small style={{color: '#6b7280'}}>
+                            {group.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)} Adults
+                            {group.reduce((sum, r) => sum + (r.number_of_children || 0), 0) > 0 && 
+                              `, ${group.reduce((sum, r) => sum + (r.number_of_children || 0), 0)} Children`}
+                            {group.reduce((sum, r) => sum + (r.number_of_infants || 0), 0) > 0 && 
+                              `, ${group.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)} Infants`}
+                          </small>
+                        </>
+                      )}
+                      {!isMultiRoom && (
+                        <>
+                          <br />
+                          <small style={{color: '#6b7280'}}>
+                            {primaryReservation.number_of_adults || 0} Adults
+                            {primaryReservation.number_of_children > 0 && `, ${primaryReservation.number_of_children} Children`}
+                            {primaryReservation.number_of_infants > 0 && `, ${primaryReservation.number_of_infants} Infants`}
+                          </small>
+                        </>
+                      )}
+                    </td>
+                    <td>
+                      <span className="bill-type-badge">
+                        {getMealPlanLabel(primaryReservation.meal_plan)}
                       </span>
-                    ) : (
-                      <span className={`${styles.bookingBadge} ${styles.bookingBadgeDirect}`}>
-                        <Building size={14} style={{ display: 'inline', marginRight: '4px' }} />Direct
+                    </td>
+                    <td>₹{totalAmount.toLocaleString()}</td>
+                    <td>
+                      <span className={`status-badge ${
+                        primaryReservation.payment_status === 'Paid' ? 'status-available' :
+                        primaryReservation.payment_status === 'Partial' ? 'status-maintenance' :
+                        'status-blocked'
+                      }`}>
+                        {primaryReservation.payment_status}
                       </span>
-                    )}
-                    
-                    {/* Direct Source Badge - Only show if booking source is direct and has direct_source */}
-                    {reservation.booking_source === 'direct' && reservation.direct_source && (
-                      <span className={`${styles.bookingBadge} ${styles.bookingBadgeSource}`}>
-                        {reservation.direct_source}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${
+                        primaryReservation.status === 'Inquiry' ? styles.statusInquiry :
+                        primaryReservation.status === 'Tentative' ? styles.statusTentative :
+                        primaryReservation.status === 'Hold' ? styles.statusHold :
+                        primaryReservation.status === 'Confirmed' ? 'status-maintenance' :
+                        primaryReservation.status === 'Checked-in' ? 'status-occupied' :
+                        primaryReservation.status === 'Checked-out' ? 'status-available' :
+                        'status-blocked'
+                      }`}>
+                        {primaryReservation.status}
                       </span>
-                    )}
-                  </div>
-                  <strong>{reservation.guests?.name || 'Unknown'}</strong>
-                  <br />
-                  <small style={{color: '#6b7280'}}>
-                    {reservation.guests?.phone || 'N/A'}
-                  </small>
-                </td>
-                <td>{getRoomInfo(reservation.rooms)}</td>
-                <td>{reservation.check_in_date}</td>
-                <td>{reservation.check_out_date}</td>
-                <td>
-                  {reservation.number_of_adults || reservation.number_of_guests || 0} Adults
-                  {reservation.number_of_children > 0 && <><br /><small style={{color: '#6b7280'}}>{reservation.number_of_children} Children</small></>}
-                  {reservation.number_of_infants > 0 && <><br /><small style={{color: '#6b7280'}}>{reservation.number_of_infants} Infants</small></>}
-                </td>
-                <td>
-                  <span className="bill-type-badge">
-                    {getMealPlanLabel(reservation.meal_plan)}
-                  </span>
-                </td>
-                <td>{reservation.total_amount}.00</td>
-                <td>
-                  <span className={`status-badge ${
-                    reservation.payment_status === 'Paid' ? 'status-available' :
-                    reservation.payment_status === 'Partial' ? 'status-maintenance' :
-                    'status-blocked'
-                  }`}>
-                    {reservation.payment_status}
-                  </span>
-                </td>
-                <td>
-                  <span className={`status-badge ${
-                    reservation.status === 'Inquiry' ? styles.statusInquiry :
-                    reservation.status === 'Tentative' ? styles.statusTentative :
-                    reservation.status === 'Hold' ? styles.statusHold :
-                    reservation.status === 'Confirmed' ? 'status-maintenance' :
-                    reservation.status === 'Checked-in' ? 'status-occupied' :
-                    reservation.status === 'Checked-out' ? 'status-available' :
-                    'status-blocked'
-                  }`}>
-                    {reservation.status}
-                  </span>
-                </td>
-                <td>
-                  <div className="action-buttons">
-                    {(reservation.status === 'Confirmed' || reservation.status === 'Hold') && (
-                      <button
-                        onClick={() => handleCheckIn(reservation)}
-                        className="btn-icon btn-success"
-                        title="Check In"
-                      >
-                        <CheckCircle size={16} />
-                      </button>
-                    )}
-                    {reservation.status === 'Checked-in' && (
-                      <button
-                        onClick={() => handleCheckOut(reservation)}
-                        className="btn-icon btn-success"
-                        title="Check Out"
-                      >
-                        <LogOut size={16} />
-                      </button>
-                    )}
-                    {reservation.status !== 'Cancelled' && reservation.status !== 'Checked-out' && (
-                      <>
-                        <button onClick={() => handleEdit(reservation)} className="btn-icon btn-edit">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleCancel(reservation)} className="btn-icon btn-delete">
-                          <XOctagon size={16} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        {(primaryReservation.status === 'Confirmed' || primaryReservation.status === 'Hold') && (
+                          <button
+                            onClick={() => {
+                              // Check in all rooms in the group
+                              if (isMultiRoom) {
+                                if (window.confirm(`Check in all ${group.length} rooms for ${primaryReservation.guests?.name}?`)) {
+                                  group.forEach(r => checkIn(r.id));
+                                }
+                              } else {
+                                handleCheckIn(primaryReservation);
+                              }
+                            }}
+                            className="btn-icon btn-success"
+                            title="Check In"
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
+                        {primaryReservation.status === 'Checked-in' && (
+                          <button
+                            onClick={() => {
+                              // Check out all rooms in the group
+                              if (isMultiRoom) {
+                                if (window.confirm(`Check out all ${group.length} rooms for ${primaryReservation.guests?.name}?`)) {
+                                  group.forEach(r => checkOut(r.id));
+                                }
+                              } else {
+                                handleCheckOut(primaryReservation);
+                              }
+                            }}
+                            className="btn-icon btn-success"
+                            title="Check Out"
+                          >
+                            <LogOut size={16} />
+                          </button>
+                        )}
+                        {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
+                          <>
+                            {!isMultiRoom && (
+                              <button onClick={() => handleEdit(primaryReservation)} className="btn-icon btn-edit">
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => {
+                                if (isMultiRoom) {
+                                  if (window.confirm(`Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`)) {
+                                    group.forEach(r => handleCancel(r));
+                                  }
+                                } else {
+                                  handleCancel(primaryReservation);
+                                }
+                              }} 
+                              className="btn-icon btn-delete"
+                            >
+                              <XOctagon size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  
+                  {/* Expanded Room Details */}
+                  {isMultiRoom && isExpanded && group.map((reservation, roomIndex) => (
+                    <tr 
+                      key={reservation.id} 
+                      style={{ 
+                        background: '#ffffff',
+                        borderLeft: '4px solid #3b82f6'
+                      }}
+                    >
+                      <td style={{ paddingLeft: '48px' }}>
+                        <small style={{ color: '#6b7280' }}>Room {roomIndex + 1}</small>
+                      </td>
+                      <td>{getRoomInfo(reservation.rooms)}</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>
+                        <small>
+                          {reservation.number_of_adults || 0} Adults
+                          {reservation.number_of_children > 0 && `, ${reservation.number_of_children} Children`}
+                          {reservation.number_of_infants > 0 && `, ${reservation.number_of_infants} Infants`}
+                        </small>
+                      </td>
+                      <td>-</td>
+                      <td>
+                        <small>₹{(reservation.total_amount || 0).toLocaleString()}</small>
+                      </td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button onClick={() => handleEdit(reservation)} className="btn-icon btn-edit">
+                            <Edit2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </>
               );
             })}
           </tbody>
         </table>
 
-        {filteredReservations.length === 0 && (
+        {groupReservations(filteredReservations).length === 0 && (
           <div style={{ 
             padding: '40px', 
             textAlign: 'center', 
