@@ -95,28 +95,39 @@
 .sidebarCollapseBtn {
     position: absolute;
     top: 80px;
+    /* You can adjust this top value if you like */
     right: -12px;
+    /* This keeps it halfway over the border */
     width: 24px;
     height: 24px;
     background: white;
+    /* --- This is the new part --- */
     border: 1px solid #e5e7eb;
-    border-radius: 50%;
+    border-left: none;
+    /* Remove the border facing the sidebar */
+    border-radius: 0 12px 12px 0;
+    /* Makes the 'D' shape */
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.07);
+    /* A more subtle shadow */
+    /* --- End of new part --- */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 10;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .sidebarCollapseBtn:hover {
     background: #f3f4f6;
-    transform: scale(1.1);
+    /* We remove the transform: scale(1.1) as it looks odd */
 }
 
 .sidebarCollapseBtn:active {
-    transform: scale(0.95);
+    background: #e5e7eb;
+    /* Darken background on click */
+    transform: translateX(-1px);
+    /* Pulls it slightly into the sidebar */
 }
 
 
