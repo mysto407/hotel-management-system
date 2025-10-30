@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import styles from './sidebar.module.css'; // Import the CSS module
+import styles from './Sidebar.module.css'; // Import the CSS module
 
 export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   const { user } = useAuth();
