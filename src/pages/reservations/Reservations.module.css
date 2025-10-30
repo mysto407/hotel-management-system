@@ -1,0 +1,64 @@
+/* Booking Badges */
+
+.bookingBadges {
+    margin-bottom: 6px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.bookingBadge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    /* Ensure icons align well */
+    display: inline-flex;
+    align-items: center;
+}
+
+.bookingBadgeAgent {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+.bookingBadgeDirect {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.bookingBadgeSource {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    font-weight: 500;
+}
+
+
+/* Additional Statuses for Reservations */
+
+
+/* Base .status-badge class is global in App.css */
+
+.statusInquiry {
+    background: #f3e8ff;
+    /* purple-100 */
+    color: #7e22ce;
+    /* purple-700 */
+}
+
+.statusTentative {
+    background: #fef3c7;
+    /* amber-100 */
+    color: #92400e;
+    /* amber-800 */
+}
+
+.statusHold {
+    background: #ffedd5;
+    /* orange-100 */
+    color: #c2410c;
+    /* orange-700 */
+}
