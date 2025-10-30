@@ -64,6 +64,9 @@ const ReservationCalendar = () => {
     guest_type: 'Regular'
   });
   
+  // State for pending multi-room bookings
+  const [pendingBookings, setPendingBookings] = useState([]);
+  
   // Drag-to-scroll state
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -493,38 +496,32 @@ const handleCellClick = (e, roomId, date) => {
     if (!window.confirm(
       `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
       `${roomCount} room${roomCount !== 1 ? 's' : ''} × ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
-      `Note: Guest information will be required for each booking.`
+      `You'll enter guest details once, and all bookings will be created with the same guest.`
     )) {
       return;
     }
     
-    // For now, open modal for the first booking
-    // In a real implementation, you might want to show a multi-booking interface
-    if (bookings.length > 0) {
-      const firstBooking = bookings[0];
-      
-      setBookingData({
-        room_id: firstBooking.roomId,
-        check_in_date: firstBooking.checkIn,
-        check_out_date: firstBooking.checkOut,
-        guest_id: '',
-        number_of_adults: 1,
-        number_of_children: 0,
-        number_of_infants: 0,
-        meal_plan: 'NM',
-        status: status,
-        special_requests: bookings.length > 1 ? `Part of multi-room booking (${bookingCount} total bookings)` : ''
-      });
-      
-      // Store remaining bookings for sequential creation
-      if (bookings.length > 1) {
-        // You could store these in state to create after the first one
-        console.log('Additional bookings to create:', bookings.slice(1));
-      }
-      
-      closeActionMenu();
-      setIsBookingModalOpen(true);
-    }
+    // Store all bookings including the first one
+    setPendingBookings(bookings);
+    
+    // Open modal for the first booking with indication of multi-booking
+    const firstBooking = bookings[0];
+    
+    setBookingData({
+      room_id: firstBooking.roomId,
+      check_in_date: firstBooking.checkIn,
+      check_out_date: firstBooking.checkOut,
+      guest_id: '',
+      number_of_adults: 1,
+      number_of_children: 0,
+      number_of_infants: 0,
+      meal_plan: 'NM',
+      status: status,
+      special_requests: bookingCount > 1 ? `Multi-room booking (1 of ${bookingCount})` : ''
+    });
+    
+    closeActionMenu();
+    setIsBookingModalOpen(true);
   };
 
   // Handle Book action - Open quick booking modal
@@ -576,7 +573,7 @@ const handleCellClick = (e, roomId, date) => {
       const room = rooms.find(r => r.id === bookingData.room_id);
       const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
       
-      // Calculate nights and total
+      // Calculate nights and total for the first booking
       const checkIn = new Date(bookingData.check_in_date);
       const checkOut = new Date(bookingData.check_out_date);
       const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
@@ -601,8 +598,68 @@ const handleCellClick = (e, roomId, date) => {
         special_requests: bookingData.special_requests
       };
       
+      // Create the first booking
       await addReservation(reservationData);
-      await fetchReservations();
+      
+      // If there are pending bookings (multi-room selection), create them too
+      if (pendingBookings.length > 1) {
+        let successCount = 1; // Already created the first one
+        let failCount = 0;
+        
+        // Create remaining bookings with the same guest and meal plan
+        for (let i = 1; i < pendingBookings.length; i++) {
+          const booking = pendingBookings[i];
+          const bookingRoom = rooms.find(r => r.id === booking.roomId);
+          const bookingRoomType = roomTypes.find(rt => rt.id === bookingRoom?.room_type_id);
+          
+          const bookingCheckIn = new Date(booking.checkIn);
+          const bookingCheckOut = new Date(booking.checkOut);
+          const bookingNights = Math.ceil((bookingCheckOut - bookingCheckIn) / (1000 * 60 * 60 * 24));
+          const bookingTotal = (bookingRoomType?.base_price || 0) * bookingNights;
+          
+          try {
+            await addReservation({
+              booking_source: 'direct',
+              direct_source: 'Calendar',
+              guest_id: bookingData.guest_id,
+              room_id: booking.roomId,
+              check_in_date: booking.checkIn,
+              check_out_date: booking.checkOut,
+              number_of_adults: parseInt(bookingData.number_of_adults),
+              number_of_children: parseInt(bookingData.number_of_children),
+              number_of_infants: parseInt(bookingData.number_of_infants),
+              number_of_guests: parseInt(bookingData.number_of_adults) + parseInt(bookingData.number_of_children) + parseInt(bookingData.number_of_infants),
+              meal_plan: bookingData.meal_plan,
+              total_amount: bookingTotal,
+              advance_payment: 0,
+              payment_status: 'Pending',
+              status: bookingData.status,
+              special_requests: `Multi-room booking (${i + 1} of ${pendingBookings.length})`
+            });
+            successCount++;
+          } catch (error) {
+            console.error(`Error creating booking ${i + 1}:`, error);
+            failCount++;
+          }
+        }
+        
+        // Clear pending bookings
+        setPendingBookings([]);
+        
+        // Show summary
+        await fetchReservations();
+        
+        if (failCount > 0) {
+          alert(`Created ${successCount} of ${pendingBookings.length} bookings successfully. ${failCount} booking(s) failed.`);
+        } else {
+          alert(`All ${successCount} bookings created successfully!`);
+        }
+      } else {
+        // Single booking
+        await fetchReservations();
+        alert('Booking created successfully!');
+        setPendingBookings([]); // Clear any pending bookings just in case
+      }
       
       // Reset and close
       setIsBookingModalOpen(false);
@@ -619,7 +676,6 @@ const handleCellClick = (e, roomId, date) => {
         special_requests: ''
       });
       
-      alert('Booking created successfully!');
     } catch (error) {
       console.error('Error creating booking:', error);
       alert('Failed to create booking: ' + error.message);
@@ -1162,11 +1218,40 @@ const handleCellClick = (e, roomId, date) => {
       {/* Quick Booking Modal */}
       <Modal
         isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        title="Quick Booking"
+        onClose={() => {
+          setIsBookingModalOpen(false);
+          setPendingBookings([]); // Clear pending bookings on close
+        }}
+        title={pendingBookings.length > 1 ? `Quick Booking (Creating ${pendingBookings.length} bookings)` : "Quick Booking"}
         size="medium"
       >
         <div className="form-grid">
+          {/* Multi-booking indicator */}
+          {pendingBookings.length > 1 && (
+            <div className="form-group full-width">
+              <div style={{ 
+                padding: '12px', 
+                background: '#fef3c7', 
+                border: '1px solid #fbbf24',
+                borderRadius: '6px',
+                marginBottom: '8px'
+              }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
+                  📋 Multi-Room Booking
+                </div>
+                <div style={{ fontSize: '13px', color: '#92400e', marginTop: '4px' }}>
+                  You're creating <strong>{pendingBookings.length} bookings</strong> at once. Enter guest details once, and all bookings will use the same information.
+                </div>
+                <div style={{ fontSize: '12px', color: '#92400e', marginTop: '6px', fontStyle: 'italic' }}>
+                  Rooms: {pendingBookings.map((b, i) => {
+                    const room = rooms.find(r => r.id === b.roomId);
+                    return room?.room_number || '?';
+                  }).join(', ')}
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Room and Date Info */}
           <div className="form-group full-width">
             <div style={{ 
