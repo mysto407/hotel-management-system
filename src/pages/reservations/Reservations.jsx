@@ -7,6 +7,7 @@ import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { calculateDays } from '../../utils/helpers';
+import styles from './Reservations.module.css'; // Import the new CSS module
 
 const Reservations = () => {
   const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation } = useReservations();
@@ -1174,246 +1175,246 @@ const Reservations = () => {
               </div>
 
               {/* Meal Plan Breakdown - Enhanced (Guest-focused, Active Only) */}
-<div style={{ 
-  padding: '16px', 
-  background: '#fef2f2', 
-  borderRadius: '8px',
-  border: '1px solid #fecaca',
-  gridColumn: 'span 2'
-}}>
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    marginBottom: '8px' 
-  }}>
-    <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600' }}>
-      Meal Plans
-    </div>
-    <div style={{ fontSize: '20px', fontWeight: '700', color: '#7f1d1d' }}>
-      {filteredReservations
-        .filter(r => r.status !== 'Checked-out')
-        .reduce((sum, r) => 
-          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-        )} Guests
-    </div>
-  </div>
-  
-  {/* Meal Plan Distribution */}
-  <div style={{ 
-    borderTop: '1px solid #fecaca',
-    paddingTop: '8px',
-    display: 'flex', 
-    flexWrap: 'wrap', 
-    gap: '8px' 
-  }}>
-    {[
-      { code: 'NM', label: 'No Meal', color: '#64748b' },
-      { code: 'BO', label: 'Breakfast Only', color: '#8b5cf6' },
-      { code: 'HB', label: 'Half Board', color: '#d946ef' },
-      { code: 'FB', label: 'Full Board', color: '#ec4899' }
-    ].map(({ code, label, color }) => {
-      const guestCount = filteredReservations
-        .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
-        .reduce((sum, r) => 
-          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-        );
-      
-      if (guestCount === 0) return null;
-      
-      return (
-        <div key={code} style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '4px',
-          fontSize: '12px',
-          color: '#7f1d1d'
-        }}>
-          <span style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            background: color 
-          }} />
-          <span style={{ fontWeight: '500' }}>{label}:</span>
-          <span style={{ fontWeight: '600', color: '#991b1b' }}>
-            {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
-          </span>
-        </div>
-      );
-    })}
-  </div>
-  
-  {/* Meal Plan Percentage Bar */}
-  <div style={{ 
-    marginTop: '8px',
-    paddingTop: '8px',
-    borderTop: '1px solid #fecaca'
-  }}>
-    <div style={{ 
-      height: '8px', 
-      background: '#fee2e2', 
-      borderRadius: '4px',
-      overflow: 'hidden',
-      display: 'flex'
-    }}>
-      {[
-        { code: 'NM', color: '#64748b' },
-        { code: 'BO', color: '#8b5cf6' },
-        { code: 'HB', color: '#d946ef' },
-        { code: 'FB', color: '#ec4899' }
-      ].map(({ code, color }) => {
-        const guestCount = filteredReservations
-          .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
-          .reduce((sum, r) => 
-            sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-          );
-        
-        const totalGuests = filteredReservations
-          .filter(r => r.status !== 'Checked-out')
-          .reduce((sum, r) => 
-            sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-          );
-        
-        const percentage = totalGuests > 0 ? (guestCount / totalGuests * 100) : 0;
-        
-        if (percentage === 0) return null;
-        
-        return (
-          <div 
-            key={code}
-            style={{ 
-              width: `${percentage}%`,
-              background: color,
-              transition: 'width 0.3s ease'
-            }}
-            title={`${code}: ${guestCount} guests (${percentage.toFixed(1)}%)`}
-          />
-        );
-      })}
-    </div>
-  </div>
-</div>
+              <div style={{ 
+                padding: '16px', 
+                background: '#fef2f2', 
+                borderRadius: '8px',
+                border: '1px solid #fecaca',
+                gridColumn: 'span 2'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '8px' 
+                }}>
+                  <div style={{ fontSize: '12px', color: '#991b1b', fontWeight: '600' }}>
+                    Meal Plans
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#7f1d1d' }}>
+                    {filteredReservations
+                      .filter(r => r.status !== 'Checked-out')
+                      .reduce((sum, r) => 
+                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+                      )} Guests
+                  </div>
+                </div>
+                
+                {/* Meal Plan Distribution */}
+                <div style={{ 
+                  borderTop: '1px solid #fecaca',
+                  paddingTop: '8px',
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: '8px' 
+                }}>
+                  {[
+                    { code: 'NM', label: 'No Meal', color: '#64748b' },
+                    { code: 'BO', label: 'Breakfast Only', color: '#8b5cf6' },
+                    { code: 'HB', label: 'Half Board', color: '#d946ef' },
+                    { code: 'FB', label: 'Full Board', color: '#ec4899' }
+                  ].map(({ code, label, color }) => {
+                    const guestCount = filteredReservations
+                      .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
+                      .reduce((sum, r) => 
+                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+                      );
+                    
+                    if (guestCount === 0) return null;
+                    
+                    return (
+                      <div key={code} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        fontSize: '12px',
+                        color: '#7f1d1d'
+                      }}>
+                        <span style={{ 
+                          width: '8px', 
+                          height: '8px', 
+                          borderRadius: '50%', 
+                          background: color 
+                        }} />
+                        <span style={{ fontWeight: '500' }}>{label}:</span>
+                        <span style={{ fontWeight: '600', color: '#991b1b' }}>
+                          {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Meal Plan Percentage Bar */}
+                <div style={{ 
+                  marginTop: '8px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid #fecaca'
+                }}>
+                  <div style={{ 
+                    height: '8px', 
+                    background: '#fee2e2', 
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    display: 'flex'
+                  }}>
+                    {[
+                      { code: 'NM', color: '#64748b' },
+                      { code: 'BO', color: '#8b5cf6' },
+                      { code: 'HB', color: '#d946ef' },
+                      { code: 'FB', color: '#ec4899' }
+                    ].map(({ code, color }) => {
+                      const guestCount = filteredReservations
+                        .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
+                        .reduce((sum, r) => 
+                          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+                        );
+                      
+                      const totalGuests = filteredReservations
+                        .filter(r => r.status !== 'Checked-out')
+                        .reduce((sum, r) => 
+                          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+                        );
+                      
+                      const percentage = totalGuests > 0 ? (guestCount / totalGuests * 100) : 0;
+                      
+                      if (percentage === 0) return null;
+                      
+                      return (
+                        <div 
+                          key={code}
+                          style={{ 
+                            width: `${percentage}%`,
+                            background: color,
+                            transition: 'width 0.3s ease'
+                          }}
+                          title={`${code}: ${guestCount} guests (${percentage.toFixed(1)}%)`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
 
               {/* Total Guests - Enhanced (Only Confirmed & Checked-in) */}
-<div style={{ 
-  padding: '16px', 
-  background: '#fce7f3', 
-  borderRadius: '8px',
-  border: '1px solid #fbcfe8',
-  gridColumn: 'span 2'
-}}>
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    marginBottom: '8px' 
-  }}>
-    <div style={{ fontSize: '12px', color: '#9f1239', fontWeight: '600' }}>
-      Total Guests (Active)
-    </div>
-    <div style={{ fontSize: '24px', fontWeight: '700', color: '#881337' }}>
-      {filteredReservations
-        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-        .reduce((sum, r) => 
-          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-        )}
-    </div>
-  </div>
-  
-  {/* Guest Breakdown by Status */}
-  <div style={{ 
-    borderTop: '1px solid #fbcfe8',
-    paddingTop: '8px',
-    display: 'flex', 
-    flexWrap: 'wrap', 
-    gap: '8px' 
-  }}>
-    {[
-      { status: 'Checked-in', color: '#3b82f6' },
-      { status: 'Confirmed', color: '#10b981' },
-      { status: 'Checked-out', color: '#6b7280' },
-      { status: 'Tentative', color: '#f59e0b' },
-      { status: 'Hold', color: '#fb923c' }
-    ].map(({ status, color }) => {
-      const guestCount = filteredReservations
-        .filter(r => r.status === status)
-        .reduce((sum, r) => 
-          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-        );
-      
-      if (guestCount === 0) return null;
-      
-      // Dim out checked-out guests visually
-      const isCheckedOut = status === 'Checked-out';
-      
-      return (
-        <div key={status} style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '4px',
-          fontSize: '12px',
-          color: isCheckedOut ? '#9ca3af' : '#831843',
-          opacity: isCheckedOut ? 0.6 : 1
-        }}>
-          <span style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            background: color,
-            opacity: isCheckedOut ? 0.5 : 1
-          }} />
-          <span style={{ fontWeight: '600' }}>{guestCount}</span>
-          <span>{status}</span>
-        </div>
-      );
-    })}
-  </div>
-  
-  {/* Guest Type Breakdown (Adults/Children/Infants) - Only Active */}
-  <div style={{ 
-    borderTop: '1px solid #fbcfe8',
-    marginTop: '8px',
-    paddingTop: '8px',
-    display: 'flex',
-    gap: '12px',
-    fontSize: '12px',
-    color: '#831843'
-  }}>
-    <div>
-      <span style={{ fontWeight: '600' }}>
-        {filteredReservations
-          .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-          .reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}
-      </span> Adults
-    </div>
-    <div>
-      <span style={{ fontWeight: '600' }}>
-        {filteredReservations
-          .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-          .reduce((sum, r) => sum + (r.number_of_children || 0), 0)}
-      </span> Children
-    </div>
-    <div>
-      <span style={{ fontWeight: '600' }}>
-        {filteredReservations
-          .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-          .reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}
-      </span> Infants
-    </div>
-  </div>
-  
-  <div style={{ 
-    marginTop: '8px',
-    paddingTop: '8px',
-    borderTop: '1px solid #fbcfe8',
-    fontSize: '11px',
-    color: '#9ca3af',
-    fontStyle: 'italic'
-  }}>
-    * Only includes Confirmed and Checked-in guests
-  </div>
-</div>
+              <div style={{ 
+                padding: '16px', 
+                background: '#fce7f3', 
+                borderRadius: '8px',
+                border: '1px solid #fbcfe8',
+                gridColumn: 'span 2'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '8px' 
+                }}>
+                  <div style={{ fontSize: '12px', color: '#9f1239', fontWeight: '600' }}>
+                    Total Guests (Active)
+                  </div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#881337' }}>
+                    {filteredReservations
+                      .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                      .reduce((sum, r) => 
+                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+                      )}
+                  </div>
+                </div>
+                
+                {/* Guest Breakdown by Status */}
+                <div style={{ 
+                  borderTop: '1px solid #fbcfe8',
+                  paddingTop: '8px',
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: '8px' 
+                }}>
+                  {[
+                    { status: 'Checked-in', color: '#3b82f6' },
+                    { status: 'Confirmed', color: '#10b981' },
+                    { status: 'Checked-out', color: '#6b7280' },
+                    { status: 'Tentative', color: '#f59e0b' },
+                    { status: 'Hold', color: '#fb923c' }
+                  ].map(({ status, color }) => {
+                    const guestCount = filteredReservations
+                      .filter(r => r.status === status)
+                      .reduce((sum, r) => 
+                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+                      );
+                    
+                    if (guestCount === 0) return null;
+                    
+                    // Dim out checked-out guests visually
+                    const isCheckedOut = status === 'Checked-out';
+                    
+                    return (
+                      <div key={status} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '4px',
+                        fontSize: '12px',
+                        color: isCheckedOut ? '#9ca3af' : '#831843',
+                        opacity: isCheckedOut ? 0.6 : 1
+                      }}>
+                        <span style={{ 
+                          width: '8px', 
+                          height: '8px', 
+                          borderRadius: '50%', 
+                          background: color,
+                          opacity: isCheckedOut ? 0.5 : 1
+                        }} />
+                        <span style={{ fontWeight: '600' }}>{guestCount}</span>
+                        <span>{status}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Guest Type Breakdown (Adults/Children/Infants) - Only Active */}
+                <div style={{ 
+                  borderTop: '1px solid #fbcfe8',
+                  marginTop: '8px',
+                  paddingTop: '8px',
+                  display: 'flex',
+                  gap: '12px',
+                  fontSize: '12px',
+                  color: '#831843'
+                }}>
+                  <div>
+                    <span style={{ fontWeight: '600' }}>
+                      {filteredReservations
+                        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                        .reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}
+                    </span> Adults
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: '600' }}>
+                      {filteredReservations
+                        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                        .reduce((sum, r) => sum + (r.number_of_children || 0), 0)}
+                    </span> Children
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: '600' }}>
+                      {filteredReservations
+                        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                        .reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}
+                    </span> Infants
+                  </div>
+                </div>
+                
+                <div style={{ 
+                  marginTop: '8px',
+                  paddingTop: '8px',
+                  borderTop: '1px solid #fbcfe8',
+                  fontSize: '11px',
+                  color: '#9ca3af',
+                  fontStyle: 'italic'
+                }}>
+                  * Only includes Confirmed and Checked-in guests
+                </div>
+              </div>
 
               {/* Payment Status Breakdown */}
               <div style={{ 
@@ -1599,22 +1600,22 @@ const Reservations = () => {
               return (
               <tr key={reservation.id}>
                 <td>
-                  <div className="booking-badges">
+                  <div className={styles.bookingBadges}>
                     {/* Booking Source Badge with Agent Name */}
                     {reservation.booking_source === 'agent' ? (
-                      <span className="booking-badge booking-badge-agent">
+                      <span className={`${styles.bookingBadge} ${styles.bookingBadgeAgent}`}>
                         <User size={14} style={{ display: 'inline', marginRight: '4px' }} />
                         Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
                       </span>
                     ) : (
-                      <span className="booking-badge booking-badge-direct">
+                      <span className={`${styles.bookingBadge} ${styles.bookingBadgeDirect}`}>
                         <Building size={14} style={{ display: 'inline', marginRight: '4px' }} />Direct
                       </span>
                     )}
                     
                     {/* Direct Source Badge - Only show if booking source is direct and has direct_source */}
                     {reservation.booking_source === 'direct' && reservation.direct_source && (
-                      <span className="booking-badge booking-badge-source">
+                      <span className={`${styles.bookingBadge} ${styles.bookingBadgeSource}`}>
                         {reservation.direct_source}
                       </span>
                     )}
@@ -1650,9 +1651,9 @@ const Reservations = () => {
                 </td>
                 <td>
                   <span className={`status-badge ${
-                    reservation.status === 'Inquiry' ? 'status-inquiry' :
-                    reservation.status === 'Tentative' ? 'status-tentative' :
-                    reservation.status === 'Hold' ? 'status-hold' :
+                    reservation.status === 'Inquiry' ? styles.statusInquiry :
+                    reservation.status === 'Tentative' ? styles.statusTentative :
+                    reservation.status === 'Hold' ? styles.statusHold :
                     reservation.status === 'Confirmed' ? 'status-maintenance' :
                     reservation.status === 'Checked-in' ? 'status-occupied' :
                     reservation.status === 'Checked-out' ? 'status-available' :
@@ -1825,7 +1826,7 @@ const Reservations = () => {
               }}>
                 <strong>{selectedGuest.name}</strong>
                 <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} â€¢ {selectedGuest.email || 'No email'}
+                  {selectedGuest.phone} • {selectedGuest.email || 'No email'}
                 </p>
               </div>
             </div>
