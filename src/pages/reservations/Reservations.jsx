@@ -1560,7 +1560,7 @@ const Reservations = () => {
                     color: '#14532d',
                     lineHeight: '1'
                   }}>
-                    â‚¹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+                    ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
                   </div>
                 </div>
                 
@@ -1586,7 +1586,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#15803d' 
                     }}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
+                      ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
                     </div>
                   </div>
                   
@@ -1604,7 +1604,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#92400e' 
                     }}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
+                      ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -2384,7 +2384,7 @@ const Reservations = () => {
             />
             {!editingReservation && formData.number_of_rooms > 1 && formData.advance_payment > 0 && (
               <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                â‚¹{(formData.advance_payment / formData.number_of_rooms).toFixed(2)} per room
+                ₹{(formData.advance_payment / formData.number_of_rooms).toFixed(2)} per room
               </small>
             )}
           </div>
