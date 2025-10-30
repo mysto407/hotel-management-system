@@ -937,63 +937,32 @@ const ReservationCalendar = () => {
 
   return (
     <div className={styles.calendarPage}>
-      {/* Enhanced Page Header */}
+      {/* Page Header */}
       <div className={styles.calendarPageHeader}>
-        <div className={styles.calendarHeaderTop}>
+        <div className={styles.calendarTitleBar}>
           <div>
             <h1 className={styles.calendarMainTitle}>
-              <CalendarDays size={36} strokeWidth={2.5} />
+              <CalendarDays size={28} />
               Booking Calendar
             </h1>
             <p className={styles.calendarSubtitle}>Manage room availability and reservations</p>
           </div>
-          
-          {/* Quick Stats and Refresh */}
-          <div className={styles.calendarHeaderActions}>
-            <div className={styles.calendarQuickStats}>
-              <div className={`${styles.quickStatItem} ${styles.statAvailable}`}>
-                <Home size={24} strokeWidth={2.5} />
-                <div>
-                  <div className={styles.quickStatValue}>{totalAvailable}</div>
-                  <div className={styles.quickStatLabel}>Available</div>
-                </div>
-              </div>
-              <div className={`${styles.quickStatItem} ${styles.statOccupied}`}>
-                <Users size={24} strokeWidth={2.5} />
-                <div>
-                  <div className={styles.quickStatValue}>{totalOccupied}</div>
-                  <div className={styles.quickStatLabel}>Occupied</div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Refresh Button */}
-            <button 
-              onClick={handleRefresh} 
-              className={`${styles.calendarRefreshBtn} ${isRefreshing ? styles.refreshing : ''}`}
-              disabled={isRefreshing}
-              title="Refresh calendar data"
-            >
-              <RefreshCw size={20} strokeWidth={2.5} />
-              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
-          </div>
         </div>
 
-        {/* Navigation Controls */}
-        <div className={styles.calendarNavControls}>
+        {/* Navigation & Controls Toolbar */}
+        <div className={styles.calendarToolbar}>
           <div className={styles.calendarNavButtons}>
             <button onClick={goToPreviousWeek} className={styles.calendarNavBtn}>
-              <ChevronLeft size={20} strokeWidth={2.5} />
+              <ChevronLeft size={18} />
               <span>Previous</span>
             </button>
             <button onClick={goToToday} className={`${styles.calendarNavBtn} ${styles.todayBtn}`}>
-              <Calendar size={20} strokeWidth={2.5} />
+              <Calendar size={18} />
               <span>Today</span>
             </button>
             <button onClick={goToNextWeek} className={styles.calendarNavBtn}>
               <span>Next</span>
-              <ChevronRight size={20} strokeWidth={2.5} />
+              <ChevronRight size={18} />
             </button>
           </div>
 
@@ -1014,6 +983,35 @@ const ReservationCalendar = () => {
               <option value="30">30 Days</option>
             </select>
           </div>
+          
+          <div className={styles.calendarHeaderActions}>
+            <div className={styles.calendarQuickStats}>
+              <div className={styles.quickStatItem}>
+                <Home size={20} />
+                <div>
+                  <div className={styles.quickStatValue}>{totalAvailable}</div>
+                  <div className={styles.quickStatLabel}>Available</div>
+                </div>
+              </div>
+              <div className={styles.quickStatItem}>
+                <Users size={20} />
+                <div>
+                  <div className={styles.quickStatValue}>{totalOccupied}</div>
+                  <div className={styles.quickStatLabel}>Occupied</div>
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              onClick={handleRefresh} 
+              className={`${styles.calendarRefreshBtn} ${isRefreshing ? styles.refreshing : ''}`}
+              disabled={isRefreshing}
+              title="Refresh calendar data"
+            >
+              <RefreshCw size={18} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1024,23 +1022,9 @@ const ReservationCalendar = () => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        style={{
-          overflowX: 'auto',
-          overflowY: 'visible',
-          width: '100%',
-          height: 'auto',
-          maxHeight: 'none',
-          minHeight: 'auto',
-          background: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          position: 'relative'
-        }}
+        className={styles.calendarContainer}
       >
-        <table className={styles.calendarTable} style={{ 
-          width: '100%',
-          display: 'table'
-        }}>
+        <table className={styles.calendarTable}>
           <thead>
             {/* Date Headers */}
             <tr>
@@ -1075,7 +1059,7 @@ const ReservationCalendar = () => {
             <tr className={styles.availabilityRow}>
               <th className={`${styles.calendarFixedColumn} ${styles.availabilityLabel}`}>
                 <div className={styles.availabilityLabelContent}>
-                  <CalendarDays size={18} strokeWidth={2.5} />
+                  <CalendarDays size={16} />
                   <span>Total Availability</span>
                 </div>
               </th>
@@ -1089,12 +1073,7 @@ const ReservationCalendar = () => {
                       <div className={styles.availabilityProgress}>
                         <div 
                           className={styles.availabilityProgressBar}
-                          style={{ 
-                            width: `${percentage}%`,
-                            background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
-                                       percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
-                                       'linear-gradient(135deg, #ef4444, #dc2626)'
-                          }}
+                          style={{ width: `${percentage}%` }}
                         />
                       </div>
                       <span className={styles.availabilityNumbers}>
@@ -1121,7 +1100,7 @@ const ReservationCalendar = () => {
                         className={styles.roomTypeToggle}
                       >
                         <div className={styles.roomTypeIcon}>
-                          {isExpanded ? <ChevronDown size={18} strokeWidth={2.5} /> : <ChevronRight size={18} strokeWidth={2.5} />}
+                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </div>
                         <div className={styles.roomTypeInfo}>
                           <strong>{roomType.name}</strong>
@@ -1138,12 +1117,7 @@ const ReservationCalendar = () => {
                           <div className={styles.availabilityBarContainer}>
                             <div 
                               className={styles.availabilityBar} 
-                              style={{ 
-                                width: `${percentage}%`,
-                                background: percentage > 60 ? 'linear-gradient(135deg, #10b981, #059669)' : 
-                                           percentage > 30 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 
-                                           'linear-gradient(135deg, #ef4444, #dc2626)'
-                              }}
+                              style={{ width: `${percentage}%` }}
                             />
                             <span className={styles.availabilityText}>
                               {availability.available}/{availability.total}
@@ -1218,27 +1192,13 @@ const ReservationCalendar = () => {
         {actionMenu.visible && (
           <div
             ref={actionMenuRef}
+            className={styles.actionMenu}
             style={{
-              position: 'absolute',
               left: `${actionMenu.position.x}px`,
               top: `${actionMenu.position.y}px`,
-              background: 'white',
-              borderRadius: '16px',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1)',
-              padding: '12px',
-              zIndex: 1000,
-              minWidth: '220px',
-              border: '1px solid #e2e8f0'
             }}
           >
-            <div style={{ 
-              fontSize: '13px', 
-              color: '#64748b', 
-              padding: '8px 12px',
-              borderBottom: '2px solid #f1f5f9',
-              marginBottom: '8px',
-              fontWeight: '600'
-            }}>
+            <div className={styles.actionMenuHeader}>
               {(() => {
                 const room = rooms.find(r => r.id === actionMenu.roomId);
                 
@@ -1246,21 +1206,19 @@ const ReservationCalendar = () => {
                 if (actionMenu.isOccupied && actionMenu.reservation) {
                   return (
                     <>
-                      <div style={{ fontWeight: '800', color: '#0ea5e9', fontSize: '14px' }}>
+                      <div className={styles.actionMenuHeaderTitle}>
                         Room {room?.room_number || ''}
                       </div>
-                      <div style={{ marginTop: '6px', fontSize: '13px', color: '#1e293b' }}>
+                      <div className={styles.actionMenuHeaderGuest}>
                         Guest: <strong>{actionMenu.reservation.guests?.name || 'Unknown'}</strong>
                       </div>
-                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                      <div className={styles.actionMenuHeaderDates}>
                         {new Date(actionMenu.reservation.check_in_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         {' - '}
                         {new Date(actionMenu.reservation.check_out_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </div>
-                      <div style={{ marginTop: '4px', fontSize: '12px' }}>
-                        <span style={{ 
-                          padding: '2px 8px', 
-                          borderRadius: '4px',
+                      <div className={styles.actionMenuHeaderStatus}>
+                        <span className={styles.actionMenuHeaderStatusTag} style={{ 
                           background: actionMenu.reservation.status === 'Confirmed' ? '#dcfce7' : 
                                      actionMenu.reservation.status === 'Checked-in' ? '#dbeafe' : 
                                      actionMenu.reservation.status === 'Hold' ? '#fed7aa' : '#e5e7eb',
@@ -1279,10 +1237,10 @@ const ReservationCalendar = () => {
                 if (actionMenu.cellStatus === 'blocked' || actionMenu.cellStatus === 'maintenance') {
                   return (
                     <>
-                      <div style={{ fontWeight: '800', color: '#0ea5e9', fontSize: '14px' }}>
+                      <div className={styles.actionMenuHeaderTitle}>
                         Room {room?.room_number || ''}
                       </div>
-                      <div style={{ marginTop: '6px', fontSize: '13px', color: '#1e293b' }}>
+                      <div className={styles.actionMenuHeaderGuest}>
                         Status: <strong style={{ 
                           color: actionMenu.cellStatus === 'blocked' ? '#dc2626' : '#f59e0b',
                           textTransform: 'capitalize'
@@ -1290,7 +1248,7 @@ const ReservationCalendar = () => {
                           {actionMenu.cellStatus}
                         </strong>
                       </div>
-                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                      <div className={styles.actionMenuHeaderDates}>
                         {new Date(actionMenu.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </div>
                     </>
@@ -1308,13 +1266,13 @@ const ReservationCalendar = () => {
                   
                   return (
                     <>
-                      <div style={{ fontWeight: '800', color: '#0ea5e9', fontSize: '14px' }}>
+                      <div className={styles.actionMenuHeaderTitle}>
                         {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
                       </div>
-                      <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                      <div className={styles.actionMenuHeaderDates}>
                         {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} × {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
                       </div>
-                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#059669', fontWeight: '700' }}>
+                      <div className={styles.actionMenuHeaderDates} style={{ color: '#166534', fontWeight: '600' }}>
                         {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         {uniqueDates.length > 1 && ` - ${new Date(uniqueDates[uniqueDates.length - 1]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                       </div>
@@ -1332,97 +1290,25 @@ const ReservationCalendar = () => {
               <>
                 <button
                   onClick={handleEditReservation}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#3b82f6',
-                    fontWeight: '700',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#dbeafe';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemAccent}`}
                 >
-                  <Edit2 size={18} strokeWidth={2.5} />
+                  <Edit2 size={16} />
                   Edit Reservation
                 </button>
                 
                 <button
                   onClick={handleCancelReservation}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#dc2626',
-                    fontWeight: '700',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#fef2f2';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
                 >
-                  <XOctagon size={18} strokeWidth={2.5} />
+                  <XOctagon size={16} />
                   Cancel Reservation
                 </button>
                 
                 <button
                   onClick={handleChangeRoomStatus}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#8b5cf6',
-                    fontWeight: '700',
-                    transition: 'all 0.2s',
-                    marginTop: '8px',
-                    borderTop: '1px solid #f1f5f9',
-                    paddingTop: '12px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f5f3ff';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemNeutral} ${styles.actionMenuDivider}`}
                 >
-                  <Home size={18} strokeWidth={2.5} />
+                  <Home size={16} />
                   Change Room Status
                 </button>
               </>
@@ -1431,32 +1317,9 @@ const ReservationCalendar = () => {
               <>
                 <button
                   onClick={handleChangeRoomStatus}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#8b5cf6',
-                    fontWeight: '700',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f5f3ff';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemNeutral}`}
                 >
-                  <Home size={18} strokeWidth={2.5} />
+                  <Home size={16} />
                   Change Room Status
                 </button>
               </>
@@ -1465,128 +1328,33 @@ const ReservationCalendar = () => {
               <>
                 <button
                   onClick={handleBookRoom}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#059669',
-                    fontWeight: '700',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f0fdf4';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemPrimary}`}
                 >
-                  <CalendarIcon size={18} strokeWidth={2.5} />
+                  <CalendarIcon size={16} />
                   Book
                 </button>
                 
                 <button
                   onClick={handleHoldRoom}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#f59e0b',
-                    fontWeight: '700',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#fffbeb';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemWarning}`}
                 >
-                  <Lock size={18} strokeWidth={2.5} />
+                  <Lock size={16} />
                   Hold
                 </button>
                 
                 <button
                   onClick={handleBlockRoom}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#dc2626',
-                    fontWeight: '700',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#fef2f2';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
                 >
-                  <X size={18} strokeWidth={2.5} />
+                  <X size={16} />
                   Block
                 </button>
                 
                 <button
                   onClick={handleChangeRoomStatus}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    color: '#8b5cf6',
-                    fontWeight: '700',
-                    transition: 'all 0.2s',
-                    marginTop: '8px',
-                    borderTop: '1px solid #f1f5f9',
-                    paddingTop: '12px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f5f3ff';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemNeutral} ${styles.actionMenuDivider}`}
                 >
-                  <Home size={18} strokeWidth={2.5} />
+                  <Home size={16} />
                   Change Room Status
                 </button>
               </>
@@ -1609,20 +1377,14 @@ const ReservationCalendar = () => {
           {/* Multi-booking indicator */}
           {pendingBookings.length > 1 && (
             <div className="form-group full-width">
-              <div style={{ 
-                padding: '16px', 
-                background: 'linear-gradient(135deg, #fef3c7, #fde68a)', 
-                border: '2px solid #fbbf24',
-                borderRadius: '12px',
-                marginBottom: '12px'
-              }}>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#92400e', marginBottom: '6px' }}>
-                  ðŸ“‹ Multi-Room Booking
+              <div className={`${styles.modalInfoBox} ${styles.modalInfoBoxWarning}`}>
+                <div className={styles.modalInfoBoxWarningTitle}>
+                  Multi-Room Booking
                 </div>
-                <div style={{ fontSize: '14px', color: '#92400e', marginTop: '6px', lineHeight: '1.5' }}>
+                <div className={styles.modalInfoBoxWarningText}>
                   You're creating <strong>{pendingBookings.length} bookings</strong> at once. Enter guest details once, and all bookings will use the same information.
                 </div>
-                <div style={{ fontSize: '13px', color: '#92400e', marginTop: '8px', fontStyle: 'italic', fontWeight: '600' }}>
+                <div className={`${styles.modalInfoBoxWarningText}`} style={{ marginTop: '8px', fontStyle: 'italic' }}>
                   Rooms: {pendingBookings.map((b, i) => {
                     const room = rooms.find(r => r.id === b.roomId);
                     return room?.room_number || '?';
@@ -1634,28 +1396,22 @@ const ReservationCalendar = () => {
           
           {/* Room and Date Info */}
           <div className="form-group full-width">
-            <div style={{ 
-              padding: '16px', 
-              background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', 
-              border: '2px solid #60a5fa',
-              borderRadius: '12px',
-              marginBottom: '12px'
-            }}>
-              <div style={{ fontSize: '15px', fontWeight: '800', color: '#075985', marginBottom: '6px' }}>
+            <div className={styles.modalInfoBox}>
+              <div className={styles.modalInfoBoxTitle}>
                 {(() => {
                   const room = rooms.find(r => r.id === bookingData.room_id);
                   const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
                   return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
                 })()}
               </div>
-              <div style={{ fontSize: '14px', color: '#075985', marginTop: '6px', fontWeight: '600' }}>
+              <div className={styles.modalInfoBoxText}>
                 Check-in: {bookingData.check_in_date}
               </div>
-              <div style={{ fontSize: '14px', color: '#075985', marginTop: '4px', fontWeight: '600' }}>
+              <div className={styles.modalInfoBoxText}>
                 Check-out: {bookingData.check_out_date}
               </div>
               {bookingData.check_in_date && bookingData.check_out_date && (
-                <div style={{ fontSize: '13px', color: '#075985', marginTop: '6px', fontWeight: '800' }}>
+                <div className={styles.modalInfoBoxText} style={{ fontWeight: '700', marginTop: '6px' }}>
                   {(() => {
                     const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
                     return `${nights} night${nights !== 1 ? 's' : ''}`;
@@ -1911,28 +1667,22 @@ const ReservationCalendar = () => {
         <div className="form-grid">
           {/* Room and Date Info */}
           <div className="form-group full-width">
-            <div style={{ 
-              padding: '16px', 
-              background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', 
-              border: '2px solid #60a5fa',
-              borderRadius: '12px',
-              marginBottom: '12px'
-            }}>
-              <div style={{ fontSize: '15px', fontWeight: '800', color: '#075985', marginBottom: '6px' }}>
+            <div className={styles.modalInfoBox}>
+              <div className={styles.modalInfoBoxTitle}>
                 {(() => {
                   const room = rooms.find(r => r.id === bookingData.room_id);
                   const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
                   return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
                 })()}
               </div>
-              <div style={{ fontSize: '14px', color: '#075985', marginTop: '6px', fontWeight: '600' }}>
+              <div className={styles.modalInfoBoxText}>
                 Check-in: {bookingData.check_in_date}
               </div>
-              <div style={{ fontSize: '14px', color: '#075985', marginTop: '4px', fontWeight: '600' }}>
+              <div className={styles.modalInfoBoxText}>
                 Check-out: {bookingData.check_out_date}
               </div>
               {bookingData.check_in_date && bookingData.check_out_date && (
-                <div style={{ fontSize: '13px', color: '#075985', marginTop: '6px', fontWeight: '800' }}>
+                <div className={styles.modalInfoBoxText} style={{ fontWeight: '700', marginTop: '6px' }}>
                   {(() => {
                     const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
                     return `${nights} night${nights !== 1 ? 's' : ''}`;
@@ -2072,20 +1822,14 @@ const ReservationCalendar = () => {
       >
         {selectedRoomForStatus && (
           <div>
-            <div style={{ 
-              padding: '16px', 
-              background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)', 
-              border: '2px solid #38bdf8',
-              borderRadius: '12px',
-              marginBottom: '24px'
-            }}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#075985' }}>
+            <div className={styles.modalInfoBox} style={{ marginBottom: '24px' }}>
+              <div className={styles.modalInfoBoxTitle}>
                 Room {selectedRoomForStatus.room_number}
               </div>
-              <div style={{ fontSize: '14px', color: '#0369a1', marginTop: '4px' }}>
+              <div className={styles.modalInfoBoxText}>
                 Floor {selectedRoomForStatus.floor}
               </div>
-              <div style={{ fontSize: '13px', color: '#0c4a6e', marginTop: '8px' }}>
+              <div className={styles.modalInfoBoxText} style={{ marginTop: '8px' }}>
                 Current Status: <strong>{selectedRoomForStatus.status}</strong>
               </div>
             </div>
