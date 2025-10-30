@@ -15,28 +15,37 @@
     padding: 16px 24px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* justify-content: space-between; <-- REMOVED */
     border-bottom: 1px solid #e5e7eb;
     flex-shrink: 0;
 }
 
-.sidebarLogo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 24px;
-    font-weight: 600;
-    color: #1f2937;
-    transition: all 0.2s ease;
-}
 
-.closeBtn {
+/* NEW Menu Button */
+
+.menuBtn {
     background: transparent;
     border: none;
     padding: 4px;
     cursor: pointer;
     color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 }
+
+.menuBtn:hover {
+    color: #1f2937;
+    background: #f3f4f6;
+}
+
+
+/* REMOVED .sidebarLogo */
+
+
+/* REMOVED .closeBtn */
 
 .sidebarNav {
     flex: 1;
@@ -90,41 +99,7 @@
    ============================================ */
 
 
-/* Sidebar Collapse Button - DESKTOP ONLY */
-
-.sidebarCollapseBtn {
-    position: absolute;
-    top: 50%;
-    /* <-- CHANGED */
-    right: -12px;
-    width: 24px;
-    height: 24px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-left: none;
-    border-radius: 0 12px 12px 0;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.07);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    transition: all 0.2s ease;
-    transform: translateY(-50%);
-    /* <-- ADDED (to center it perfectly) */
-}
-
-.sidebarCollapseBtn:hover {
-    background: #f3f4f6;
-    /* We remove the transform: scale(1.1) as it looks odd */
-}
-
-.sidebarCollapseBtn:active {
-    background: #e5e7eb;
-    /* We combine both transforms here */
-    transform: translateY(-50%) translateX(-1px);
-    /* <-- CHANGED */
-}
+/* REMOVED .sidebarCollapseBtn, :hover, :active */
 
 
 /* Collapsed Sidebar State */
@@ -133,13 +108,19 @@
     width: 70px;
 }
 
-.sidebar.collapsed .sidebarLogo span {
-    display: none;
+
+/* Center menu button when collapsed */
+
+.sidebar.collapsed .sidebarHeader {
+    justify-content: center;
+    padding: 16px;
 }
 
-.sidebar.collapsed .sidebarLogo {
-    justify-content: center;
-}
+
+/* REMOVED .sidebar.collapsed .sidebarLogo span */
+
+
+/* REMOVED .sidebar.collapsed .sidebarLogo */
 
 
 /* Category Toggle in Collapsed State */
@@ -361,9 +342,7 @@
 /* Desktop only - hide collapse button on mobile */
 
 @media (max-width: 1024px) {
-    .sidebarCollapseBtn {
-        display: none !important;
-    }
+    /* REMOVED .sidebarCollapseBtn */
     .sidebar.collapsed {
         width: 280px !important;
         /* Full width on mobile */
@@ -376,9 +355,7 @@
     .sidebar.collapsed .navItem.collapsed span {
         display: inline;
     }
-    .sidebar.collapsed .sidebarLogo span {
-        display: inline;
-    }
+    /* REMOVED .sidebar.collapsed .sidebarLogo span */
     /* Hide category-specific elements on mobile */
     .navCategoryToggle,
     .navCategoryLabel,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, X, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import styles from './sidebar.module.css'; // Import the CSS module
 
@@ -142,12 +142,8 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
         
         <aside className={sidebarClasses}>
           <div className={styles.sidebarHeader}>
-            <div className={styles.sidebarLogo}>
-              <Hotel size={32} />
-              <span>HMS</span>
-            </div>
-            <button onClick={onClose} className={`${styles.closeBtn} ${styles.mobileOnly}`}>
-              <X size={24} />
+            <button onClick={onClose} className={styles.menuBtn}>
+              <Menu size={24} />
             </button>
           </div>
           
@@ -179,25 +175,16 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   // Desktop: Render categorized collapsible menu
   return (
     <>
-      {/* Overlay is not used in desktop mode, but kept for consistency if needed */}
-      
       <aside className={sidebarClasses}>
         <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarLogo}>
-            <Hotel size={32} />
-            {!sidebarCollapsed && <span>HMS</span>}
-          </div>
-          {/* Close button is mobile only, so not rendered here */}
+           <button 
+              className={styles.menuBtn} 
+              onClick={toggleSidebarCollapse}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <Menu size={24} />
+            </button>
         </div>
-        
-        {/* Collapse/Expand Toggle Button */}
-        <button 
-          className={styles.sidebarCollapseBtn} 
-          onClick={toggleSidebarCollapse}
-          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </button>
         
         <nav className={styles.sidebarNav}>
           {filteredCategories.map((category, categoryIndex) => (
