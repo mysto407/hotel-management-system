@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar } from 'lucide-react';
 // Import the shared modal
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
-import { ConfirmModal } from '../../components/common/ConfirmModal'; // <-- 1. IMPORT NEW MODAL
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
@@ -20,12 +19,6 @@ const Reservations = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null);
-
-  // --- 2. ADD STATE FOR THE CONFIRM MODAL ---
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  // This state will hold the props for the confirm modal
-  const [confirmModalProps, setConfirmModalProps] = useState({});
-  // ------------------------------------------
   
   const [initialFormData, setInitialFormData] = useState(null);
   const [initialRoomDetails, setInitialRoomDetails] = useState(null);
