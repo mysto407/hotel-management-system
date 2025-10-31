@@ -948,8 +948,7 @@ const Reservations = () => {
                       Advance Collected
                     </div>
                     <div className={`${styles.financialSplitValue} ${styles.advance}`}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
-                    </div>
+                    + ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}                    </div>
                   </div>
                   
                   <div className={styles.financialSplitItem}>
@@ -957,8 +956,8 @@ const Reservations = () => {
                       Balance Due
                     </div>
                     <div className={`${styles.financialSplitValue} ${styles.balance}`}>
-                      â‚¹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
-                    </div>
+                    - â‚¹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
++ ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}                    </div>
                   </div>
                 </div>
                 
