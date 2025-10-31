@@ -1,0 +1,141 @@
+/* Styles for the custom confirmation modal */
+
+.confirmModal {
+    max-width: 450px;
+    border-radius: 12px;
+    padding: 0;
+    /* Control padding inside the component */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    /* Ensures rounded corners */
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    /* Light border */
+}
+
+.modalTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    /* Dark text */
+    margin: 0;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+}
+
+.closeButton:hover {
+    background: #f1f5f9;
+    color: #111827;
+}
+
+.modalBody {
+    display: flex;
+    padding: 24px;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.iconWrapper {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #dbeafe;
+    /* Light blue */
+    color: #3b82f6;
+    /* Primary blue */
+}
+
+.defaultIcon {
+    color: #3b82f6;
+}
+
+.messageWrapper p {
+    margin: 0;
+    font-size: 15px;
+    color: #374151;
+    /* Medium-dark text */
+    line-height: 1.5;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    background: #f8fafc;
+    /* Light BG for footer */
+    border-top: 1px solid #e2e8f0;
+}
+
+.actionButton {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+
+/* Primary style (like 'OK' or 'Edit All') */
+
+.primary {
+    background: #3b82f6;
+    /* Primary blue */
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.primary:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+}
+
+
+/* Secondary style (like 'Cancel' or 'Just This One') */
+
+.secondary {
+    background: #ffffff;
+    color: #374151;
+    border-color: #e2e8f0;
+    /* Light border */
+}
+
+.secondary:hover {
+    background: #f8fafc;
+    border-color: #d1d5db;
+}
+
+
+/* A bonus 'danger' style for delete confirmations */
+
+.danger {
+    background: #ef4444;
+    /* Red */
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+.danger:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+}
