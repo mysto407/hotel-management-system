@@ -1,9 +1,28 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar } from 'lucide-react';
+// --- MODIFICATION ---
+// Added 'Info' icon for the new modal
+import {
+  Plus,
+  Edit2,
+  XOctagon,
+  CheckCircle,
+  LogOut,
+  Search,
+  Filter,
+  User,
+  Building,
+  ChevronDown,
+  Calendar,
+  Info, // <-- ADDED
+} from 'lucide-react';
+
 // Import the shared modal
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
-import { ConfirmModal } from '../../components/common/ConfirmModal'; // <-- 1. IMPORT NEW MODAL
+// --- MODIFICATION ---
+// Import the new ConfirmModal
+import { ConfirmModal } from '../../components/common/ConfirmModal'; // <-- ADDED
+
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
@@ -20,12 +39,6 @@ const Reservations = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null);
-
-  // --- 2. ADD STATE FOR THE CONFIRM MODAL ---
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  // This state will hold the props for the confirm modal
-  const [confirmModalProps, setConfirmModalProps] = useState({});
-  // ------------------------------------------
   
   const [initialFormData, setInitialFormData] = useState(null);
   const [initialRoomDetails, setInitialRoomDetails] = useState(null);
@@ -42,8 +55,15 @@ const Reservations = () => {
   const [filterGuestCount, setFilterGuestCount] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
+  // --- MODIFICATION ---
+  // Add state for the new confirmation modal
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmModalProps, setConfirmModalProps] = useState({});
+  // --- END MODIFICATION ---
+
   // Function to set date ranges based on preset
   const setDatePreset = (preset) => {
+    // ... (existing code, no changes)
     const today = new Date();
     let start, end;
 
@@ -77,6 +97,7 @@ const Reservations = () => {
   };
 
   const clearAllFilters = () => {
+    // ... (existing code, no changes)
     setFilterStatus('all');
     setSearchTerm('');
     setFilterMealPlan('all');
@@ -87,6 +108,7 @@ const Reservations = () => {
   };
 
   const hasActiveFilters = () => {
+    // ... (existing code, no changes)
     return filterStatus !== 'all' || 
            searchTerm !== '' || 
            filterMealPlan !== 'all' || 
@@ -100,6 +122,7 @@ const Reservations = () => {
    * This function is passed to EditBookingModal as the onSubmit prop.
    */
   const handleSubmit = async (formData, roomDetails) => {
+    // ... (existing code, no changes)
     try {
       if (editingReservation) {
         // For editing single reservation
@@ -203,6 +226,7 @@ const Reservations = () => {
    * This is the new onClose handler for the modal.
    */
   const closeModal = () => {
+    // ... (existing code, no changes)
     setIsModalOpen(false);
     setEditingReservation(null);
     setEditingGroup(null);
@@ -210,11 +234,37 @@ const Reservations = () => {
     setInitialRoomDetails(null);
   };
 
+  // --- MODIFICATION ---
+  // Helper function to find the full group for a single reservation
+  // based on the grouping logic in `groupReservations`.
+  const getGroupForReservation = (reservation) => {
+    if (!reservation) return null;
+
+    // Find all reservations that match the grouping criteria
+    const group = reservations.filter(r => {
+      const sameGuest = r.guest_id === reservation.guest_id;
+      const sameDates = r.check_in_date === reservation.check_in_date && 
+                       r.check_out_date === reservation.check_out_date;
+      const sameSource = r.booking_source === reservation.booking_source && 
+                        r.agent_id === reservation.agent_id;
+      const sameMealPlan = r.meal_plan === reservation.meal_plan;
+      
+      // Use a wider time window just in case, 1 minute
+      const timeDiff = Math.abs(new Date(r.created_at) - new Date(reservation.created_at));
+      const createdTogether = timeDiff < 60000; // 60 seconds
+      
+      return sameGuest && sameDates && sameSource && sameMealPlan && createdTogether;
+    });
+
+    // Only return a group if it has more than one room
+    return group.length > 1 ? group : null;
+  };
+
   /**
-   * Prepares the initial data for the EditBookingModal when editing
-   * a single reservation.
+   * This function contains the original logic of handleEdit.
+   * It opens the modal for a SINGLE reservation.
    */
-  const handleEdit = (reservation) => {
+  const openEditModalForSingle = (reservation) => {
     setEditingReservation(reservation);
     setEditingGroup(null);
     
@@ -248,14 +298,57 @@ const Reservations = () => {
 
     setInitialFormData(formData);
     setInitialRoomDetails(roomDetails);
-    setIsModalOpen(true);
+    setIsConfirmModalOpen(false); // Close confirm modal just in case
+    setIsModalOpen(true); // Open the main edit modal
   };
+
+  /**
+   * Prepares the initial data for the EditBookingModal when editing
+   * a single reservation.
+   *
+   * --- THIS FUNCTION IS NOW MODIFIED ---
+   * It now checks if the reservation is part of a group and shows
+   * the confirmation modal if it is.
+   */
+  const handleEdit = (reservation) => {
+    const group = getGroupForReservation(reservation);
+
+    if (group) {
+      // It's part of a group! Show the confirm modal.
+      setConfirmModalProps({
+        title: 'Reservation Details',
+        message: `This reservation is part of a ${group.length}-room booking. Do you want to edit all rooms or just this one?`,
+        icon: <Info size={24} />, // Use the Info icon
+        actions: [
+          {
+            label: 'Just this one',
+            onClick: () => openEditModalForSingle(reservation), // Calls new handler
+            variant: 'secondary',
+          },
+          {
+            label: 'Edit all rooms',
+            onClick: () => {
+              setIsConfirmModalOpen(false); // Close confirm modal
+              handleEditGroup(group); // Use existing group edit handler
+            },
+            variant: 'primary',
+          },
+        ]
+      });
+      setIsConfirmModalOpen(true); // Open the confirm modal
+    } else {
+      // It's a single reservation, open edit modal directly
+      openEditModalForSingle(reservation);
+    }
+  };
+  // --- END MODIFICATION ---
 
   /**
    * Prepares the initial data for the EditBookingModal when editing
    * a group of reservations.
    */
   const handleEditGroup = (group) => {
+    // ... (existing code, no changes)
     setEditingGroup(group);
     setEditingReservation(null);
     
@@ -298,24 +391,28 @@ const Reservations = () => {
   };
 
   const handleCheckIn = (reservation) => {
+    // ... (existing code, no changes)
     if (window.confirm(`Check in ${reservation.guests?.name}?`)) {
       checkIn(reservation.id);
     }
   };
 
   const handleCheckOut = (reservation) => {
+    // ... (existing code, no changes)
     if (window.confirm(`Check out ${reservation.guests?.name}?`)) {
       checkOut(reservation.id);
     }
   };
 
   const handleCancel = (reservation) => {
+    // ... (existing code, no changes)
     if (window.confirm('Are you sure you want to cancel this reservation?')) {
       cancelReservation(reservation.id);
     }
   };
 
   const getMealPlanLabel = (mealPlan) => {
+    // ... (existing code, no changes)
     const mealPlans = {
       'NM': 'No Meal',
       'BO': 'Breakfast Only',
@@ -326,6 +423,7 @@ const Reservations = () => {
   };
 
   const getRoomInfo = (room) => {
+    // ... (existing code, no changes)
     if (!room) return 'Unknown';
     const roomType = roomTypes.find(rt => rt.id === room.room_type_id);
     return `${room.room_number} - ${roomType?.name || 'Unknown'}`;
@@ -333,6 +431,7 @@ const Reservations = () => {
 
   // Group reservations that belong to the same booking
   const groupReservations = (reservations) => {
+    // ... (existing code, no changes)
     const groups = [];
     const processed = new Set();
 
@@ -365,6 +464,7 @@ const Reservations = () => {
   const [expandedGroups, setExpandedGroups] = useState(new Set());
 
   const toggleGroupExpansion = (groupId) => {
+    // ... (existing code, no changes)
     setExpandedGroups(prev => {
       const newSet = new Set(prev);
       if (newSet.has(groupId)) {
@@ -378,6 +478,7 @@ const Reservations = () => {
 
   // Enhanced filtering with all filters
   const filteredReservations = reservations
+    // ... (existing filtering code, no changes)
     .filter(r => filterStatus === 'all' || r.status === filterStatus)
     .filter(r =>
       r.guests?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -429,6 +530,7 @@ const Reservations = () => {
   return (
     <div>
       <div className="page-header">
+        {/* ... (existing code, no changes) ... */}
         <h1 className="page-title">Reservations</h1>
         <div className={styles.headerActions}>
           {/* Search Input */}
@@ -452,6 +554,7 @@ const Reservations = () => {
 
       {/* Main Filters - Date Range and Quick Filters */}
       <div className={styles.filterContainer}>
+        {/* ... (existing code, no changes) ... */}
         <div className={styles.filterBox}>
           {/* Filter Header - Collapsible */}
           <div 
@@ -709,6 +812,7 @@ const Reservations = () => {
 
       {/* Summary Statistics Box */}
       <div className={styles.summaryContainer}>
+        {/* ... (existing code, no changes) ... */}
         {/* Summary Header - Collapsible */}
         <div 
           className={`${styles.summaryHeader} ${!showSummary ? styles.summaryHeaderClosed : ''}`}
@@ -1002,6 +1106,7 @@ const Reservations = () => {
       {/* Reservation Table */}
       <div className="table-container">
         <table className="data-table">
+          {/* ... (existing table head, no changes) ... */}
           <thead>
             <tr>
               <th>Guest Name</th>
@@ -1018,6 +1123,7 @@ const Reservations = () => {
           </thead>
           <tbody>
             {groupReservations(filteredReservations).map((group, groupIndex) => {
+              // ... (existing group logic, no changes)
               const isMultiRoom = group.length > 1;
               const primaryReservation = group[0];
               const groupId = `${primaryReservation.guest_id}-${primaryReservation.check_in_date}-${groupIndex}`;
@@ -1032,6 +1138,7 @@ const Reservations = () => {
                 <>
                   {/* Main Group Row */}
                   <tr key={groupId} className={isMultiRoom ? styles.groupRow : ''}>
+                    {/* ... (existing table row content, no changes) ... */}
                     <td>
                       <div className={styles.guestCell}>
                         {isMultiRoom && (
@@ -1194,6 +1301,8 @@ const Reservations = () => {
                                 <Edit2 size={16} />
                               </button>
                             ) : (
+                              // --- MODIFICATION ---
+                              // This button now calls the new handleEdit function
                               <button onClick={() => handleEdit(primaryReservation)} className="btn-icon btn-edit">
                                 <Edit2 size={16} />
                               </button>
@@ -1224,6 +1333,7 @@ const Reservations = () => {
                       key={reservation.id} 
                       className={styles.subRoomRow}
                     >
+                      {/* ... (existing sub-row content) ... */}
                       <td className={styles.subRoomCell}>
                         <small className={styles.subRoomLabel}>Room {roomIndex + 1}</small>
                       </td>
@@ -1245,6 +1355,8 @@ const Reservations = () => {
                       <td>-</td>
                       <td>
                         <div className="action-buttons">
+                          {/* --- MODIFICATION --- */}
+                          {/* This button now correctly calls the new handleEdit function */}
                           <button onClick={() => handleEdit(reservation)} className="btn-icon btn-edit">
                             <Edit2 size={16} />
                           </button>
@@ -1259,6 +1371,7 @@ const Reservations = () => {
         </table>
 
         {groupReservations(filteredReservations).length === 0 && (
+          // ... (existing no results block, no changes) ...
           <div className={styles.noResults}>
             <Calendar size={48} className={styles.noResultsIcon} />
             <p className={styles.noResultsText}>No reservations found</p>
@@ -1277,6 +1390,15 @@ const Reservations = () => {
         initialFormData={initialFormData}
         initialRoomDetails={initialRoomDetails}
       />
+
+      {/* --- MODIFICATION --- */}
+      {/* Render the new Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        {...confirmModalProps}
+      />
+      {/* --- END MODIFICATION --- */}
     </div>
   );
 };
