@@ -5,7 +5,9 @@ import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
 import { Modal } from '../../components/common/Modal';
+import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import { updateRoomStatus } from '../../lib/supabase';
+import { calculateDays } from '../../utils/helpers';
 import styles from './ReservationCalendar.module.css';
 
 const ReservationCalendar = () => {
@@ -55,6 +57,9 @@ const ReservationCalendar = () => {
   // Edit reservation modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [editModalFormData, setEditModalFormData] = useState(null);
+  const [editModalRoomDetails, setEditModalRoomDetails] = useState(null);
   
   // Room status modal state
   const [isRoomStatusModalOpen, setIsRoomStatusModalOpen] = useState(false);
@@ -421,45 +426,249 @@ const ReservationCalendar = () => {
     closeActionMenu();
   };
 
-  // Handle Edit Reservation action
+  // Find related reservations that belong to the same booking
+  const findRelatedReservations = (reservation) => {
+    if (!reservation) return [reservation];
+    
+    // Find all reservations that match this one (same booking)
+    const related = reservations.filter(r => {
+      const sameGuest = r.guest_id === reservation.guest_id;
+      const sameDates = r.check_in_date === reservation.check_in_date && 
+                       r.check_out_date === reservation.check_out_date;
+      const sameSource = r.booking_source === reservation.booking_source && 
+                        r.agent_id === reservation.agent_id;
+      const sameMealPlan = r.meal_plan === reservation.meal_plan;
+      
+      // Check if created within 30 seconds of each other (same booking session)
+      const timeDiff = Math.abs(new Date(r.created_at) - new Date(reservation.created_at));
+      const createdTogether = timeDiff < 30000; // 30 seconds
+      
+      return sameGuest && sameDates && sameSource && sameMealPlan && createdTogether;
+    });
+    
+    return related;
+  };
+
+  // Handle Edit Reservation action (single or group)
   const handleEditReservation = () => {
     if (!actionMenu.reservation) return;
     
-    setEditingReservation(actionMenu.reservation);
+    const relatedReservations = findRelatedReservations(actionMenu.reservation);
     
-    setBookingData({
-      room_id: actionMenu.reservation.room_id,
-      check_in_date: actionMenu.reservation.check_in_date,
-      check_out_date: actionMenu.reservation.check_out_date,
-      guest_id: actionMenu.reservation.guest_id,
-      number_of_adults: actionMenu.reservation.number_of_adults || 1,
-      number_of_children: actionMenu.reservation.number_of_children || 0,
-      number_of_infants: actionMenu.reservation.number_of_infants || 0,
-      meal_plan: actionMenu.reservation.meal_plan || 'NM',
-      status: actionMenu.reservation.status,
-      special_requests: actionMenu.reservation.special_requests || ''
-    });
+    if (relatedReservations.length > 1) {
+      // Show option to edit as group or single
+      const editAsGroup = window.confirm(
+        `This reservation is part of a ${relatedReservations.length}-room booking.\n\n` +
+        `Click OK to edit all rooms together.\n` +
+        `Click Cancel to edit only this room.`
+      );
+      
+      if (editAsGroup) {
+        handleEditGroup(relatedReservations);
+      } else {
+        handleEditSingle(actionMenu.reservation);
+      }
+    } else {
+      handleEditSingle(actionMenu.reservation);
+    }
+  };
+  
+  // Handle editing a single reservation
+  const handleEditSingle = (reservation) => {
+    setEditingReservation(reservation);
+    setEditingGroup(null);
     
+    const room = rooms.find(r => r.id === reservation.room_id);
+    const roomTypeId = room ? room.room_type_id : '';
+    
+    const formData = {
+      booking_source: reservation.booking_source || 'direct',
+      agent_id: reservation.agent_id || '',
+      direct_source: reservation.direct_source || '',
+      guest_id: reservation.guest_id,
+      room_type_id: roomTypeId,
+      number_of_rooms: 1,
+      check_in_date: reservation.check_in_date,
+      check_out_date: reservation.check_out_date,
+      meal_plan: reservation.meal_plan || 'NM',
+      total_amount: reservation.total_amount,
+      advance_payment: reservation.advance_payment,
+      payment_status: reservation.payment_status,
+      status: reservation.status,
+      special_requests: reservation.special_requests || ''
+    };
+    
+    const roomDetails = [{
+      room_type_id: roomTypeId,
+      room_id: reservation.room_id,
+      number_of_adults: reservation.number_of_adults || 1,
+      number_of_children: reservation.number_of_children || 0,
+      number_of_infants: reservation.number_of_infants || 0
+    }];
+    
+    setEditModalFormData(formData);
+    setEditModalRoomDetails(roomDetails);
     closeActionMenu();
     setIsEditModalOpen(true);
+  };
+  
+  // Handle editing a group of reservations
+  const handleEditGroup = (group) => {
+    setEditingGroup(group);
+    setEditingReservation(null);
+    
+    const primaryReservation = group[0];
+    
+    // Calculate total amount and advance for the group
+    const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+    const totalAdvance = group.reduce((sum, r) => sum + (r.advance_payment || 0), 0);
+    
+    const formData = {
+      booking_source: primaryReservation.booking_source || 'direct',
+      agent_id: primaryReservation.agent_id || '',
+      direct_source: primaryReservation.direct_source || '',
+      guest_id: primaryReservation.guest_id,
+      room_type_id: '',
+      number_of_rooms: group.length,
+      check_in_date: primaryReservation.check_in_date,
+      check_out_date: primaryReservation.check_out_date,
+      meal_plan: primaryReservation.meal_plan || 'NM',
+      total_amount: totalAmount,
+      advance_payment: totalAdvance,
+      payment_status: primaryReservation.payment_status,
+      status: primaryReservation.status,
+      special_requests: primaryReservation.special_requests || ''
+    };
+    
+    // Load all room details from the group
+    const roomDetails = group.map(reservation => {
+      const room = rooms.find(r => r.id === reservation.room_id);
+      return {
+        room_type_id: room ? room.room_type_id : '',
+        room_id: reservation.room_id,
+        number_of_adults: reservation.number_of_adults || 1,
+        number_of_children: reservation.number_of_children || 0,
+        number_of_infants: reservation.number_of_infants || 0
+      };
+    });
+    
+    setEditModalFormData(formData);
+    setEditModalRoomDetails(roomDetails);
+    closeActionMenu();
+    setIsEditModalOpen(true);
+  };
+
+  // Submit edit reservation
+  const handleSubmitEditReservation = async (formData, roomDetails) => {
+    try {
+      if (editingReservation) {
+        // Single reservation edit
+        const reservationData = {
+          booking_source: formData.booking_source,
+          agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
+          direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
+          guest_id: formData.guest_id,
+          room_id: roomDetails[0].room_id,
+          check_in_date: formData.check_in_date,
+          check_out_date: formData.check_out_date,
+          number_of_adults: parseInt(roomDetails[0].number_of_adults),
+          number_of_children: parseInt(roomDetails[0].number_of_children),
+          number_of_infants: parseInt(roomDetails[0].number_of_infants),
+          number_of_guests: parseInt(roomDetails[0].number_of_adults) + parseInt(roomDetails[0].number_of_children) + parseInt(roomDetails[0].number_of_infants),
+          meal_plan: formData.meal_plan,
+          total_amount: parseFloat(formData.total_amount),
+          advance_payment: parseFloat(formData.advance_payment),
+          payment_status: formData.payment_status,
+          status: formData.status,
+          special_requests: formData.special_requests
+        };
+        
+        await updateReservation(editingReservation.id, reservationData);
+        alert('Reservation updated successfully!');
+      } else if (editingGroup) {
+        // Group edit
+        const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / editingGroup.length;
+
+        for (let i = 0; i < editingGroup.length; i++) {
+          const reservation = editingGroup[i];
+          const roomDetail = roomDetails[i];
+          
+          const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
+          const days = calculateDays(formData.check_in_date, formData.check_out_date);
+          const roomAmount = roomType ? roomType.base_price * days : 0;
+          
+          const reservationData = {
+            booking_source: formData.booking_source,
+            agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
+            direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
+            guest_id: formData.guest_id,
+            room_id: roomDetail.room_id,
+            check_in_date: formData.check_in_date,
+            check_out_date: formData.check_out_date,
+            number_of_adults: parseInt(roomDetail.number_of_adults),
+            number_of_children: parseInt(roomDetail.number_of_children),
+            number_of_infants: parseInt(roomDetail.number_of_infants),
+            number_of_guests: parseInt(roomDetail.number_of_adults) + parseInt(roomDetail.number_of_children) + parseInt(roomDetail.number_of_infants),
+            meal_plan: formData.meal_plan,
+            total_amount: roomAmount,
+            advance_payment: advancePerRoom,
+            payment_status: formData.payment_status,
+            status: formData.status,
+            special_requests: formData.special_requests
+          };
+          
+          await updateReservation(reservation.id, reservationData);
+        }
+        
+        alert(`Successfully updated ${editingGroup.length} reservations!`);
+      }
+      
+      await fetchReservations();
+      await fetchRooms();
+      
+      setIsEditModalOpen(false);
+      setEditingReservation(null);
+      setEditingGroup(null);
+      setEditModalFormData(null);
+      setEditModalRoomDetails(null);
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+      alert('Failed to update reservation: ' + error.message);
+    }
   };
 
   // Handle Cancel Reservation action
   const handleCancelReservation = async () => {
     if (!actionMenu.reservation) return;
     
+    const relatedReservations = findRelatedReservations(actionMenu.reservation);
     const guestName = actionMenu.reservation.guests?.name || 'Unknown';
     
-    if (!window.confirm(`Are you sure you want to cancel the reservation for ${guestName}?`)) {
+    let confirmMessage = `Are you sure you want to cancel the reservation for ${guestName}?`;
+    
+    if (relatedReservations.length > 1) {
+      confirmMessage = `This reservation is part of a ${relatedReservations.length}-room booking.\n\n` +
+                      `Are you sure you want to cancel ALL ${relatedReservations.length} rooms for ${guestName}?`;
+    }
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
     
     try {
-      await cancelReservation(actionMenu.reservation.id);
+      // Cancel all related reservations
+      for (const reservation of relatedReservations) {
+        await cancelReservation(reservation.id);
+      }
+      
       await fetchReservations();
       await fetchRooms();
       
-      alert('Reservation cancelled successfully!');
+      const message = relatedReservations.length > 1 
+        ? `Successfully cancelled ${relatedReservations.length} reservations!`
+        : 'Reservation cancelled successfully!';
+      
+      alert(message);
       closeActionMenu();
     } catch (error) {
       console.error('Error cancelling reservation:', error);
@@ -478,67 +687,6 @@ const ReservationCalendar = () => {
     setIsRoomStatusModalOpen(true);
   };
 
-  // Submit edit reservation
-  const handleUpdateReservation = async () => {
-    if (!bookingData.guest_id) {
-      alert('Please select a guest');
-      return;
-    }
-    
-    if (!bookingData.check_out_date) {
-      alert('Please select check-out date');
-      return;
-    }
-    
-    try {
-      const room = rooms.find(r => r.id === bookingData.room_id);
-      const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
-      
-      const checkIn = new Date(bookingData.check_in_date);
-      const checkOut = new Date(bookingData.check_out_date);
-      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-      const totalAmount = (roomType?.base_price || 0) * nights;
-      
-      const reservationData = {
-        guest_id: bookingData.guest_id,
-        room_id: bookingData.room_id,
-        check_in_date: bookingData.check_in_date,
-        check_out_date: bookingData.check_out_date,
-        number_of_adults: parseInt(bookingData.number_of_adults),
-        number_of_children: parseInt(bookingData.number_of_children),
-        number_of_infants: parseInt(bookingData.number_of_infants),
-        number_of_guests: parseInt(bookingData.number_of_adults) + parseInt(bookingData.number_of_children) + parseInt(bookingData.number_of_infants),
-        meal_plan: bookingData.meal_plan,
-        total_amount: totalAmount,
-        status: bookingData.status,
-        special_requests: bookingData.special_requests
-      };
-      
-      await updateReservation(editingReservation.id, reservationData);
-      await fetchReservations();
-      
-      alert('Reservation updated successfully!');
-      
-      setIsEditModalOpen(false);
-      setEditingReservation(null);
-      setBookingData({
-        room_id: '',
-        check_in_date: '',
-        check_out_date: '',
-        guest_id: '',
-        number_of_adults: 1,
-        number_of_children: 0,
-        number_of_infants: 0,
-        meal_plan: 'NM',
-        status: 'Confirmed',
-        special_requests: ''
-      });
-      
-    } catch (error) {
-      console.error('Error updating reservation:', error);
-      alert('Failed to update reservation: ' + error.message);
-    }
-  };
 
   // Submit room status change
   const handleSubmitRoomStatus = async (newStatus) => {
@@ -641,7 +789,7 @@ const ReservationCalendar = () => {
     
     if (!window.confirm(
       `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} Ãƒâ€” ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} ÃƒÆ’Ã¢â‚¬â€ ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
       `You'll enter guest details once, and all bookings will be created with the same guest.`
     )) {
       return;
@@ -1280,7 +1428,7 @@ const ReservationCalendar = () => {
                         {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
                       </div>
                       <div className={styles.actionMenuHeaderDates}>
-                        {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} × {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
+                        {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} Ã— {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
                       </div>
                       <div className={styles.actionMenuHeaderDates} style={{ color: '#166534', fontWeight: '600' }}>
                         {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -1665,160 +1813,21 @@ const ReservationCalendar = () => {
       </Modal>
 
       {/* Edit Reservation Modal */}
-      <Modal
+      <EditBookingModal
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
           setEditingReservation(null);
+          setEditingGroup(null);
+          setEditModalFormData(null);
+          setEditModalRoomDetails(null);
         }}
-        title="Edit Reservation"
-        size="medium"
-      >
-        <div className="form-grid">
-          {/* Room and Date Info */}
-          <div className="form-group full-width">
-            <div className={styles.modalInfoBox}>
-              <div className={styles.modalInfoBoxTitle}>
-                {(() => {
-                  const room = rooms.find(r => r.id === bookingData.room_id);
-                  const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
-                  return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
-                })()}
-              </div>
-              <div className={styles.modalInfoBoxText}>
-                Check-in: {bookingData.check_in_date}
-              </div>
-              <div className={styles.modalInfoBoxText}>
-                Check-out: {bookingData.check_out_date}
-              </div>
-              {bookingData.check_in_date && bookingData.check_out_date && (
-                <div className={styles.modalInfoBoxText} style={{ fontWeight: '700', marginTop: '6px' }}>
-                  {(() => {
-                    const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
-                    return `${nights} night${nights !== 1 ? 's' : ''}`;
-                  })()}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Guest Selection */}
-          <div className="form-group full-width">
-            <label>Select Guest *</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                style={{ flex: 1 }}
-                value={bookingData.guest_id}
-                onChange={(e) => setBookingData({ ...bookingData, guest_id: e.target.value })}
-              >
-                <option value="">Select Guest</option>
-                {guests.map(guest => (
-                  <option key={guest.id} value={guest.id}>
-                    {guest.name} - {guest.phone}
-                  </option>
-                ))}
-              </select>
-              <button 
-                onClick={() => setIsGuestModalOpen(true)} 
-                className="btn-secondary"
-                type="button"
-              >
-                <UserPlus size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Check-out Date */}
-          <div className="form-group">
-            <label>Check-out Date *</label>
-            <input
-              type="date"
-              value={bookingData.check_out_date}
-              onChange={(e) => setBookingData({ ...bookingData, check_out_date: e.target.value })}
-              min={bookingData.check_in_date}
-            />
-          </div>
-
-          {/* Status */}
-          <div className="form-group">
-            <label>Status</label>
-            <select
-              value={bookingData.status}
-              onChange={(e) => setBookingData({ ...bookingData, status: e.target.value })}
-            >
-              <option value="Confirmed">Confirmed</option>
-              <option value="Hold">Hold</option>
-              <option value="Tentative">Tentative</option>
-              <option value="Checked-in">Checked-in</option>
-            </select>
-          </div>
-
-          {/* Number of Guests */}
-          <div className="form-group">
-            <label>Adults *</label>
-            <input
-              type="number"
-              min="1"
-              value={bookingData.number_of_adults}
-              onChange={(e) => setBookingData({ ...bookingData, number_of_adults: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Children</label>
-            <input
-              type="number"
-              min="0"
-              value={bookingData.number_of_children}
-              onChange={(e) => setBookingData({ ...bookingData, number_of_children: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Infants</label>
-            <input
-              type="number"
-              min="0"
-              value={bookingData.number_of_infants}
-              onChange={(e) => setBookingData({ ...bookingData, number_of_infants: e.target.value })}
-            />
-          </div>
-
-          {/* Meal Plan */}
-          <div className="form-group">
-            <label>Meal Plan</label>
-            <select
-              value={bookingData.meal_plan}
-              onChange={(e) => setBookingData({ ...bookingData, meal_plan: e.target.value })}
-            >
-              <option value="NM">No Meal</option>
-              <option value="BO">Breakfast Only</option>
-              <option value="HB">Half Board</option>
-              <option value="FB">Full Board</option>
-            </select>
-          </div>
-
-          {/* Special Requests */}
-          <div className="form-group full-width">
-            <label>Special Requests</label>
-            <textarea
-              value={bookingData.special_requests}
-              onChange={(e) => setBookingData({ ...bookingData, special_requests: e.target.value })}
-              rows="2"
-              placeholder="Any special requirements..."
-            />
-          </div>
-        </div>
-
-        <div className="modal-actions">
-          <button onClick={() => setIsEditModalOpen(false)} className="btn-secondary">
-            <X size={18} /> Cancel
-          </button>
-          <button onClick={handleUpdateReservation} className="btn-primary">
-            <Save size={18} /> Update Reservation
-          </button>
-        </div>
-      </Modal>
+        onSubmit={handleSubmitEditReservation}
+        editingReservation={editingReservation}
+        editingGroup={editingGroup}
+        initialFormData={editModalFormData}
+        initialRoomDetails={editModalRoomDetails}
+      />
 
       {/* Room Status Change Modal */}
       <Modal
