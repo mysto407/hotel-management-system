@@ -1,27 +1,32 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, Save, XCircle, CheckCircle, LogOut, Search, Filter, UserPlus, Calendar, User, Building, ChevronDown } from 'lucide-react';
-import { Modal } from '../../components/common/Modal';
+import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar } from 'lucide-react';
+// Import the shared modal
+import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { calculateDays } from '../../utils/helpers';
-import styles from './Reservations.module.css'; // Import the new CSS module
+import styles from './Reservations.module.css';
 
 const Reservations = () => {
   const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation } = useReservations();
   const { rooms, roomTypes } = useRooms();
-  const { guests, getGuestByPhone, addGuest } = useGuests();
-  const { agents, addAgent } = useAgents();
+  // Contexts are still needed for the main page, and EditBookingModal will also use them.
+  const { guests } = useGuests();
+  const { agents } = useAgents();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
-  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null); // Array of reservations for group editing
+  
+  // State to hold the initial data for the modal when editing
+  const [initialFormData, setInitialFormData] = useState(null);
+  const [initialRoomDetails, setInitialRoomDetails] = useState(null);
+
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGuest, setSelectedGuest] = useState(null);
   const [showSummary, setShowSummary] = useState(true);
   
   // Date filter states
@@ -34,105 +39,10 @@ const Reservations = () => {
   const [filterGuestCount, setFilterGuestCount] = useState('all'); // all, 1-2, 3-4, 5+
   const [showFilters, setShowFilters] = useState(false);
 
-  const [formData, setFormData] = useState({
-    booking_source: 'direct',
-    agent_id: '',
-    direct_source: '',
-    guest_id: '',
-    room_type_id: '',
-    number_of_rooms: 1,
-    check_in_date: '',
-    check_out_date: '',
-    meal_plan: 'NM',
-    total_amount: 0,
-    advance_payment: 0,
-    payment_status: 'Pending',
-    status: 'Confirmed',
-    special_requests: ''
-  });
-
-  // State for individual room details
-  const [roomDetails, setRoomDetails] = useState([{
-    room_type_id: '',
-    room_id: '',
-    number_of_adults: 1,
-    number_of_children: 0,
-    number_of_infants: 0
-  }]);
-
-  const [guestFormData, setGuestFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    id_proof_type: 'AADHAR',
-    id_proof_number: '',
-    address: '',
-    city: '',
-    state: '',
-    country: 'India',
-    guest_type: 'Regular'
-  });
-
-  const [agentFormData, setAgentFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    commission: '',
-    address: ''
-  });
-
-  // Handle number of rooms change
-  const handleNumberOfRoomsChange = (count) => {
-    const numRooms = parseInt(count) || 1;
-    setFormData({ ...formData, number_of_rooms: numRooms });
-    
-    // Adjust roomDetails array
-    const newRoomDetails = [];
-    for (let i = 0; i < numRooms; i++) {
-      newRoomDetails.push(roomDetails[i] || {
-        room_type_id: '',
-        room_id: '',
-        number_of_adults: 1,
-        number_of_children: 0,
-        number_of_infants: 0
-      });
-    }
-    setRoomDetails(newRoomDetails);
-  };
-
-  // Update individual room details
-  const updateRoomDetail = (index, field, value) => {
-    const updated = [...roomDetails];
-    updated[index] = { ...updated[index], [field]: value };
-    setRoomDetails(updated);
-  };
-
-  // Get available rooms by room type
-  const getAvailableRoomsByType = (roomTypeId) => {
-    if (!roomTypeId) return [];
-    return rooms.filter(r => r.room_type_id === roomTypeId && r.status === 'Available');
-  };
-
-  // Auto-assign rooms
-  const autoAssignRooms = () => {
-    const updated = [...roomDetails];
-    
-    for (let i = 0; i < updated.length; i++) {
-      if (!updated[i].room_id && updated[i].room_type_id) {
-        const availableRooms = getAvailableRoomsByType(updated[i].room_type_id);
-        // Filter out rooms already assigned
-        const unassignedRooms = availableRooms.filter(room => 
-          !updated.some(rd => rd.room_id === room.id)
-        );
-        
-        if (unassignedRooms.length > 0) {
-          updated[i].room_id = unassignedRooms[0].id;
-        }
-      }
-    }
-    
-    setRoomDetails(updated);
-  };
+  // All modal-specific state and logic (formData, roomDetails, guestFormData, 
+  // handleNumberOfRoomsChange, updateRoomDetail, getAvailableRoomsByType, 
+  // autoAssignRooms, calculateTotal, guest/agent handlers)
+  // have been REMOVED from here. They are all handled inside EditBookingModal.
 
   // Function to set date ranges based on preset
   const setDatePreset = (preset) => {
@@ -188,34 +98,13 @@ const Reservations = () => {
            endDate !== '';
   };
 
-  const handleSubmit = async () => {
-    if (!formData.guest_id || !formData.check_in_date || !formData.check_out_date) {
-      alert('Please fill all required fields');
-      return;
-    }
-
-    // Validate all rooms have room types selected
-    const unselectedRoomTypes = roomDetails.filter(rd => !rd.room_type_id);
-    if (unselectedRoomTypes.length > 0) {
-      alert(`Please select room type for all ${formData.number_of_rooms} room(s)`);
-      return;
-    }
-
-    // Validate all rooms are assigned
-    const unassignedRooms = roomDetails.filter(rd => !rd.room_id);
-    if (unassignedRooms.length > 0) {
-      alert(`Please assign room numbers for all ${formData.number_of_rooms} room(s)`);
-      return;
-    }
-
-    // Check for duplicate room assignments
-    const roomIds = roomDetails.map(rd => rd.room_id);
-    const uniqueRoomIds = new Set(roomIds);
-    if (roomIds.length !== uniqueRoomIds.size) {
-      alert('Cannot assign the same room multiple times');
-      return;
-    }
-
+  /**
+   * This function is passed to EditBookingModal as the onSubmit prop.
+   * The modal will call this with the finalized formData and roomDetails.
+   */
+  const handleSubmit = async (formData, roomDetails) => {
+    // Validation is already handled by EditBookingModal
+    
     try {
       if (editingReservation) {
         // For editing single reservation
@@ -243,12 +132,10 @@ const Reservations = () => {
         // For editing group of reservations
         const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / editingGroup.length;
 
-        // Update each reservation in the group
         for (let i = 0; i < editingGroup.length; i++) {
           const reservation = editingGroup[i];
           const roomDetail = roomDetails[i];
           
-          // Calculate amount for this specific room
           const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
           const days = calculateDays(formData.check_in_date, formData.check_out_date);
           const roomAmount = roomType ? roomType.base_price * days : 0;
@@ -279,13 +166,11 @@ const Reservations = () => {
         alert(`Successfully updated ${editingGroup.length} reservations!`);
       } else {
         // For new booking, create multiple reservations (one per room)
-        const totalAmount = parseFloat(formData.total_amount) || 0;
         const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / formData.number_of_rooms;
 
         for (let i = 0; i < roomDetails.length; i++) {
           const roomDetail = roomDetails[i];
           
-          // Calculate amount for this specific room
           const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
           const days = calculateDays(formData.check_in_date, formData.check_out_date);
           const roomAmount = roomType ? roomType.base_price * days : 0;
@@ -312,141 +197,45 @@ const Reservations = () => {
           await addReservation(reservationData);
         }
       }
-      resetForm();
+      closeModal(); // Close modal on success
     } catch (error) {
-      console.error('Error creating reservations:', error);
-      alert('Failed to create booking: ' + error.message);
+      console.error('Error creating/updating reservations:', error);
+      alert('Failed to save booking: ' + error.message);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      booking_source: 'direct',
-      agent_id: '',
-      direct_source: '',
-      guest_id: '',
-      room_type_id: '',
-      number_of_rooms: 1,
-      check_in_date: '',
-      check_out_date: '',
-      meal_plan: 'NM',
-      total_amount: 0,
-      advance_payment: 0,
-      payment_status: 'Pending',
-      status: 'Confirmed',
-      special_requests: ''
-    });
-    setRoomDetails([{
-      room_type_id: '',
-      room_id: '',
-      number_of_adults: 1,
-      number_of_children: 0,
-      number_of_infants: 0
-    }]);
-    setSelectedGuest(null);
+  /**
+   * This is the new onClose handler for the modal.
+   * It resets all editing state.
+   */
+  const closeModal = () => {
+    setIsModalOpen(false);
     setEditingReservation(null);
     setEditingGroup(null);
-    setIsModalOpen(false);
+    setInitialFormData(null);
+    setInitialRoomDetails(null);
   };
 
-  const resetAgentForm = () => {
-    setAgentFormData({
-      name: '',
-      email: '',
-      phone: '',
-      commission: '',
-      address: ''
-    });
-    setIsAgentModalOpen(false);
-  };
-
-  const handleCreateAgent = async () => {
-    if (!agentFormData.name) {
-      alert('Please enter agent name');
-      return;
-    }
-  
-    // Transform the data - convert empty strings to null for numeric fields
-    const agentData = {
-      name: agentFormData.name,
-      email: agentFormData.email || null,
-      phone: agentFormData.phone || null,
-      commission: agentFormData.commission && agentFormData.commission !== '' 
-        ? parseFloat(agentFormData.commission) 
-        : null,
-      address: agentFormData.address || null
-    };
-  
-    const newAgent = await addAgent(agentData);
-    if (newAgent) {
-      setFormData({ ...formData, agent_id: newAgent.id });
-      resetAgentForm();
-    }
-  };
-
-  const resetGuestForm = () => {
-    setGuestFormData({
-      name: '',
-      email: '',
-      phone: '',
-      id_proof_type: 'AADHAR',
-      id_proof_number: '',
-      address: '',
-      city: '',
-      state: '',
-      country: 'India',
-      guest_type: 'Regular'
-    });
-    setIsGuestModalOpen(false);
-  };
-
-  const handleCreateGuest = async () => {
-    if (!guestFormData.name) {
-      alert('Please enter guest name');
-      return;
-    }
-
-    const newGuest = await addGuest(guestFormData);
-    if (newGuest) {
-      setFormData({ ...formData, guest_id: newGuest.id });
-      setSelectedGuest(newGuest);
-      resetGuestForm();
-    }
-  };
-
-  const handleGuestSearch = (phone) => {
-    const guest = getGuestByPhone(phone);
-    if (guest) {
-      setFormData({ ...formData, guest_id: guest.id });
-      setSelectedGuest(guest);
-    } else {
-      setFormData({ ...formData, guest_id: '' });
-      setSelectedGuest(null);
-    }
-  };
-
-  const handleGuestSelect = (guestId) => {
-    const guest = guests.find(g => g.id === guestId);
-    setFormData({ ...formData, guest_id: guestId });
-    setSelectedGuest(guest);
-  };
-
+  /**
+   * Prepares the initial data for the EditBookingModal when editing
+   * a single reservation.
+   */
   const handleEdit = (reservation) => {
     setEditingReservation(reservation);
-    setEditingGroup(null); // Clear group editing
-    setSelectedGuest(reservation.guests);
+    setEditingGroup(null);
     
     // Get the room type from the reservation's room
     const room = rooms.find(r => r.id === reservation.room_id);
     const roomTypeId = room ? room.room_type_id : '';
     
-    setFormData({
+    // Prepare the props for EditBookingModal
+    const formData = {
       booking_source: reservation.booking_source || 'direct',
       agent_id: reservation.agent_id || '',
       direct_source: reservation.direct_source || '',
       guest_id: reservation.guest_id,
       room_type_id: roomTypeId,
-      number_of_rooms: 1, // Editing always shows one room
+      number_of_rooms: 1,
       check_in_date: reservation.check_in_date,
       check_out_date: reservation.check_out_date,
       meal_plan: reservation.meal_plan || 'NM',
@@ -455,31 +244,38 @@ const Reservations = () => {
       payment_status: reservation.payment_status,
       status: reservation.status,
       special_requests: reservation.special_requests || ''
-    });
+    };
     
-    setRoomDetails([{
+    const roomDetails = [{
       room_type_id: roomTypeId,
       room_id: reservation.room_id,
       number_of_adults: reservation.number_of_adults || 1,
       number_of_children: reservation.number_of_children || 0,
       number_of_infants: reservation.number_of_infants || 0
-    }]);
-    
+    }];
+
+    // Set the initial state and open the modal
+    setInitialFormData(formData);
+    setInitialRoomDetails(roomDetails);
     setIsModalOpen(true);
   };
 
+  /**
+   * Prepares the initial data for the EditBookingModal when editing
+   * a group of reservations.
+   */
   const handleEditGroup = (group) => {
-    setEditingGroup(group); // Store the entire group
-    setEditingReservation(null); // Clear single edit
+    setEditingGroup(group);
+    setEditingReservation(null);
     
     const primaryReservation = group[0];
-    setSelectedGuest(primaryReservation.guests);
     
     // Calculate total amount and advance for the group
     const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
     const totalAdvance = group.reduce((sum, r) => sum + (r.advance_payment || 0), 0);
     
-    setFormData({
+    // Prepare the props for EditBookingModal
+    const formData = {
       booking_source: primaryReservation.booking_source || 'direct',
       agent_id: primaryReservation.agent_id || '',
       direct_source: primaryReservation.direct_source || '',
@@ -494,7 +290,7 @@ const Reservations = () => {
       payment_status: primaryReservation.payment_status,
       status: primaryReservation.status,
       special_requests: primaryReservation.special_requests || ''
-    });
+    };
     
     // Load all room details from the group
     const details = group.map(reservation => {
@@ -508,7 +304,9 @@ const Reservations = () => {
       };
     });
     
-    setRoomDetails(details);
+    // Set the initial state and open the modal
+    setInitialFormData(formData);
+    setInitialRoomDetails(details);
     setIsModalOpen(true);
   };
 
@@ -527,25 +325,6 @@ const Reservations = () => {
   const handleCancel = (reservation) => {
     if (window.confirm('Are you sure you want to cancel this reservation?')) {
       cancelReservation(reservation.id);
-    }
-  };
-
-  const calculateTotal = () => {
-    if (formData.check_in_date && formData.check_out_date && roomDetails.length > 0) {
-      const days = calculateDays(formData.check_in_date, formData.check_out_date);
-      let total = 0;
-      
-      // Calculate total for each room based on its room type
-      roomDetails.forEach(roomDetail => {
-        if (roomDetail.room_type_id) {
-          const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
-          if (roomType) {
-            total += roomType.base_price * days;
-          }
-        }
-      });
-      
-      setFormData(prev => ({ ...prev, total_amount: total }));
     }
   };
 
@@ -598,8 +377,6 @@ const Reservations = () => {
 
     return groups;
   };
-
-  const availableRooms = rooms.filter(r => r.status === 'Available');
 
   // State for expanded groups
   const [expandedGroups, setExpandedGroups] = useState(new Set());
@@ -687,13 +464,16 @@ const Reservations = () => {
               style={{ width: '100%' }}
             />
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="btn-primary">
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className="btn-primary"
+          >
             <Plus size={20} /> New Booking
           </button>
         </div>
       </div>
 
-      {/* Main Filters - Date Range and Quick Filters */}
+      {/* Main Filters - Date Range and Quick Filters (JSX unchanged) */}
       <div style={{ marginBottom: '24px' }}>
         <div style={{ 
           background: 'white', 
@@ -1260,7 +1040,7 @@ const Reservations = () => {
         </div>
       </div>
 
-      {/* Summary Statistics Box - Now Collapsible */}
+      {/* Summary Statistics Box (JSX unchanged) */}
       <div style={{ 
         marginBottom: '24px', 
         background: 'white', 
@@ -1734,6 +1514,7 @@ const Reservations = () => {
         )}
       </div>
 
+      {/* Reservation Table (JSX unchanged) */}
       <div className="table-container">
         <table className="data-table">
           <thead>
@@ -2030,689 +1811,21 @@ const Reservations = () => {
         )}
       </div>
 
-      {/* Reservation Modal */}
-      <Modal
+      {/* REMOVED: All of the old modal JSX (over 400 lines)
+      that was here (lines 1443-1825 in the original file).
+      
+      */}
+
+      {/* REPLACEMENT: The single, reusable EditBookingModal component */}
+      <EditBookingModal
         isOpen={isModalOpen}
-        onClose={resetForm}
-        title={
-          editingGroup 
-            ? `Edit Group Booking - ${editingGroup.length} Rooms` 
-            : editingReservation 
-              ? 'Edit Reservation' 
-              : `New Booking${formData.number_of_rooms > 1 ? ` - ${formData.number_of_rooms} Rooms` : ''}`
-        }
-        size="large"
-      >
-        <div className="form-grid">
-          {/* Booking Source */}
-          <div className="form-group">
-            <label>Booking Source *</label>
-            <select
-              value={formData.booking_source}
-              onChange={(e) => {
-                setFormData({...formData, booking_source: e.target.value, agent_id: '', direct_source: ''});
-              }}
-            >
-              <option value="direct">Direct</option>
-              <option value="agent">Agent</option>
-            </select>
-          </div>
-
-          {/* Direct Source - Show if booking source is direct */}
-          {formData.booking_source === 'direct' && (
-            <div className="form-group">
-              <label>Direct Booking Source</label>
-              <input
-                type="text"
-                value={formData.direct_source}
-                onChange={(e) => setFormData({...formData, direct_source: e.target.value})}
-                placeholder="e.g., Walk-in, Phone Call, Website"
-              />
-              <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
-                Optional: Specify where this booking came from
-              </small>
-            </div>
-          )}
-
-          {/* Agent Selection - Only show if booking source is agent */}
-          {formData.booking_source === 'agent' && (
-            <div className="form-group">
-              <label>Select Agent *</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select
-                  style={{ flex: 1 }}
-                  value={formData.agent_id}
-                  onChange={(e) => setFormData({...formData, agent_id: e.target.value})}
-                >
-                  <option value="">Select Agent</option>
-                  {agents.map(agent => (
-                    <option key={agent.id} value={agent.id}>
-                      {agent.name} - {agent.phone}
-                    </option>
-                  ))}
-                </select>
-                <button 
-                  onClick={() => setIsAgentModalOpen(true)} 
-                  className="btn-secondary"
-                  type="button"
-                >
-                  <UserPlus size={18} /> New Agent
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Guest Selection */}
-          <div className="form-group full-width">
-            <label>Select Guest *</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                style={{ flex: 1 }}
-                value={formData.guest_id}
-                onChange={(e) => handleGuestSelect(e.target.value)}
-              >
-                <option value="">Select Guest</option>
-                {guests.map(guest => (
-                  <option key={guest.id} value={guest.id}>
-                    {guest.name} - {guest.phone}
-                  </option>
-                ))}
-              </select>
-              <button 
-                onClick={() => setIsGuestModalOpen(true)} 
-                className="btn-secondary"
-                type="button"
-              >
-                <UserPlus size={18} /> New Guest
-              </button>
-            </div>
-          </div>
-
-          {/* Guest Quick Search */}
-          <div className="form-group full-width">
-            <label>Or Search by Phone</label>
-            <input
-              type="tel"
-              placeholder="Enter phone number to search"
-              onBlur={(e) => handleGuestSearch(e.target.value)}
-            />
-          </div>
-
-          {/* Selected Guest Info */}
-          {selectedGuest && (
-            <div className="form-group full-width">
-              <div style={{ 
-                padding: '12px', 
-                background: '#f0f9ff', 
-                border: '1px solid #bae6fd',
-                borderRadius: '6px' 
-              }}>
-                <strong>{selectedGuest.name}</strong>
-                <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} Ã¢â‚¬Â¢ {selectedGuest.email || 'No email'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Number of Rooms */}
-          {!editingReservation && !editingGroup && (
-            <div className="form-group">
-              <label>Number of Rooms *</label>
-              <select
-                value={formData.number_of_rooms}
-                onChange={(e) => {
-                  handleNumberOfRoomsChange(e.target.value);
-                  setTimeout(calculateTotal, 0);
-                }}
-              >
-                {Array.from({ length: Math.min(availableRooms.length, 10) }, (_, i) => i + 1).map(num => (
-                  <option key={num} value={num}>
-                    {num} {num === 1 ? 'Room' : 'Rooms'}
-                  </option>
-                ))}
-              </select>
-              <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                {availableRooms.length} rooms currently available
-              </small>
-            </div>
-          )}
-
-          {/* Room Details for Each Room */}
-          <div className="form-group full-width">
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '12px'
-            }}>
-              <label style={{ margin: 0 }}>Room Details *</label>
-              {!editingReservation && !editingGroup && formData.number_of_rooms > 0 && (
-                <button
-                  type="button"
-                  onClick={autoAssignRooms}
-                  className="btn-secondary"
-                  style={{ padding: '6px 12px', fontSize: '13px' }}
-                >
-                  Auto-Assign Rooms
-                </button>
-              )}
-            </div>
-
-            {roomDetails.map((roomDetail, index) => (
-              <div 
-                key={index}
-                style={{
-                  padding: '16px',
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  marginBottom: '12px'
-                }}
-              >
-                <div style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151',
-                  marginBottom: '12px'
-                }}>
-                  Room {index + 1}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {/* Room Type Selection */}
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontSize: '12px', 
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Room Type *
-                    </label>
-                    <select
-                      value={roomDetail.room_type_id || ''}
-                      onChange={(e) => {
-                        const updated = [...roomDetails];
-                        updated[index] = {
-                          ...updated[index],
-                          room_type_id: e.target.value,
-                          room_id: '' // Reset room number when room type changes
-                        };
-                        setRoomDetails(updated);
-                        setTimeout(calculateTotal, 0);
-                      }}
-                      disabled={editingReservation || editingGroup}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    >
-                      <option value="">Select Room Type</option>
-                      {roomTypes.map(roomType => {
-                        const availableCount = getAvailableRoomsByType(roomType.id).length;
-                        return (
-                          <option key={roomType.id} value={roomType.id}>
-                            {roomType.name} - â‚¹{roomType.base_price}/night ({availableCount} available)
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-
-                  {/* Room Number Selection */}
-                  {roomDetail.room_type_id && (
-                    <div>
-                      <label style={{ 
-                        display: 'block', 
-                        fontSize: '12px', 
-                        color: '#6b7280',
-                        marginBottom: '4px'
-                      }}>
-                        Room Number *
-                      </label>
-                      <select
-                        value={roomDetail.room_id || ''}
-                        onChange={(e) => updateRoomDetail(index, 'room_id', e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      >
-                        <option value="">Select Room Number</option>
-                        {getAvailableRoomsByType(roomDetail.room_type_id)
-                          .filter(room => 
-                            room.id === roomDetail.room_id || 
-                            !roomDetails.some(rd => rd.room_id === room.id)
-                          )
-                          .map(room => (
-                            <option key={room.id} value={room.id}>
-                              Room {room.room_number} - Floor {room.floor}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Guest Counts - Compact Single Row */}
-                  <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontSize: '12px', 
-                      color: '#6b7280',
-                      marginBottom: '6px'
-                    }}>
-                      Number of Guests *
-                    </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                      <div>
-                        <input
-                          type="number"
-                          min="1"
-                          value={roomDetail.number_of_adults || 1}
-                          onChange={(e) => updateRoomDetail(index, 'number_of_adults', e.target.value)}
-                          placeholder="Adults"
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px'
-                          }}
-                        />
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', textAlign: 'center' }}>
-                          Adults
-                        </div>
-                      </div>
-                      <div>
-                        <input
-                          type="number"
-                          min="0"
-                          value={roomDetail.number_of_children || 0}
-                          onChange={(e) => updateRoomDetail(index, 'number_of_children', e.target.value)}
-                          placeholder="Children"
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px'
-                          }}
-                        />
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', textAlign: 'center' }}>
-                          Children
-                        </div>
-                      </div>
-                      <div>
-                        <input
-                          type="number"
-                          min="0"
-                          value={roomDetail.number_of_infants || 0}
-                          onChange={(e) => updateRoomDetail(index, 'number_of_infants', e.target.value)}
-                          placeholder="Infants"
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px'
-                          }}
-                        />
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', textAlign: 'center' }}>
-                          Infants
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ 
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    paddingTop: '4px'
-                  }}>
-                    Total: {parseInt(roomDetail.number_of_adults || 0) + 
-                             parseInt(roomDetail.number_of_children || 0) + 
-                             parseInt(roomDetail.number_of_infants || 0)} guests
-                    {roomDetail.room_type_id && formData.check_in_date && formData.check_out_date && (
-                      <span style={{ marginLeft: '12px', fontWeight: '600', color: '#374151' }}>
-                        â€¢ â‚¹{(() => {
-                          const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
-                          const days = calculateDays(formData.check_in_date, formData.check_out_date);
-                          return roomType ? (roomType.base_price * days).toLocaleString() : 0;
-                        })()} 
-                        {formData.check_in_date && formData.check_out_date && 
-                          ` (${calculateDays(formData.check_in_date, formData.check_out_date)} nights)`
-                        }
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Total Summary */}
-            {roomDetails.length > 0 && (
-              <div style={{
-                padding: '12px',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                borderRadius: '6px',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '8px',
-                fontSize: '13px',
-                color: '#1e40af'
-              }}>
-                <div>
-                  <strong>Total Rooms:</strong> {roomDetails.length}
-                </div>
-                <div>
-                  <strong>Total Guests:</strong> {roomDetails.reduce((sum, rd) => 
-                    sum + parseInt(rd.number_of_adults || 0) + 
-                    parseInt(rd.number_of_children || 0) + 
-                    parseInt(rd.number_of_infants || 0), 0
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Meal Plan *</label>
-            <select
-              value={formData.meal_plan}
-              onChange={(e) => setFormData({...formData, meal_plan: e.target.value})}
-            >
-              <option value="NM">NM - No Meal</option>
-              <option value="BO">BO - Breakfast Only</option>
-              <option value="HB">HB - Half Board</option>
-              <option value="FB">FB - Full Board</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Check-in Date *</label>
-            <input
-              type="date"
-              value={formData.check_in_date}
-              onChange={(e) => {
-                setFormData({...formData, check_in_date: e.target.value});
-                setTimeout(calculateTotal, 0);
-              }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Check-out Date *</label>
-            <input
-              type="date"
-              value={formData.check_out_date}
-              onChange={(e) => {
-                setFormData({...formData, check_out_date: e.target.value});
-                setTimeout(calculateTotal, 0);
-              }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Total Amount *</label>
-            <input
-              type="number"
-              value={formData.total_amount}
-              onChange={(e) => setFormData({...formData, total_amount: e.target.value})}
-            />
-            {(!editingReservation || editingGroup) && formData.number_of_rooms > 1 && formData.total_amount > 0 && (
-              <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                Calculated from individual room rates
-              </small>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Advance Payment</label>
-            <input
-              type="number"
-              value={formData.advance_payment}
-              onChange={(e) => setFormData({...formData, advance_payment: e.target.value})}
-            />
-            {(!editingReservation || editingGroup) && formData.number_of_rooms > 1 && formData.advance_payment > 0 && (
-              <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                â‚¹{(formData.advance_payment / formData.number_of_rooms).toFixed(2)} per room
-              </small>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Payment Status</label>
-            <select
-              value={formData.payment_status}
-              onChange={(e) => setFormData({...formData, payment_status: e.target.value})}
-            >
-              <option value="Pending">Pending</option>
-              <option value="Partial">Partial</option>
-              <option value="Paid">Paid</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Status</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({...formData, status: e.target.value})}
-            >
-              <option value="Inquiry">Inquiry</option>
-              <option value="Tentative">Tentative</option>
-              <option value="Hold">Hold</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Checked-in">Checked-in</option>
-            </select>
-          </div>
-
-          <div className="form-group full-width">
-            <label>Special Requests</label>
-            <textarea
-              value={formData.special_requests}
-              onChange={(e) => setFormData({...formData, special_requests: e.target.value})}
-              rows="2"
-              placeholder="Any special requirements..."
-            />
-          </div>
-        </div>
-
-        <div className="modal-actions">
-          <button onClick={resetForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleSubmit} className="btn-primary">
-            <Save size={18} /> Save Booking
-          </button>
-        </div>
-      </Modal>
-
-      {/* Quick Add Guest Modal */}
-      <Modal
-        isOpen={isGuestModalOpen}
-        onClose={resetGuestForm}
-        title="Add New Guest"
-        size="large"
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Full Name *</label>
-            <input
-              type="text"
-              value={guestFormData.name}
-              onChange={(e) => setGuestFormData({...guestFormData, name: e.target.value})}
-              placeholder="John Doe"
-            />
-          </div>
-          <div className="form-group">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={guestFormData.phone}
-              onChange={(e) => setGuestFormData({...guestFormData, phone: e.target.value})}
-              placeholder="9876543210"
-            />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={guestFormData.email}
-              onChange={(e) => setGuestFormData({...guestFormData, email: e.target.value})}
-              placeholder="john@example.com"
-            />
-          </div>
-          <div className="form-group">
-            <label>ID Proof Type</label>
-            <select
-              value={guestFormData.id_proof_type}
-              onChange={(e) => setGuestFormData({...guestFormData, id_proof_type: e.target.value})}
-            >
-              <option value="AADHAR">AADHAR</option>
-              <option value="PAN">PAN</option>
-              <option value="Passport">Passport</option>
-              <option value="Driving License">Driving License</option>
-              <option value="Voter ID">Voter ID</option>
-              <option value="N/A">N/A</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>ID Proof Number</label>
-            <input
-              type="text"
-              value={guestFormData.id_proof_number}
-              onChange={(e) => setGuestFormData({...guestFormData, id_proof_number: e.target.value})}
-              placeholder="AADHAR-1234"
-            />
-          </div>
-          <div className="form-group">
-            <label>Guest Type</label>
-            <select
-              value={guestFormData.guest_type}
-              onChange={(e) => setGuestFormData({...guestFormData, guest_type: e.target.value})}
-            >
-              <option value="Regular">Regular</option>
-              <option value="VIP">VIP</option>
-              <option value="Corporate">Corporate</option>
-            </select>
-          </div>
-          <div className="form-group full-width">
-            <label>Address</label>
-            <input
-              type="text"
-              value={guestFormData.address}
-              onChange={(e) => setGuestFormData({...guestFormData, address: e.target.value})}
-              placeholder="123 Main Street"
-            />
-          </div>
-          <div className="form-group">
-            <label>City</label>
-            <input
-              type="text"
-              value={guestFormData.city}
-              onChange={(e) => setGuestFormData({...guestFormData, city: e.target.value})}
-              placeholder="Mumbai"
-            />
-          </div>
-          <div className="form-group">
-            <label>State</label>
-            <input
-              type="text"
-              value={guestFormData.state}
-              onChange={(e) => setGuestFormData({...guestFormData, state: e.target.value})}
-              placeholder="Maharashtra"
-            />
-          </div>
-          <div className="form-group">
-            <label>Country</label>
-            <input
-              type="text"
-              value={guestFormData.country}
-              onChange={(e) => setGuestFormData({...guestFormData, country: e.target.value})}
-              placeholder="India"
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetGuestForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleCreateGuest} className="btn-primary">
-            <Save size={18} /> Add Guest
-          </button>
-        </div>
-      </Modal>
-
-      {/* Add Agent Modal */}
-      <Modal
-        isOpen={isAgentModalOpen}
-        onClose={resetAgentForm}
-        title="Add New Agent"
-      >
-        <div className="form-grid">
-          <div className="form-group full-width">
-            <label>Agent/Agency Name *</label>
-            <input
-              type="text"
-              value={agentFormData.name}
-              onChange={(e) => setAgentFormData({...agentFormData, name: e.target.value})}
-              placeholder="Travel Agency Name"
-            />
-          </div>
-          <div className="form-group">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={agentFormData.phone}
-              onChange={(e) => setAgentFormData({...agentFormData, phone: e.target.value})}
-              placeholder="9876543210"
-            />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={agentFormData.email}
-              onChange={(e) => setAgentFormData({...agentFormData, email: e.target.value})}
-              placeholder="agent@example.com"
-            />
-          </div>
-          <div className="form-group">
-            <label>Commission (%)</label>
-            <input
-              type="number"
-              value={agentFormData.commission}
-              onChange={(e) => setAgentFormData({...agentFormData, commission: e.target.value})}
-              placeholder="10"
-            />
-          </div>
-          <div className="form-group full-width">
-            <label>Address</label>
-            <input
-              type="text"
-              value={agentFormData.address}
-              onChange={(e) => setAgentFormData({...agentFormData, address: e.target.value})}
-              placeholder="123 Main Street"
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetAgentForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleCreateAgent} className="btn-primary">
-            <Save size={18} /> Add Agent
-          </button>
-        </div>
-      </Modal>
+        onClose={closeModal}
+        onSubmit={handleSubmit}
+        editingReservation={editingReservation}
+        editingGroup={editingGroup}
+        initialFormData={initialFormData}
+        initialRoomDetails={initialRoomDetails}
+      />
     </div>
   );
 };
