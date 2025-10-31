@@ -937,7 +937,7 @@ const Reservations = () => {
                     Total Revenue
                   </div>
                   <div className={styles.financialRevenueValue}>
-                    â‚¹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+                  ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
                   </div>
                 </div>
                 
@@ -1115,7 +1115,7 @@ const Reservations = () => {
                         {getMealPlanLabel(primaryReservation.meal_plan)}
                       </span>
                     </td>
-                    <td>â‚¹{totalAmount.toLocaleString()}</td>
+                    <td>₹{totalAmount.toLocaleString()}</td>
                     <td>
                       <span className={`status-badge ${
                         primaryReservation.payment_status === 'Paid' ? 'status-available' :
@@ -1230,7 +1230,7 @@ const Reservations = () => {
                       </td>
                       <td>-</td>
                       <td>
-                        <small>â‚¹{(reservation.total_amount || 0).toLocaleString()}</small>
+                        <small>₹{(reservation.total_amount || 0).toLocaleString()}</small>
                       </td>
                       <td>-</td>
                       <td>-</td>
