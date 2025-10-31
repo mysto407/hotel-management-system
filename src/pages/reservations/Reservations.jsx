@@ -20,6 +20,12 @@ const Reservations = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null);
+
+  // --- 2. ADD STATE FOR THE CONFIRM MODAL ---
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  // This state will hold the props for the confirm modal
+  const [confirmModalProps, setConfirmModalProps] = useState({});
+  // ------------------------------------------
   
   const [initialFormData, setInitialFormData] = useState(null);
   const [initialRoomDetails, setInitialRoomDetails] = useState(null);
