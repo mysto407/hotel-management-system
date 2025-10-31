@@ -39,16 +39,6 @@
 }
 
 
-/* Multi-room badge in table */
-
-.bookingBadge.multiRoom {
-    background: #dbeafe;
-    color: #1e40af;
-    border: 1px solid #93c5fd;
-    font-weight: 600;
-}
-
-
 /* Additional Statuses for Reservations */
 
 
@@ -89,6 +79,19 @@
     display: flex;
     gap: 12px;
     align-items: center;
+}
+
+
+/* Mobile responsive for header */
+
+@media (max-width: 768px) {
+    .headerActions {
+        flex-direction: column;
+        width: 100%;
+    }
+    .searchBox {
+        width: 100% !important;
+    }
 }
 
 
@@ -198,6 +201,16 @@
     flex-wrap: wrap;
 }
 
+@media (max-width: 768px) {
+    .datePresetButtons {
+        gap: 6px;
+    }
+    .presetButton {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+}
+
 .presetButton {
     padding: 6px 12px;
     font-size: 13px;
@@ -282,6 +295,16 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .filterButtonGroup {
+        gap: 6px;
+    }
+    .filterButton {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
 }
 
 .filterButton {
@@ -395,6 +418,19 @@
     cursor: pointer;
 }
 
+@media (max-width: 768px) {
+    .summaryHeader {
+        padding: 12px 16px;
+    }
+    .summaryTitle {
+        font-size: 14px !important;
+    }
+    .summarySubtitle {
+        font-size: 12px !important;
+        gap: 3px;
+    }
+}
+
 .summaryHeaderClosed {
     border-bottom: none;
 }
@@ -403,6 +439,16 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .summaryHeaderContent {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
 }
 
 .summaryTitle {
@@ -415,6 +461,10 @@
 .summarySubtitle {
     color: #6b7280;
     font-size: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
 }
 
 .summaryCount {
@@ -422,14 +472,53 @@
     font-weight: 700;
 }
 
+.dateRange {
+    color: #3b82f6;
+    font-weight: 600;
+    background: #dbeafe;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .dateRange {
+        font-size: 11px;
+        padding: 2px 6px;
+    }
+}
+
 .summaryBody {
     padding: 20px;
 }
 
+@media (max-width: 768px) {
+    .summaryBody {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .summaryBody {
+        padding: 12px;
+    }
+}
+
 .summaryGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
+}
+
+
+/* Responsive Design for Mobile */
+
+@media (max-width: 768px) {
+    .summaryGrid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 }
 
 
@@ -438,14 +527,21 @@
 .summaryCard {
     padding: 16px;
     border-radius: 8px;
-    grid-column: span 2;
-    /* Default for most cards */
 }
 
-.summaryCardTitle {
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 8px;
+@media (max-width: 768px) {
+    .summaryCard {
+        padding: 14px;
+    }
+    .summaryCardTitle {
+        font-size: 13px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .summaryCard {
+        padding: 12px;
+    }
 }
 
 .summaryCardHeader {
@@ -482,263 +578,405 @@
 }
 
 
-/* Card: Status */
+/* Card: Financial */
 
-.summaryCard.status {
-    background: #f5f3ff;
-    border: 1px solid #e9d5ff;
+.summaryCard.financial {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 1px solid #6ee7b7;
+    --border-color: #6ee7b7;
 }
 
-.summaryCard.status .summaryCardTitle {
-    color: #6b21a8;
+.summaryCard.financial .summaryCardTitle {
+    color: #065f46;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
-.summaryCard.status .summaryCardItem {
-    color: #4c1d95;
+
+/* Financial Header */
+
+.financialHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 480px) {
+    .financialHeader {
+        padding: 10px 12px;
+    }
+    .financialHeaderValue {
+        font-size: 24px !important;
+    }
+}
+
+.financialHeaderLabel {
     font-size: 13px;
+    color: #065f46;
+    font-weight: 600;
+}
+
+.financialHeaderValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: #064e3b;
+    line-height: 1;
 }
 
 
-/* Card: Meal Plan */
+/* Financial Grid */
 
-.summaryCard.mealPlan {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    --border-color: #fecaca;
+.financialGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
-.summaryCard.mealPlan .summaryCardTitle {
-    color: #991b1b;
+@media (max-width: 480px) {
+    .financialGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
 }
 
-.summaryCard.mealPlan .summaryCardLargeValue {
+.financialCard {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.financialCardLabel {
+    font-size: 11px;
+    color: #065f46;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.financialCardValue {
     font-size: 20px;
-    color: #7f1d1d;
+    font-weight: 700;
+    line-height: 1;
 }
 
-.summaryCard.mealPlan .summaryCardRow.bordered {
-    border-top: 1px solid var(--border-color);
+@media (max-width: 480px) {
+    .financialCardValue {
+        font-size: 18px;
+    }
 }
 
-.summaryCard.mealPlan .summaryCardItem {
-    color: #7f1d1d;
+.financialCardValue.advance {
+    color: #047857;
 }
 
-.summaryCard.mealPlan .mealPlanDot {
-    width: 8px;
+.financialCardValue.balance {
+    color: #dc2626;
+}
+
+
+/* Financial Progress Section */
+
+.financialProgressSection {
+    padding-top: 12px;
+    border-top: 1px solid rgba(110, 231, 183, 0.5);
+}
+
+.progressBarBackground {
     height: 8px;
-    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
 }
 
-.summaryCard.mealPlan .mealPlanLabel {
+.paymentProgressBar {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.progressLabel {
+    font-size: 11px;
+    color: #065f46;
+    text-align: center;
     font-weight: 500;
 }
 
-.summaryCard.mealPlan .mealPlanValue {
+
+/* Card: Booking Status */
+
+.summaryCard.bookingStatus {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fbbf24;
+    --border-color: #fbbf24;
+}
+
+.summaryCard.bookingStatus .summaryCardTitle {
+    color: #92400e;
+    margin-bottom: 12px;
+    font-size: 14px;
     font-weight: 600;
-    color: #991b1b;
-}
-
-
-/* Card: Guests */
-
-.summaryCard.guests {
-    background: #fce7f3;
-    border: 1px solid #fbcfe8;
-    --border-color: #fbcfe8;
-}
-
-.summaryCard.guests .summaryCardTitle {
-    color: #9f1239;
-}
-
-.summaryCard.guests .summaryCardLargeValue {
-    color: #881337;
-}
-
-.summaryCard.guests .summaryCardRow.bordered {
-    border-top: 1px solid var(--border-color);
-}
-
-.summaryCard.guests .guestStatusDot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.summaryCard.guests .summaryCardItem {
-    color: #831843;
-}
-
-.summaryCard.guests .summaryCardItem.checkedOut {
-    color: #9ca3af;
-    opacity: 0.6;
-}
-
-.summaryCard.guests .guestStatusDot.checkedOut {
-    opacity: 0.5;
-}
-
-.summaryCard.guests .guestTypeRow {
-    border-top: 1px solid var(--border-color);
-    margin-top: 8px;
-    padding-top: 8px;
-    display: flex;
-    gap: 12px;
-    font-size: 12px;
-    color: #831843;
-}
-
-.summaryCard.guests .guestTypeRow span {
-    font-weight: 600;
-}
-
-.summaryCard.guests .summaryCardFooter {
-    border-top: 1px solid var(--border-color);
-    margin-top: 8px;
-    padding-top: 8px;
-    font-size: 11px;
-    color: #9ca3af;
-    font-style: italic;
 }
 
 
 /* Card: Payment Status */
 
 .summaryCard.paymentStatus {
-    background: #ecfeff;
-    border: 1px solid #a5f3fc;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border: 1px solid #c4b5fd;
+    --border-color: #c4b5fd;
 }
 
 .summaryCard.paymentStatus .summaryCardTitle {
-    color: #0e7490;
+    color: #6d28d9;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
 }
 
-.summaryCard.paymentStatus .summaryCardItem {
-    color: #164e63;
+
+/* Card: Guests & Meals */
+
+.summaryCard.guestsAndMeals {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 1px solid #93c5fd;
+    --border-color: #93c5fd;
+}
+
+.summaryCard.guestsAndMeals .summaryCardTitle {
+    color: #1e40af;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+/* Active Guests Section */
+
+.activeGuestsSection {
+    margin-bottom: 16px;
+}
+
+.activeGuestsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 480px) {
+    .activeGuestsHeader {
+        padding: 10px 12px;
+    }
+    .activeGuestsCount {
+        font-size: 28px !important;
+    }
+}
+
+.activeGuestsLabel {
     font-size: 13px;
+    color: #1e40af;
+    font-weight: 600;
 }
 
-
-/* Card: Financial */
-
-.summaryCard.financial {
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border: 1px solid #bbf7d0;
-    --border-color: #bbf7d0;
-}
-
-.summaryCard.financial .summaryCardTitle {
-    color: #15803d;
-    margin-bottom: 12px;
-}
-
-.financialRevenueBlock {
-    margin-bottom: 12px;
-}
-
-.financialRevenueLabel {
-    font-size: 11px;
-    color: #166534;
-    font-weight: 500;
-    margin-bottom: 2px;
-}
-
-.financialRevenueValue {
-    font-size: 28px;
+.activeGuestsCount {
+    font-size: 32px;
     font-weight: 700;
-    color: #14532d;
+    color: #1e3a8a;
     line-height: 1;
 }
 
-.financialSplitRow {
+
+/* Guest Type Grid */
+
+.guestTypeGrid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
 }
 
-.financialSplitLabel {
-    font-size: 11px;
-    color: #166534;
-    font-weight: 500;
+@media (max-width: 480px) {
+    .guestTypeGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.guestTypeCard {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.guestTypeValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e3a8a;
+    line-height: 1;
     margin-bottom: 4px;
 }
 
-.financialSplitValue {
-    font-size: 20px;
-    font-weight: 700;
+@media (max-width: 480px) {
+    .guestTypeValue {
+        font-size: 20px;
+    }
 }
 
-.financialSplitValue.advance {
-    color: #15803d;
-}
-
-.financialSplitValue.balance {
-    color: #92400e;
-}
-
-
-/* --- Progress Bars --- */
-
-.progressBarContainer {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-color, #e5e7eb);
-}
-
-.progressBar {
-    height: 8px;
-    background: #fee2e2;
-    border-radius: 4px;
-    overflow: hidden;
-    display: flex;
-}
-
-.progressBarSegment {
-    height: 100%;
-    transition: width 0.3s ease;
-}
-
-.progressBarSegment.nm {
-    background: #64748b;
-}
-
-.progressBarSegment.bo {
-    background: #8b5cf6;
-}
-
-.progressBarSegment.hb {
-    background: #d946ef;
-}
-
-.progressBarSegment.fb {
-    background: #ec4899;
-}
-
-.progressContainer {
-    margin-top: 12px;
-}
-
-.progressBarBackground {
-    height: 6px;
-    background: #e5e7eb;
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.paymentProgressBar {
-    height: 100%;
-    background: #15803d;
-    transition: width 0.3s ease;
-}
-
-.progressLabel {
+.guestTypeLabel {
     font-size: 11px;
-    color: #6b7280;
-    margin-top: 4px;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+
+/* Meal Plans Section */
+
+.mealPlansSection {
+    padding-top: 16px;
+    border-top: 1px solid rgba(147, 197, 253, 0.5);
+}
+
+.mealPlansSectionTitle {
+    font-size: 12px;
+    color: #1e40af;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.mealPlansGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .mealPlansGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.mealPlanCard {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mealPlanCount {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+@media (max-width: 480px) {
+    .mealPlanCount {
+        font-size: 20px;
+    }
+}
+
+.mealPlanLabel {
+    font-size: 12px;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+
+/* Status Grid - For Booking Status Card */
+
+.statusGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 768px) {
+    .statusGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .statusGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.statusItem {
     text-align: center;
+    padding: 8px 4px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    transition: opacity 0.2s;
+}
+
+.statusItem.statusItemZero {
+    opacity: 0.5;
+}
+
+.statusItemValue {
+    font-size: 22px;
+    font-weight: 700;
+    color: #92400e;
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 480px) {
+    .statusItemValue {
+        font-size: 20px;
+    }
+}
+
+.statusItemLabel {
+    font-size: 11px;
+    color: #78350f;
+    display: block;
+    line-height: 1.2;
+}
+
+
+/* Payment Status Grid - For Payment Status Card */
+
+.paymentStatusGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.paymentStatusItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    transition: opacity 0.2s;
+}
+
+.paymentStatusItem.paymentStatusItemZero {
+    opacity: 0.5;
+}
+
+.paymentStatusValue {
+    font-size: 13px;
+    color: #5b21b6;
+    font-weight: 600;
 }
 
 

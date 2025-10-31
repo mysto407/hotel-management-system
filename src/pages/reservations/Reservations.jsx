@@ -714,6 +714,20 @@ const Reservations = () => {
             <div className={styles.summarySubtitle}>
               Showing <strong className={styles.summaryCount}>{groupReservations(filteredReservations).length}</strong> {groupReservations(filteredReservations).length === 1 ? 'booking' : 'bookings'} ({filteredReservations.length} {filteredReservations.length === 1 ? 'room' : 'rooms'}) of{' '}
               <strong className={styles.summaryCount}>{groupReservations(reservations).length}</strong> total bookings
+              {(dateFilterType !== 'all' && (startDate || endDate)) && (
+                <>
+                  {' • '}
+                  <span className={styles.dateRange}>
+                    {dateFilterType === 'today' && 'Today'}
+                    {dateFilterType === 'weekly' && 'Next 7 Days'}
+                    {dateFilterType === 'fortnightly' && 'Next 14 Days'}
+                    {dateFilterType === 'monthly' && 'Next 30 Days'}
+                    {dateFilterType === 'custom' && startDate && endDate && `${new Date(startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                    {dateFilterType === 'custom' && startDate && !endDate && `From ${new Date(startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                    {dateFilterType === 'custom' && !startDate && endDate && `Until ${new Date(endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <ChevronDown 
@@ -726,242 +740,162 @@ const Reservations = () => {
         {showSummary && (
           <div className={styles.summaryBody}>
             <div className={styles.summaryGrid}>
-              
-              {/* Status Breakdown */}
-              <div className={`${styles.summaryCard} ${styles.status}`}>
-                <div className={styles.summaryCardTitle}>
-                  Status Breakdown
-                </div>
-                <div className={styles.summaryCardRow}>
-                  {['Inquiry', 'Tentative', 'Hold', 'Confirmed', 'Checked-in', 'Checked-out', 'Cancelled'].map(status => {
-                    const count = filteredReservations.filter(r => r.status === status).length;
-                    if (count === 0) return null;
-                    return (
-                      <div key={status} className={styles.summaryCardItem}>
-                        <span className={styles.summaryCardItemValue}>{count}</span>
-                        <span>{status}</span>
+              {/* Guests & Meals Summary */}
+              <div className={`${styles.summaryCard} ${styles.guestsAndMeals}`}>
+                <div className={styles.summaryCardTitle}>Guest Overview</div>
+                
+                {/* Active Guests - Prominent Display */}
+                <div className={styles.activeGuestsSection}>
+                  <div className={styles.activeGuestsHeader}>
+                    <span className={styles.activeGuestsLabel}>Active Guests</span>
+                    <span className={styles.activeGuestsCount}>
+                      {filteredReservations
+                        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                        .reduce((sum, r) => 
+                          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
+                        )}
+                    </span>
+                  </div>
+                  
+                  {/* Guest Type Breakdown */}
+                  <div className={styles.guestTypeGrid}>
+                    <div className={styles.guestTypeCard}>
+                      <div className={styles.guestTypeValue}>
+                        {filteredReservations
+                          .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                          .reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}
                       </div>
-                    );
-                  })}
+                      <div className={styles.guestTypeLabel}>Adults</div>
+                    </div>
+                    <div className={styles.guestTypeCard}>
+                      <div className={styles.guestTypeValue}>
+                        {filteredReservations
+                          .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                          .reduce((sum, r) => sum + (r.number_of_children || 0), 0)}
+                      </div>
+                      <div className={styles.guestTypeLabel}>Children</div>
+                    </div>
+                    <div className={styles.guestTypeCard}>
+                      <div className={styles.guestTypeValue}>
+                        {filteredReservations
+                          .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
+                          .reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}
+                      </div>
+                      <div className={styles.guestTypeLabel}>Infants</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Meal Plan Breakdown */}
-              <div className={`${styles.summaryCard} ${styles.mealPlan}`}>
-                <div className={styles.summaryCardHeader}>
-                  <div className={styles.summaryCardTitle}>
-                    Meal Plans
-                  </div>
-                  <div className={styles.summaryCardLargeValue}>
-                    {filteredReservations
-                      .filter(r => r.status !== 'Checked-out')
-                      .reduce((sum, r) => 
-                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-                      )} Guests
-                  </div>
-                </div>
-                
-                {/* Meal Plan Distribution */}
-                <div className={`${styles.summaryCardRow} ${styles.bordered}`}>
-                  {[
-                    { code: 'NM', label: 'No Meal', color: '#64748b' },
-                    { code: 'BO', label: 'Breakfast Only', color: '#8b5cf6' },
-                    { code: 'HB', label: 'Half Board', color: '#d946ef' },
-                    { code: 'FB', label: 'Full Board', color: '#ec4899' }
-                  ].map(({ code, label, color }) => {
-                    const guestCount = filteredReservations
-                      .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
-                      .reduce((sum, r) => 
-                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-                      );
-                    
-                    if (guestCount === 0) return null;
-                    
-                    return (
-                      <div key={code} className={`${styles.summaryCardItem} ${styles.mealPlan}`}>
-                        <span 
-                          className={styles.mealPlanDot} 
-                          style={{ background: color }} 
-                        />
-                        <span className={styles.mealPlanLabel}>{label}:</span>
-                        <span className={styles.mealPlanValue}>
-                          {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Meal Plan Percentage Bar */}
-                <div className={styles.progressBarContainer}>
-                  <div className={styles.progressBar}>
+                {/* Meal Plans Section */}
+                <div className={styles.mealPlansSection}>
+                  <div className={styles.mealPlansSectionTitle}>Meal Plans</div>
+                  <div className={styles.mealPlansGrid}>
                     {[
-                      { code: 'nm', color: '#64748b' },
-                      { code: 'bo', color: '#8b5cf6' },
-                      { code: 'hb', color: '#d946ef' },
-                      { code: 'fb', color: '#ec4899' }
-                    ].map(({ code, color }) => {
+                      { code: 'NM', label: 'No Meal', color: '#64748b' },
+                      { code: 'BO', label: 'Breakfast', color: '#f59e0b' },
+                      { code: 'HB', label: 'Half Board', color: '#8b5cf6' },
+                      { code: 'FB', label: 'Full Board', color: '#ec4899' }
+                    ].map(({ code, label, color }) => {
                       const guestCount = filteredReservations
-                        .filter(r => r.meal_plan === code.toUpperCase() && r.status !== 'Checked-out')
+                        .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
                         .reduce((sum, r) => 
                           sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
                         );
-                      
-                      const totalGuests = filteredReservations
-                        .filter(r => r.status !== 'Checked-out')
-                        .reduce((sum, r) => 
-                          sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-                        );
-                      
-                      const percentage = totalGuests > 0 ? (guestCount / totalGuests * 100) : 0;
-                      
-                      if (percentage === 0) return null;
-                      
+                      if (guestCount === 0) return null;
                       return (
-                        <div 
-                          key={code}
-                          style={{ width: `${percentage}%` }}
-                          className={`${styles.progressBarSegment} ${styles[code]}`}
-                          title={`${code.toUpperCase()}: ${guestCount} guests (${percentage.toFixed(1)}%)`}
-                        />
+                        <div key={code} className={styles.mealPlanCard}>
+                          <div className={styles.mealPlanCount} style={{ color }}>
+                            {guestCount}
+                          </div>
+                          <div className={styles.mealPlanLabel}>{label}</div>
+                        </div>
                       );
                     })}
                   </div>
                 </div>
               </div>
 
-              {/* Total Guests */}
-              <div className={`${styles.summaryCard} ${styles.guests}`}>
-                <div className={styles.summaryCardHeader}>
-                  <div className={styles.summaryCardTitle}>
-                    Total Guests (Active)
-                  </div>
-                  <div className={styles.summaryCardLargeValue}>
-                    {filteredReservations
-                      .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-                      .reduce((sum, r) => 
-                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-                      )}
-                  </div>
-                </div>
-                
-                {/* Guest Breakdown by Status */}
-                <div className={`${styles.summaryCardRow} ${styles.bordered}`}>
+              {/* Booking Status */}
+              <div className={`${styles.summaryCard} ${styles.bookingStatus}`}>
+                <div className={styles.summaryCardTitle}>Booking Status</div>
+                <div className={styles.statusGrid}>
                   {[
-                    { status: 'Checked-in', color: '#3b82f6' },
-                    { status: 'Confirmed', color: '#10b981' },
-                    { status: 'Checked-out', color: '#6b7280' },
+                    { status: 'Inquiry', color: '#a855f7' },
                     { status: 'Tentative', color: '#f59e0b' },
-                    { status: 'Hold', color: '#fb923c' }
+                    { status: 'Hold', color: '#fb923c' },
+                    { status: 'Confirmed', color: '#10b981' },
+                    { status: 'Checked-in', color: '#3b82f6' },
+                    { status: 'Checked-out', color: '#059669' },
+                    { status: 'Cancelled', color: '#ef4444' }
                   ].map(({ status, color }) => {
-                    const guestCount = filteredReservations
-                      .filter(r => r.status === status)
-                      .reduce((sum, r) => 
-                        sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
-                      );
-                    
-                    if (guestCount === 0) return null;
-                    const isCheckedOut = status === 'Checked-out';
-                    
+                    const count = filteredReservations.filter(r => r.status === status).length;
                     return (
-                      <div key={status} className={`${styles.summaryCardItem} ${styles.guestStatus} ${isCheckedOut ? styles.checkedOut : ''}`}>
-                        <span 
-                          className={`${styles.guestStatusDot} ${isCheckedOut ? styles.checkedOut : ''}`}
-                          style={{ background: color }} 
-                        />
-                        <span className={styles.summaryCardItemValue}>{guestCount}</span>
-                        <span>{status}</span>
+                      <div key={status} className={`${styles.statusItem} ${count === 0 ? styles.statusItemZero : ''}`}>
+                        <span className={styles.statusItemValue} style={{ color }}>
+                          {count}
+                        </span>
+                        <span className={styles.statusItemLabel}>
+                          {count === 1 ? 'Room' : 'Rooms'} {status}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
-                
-                {/* Guest Type Breakdown (Adults/Children/Infants) - Only Active */}
-                <div className={styles.guestTypeRow}>
-                  <div>
-                    <span>
-                      {filteredReservations
-                        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-                        .reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}
-                    </span> Adults
-                  </div>
-                  <div>
-                    <span>
-                      {filteredReservations
-                        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-                        .reduce((sum, r) => sum + (r.number_of_children || 0), 0)}
-                    </span> Children
-                  </div>
-                  <div>
-                    <span>
-                      {filteredReservations
-                        .filter(r => r.status === 'Confirmed' || r.status === 'Checked-in')
-                        .reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}
-                    </span> Infants
-                  </div>
-                </div>
-                
-                <div className={styles.summaryCardFooter}>
-                  * Only includes Confirmed and Checked-in guests
-                </div>
               </div>
 
-              {/* Payment Status Breakdown */}
+              {/* Payment Status */}
               <div className={`${styles.summaryCard} ${styles.paymentStatus}`}>
-                <div className={styles.summaryCardTitle}>
-                  Payment Status
-                </div>
-                <div className={styles.summaryCardRow}>
+                <div className={styles.summaryCardTitle}>Payment Status</div>
+                <div className={styles.paymentStatusGrid}>
                   {['Paid', 'Partial', 'Pending'].map(paymentStatus => {
                     const count = filteredReservations.filter(r => r.payment_status === paymentStatus).length;
-                    if (count === 0) return null;
                     return (
-                      <div key={paymentStatus} className={styles.summaryCardItem}>
-                        <span className={styles.summaryCardItemValue}>{count}</span>
-                        <span>{paymentStatus}</span>
+                      <div key={paymentStatus} className={`${styles.paymentStatusItem} ${count === 0 ? styles.paymentStatusItemZero : ''}`}>
+                        <span className={`status-badge ${
+                          paymentStatus === 'Paid' ? 'status-available' :
+                          paymentStatus === 'Partial' ? 'status-maintenance' :
+                          'status-blocked'
+                        }`}>{paymentStatus}</span>
+                        <span className={styles.paymentStatusValue}>
+                          {count} {count === 1 ? 'booking' : 'bookings'}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Combined Financial Summary */}
+              {/* Financial Summary */}
               <div className={`${styles.summaryCard} ${styles.financial}`}>
-                <div className={styles.summaryCardTitle}>
-                  Financial Summary
+                <div className={styles.summaryCardTitle}>Financial Overview</div>
+                
+                {/* Total Revenue Header */}
+                <div className={styles.financialHeader}>
+                  <span className={styles.financialHeaderLabel}>Total Revenue</span>
+                  <span className={styles.financialHeaderValue}>
+                    ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+                  </span>
                 </div>
                 
-                {/* Total Revenue - Primary */}
-                <div className={styles.financialRevenueBlock}>
-                  <div className={styles.financialRevenueLabel}>
-                    Total Revenue
-                  </div>
-                  <div className={styles.financialRevenueValue}>
-                  ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
-                  </div>
-                </div>
-                
-                {/* Advance & Balance - Side by Side */}
-                <div className={styles.financialSplitRow}>
-                  <div className={styles.financialSplitItem}>
-                    <div className={styles.financialSplitLabel}>
-                      Advance Collected
+                {/* Payment Breakdown Grid */}
+                <div className={styles.financialGrid}>
+                  <div className={styles.financialCard}>
+                    <div className={styles.financialCardLabel}>Advance Collected</div>
+                    <div className={`${styles.financialCardValue} ${styles.advance}`}>
+                      ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
                     </div>
-                    <div className={`${styles.financialSplitValue} ${styles.advance}`}>
-                    ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}                    </div>
                   </div>
                   
-                  <div className={styles.financialSplitItem}>
-                    <div className={styles.financialSplitLabel}>
-                      Balance Due
+                  <div className={styles.financialCard}>
+                    <div className={styles.financialCardLabel}>Balance Due</div>
+                    <div className={`${styles.financialCardValue} ${styles.balance}`}>
+                      ₹{(filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0) - filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0)).toLocaleString()}
                     </div>
-                    <div className={`${styles.financialSplitValue} ${styles.balance}`}>
-                    ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}                    </div>
                   </div>
                 </div>
                 
-                {/* Payment Progress Bar */}
-                <div className={styles.progressContainer}>
+                {/* Payment Progress Section */}
+                <div className={styles.financialProgressSection}>
                   <div className={styles.progressBarBackground}>
                     <div 
                       className={styles.paymentProgressBar}
@@ -981,7 +915,7 @@ const Reservations = () => {
                           (filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0) / 
                            filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0) * 100)
                         )
-                      : 0}% Collected
+                      : 0}% Payment Collected
                   </div>
                 </div>
               </div>
@@ -1039,12 +973,6 @@ const Reservations = () => {
                         )}
                         <div>
                           <div className={styles.bookingBadges}>
-                            {isMultiRoom && (
-                              <span className={`${styles.bookingBadge} ${styles.multiRoom}`}>
-                                {group.length} Rooms
-                              </span>
-                            )}
-                            
                             {primaryReservation.booking_source === 'agent' ? (
                               <span className={`${styles.bookingBadge} ${styles.bookingBadgeAgent}`}>
                                 <User size={14} />
@@ -1115,7 +1043,7 @@ const Reservations = () => {
                         {getMealPlanLabel(primaryReservation.meal_plan)}
                       </span>
                     </td>
-                    <td>₹{totalAmount.toLocaleString()}</td>
+                    <td>â‚¹{totalAmount.toLocaleString()}</td>
                     <td>
                       <span className={`status-badge ${
                         primaryReservation.payment_status === 'Paid' ? 'status-available' :
@@ -1230,7 +1158,7 @@ const Reservations = () => {
                       </td>
                       <td>-</td>
                       <td>
-                        <small>₹{(reservation.total_amount || 0).toLocaleString()}</small>
+                        <small>â‚¹{(reservation.total_amount || 0).toLocaleString()}</small>
                       </td>
                       <td>-</td>
                       <td>-</td>
