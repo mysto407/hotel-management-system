@@ -15,6 +15,8 @@
     /* Ensure icons align well */
     display: inline-flex;
     align-items: center;
+    gap: 4px;
+    /* Added for icon spacing */
 }
 
 .bookingBadgeAgent {
@@ -34,6 +36,16 @@
     color: #92400e;
     border: 1px solid #fde68a;
     font-weight: 500;
+}
+
+
+/* Multi-room badge in table */
+
+.bookingBadge.multiRoom {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+    font-weight: 600;
 }
 
 
@@ -61,4 +73,749 @@
     /* orange-100 */
     color: #c2410c;
     /* orange-700 */
+}
+
+
+/*
+=====================================================
+ STYLES MIGRATED FROM RESERVATIONS.JSX
+=====================================================
+*/
+
+
+/* --- Header --- */
+
+.headerActions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+
+/* This replaces the global .search-box */
+
+.searchBox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 10px;
+    width: 300px;
+}
+
+.searchBox input {
+    border: none;
+    outline: none;
+    font-size: 14px;
+    width: 100%;
+}
+
+
+/* --- Filter Container --- */
+
+.filterContainer {
+    margin-bottom: 24px;
+}
+
+.filterBox {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.filterHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+}
+
+
+/* Add this to the filterHeader if showFilters is false */
+
+.filterHeaderClosed {
+    border-bottom: none;
+}
+
+.filterHeaderContent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filterActiveBadge {
+    background: #3b82f6;
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.filterHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.clearFiltersButton {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.filterChevron {
+    color: #6b7280;
+    transition: transform 0.2s;
+}
+
+.filterChevronOpen {
+    transform: rotate(180deg);
+}
+
+.filterBody {
+    padding: 20px;
+}
+
+
+/* --- Filter Buttons (Dates) --- */
+
+.datePresetButtons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.presetButton {
+    padding: 6px 12px;
+    font-size: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    background: white;
+    color: #374151;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.presetButton:hover {
+    background: #f9fafb;
+}
+
+.presetButton.active {
+    background: #3b82f6;
+    color: white;
+    font-weight: 600;
+}
+
+
+/* --- Filter Date Inputs --- */
+
+.customDateInputs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.dateInputGroup {
+    flex: 1;
+    min-width: 150px;
+}
+
+.dateInputLabel {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.dateInput {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.activeDateRange {
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: #f0f9ff;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1e40af;
+}
+
+
+/* --- Filter Button Groups (Status, Meal, etc.) --- */
+
+.filterShortcuts {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 16px;
+}
+
+.filterGroup {
+    margin-bottom: 16px;
+}
+
+.filterGroupTitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.filterButtonGroup {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filterButton {
+    padding: 6px 12px;
+    font-size: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    background: white;
+    color: #374151;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.filterButton.active {
+    color: white;
+    font-weight: 600;
+}
+
+
+/* Status */
+
+.filterButton.all.active {
+    background: #6b7280;
+}
+
+.filterButton.inquiry.active {
+    background: #a855f7;
+}
+
+.filterButton.tentative.active {
+    background: #f59e0b;
+}
+
+.filterButton.hold.active {
+    background: #fb923c;
+}
+
+.filterButton.confirmed.active {
+    background: #10b981;
+}
+
+.filterButton.checkedIn.active {
+    background: #3b82f6;
+}
+
+.filterButton.checkedOut.active {
+    background: #059669;
+}
+
+.filterButton.cancelled.active {
+    background: #ef4444;
+}
+
+
+/* Meal Plan */
+
+.filterButton.nm.active {
+    background: #64748b;
+}
+
+.filterButton.bo.active {
+    background: #8b5cf6;
+}
+
+.filterButton.hb.active {
+    background: #d946ef;
+}
+
+.filterButton.fb.active {
+    background: #ec4899;
+}
+
+
+/* Guest Count */
+
+.filterButton.guestAll.active {
+    background: #6b7280;
+}
+
+.filterButton.guest12.active {
+    background: #06b6d4;
+}
+
+.filterButton.guest34.active {
+    background: #0891b2;
+}
+
+.filterButton.guest5plus.active {
+    background: #14b8a6;
+}
+
+
+/* --- Summary Container --- */
+
+.summaryContainer {
+    margin-bottom: 24px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.summaryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+}
+
+.summaryHeaderClosed {
+    border-bottom: none;
+}
+
+.summaryHeaderContent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.summaryTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.summarySubtitle {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.summaryCount {
+    color: #1f2937;
+    font-weight: 700;
+}
+
+.summaryBody {
+    padding: 20px;
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+
+/* --- Summary Cards --- */
+
+.summaryCard {
+    padding: 16px;
+    border-radius: 8px;
+    grid-column: span 2;
+    /* Default for most cards */
+}
+
+.summaryCardTitle {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.summaryCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.summaryCardLargeValue {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.summaryCardRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.summaryCardRow.bordered {
+    padding-top: 8px;
+}
+
+.summaryCardItem {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+}
+
+.summaryCardItemValue {
+    font-weight: 600;
+}
+
+
+/* Card: Status */
+
+.summaryCard.status {
+    background: #f5f3ff;
+    border: 1px solid #e9d5ff;
+}
+
+.summaryCard.status .summaryCardTitle {
+    color: #6b21a8;
+}
+
+.summaryCard.status .summaryCardItem {
+    color: #4c1d95;
+    font-size: 13px;
+}
+
+
+/* Card: Meal Plan */
+
+.summaryCard.mealPlan {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    --border-color: #fecaca;
+}
+
+.summaryCard.mealPlan .summaryCardTitle {
+    color: #991b1b;
+}
+
+.summaryCard.mealPlan .summaryCardLargeValue {
+    font-size: 20px;
+    color: #7f1d1d;
+}
+
+.summaryCard.mealPlan .summaryCardRow.bordered {
+    border-top: 1px solid var(--border-color);
+}
+
+.summaryCard.mealPlan .summaryCardItem {
+    color: #7f1d1d;
+}
+
+.summaryCard.mealPlan .mealPlanDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.summaryCard.mealPlan .mealPlanLabel {
+    font-weight: 500;
+}
+
+.summaryCard.mealPlan .mealPlanValue {
+    font-weight: 600;
+    color: #991b1b;
+}
+
+
+/* Card: Guests */
+
+.summaryCard.guests {
+    background: #fce7f3;
+    border: 1px solid #fbcfe8;
+    --border-color: #fbcfe8;
+}
+
+.summaryCard.guests .summaryCardTitle {
+    color: #9f1239;
+}
+
+.summaryCard.guests .summaryCardLargeValue {
+    color: #881337;
+}
+
+.summaryCard.guests .summaryCardRow.bordered {
+    border-top: 1px solid var(--border-color);
+}
+
+.summaryCard.guests .guestStatusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.summaryCard.guests .summaryCardItem {
+    color: #831843;
+}
+
+.summaryCard.guests .summaryCardItem.checkedOut {
+    color: #9ca3af;
+    opacity: 0.6;
+}
+
+.summaryCard.guests .guestStatusDot.checkedOut {
+    opacity: 0.5;
+}
+
+.summaryCard.guests .guestTypeRow {
+    border-top: 1px solid var(--border-color);
+    margin-top: 8px;
+    padding-top: 8px;
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #831843;
+}
+
+.summaryCard.guests .guestTypeRow span {
+    font-weight: 600;
+}
+
+.summaryCard.guests .summaryCardFooter {
+    border-top: 1px solid var(--border-color);
+    margin-top: 8px;
+    padding-top: 8px;
+    font-size: 11px;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+
+/* Card: Payment Status */
+
+.summaryCard.paymentStatus {
+    background: #ecfeff;
+    border: 1px solid #a5f3fc;
+}
+
+.summaryCard.paymentStatus .summaryCardTitle {
+    color: #0e7490;
+}
+
+.summaryCard.paymentStatus .summaryCardItem {
+    color: #164e63;
+    font-size: 13px;
+}
+
+
+/* Card: Financial */
+
+.summaryCard.financial {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #bbf7d0;
+    --border-color: #bbf7d0;
+}
+
+.summaryCard.financial .summaryCardTitle {
+    color: #15803d;
+    margin-bottom: 12px;
+}
+
+.financialRevenueBlock {
+    margin-bottom: 12px;
+}
+
+.financialRevenueLabel {
+    font-size: 11px;
+    color: #166534;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.financialRevenueValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: #14532d;
+    line-height: 1;
+}
+
+.financialSplitRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.financialSplitLabel {
+    font-size: 11px;
+    color: #166534;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.financialSplitValue {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.financialSplitValue.advance {
+    color: #15803d;
+}
+
+.financialSplitValue.balance {
+    color: #92400e;
+}
+
+
+/* --- Progress Bars --- */
+
+.progressBarContainer {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.progressBar {
+    height: 8px;
+    background: #fee2e2;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+}
+
+.progressBarSegment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.progressBarSegment.nm {
+    background: #64748b;
+}
+
+.progressBarSegment.bo {
+    background: #8b5cf6;
+}
+
+.progressBarSegment.hb {
+    background: #d946ef;
+}
+
+.progressBarSegment.fb {
+    background: #ec4899;
+}
+
+.progressContainer {
+    margin-top: 12px;
+}
+
+.progressBarBackground {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.paymentProgressBar {
+    height: 100%;
+    background: #15803d;
+    transition: width 0.3s ease;
+}
+
+.progressLabel {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+    text-align: center;
+}
+
+
+/* --- Table Styles --- */
+
+.groupRow {
+    background: #f9fafb;
+}
+
+.guestCell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.expandButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    color: #3b82f6;
+}
+
+.expandChevron {
+    transition: transform 0.2s;
+}
+
+.expandChevronOpen {
+    transform: rotate(180deg);
+}
+
+.guestPhone {
+    color: #6b7280;
+}
+
+.roomList {
+    color: #6b7280;
+}
+
+.guestCountBreakdown {
+    color: #6b7280;
+}
+
+.subRoomRow {
+    background: #ffffff;
+    border-left: 4px solid #3b82f6;
+}
+
+.subRoomCell {
+    padding-left: 48px;
+}
+
+.subRoomLabel {
+    color: #6b7280;
+}
+
+
+/* --- No Results --- */
+
+.noResults {
+    padding: 40px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.noResultsIcon {
+    margin: 0 auto 16px;
+    opacity: 0.5;
+}
+
+.noResultsText {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.noResultsSubtext {
+    font-size: 14px;
 }
