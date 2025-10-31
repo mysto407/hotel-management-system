@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar } from 'lucide-react';
 // Import the shared modal
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
+import { ConfirmModal } from '../../components/common/ConfirmModal'; // <-- 1. IMPORT NEW MODAL
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
