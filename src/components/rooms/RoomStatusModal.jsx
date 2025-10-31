@@ -5,27 +5,7 @@ import { useRooms } from '../../context/RoomContext';
 import { updateRoomStatus } from '../../lib/supabase'; // Assuming this path
 import styles from './RoomStatusModal.module.css'; // You'll need to create this CSS file or adapt styles
 
-// Create a new CSS file `src/components/rooms/RoomStatusModal.module.css`
-// and add the .modalInfoBox styles from ReservationCalendar.module.css
-/*
-.modalInfoBox {
-  padding: 16px;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 24px;
-}
-.modalInfoBoxTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 4px;
-}
-.modalInfoBoxText {
-  font-size: 14px;
-  color: #4b5563;
-}
-*/
+
 
 
 export const RoomStatusModal = ({ isOpen, onClose, room }) => {
