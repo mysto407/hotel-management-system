@@ -1,0 +1,37 @@
+/* Modal Info Boxes */
+
+.modalInfoBox {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+}
+
+.modalInfoBoxTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 6px;
+}
+
+.modalInfoBoxText {
+    font-size: 14px;
+    color: #1d4ed8;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.modalInfoBoxWarning {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.modalInfoBoxWarningTitle {
+    color: #92400e;
+    font-weight: 700;
+}
+
+.modalInfoBoxWarningText {
+    color: #92400e;
+}

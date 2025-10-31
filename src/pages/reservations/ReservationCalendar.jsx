@@ -10,10 +10,15 @@ import { updateRoomStatus } from '../../lib/supabase';
 import { calculateDays } from '../../utils/helpers';
 import styles from './ReservationCalendar.module.css';
 
+// Import the new components
+import { QuickBookingModal } from '../../components/reservations/QuickBookingModal';
+import { AddGuestModal } from '../../components/guests/AddGuestModal';
+import { RoomStatusModal } from '../../components/rooms/RoomStatusModal';
+
 const ReservationCalendar = () => {
   const { reservations, fetchReservations, addReservation, updateReservation, cancelReservation } = useReservations();
   const { rooms, roomTypes, fetchRooms } = useRooms();
-  const { guests, addGuest } = useGuests();
+  const { guests } = useGuests(); // Removed addGuest
   
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
@@ -65,18 +70,7 @@ const ReservationCalendar = () => {
   const [isRoomStatusModalOpen, setIsRoomStatusModalOpen] = useState(false);
   const [selectedRoomForStatus, setSelectedRoomForStatus] = useState(null);
   
-  const [guestFormData, setGuestFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    id_proof_type: 'AADHAR',
-    id_proof_number: '',
-    address: '',
-    city: '',
-    state: '',
-    country: 'India',
-    guest_type: 'Regular'
-  });
+  // Removed guestFormData state
   
   // State for pending multi-room bookings
   const [pendingBookings, setPendingBookings] = useState([]);
@@ -689,22 +683,8 @@ const ReservationCalendar = () => {
 
 
   // Submit room status change
-  const handleSubmitRoomStatus = async (newStatus) => {
-    if (!selectedRoomForStatus) return;
-    
-    try {
-      await updateRoomStatus(selectedRoomForStatus.id, newStatus);
-      await fetchRooms();
-      
-      alert(`Room ${selectedRoomForStatus.room_number} status changed to ${newStatus}`);
-      
-      setIsRoomStatusModalOpen(false);
-      setSelectedRoomForStatus(null);
-    } catch (error) {
-      console.error('Error updating room status:', error);
-      alert('Failed to update room status: ' + error.message);
-    }
-  };
+  // This logic is now inside RoomStatusModal.jsx
+  // const handleSubmitRoomStatus = async (newStatus) => { ... };
 
   // Handle Hold action - Create a hold reservation
   const handleHoldRoom = async () => {
@@ -789,7 +769,7 @@ const ReservationCalendar = () => {
     
     if (!window.confirm(
       `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} ÃƒÆ’Ã¢â‚¬â€ ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} ÃƒÆ’Ã¢â‚¬â€  ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
       `You'll enter guest details once, and all bookings will be created with the same guest.`
     )) {
       return;
@@ -965,27 +945,10 @@ const ReservationCalendar = () => {
   };
 
   // Guest modal handlers
-  const handleCreateGuest = async () => {
-    if (!guestFormData.name) {
-      alert('Please enter guest name');
-      return;
-    }
-
-    const newGuest = await addGuest(guestFormData);
+  // This function is now the callback for the AddGuestModal
+  const onGuestAdded = (newGuest) => {
     if (newGuest) {
       setBookingData({ ...bookingData, guest_id: newGuest.id });
-      setGuestFormData({
-        name: '',
-        email: '',
-        phone: '',
-        id_proof_type: 'AADHAR',
-        id_proof_number: '',
-        address: '',
-        city: '',
-        state: '',
-        country: 'India',
-        guest_type: 'Regular'
-      });
       setIsGuestModalOpen(false);
     }
   };
@@ -1522,295 +1485,28 @@ const ReservationCalendar = () => {
       </div>
 
       {/* Quick Booking Modal */}
-      <Modal
+      <QuickBookingModal
         isOpen={isBookingModalOpen}
         onClose={() => {
           setIsBookingModalOpen(false);
           setPendingBookings([]);
         }}
-        title={pendingBookings.length > 1 ? `Quick Booking (Creating ${pendingBookings.length} bookings)` : "Quick Booking"}
-        size="medium"
-      >
-        <div className="form-grid">
-          {/* Multi-booking indicator */}
-          {pendingBookings.length > 1 && (
-            <div className="form-group full-width">
-              <div className={`${styles.modalInfoBox} ${styles.modalInfoBoxWarning}`}>
-                <div className={styles.modalInfoBoxWarningTitle}>
-                  Multi-Room Booking
-                </div>
-                <div className={styles.modalInfoBoxWarningText}>
-                  You're creating <strong>{pendingBookings.length} bookings</strong> at once. Enter guest details once, and all bookings will use the same information.
-                </div>
-                <div className={`${styles.modalInfoBoxWarningText}`} style={{ marginTop: '8px', fontStyle: 'italic' }}>
-                  Rooms: {pendingBookings.map((b, i) => {
-                    const room = rooms.find(r => r.id === b.roomId);
-                    return room?.room_number || '?';
-                  }).join(', ')}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Room and Date Info */}
-          <div className="form-group full-width">
-            <div className={styles.modalInfoBox}>
-              <div className={styles.modalInfoBoxTitle}>
-                {(() => {
-                  const room = rooms.find(r => r.id === bookingData.room_id);
-                  const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
-                  return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
-                })()}
-              </div>
-              <div className={styles.modalInfoBoxText}>
-                Check-in: {bookingData.check_in_date}
-              </div>
-              <div className={styles.modalInfoBoxText}>
-                Check-out: {bookingData.check_out_date}
-              </div>
-              {bookingData.check_in_date && bookingData.check_out_date && (
-                <div className={styles.modalInfoBoxText} style={{ fontWeight: '700', marginTop: '6px' }}>
-                  {(() => {
-                    const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
-                    return `${nights} night${nights !== 1 ? 's' : ''}`;
-                  })()}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Guest Selection */}
-          <div className="form-group full-width">
-            <label>Select Guest *</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                style={{ flex: 1 }}
-                value={bookingData.guest_id}
-                onChange={(e) => setBookingData({ ...bookingData, guest_id: e.target.value })}
-              >
-                <option value="">Select Guest</option>
-                {guests.map(guest => (
-                  <option key={guest.id} value={guest.id}>
-                    {guest.name} - {guest.phone}
-                  </option>
-                ))}
-              </select>
-              <button 
-                onClick={() => setIsGuestModalOpen(true)} 
-                className="btn-secondary"
-                type="button"
-              >
-                <UserPlus size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Check-out Date */}
-          <div className="form-group">
-            <label>Check-out Date *</label>
-            <input
-              type="date"
-              value={bookingData.check_out_date}
-              onChange={(e) => setBookingData({ ...bookingData, check_out_date: e.target.value })}
-              min={bookingData.check_in_date}
-            />
-          </div>
-
-          {/* Status */}
-          <div className="form-group">
-            <label>Status</label>
-            <select
-              value={bookingData.status}
-              onChange={(e) => setBookingData({ ...bookingData, status: e.target.value })}
-            >
-              <option value="Confirmed">Confirmed</option>
-              <option value="Hold">Hold</option>
-              <option value="Tentative">Tentative</option>
-            </select>
-          </div>
-
-          {/* Number of Guests */}
-          <div className="form-group">
-            <label>Adults *</label>
-            <input
-              type="number"
-              min="1"
-              value={bookingData.number_of_adults}
-              onChange={(e) => setBookingData({ ...bookingData, number_of_adults: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Children</label>
-            <input
-              type="number"
-              min="0"
-              value={bookingData.number_of_children}
-              onChange={(e) => setBookingData({ ...bookingData, number_of_children: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Infants</label>
-            <input
-              type="number"
-              min="0"
-              value={bookingData.number_of_infants}
-              onChange={(e) => setBookingData({ ...bookingData, number_of_infants: e.target.value })}
-            />
-          </div>
-
-          {/* Meal Plan */}
-          <div className="form-group">
-            <label>Meal Plan</label>
-            <select
-              value={bookingData.meal_plan}
-              onChange={(e) => setBookingData({ ...bookingData, meal_plan: e.target.value })}
-            >
-              <option value="NM">No Meal</option>
-              <option value="BO">Breakfast Only</option>
-              <option value="HB">Half Board</option>
-              <option value="FB">Full Board</option>
-            </select>
-          </div>
-
-          {/* Special Requests */}
-          <div className="form-group full-width">
-            <label>Special Requests</label>
-            <textarea
-              value={bookingData.special_requests}
-              onChange={(e) => setBookingData({ ...bookingData, special_requests: e.target.value })}
-              rows="2"
-              placeholder="Any special requirements..."
-            />
-          </div>
-        </div>
-
-        <div className="modal-actions">
-          <button onClick={() => setIsBookingModalOpen(false)} className="btn-secondary">
-            <X size={18} /> Cancel
-          </button>
-          <button onClick={handleQuickBooking} className="btn-primary">
-            <Save size={18} /> Create Booking
-          </button>
-        </div>
-      </Modal>
+        onSubmit={handleQuickBooking}
+        bookingData={bookingData}
+        setBookingData={setBookingData}
+        guests={guests}
+        rooms={rooms}
+        roomTypes={roomTypes}
+        pendingBookings={pendingBookings}
+        onAddGuestClick={() => setIsGuestModalOpen(true)}
+      />
 
       {/* Quick Add Guest Modal */}
-      <Modal
+      <AddGuestModal
         isOpen={isGuestModalOpen}
         onClose={() => setIsGuestModalOpen(false)}
-        title="Add New Guest"
-        size="large"
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Full Name *</label>
-            <input
-              type="text"
-              value={guestFormData.name}
-              onChange={(e) => setGuestFormData({ ...guestFormData, name: e.target.value })}
-              placeholder="John Doe"
-            />
-          </div>
-          <div className="form-group">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={guestFormData.phone}
-              onChange={(e) => setGuestFormData({ ...guestFormData, phone: e.target.value })}
-              placeholder="9876543210"
-            />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={guestFormData.email}
-              onChange={(e) => setGuestFormData({ ...guestFormData, email: e.target.value })}
-              placeholder="john@example.com"
-            />
-          </div>
-          <div className="form-group">
-            <label>ID Proof Type</label>
-            <select
-              value={guestFormData.id_proof_type}
-              onChange={(e) => setGuestFormData({ ...guestFormData, id_proof_type: e.target.value })}
-            >
-              <option value="AADHAR">AADHAR</option>
-              <option value="PAN">PAN</option>
-              <option value="Passport">Passport</option>
-              <option value="Driving License">Driving License</option>
-              <option value="Voter ID">Voter ID</option>
-              <option value="N/A">N/A</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>ID Proof Number</label>
-            <input
-              type="text"
-              value={guestFormData.id_proof_number}
-              onChange={(e) => setGuestFormData({ ...guestFormData, id_proof_number: e.target.value })}
-              placeholder="AADHAR-1234"
-            />
-          </div>
-          <div className="form-group">
-            <label>Guest Type</label>
-            <select
-              value={guestFormData.guest_type}
-              onChange={(e) => setGuestFormData({ ...guestFormData, guest_type: e.target.value })}
-            >
-              <option value="Regular">Regular</option>
-              <option value="VIP">VIP</option>
-              <option value="Corporate">Corporate</option>
-            </select>
-          </div>
-          <div className="form-group full-width">
-            <label>Address</label>
-            <input
-              type="text"
-              value={guestFormData.address}
-              onChange={(e) => setGuestFormData({ ...guestFormData, address: e.target.value })}
-              placeholder="123 Main Street"
-            />
-          </div>
-          <div className="form-group">
-            <label>City</label>
-            <input
-              type="text"
-              value={guestFormData.city}
-              onChange={(e) => setGuestFormData({ ...guestFormData, city: e.target.value })}
-              placeholder="Mumbai"
-            />
-          </div>
-          <div className="form-group">
-            <label>State</label>
-            <input
-              type="text"
-              value={guestFormData.state}
-              onChange={(e) => setGuestFormData({ ...guestFormData, state: e.target.value })}
-              placeholder="Maharashtra"
-            />
-          </div>
-          <div className="form-group">
-            <label>Country</label>
-            <input
-              type="text"
-              value={guestFormData.country}
-              onChange={(e) => setGuestFormData({ ...guestFormData, country: e.target.value })}
-              placeholder="India"
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={() => setIsGuestModalOpen(false)} className="btn-secondary">
-            <X size={18} /> Cancel
-          </button>
-          <button onClick={handleCreateGuest} className="btn-primary">
-            <Save size={18} /> Add Guest
-          </button>
-        </div>
-      </Modal>
+        onGuestAdded={onGuestAdded}
+      />
 
       {/* Edit Reservation Modal */}
       <EditBookingModal
@@ -1830,97 +1526,14 @@ const ReservationCalendar = () => {
       />
 
       {/* Room Status Change Modal */}
-      <Modal
+      <RoomStatusModal
         isOpen={isRoomStatusModalOpen}
         onClose={() => {
           setIsRoomStatusModalOpen(false);
           setSelectedRoomForStatus(null);
         }}
-        title="Change Room Status"
-        size="small"
-      >
-        {selectedRoomForStatus && (
-          <div>
-            <div className={styles.modalInfoBox} style={{ marginBottom: '24px' }}>
-              <div className={styles.modalInfoBoxTitle}>
-                Room {selectedRoomForStatus.room_number}
-              </div>
-              <div className={styles.modalInfoBoxText}>
-                Floor {selectedRoomForStatus.floor}
-              </div>
-              <div className={styles.modalInfoBoxText} style={{ marginTop: '8px' }}>
-                Current Status: <strong>{selectedRoomForStatus.status}</strong>
-              </div>
-            </div>
-
-            <div style={{ 
-              fontSize: '14px', 
-              fontWeight: '600', 
-              color: '#374151',
-              marginBottom: '12px'
-            }}>
-              Select New Status:
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                onClick={() => handleSubmitRoomStatus('Available')}
-                className="btn-secondary"
-                style={{
-                  justifyContent: 'flex-start',
-                  padding: '12px 16px',
-                  background: selectedRoomForStatus.status === 'Available' ? '#f0fdf4' : 'white',
-                  border: selectedRoomForStatus.status === 'Available' ? '2px solid #10b981' : '1px solid #d1d5db'
-                }}
-              >
-                <Home size={18} />
-                <span>Available</span>
-              </button>
-
-              <button
-                onClick={() => handleSubmitRoomStatus('Maintenance')}
-                className="btn-secondary"
-                style={{
-                  justifyContent: 'flex-start',
-                  padding: '12px 16px',
-                  background: selectedRoomForStatus.status === 'Maintenance' ? '#fef3c7' : 'white',
-                  border: selectedRoomForStatus.status === 'Maintenance' ? '2px solid #f59e0b' : '1px solid #d1d5db'
-                }}
-              >
-                <RefreshCw size={18} />
-                <span>Maintenance</span>
-              </button>
-
-              <button
-                onClick={() => handleSubmitRoomStatus('Blocked')}
-                className="btn-secondary"
-                style={{
-                  justifyContent: 'flex-start',
-                  padding: '12px 16px',
-                  background: selectedRoomForStatus.status === 'Blocked' ? '#fee2e2' : 'white',
-                  border: selectedRoomForStatus.status === 'Blocked' ? '2px solid #ef4444' : '1px solid #d1d5db'
-                }}
-              >
-                <Lock size={18} />
-                <span>Blocked</span>
-              </button>
-            </div>
-
-            <div className="modal-actions" style={{ marginTop: '24px' }}>
-              <button 
-                onClick={() => {
-                  setIsRoomStatusModalOpen(false);
-                  setSelectedRoomForStatus(null);
-                }} 
-                className="btn-secondary"
-                style={{ width: '100%' }}
-              >
-                <X size={18} /> Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        room={selectedRoomForStatus}
+      />
     </div>
   );
 };

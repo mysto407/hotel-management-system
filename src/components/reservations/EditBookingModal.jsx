@@ -6,6 +6,8 @@ import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { calculateDays } from '../../utils/helpers';
+import { AddGuestModal } from '../guests/AddGuestModal'; // Import new component
+import { AddAgentModal } from '../agents/AddAgentModal'; // Import new component
 
 export const EditBookingModal = ({
   isOpen,
@@ -17,8 +19,8 @@ export const EditBookingModal = ({
   initialRoomDetails
 }) => {
   const { rooms, roomTypes } = useRooms();
-  const { guests, getGuestByPhone, addGuest } = useGuests();
-  const { agents, addAgent } = useAgents();
+  const { guests, getGuestByPhone } = useGuests(); // Removed addGuest
+  const { agents } = useAgents(); // Removed addAgent
 
   const [formData, setFormData] = useState({
     booking_source: 'direct',
@@ -49,26 +51,7 @@ export const EditBookingModal = ({
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
 
-  const [guestFormData, setGuestFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    id_proof_type: 'AADHAR',
-    id_proof_number: '',
-    address: '',
-    city: '',
-    state: '',
-    country: 'India',
-    guest_type: 'Regular'
-  });
-
-  const [agentFormData, setAgentFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    commission: '',
-    address: ''
-  });
+  // Removed guestFormData and agentFormData states
 
   // Update form data when props change
   useEffect(() => {
@@ -176,70 +159,19 @@ export const EditBookingModal = ({
     setSelectedGuest(guest);
   };
 
-  const handleCreateGuest = async () => {
-    if (!guestFormData.name) {
-      alert('Please enter guest name');
-      return;
-    }
-
-    const newGuest = await addGuest(guestFormData);
-    if (newGuest) {
-      setFormData({ ...formData, guest_id: newGuest.id });
-      setSelectedGuest(newGuest);
-      resetGuestForm();
-    }
-  };
-
-  const resetGuestForm = () => {
-    setGuestFormData({
-      name: '',
-      email: '',
-      phone: '',
-      id_proof_type: 'AADHAR',
-      id_proof_number: '',
-      address: '',
-      city: '',
-      state: '',
-      country: 'India',
-      guest_type: 'Regular'
-    });
+  // Callback for when new guest is created
+  const onGuestAdded = (newGuest) => {
+    setFormData({ ...formData, guest_id: newGuest.id });
+    setSelectedGuest(newGuest);
     setIsGuestModalOpen(false);
   };
 
-  // Agent handlers
-  const handleCreateAgent = async () => {
-    if (!agentFormData.name) {
-      alert('Please enter agent name');
-      return;
-    }
-  
-    const agentData = {
-      name: agentFormData.name,
-      email: agentFormData.email || null,
-      phone: agentFormData.phone || null,
-      commission: agentFormData.commission && agentFormData.commission !== '' 
-        ? parseFloat(agentFormData.commission) 
-        : null,
-      address: agentFormData.address || null
-    };
-  
-    const newAgent = await addAgent(agentData);
-    if (newAgent) {
-      setFormData({ ...formData, agent_id: newAgent.id });
-      resetAgentForm();
-    }
-  };
-
-  const resetAgentForm = () => {
-    setAgentFormData({
-      name: '',
-      email: '',
-      phone: '',
-      commission: '',
-      address: ''
-    });
+  // Callback for when new agent is created
+  const onAgentAdded = (newAgent) => {
+    setFormData({ ...formData, agent_id: newAgent.id });
     setIsAgentModalOpen(false);
   };
+
 
   const handleSubmit = () => {
     if (!formData.guest_id || !formData.check_in_date || !formData.check_out_date) {
@@ -778,184 +710,19 @@ export const EditBookingModal = ({
         </div>
       </Modal>
 
-      {/* Quick Add Guest Modal */}
-      <Modal
+      {/* Reusable Add Guest Modal */}
+      <AddGuestModal
         isOpen={isGuestModalOpen}
-        onClose={resetGuestForm}
-        title="Add New Guest"
-        size="large"
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Full Name *</label>
-            <input
-              type="text"
-              value={guestFormData.name}
-              onChange={(e) => setGuestFormData({...guestFormData, name: e.target.value})}
-              placeholder="John Doe"
-            />
-          </div>
-          <div className="form-group">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={guestFormData.phone}
-              onChange={(e) => setGuestFormData({...guestFormData, phone: e.target.value})}
-              placeholder="9876543210"
-            />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={guestFormData.email}
-              onChange={(e) => setGuestFormData({...guestFormData, email: e.target.value})}
-              placeholder="john@example.com"
-            />
-          </div>
-          <div className="form-group">
-            <label>ID Proof Type</label>
-            <select
-              value={guestFormData.id_proof_type}
-              onChange={(e) => setGuestFormData({...guestFormData, id_proof_type: e.target.value})}
-            >
-              <option value="AADHAR">AADHAR</option>
-              <option value="PAN">PAN</option>
-              <option value="Passport">Passport</option>
-              <option value="Driving License">Driving License</option>
-              <option value="Voter ID">Voter ID</option>
-              <option value="N/A">N/A</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>ID Proof Number</label>
-            <input
-              type="text"
-              value={guestFormData.id_proof_number}
-              onChange={(e) => setGuestFormData({...guestFormData, id_proof_number: e.target.value})}
-              placeholder="AADHAR-1234"
-            />
-          </div>
-          <div className="form-group">
-            <label>Guest Type</label>
-            <select
-              value={guestFormData.guest_type}
-              onChange={(e) => setGuestFormData({...guestFormData, guest_type: e.target.value})}
-            >
-              <option value="Regular">Regular</option>
-              <option value="VIP">VIP</option>
-              <option value="Corporate">Corporate</option>
-            </select>
-          </div>
-          <div className="form-group full-width">
-            <label>Address</label>
-            <input
-              type="text"
-              value={guestFormData.address}
-              onChange={(e) => setGuestFormData({...guestFormData, address: e.target.value})}
-              placeholder="123 Main Street"
-            />
-          </div>
-          <div className="form-group">
-            <label>City</label>
-            <input
-              type="text"
-              value={guestFormData.city}
-              onChange={(e) => setGuestFormData({...guestFormData, city: e.target.value})}
-              placeholder="Mumbai"
-            />
-          </div>
-          <div className="form-group">
-            <label>State</label>
-            <input
-              type="text"
-              value={guestFormData.state}
-              onChange={(e) => setGuestFormData({...guestFormData, state: e.target.value})}
-              placeholder="Maharashtra"
-            />
-          </div>
-          <div className="form-group">
-            <label>Country</label>
-            <input
-              type="text"
-              value={guestFormData.country}
-              onChange={(e) => setGuestFormData({...guestFormData, country: e.target.value})}
-              placeholder="India"
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetGuestForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleCreateGuest} className="btn-primary">
-            <Save size={18} /> Add Guest
-          </button>
-        </div>
-      </Modal>
+        onClose={() => setIsGuestModalOpen(false)}
+        onGuestAdded={onGuestAdded}
+      />
 
-      {/* Add Agent Modal */}
-      <Modal
+      {/* Reusable Add Agent Modal */}
+      <AddAgentModal
         isOpen={isAgentModalOpen}
-        onClose={resetAgentForm}
-        title="Add New Agent"
-      >
-        <div className="form-grid">
-          <div className="form-group full-width">
-            <label>Agent/Agency Name *</label>
-            <input
-              type="text"
-              value={agentFormData.name}
-              onChange={(e) => setAgentFormData({...agentFormData, name: e.target.value})}
-              placeholder="Travel Agency Name"
-            />
-          </div>
-          <div className="form-group">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={agentFormData.phone}
-              onChange={(e) => setAgentFormData({...agentFormData, phone: e.target.value})}
-              placeholder="9876543210"
-            />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={agentFormData.email}
-              onChange={(e) => setAgentFormData({...agentFormData, email: e.target.value})}
-              placeholder="agent@example.com"
-            />
-          </div>
-          <div className="form-group">
-            <label>Commission (%)</label>
-            <input
-              type="number"
-              value={agentFormData.commission}
-              onChange={(e) => setAgentFormData({...agentFormData, commission: e.target.value})}
-              placeholder="10"
-            />
-          </div>
-          <div className="form-group full-width">
-            <label>Address</label>
-            <input
-              type="text"
-              value={agentFormData.address}
-              onChange={(e) => setAgentFormData({...agentFormData, address: e.target.value})}
-              placeholder="123 Main Street"
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetAgentForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleCreateAgent} className="btn-primary">
-            <Save size={18} /> Add Agent
-          </button>
-        </div>
-      </Modal>
+        onClose={() => setIsAgentModalOpen(false)}
+        onAgentAdded={onAgentAdded}
+      />
     </>
   );
 };
