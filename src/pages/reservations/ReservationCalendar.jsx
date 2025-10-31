@@ -769,7 +769,7 @@ const ReservationCalendar = () => {
     
     if (!window.confirm(
       `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} ÃƒÆ’Ã¢â‚¬â€  ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} —  ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
       `You'll enter guest details once, and all bookings will be created with the same guest.`
     )) {
       return;
@@ -1391,7 +1391,7 @@ const ReservationCalendar = () => {
                         {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
                       </div>
                       <div className={styles.actionMenuHeaderDates}>
-                        {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} Ã— {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
+                        {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} × {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
                       </div>
                       <div className={styles.actionMenuHeaderDates} style={{ color: '#166534', fontWeight: '600' }}>
                         {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
