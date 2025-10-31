@@ -18,6 +18,7 @@ const Reservations = () => {
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
+  const [editingGroup, setEditingGroup] = useState(null); // Array of reservations for group editing
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
@@ -217,7 +218,7 @@ const Reservations = () => {
 
     try {
       if (editingReservation) {
-        // For editing, update the single reservation
+        // For editing single reservation
         const reservationData = {
           booking_source: formData.booking_source,
           agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
@@ -238,6 +239,44 @@ const Reservations = () => {
           special_requests: formData.special_requests
         };
         await updateReservation(editingReservation.id, reservationData);
+      } else if (editingGroup) {
+        // For editing group of reservations
+        const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / editingGroup.length;
+
+        // Update each reservation in the group
+        for (let i = 0; i < editingGroup.length; i++) {
+          const reservation = editingGroup[i];
+          const roomDetail = roomDetails[i];
+          
+          // Calculate amount for this specific room
+          const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
+          const days = calculateDays(formData.check_in_date, formData.check_out_date);
+          const roomAmount = roomType ? roomType.base_price * days : 0;
+          
+          const reservationData = {
+            booking_source: formData.booking_source,
+            agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
+            direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
+            guest_id: formData.guest_id,
+            room_id: roomDetail.room_id,
+            check_in_date: formData.check_in_date,
+            check_out_date: formData.check_out_date,
+            number_of_adults: parseInt(roomDetail.number_of_adults),
+            number_of_children: parseInt(roomDetail.number_of_children),
+            number_of_infants: parseInt(roomDetail.number_of_infants),
+            number_of_guests: parseInt(roomDetail.number_of_adults) + parseInt(roomDetail.number_of_children) + parseInt(roomDetail.number_of_infants),
+            meal_plan: formData.meal_plan,
+            total_amount: roomAmount,
+            advance_payment: advancePerRoom,
+            payment_status: formData.payment_status,
+            status: formData.status,
+            special_requests: formData.special_requests
+          };
+          
+          await updateReservation(reservation.id, reservationData);
+        }
+        
+        alert(`Successfully updated ${editingGroup.length} reservations!`);
       } else {
         // For new booking, create multiple reservations (one per room)
         const totalAmount = parseFloat(formData.total_amount) || 0;
@@ -306,6 +345,7 @@ const Reservations = () => {
     }]);
     setSelectedGuest(null);
     setEditingReservation(null);
+    setEditingGroup(null);
     setIsModalOpen(false);
   };
 
@@ -393,6 +433,7 @@ const Reservations = () => {
 
   const handleEdit = (reservation) => {
     setEditingReservation(reservation);
+    setEditingGroup(null); // Clear group editing
     setSelectedGuest(reservation.guests);
     
     // Get the room type from the reservation's room
@@ -424,6 +465,50 @@ const Reservations = () => {
       number_of_infants: reservation.number_of_infants || 0
     }]);
     
+    setIsModalOpen(true);
+  };
+
+  const handleEditGroup = (group) => {
+    setEditingGroup(group); // Store the entire group
+    setEditingReservation(null); // Clear single edit
+    
+    const primaryReservation = group[0];
+    setSelectedGuest(primaryReservation.guests);
+    
+    // Calculate total amount and advance for the group
+    const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+    const totalAdvance = group.reduce((sum, r) => sum + (r.advance_payment || 0), 0);
+    
+    setFormData({
+      booking_source: primaryReservation.booking_source || 'direct',
+      agent_id: primaryReservation.agent_id || '',
+      direct_source: primaryReservation.direct_source || '',
+      guest_id: primaryReservation.guest_id,
+      room_type_id: '',
+      number_of_rooms: group.length,
+      check_in_date: primaryReservation.check_in_date,
+      check_out_date: primaryReservation.check_out_date,
+      meal_plan: primaryReservation.meal_plan || 'NM',
+      total_amount: totalAmount,
+      advance_payment: totalAdvance,
+      payment_status: primaryReservation.payment_status,
+      status: primaryReservation.status,
+      special_requests: primaryReservation.special_requests || ''
+    });
+    
+    // Load all room details from the group
+    const details = group.map(reservation => {
+      const room = rooms.find(r => r.id === reservation.room_id);
+      return {
+        room_type_id: room ? room.room_type_id : '',
+        room_id: reservation.room_id,
+        number_of_adults: reservation.number_of_adults || 1,
+        number_of_children: reservation.number_of_children || 0,
+        number_of_infants: reservation.number_of_infants || 0
+      };
+    });
+    
+    setRoomDetails(details);
     setIsModalOpen(true);
   };
 
@@ -1560,7 +1645,7 @@ const Reservations = () => {
                     color: '#14532d',
                     lineHeight: '1'
                   }}>
-                    ₹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
+                    â‚¹{filteredReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0).toLocaleString()}
                   </div>
                 </div>
                 
@@ -1586,7 +1671,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#15803d' 
                     }}>
-                      ₹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
+                      â‚¹{filteredReservations.reduce((sum, r) => sum + (r.advance_payment || 0), 0).toLocaleString()}
                     </div>
                   </div>
                   
@@ -1604,7 +1689,7 @@ const Reservations = () => {
                       fontWeight: '700', 
                       color: '#92400e' 
                     }}>
-                      ₹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
+                      â‚¹{filteredReservations.reduce((sum, r) => sum + ((r.total_amount || 0) - (r.advance_payment || 0)), 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -1793,7 +1878,7 @@ const Reservations = () => {
                         {getMealPlanLabel(primaryReservation.meal_plan)}
                       </span>
                     </td>
-                    <td>₹{totalAmount.toLocaleString()}</td>
+                    <td>â‚¹{totalAmount.toLocaleString()}</td>
                     <td>
                       <span className={`status-badge ${
                         primaryReservation.payment_status === 'Paid' ? 'status-available' :
@@ -1856,7 +1941,15 @@ const Reservations = () => {
                         )}
                         {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
                           <>
-                            {!isMultiRoom && (
+                            {isMultiRoom ? (
+                              <button 
+                                onClick={() => handleEditGroup(group)} 
+                                className="btn-icon btn-edit"
+                                title="Edit All Rooms"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            ) : (
                               <button onClick={() => handleEdit(primaryReservation)} className="btn-icon btn-edit">
                                 <Edit2 size={16} />
                               </button>
@@ -1905,7 +1998,7 @@ const Reservations = () => {
                       </td>
                       <td>-</td>
                       <td>
-                        <small>₹{(reservation.total_amount || 0).toLocaleString()}</small>
+                        <small>â‚¹{(reservation.total_amount || 0).toLocaleString()}</small>
                       </td>
                       <td>-</td>
                       <td>-</td>
@@ -1941,7 +2034,13 @@ const Reservations = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={resetForm}
-        title={editingReservation ? 'Edit Reservation' : `New Booking${formData.number_of_rooms > 1 ? ` - ${formData.number_of_rooms} Rooms` : ''}`}
+        title={
+          editingGroup 
+            ? `Edit Group Booking - ${editingGroup.length} Rooms` 
+            : editingReservation 
+              ? 'Edit Reservation' 
+              : `New Booking${formData.number_of_rooms > 1 ? ` - ${formData.number_of_rooms} Rooms` : ''}`
+        }
         size="large"
       >
         <div className="form-grid">
@@ -2050,14 +2149,14 @@ const Reservations = () => {
               }}>
                 <strong>{selectedGuest.name}</strong>
                 <p style={{ fontSize: '13px', color: '#0369a1', margin: '4px 0 0 0' }}>
-                  {selectedGuest.phone} â€¢ {selectedGuest.email || 'No email'}
+                  {selectedGuest.phone} Ã¢â‚¬Â¢ {selectedGuest.email || 'No email'}
                 </p>
               </div>
             </div>
           )}
 
           {/* Number of Rooms */}
-          {!editingReservation && (
+          {!editingReservation && !editingGroup && (
             <div className="form-group">
               <label>Number of Rooms *</label>
               <select
@@ -2088,7 +2187,7 @@ const Reservations = () => {
               marginBottom: '12px'
             }}>
               <label style={{ margin: 0 }}>Room Details *</label>
-              {!editingReservation && formData.number_of_rooms > 0 && (
+              {!editingReservation && !editingGroup && formData.number_of_rooms > 0 && (
                 <button
                   type="button"
                   onClick={autoAssignRooms}
@@ -2143,7 +2242,7 @@ const Reservations = () => {
                         setRoomDetails(updated);
                         setTimeout(calculateTotal, 0);
                       }}
-                      disabled={editingReservation}
+                      disabled={editingReservation || editingGroup}
                       style={{
                         width: '100%',
                         padding: '8px',
@@ -2157,7 +2256,7 @@ const Reservations = () => {
                         const availableCount = getAvailableRoomsByType(roomType.id).length;
                         return (
                           <option key={roomType.id} value={roomType.id}>
-                            {roomType.name} - ₹{roomType.base_price}/night ({availableCount} available)
+                            {roomType.name} - â‚¹{roomType.base_price}/night ({availableCount} available)
                           </option>
                         );
                       })}
@@ -2282,7 +2381,7 @@ const Reservations = () => {
                              parseInt(roomDetail.number_of_infants || 0)} guests
                     {roomDetail.room_type_id && formData.check_in_date && formData.check_out_date && (
                       <span style={{ marginLeft: '12px', fontWeight: '600', color: '#374151' }}>
-                        • ₹{(() => {
+                        â€¢ â‚¹{(() => {
                           const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
                           const days = calculateDays(formData.check_in_date, formData.check_out_date);
                           return roomType ? (roomType.base_price * days).toLocaleString() : 0;
@@ -2368,7 +2467,7 @@ const Reservations = () => {
               value={formData.total_amount}
               onChange={(e) => setFormData({...formData, total_amount: e.target.value})}
             />
-            {!editingReservation && formData.number_of_rooms > 1 && formData.total_amount > 0 && (
+            {(!editingReservation || editingGroup) && formData.number_of_rooms > 1 && formData.total_amount > 0 && (
               <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
                 Calculated from individual room rates
               </small>
@@ -2382,9 +2481,9 @@ const Reservations = () => {
               value={formData.advance_payment}
               onChange={(e) => setFormData({...formData, advance_payment: e.target.value})}
             />
-            {!editingReservation && formData.number_of_rooms > 1 && formData.advance_payment > 0 && (
+            {(!editingReservation || editingGroup) && formData.number_of_rooms > 1 && formData.advance_payment > 0 && (
               <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-                ₹{(formData.advance_payment / formData.number_of_rooms).toFixed(2)} per room
+                â‚¹{(formData.advance_payment / formData.number_of_rooms).toFixed(2)} per room
               </small>
             )}
           </div>
