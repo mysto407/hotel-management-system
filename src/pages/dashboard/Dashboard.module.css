@@ -1,0 +1,253 @@
+/* Dashboard.module.css */
+
+
+/* Dashboard Grid */
+
+.dashboardGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+    .dashboardGrid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+
+/* Dashboard Cards - Matching ReservationSummary Style */
+
+.dashboardCard {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+
+/* Check-ins/Check-outs Card - Blue Theme */
+
+.checkInsCard {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 1px solid #93c5fd;
+}
+
+.checkInsCard .cardTitle {
+    color: #1e40af;
+}
+
+
+/* Recent Bookings Card - Purple Theme */
+
+.recentBookingsCard {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border: 1px solid #c4b5fd;
+}
+
+.recentBookingsCard .cardTitle {
+    color: #6d28d9;
+}
+
+
+/* Card Header */
+
+.cardHeader {
+    padding: 16px 16px 12px 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 768px) {
+    .cardHeader {
+        padding: 14px 14px 10px 14px;
+    }
+}
+
+.cardTitle {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+}
+
+
+/* Card Body */
+
+.cardBody {
+    padding: 16px;
+}
+
+@media (max-width: 768px) {
+    .cardBody {
+        padding: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cardBody {
+        padding: 12px;
+    }
+}
+
+
+/* Placeholder Text */
+
+.placeholderText {
+    color: #6b7280;
+    font-size: 14px;
+    text-align: center;
+    padding: 24px 16px;
+    font-style: italic;
+}
+
+
+/* Reservation List */
+
+.reservationList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+
+/* Reservation Item */
+
+.reservationItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 6px;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.reservationItem:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Reservation Info */
+
+.reservationInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.guestName {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.reservationDetails {
+    font-size: 13px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .guestName {
+        font-size: 14px;
+    }
+    .reservationDetails {
+        font-size: 12px;
+    }
+}
+
+
+/* Status Badge Container */
+
+.statusBadgeContainer {
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+
+/* Check-in/Check-out Type Badge */
+
+.typeBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.typeCheckIn {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.typeCheckOut {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+
+/* Icon Styling */
+
+.icon {
+    width: 14px;
+    height: 14px;
+}
+
+
+/* Empty State */
+
+.emptyState {
+    text-align: center;
+    padding: 32px 16px;
+}
+
+.emptyStateIcon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    opacity: 0.3;
+    color: #6b7280;
+}
+
+.emptyStateText {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+
+/* Date Range Display */
+
+.dateRange {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.dateRange svg {
+    width: 14px;
+    height: 14px;
+}
+
+
+/* Divider */
+
+.divider {
+    width: 4px;
+    height: 4px;
+    background: #d1d5db;
+    border-radius: 50%;
+}

@@ -52,7 +52,7 @@ export const ConfirmModal = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="">
+    <Modal isOpen={isOpen} onClose={onClose} title="" size="small">
       <div className={styles.confirmModal}>
         <div className={styles.iconContainer}>
           {getIcon()}

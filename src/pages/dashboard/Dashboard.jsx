@@ -1,7 +1,10 @@
 // src/pages/dashboard/Dashboard.jsx
+import { LogIn, LogOut, Calendar, Clock } from 'lucide-react';
 import { Card } from '../../components/common/Card';
+import ReservationSummary from '../../components/reservations/ReservationSummary';
 import { useRooms } from '../../context/RoomContext';
 import { useReservations } from '../../context/ReservationContext';
+import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
   const { rooms } = useRooms();
@@ -12,68 +15,104 @@ const Dashboard = () => {
     return r.check_in_date === today || r.check_out_date === today;
   });
 
-  const stats = [
-    { label: 'Total Rooms', value: rooms.length, color: '#3b82f6' },
-    { label: 'Occupied', value: rooms.filter(r => r.status === 'Occupied').length, color: '#ef4444' },
-    { label: 'Available', value: rooms.filter(r => r.status === 'Available').length, color: '#10b981' },
-    { label: "Today's Activity", value: todayReservations.length, color: '#f59e0b' }
-  ];
+  
 
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
-      <div className="stats-grid">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <div className="stat-card">
-              <div>
-                <p className="stat-label">{stat.label}</p>
-                <p className="stat-value">{stat.value}</p>
+      
+
+      {/* Reservation Summary */}
+      <ReservationSummary
+        reservations={reservations}
+        filteredReservations={reservations}
+        showToggle={false}
+        defaultExpanded={true}
+      />
+
+      <div className={styles.dashboardGrid}>
+        {/* Today's Check-ins/Check-outs Card */}
+        <div className={`${styles.dashboardCard} ${styles.checkInsCard}`}>
+          <div className={styles.cardHeader}>
+            <h3 className={styles.cardTitle}>Today's Check-ins/Check-outs</h3>
+          </div>
+          <div className={styles.cardBody}>
+            {todayReservations.length === 0 ? (
+              <div className={styles.emptyState}>
+                <Calendar className={styles.emptyStateIcon} />
+                <p className={styles.emptyStateText}>No check-ins or check-outs today</p>
               </div>
-              <div className="stat-icon" style={{ backgroundColor: stat.color }}></div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            ) : (
+              <div className={styles.reservationList}>
+                {todayReservations.map(r => {
+                  const isCheckIn = r.check_in_date === new Date().toISOString().split('T')[0];
+                  return (
+                    <div key={r.id} className={styles.reservationItem}>
+                      <div className={styles.reservationInfo}>
+                        <span className={styles.guestName}>{r.guests?.name || 'Unknown'}</span>
+                        <div className={styles.reservationDetails}>
+                          <span className={`${styles.typeBadge} ${isCheckIn ? styles.typeCheckIn : styles.typeCheckOut}`}>
+                            {isCheckIn ? (
+                              <>
+                                <LogIn className={styles.icon} />
+                                Check-in
+                              </>
+                            ) : (
+                              <>
+                                <LogOut className={styles.icon} />
+                                Check-out
+                              </>
+                            )}
+                          </span>
+                          <span className={styles.divider}></span>
+                          <Clock size={14} />
+                          <span>{isCheckIn ? r.check_in_date : r.check_out_date}</span>
+                        </div>
+                      </div>
+                      <div className={styles.statusBadgeContainer}>
+                        <span className={`status-badge status-${r.status.toLowerCase()}`}>{r.status}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
-      <div className="dashboard-grid">
-        <Card title="Today's Check-ins/Check-outs">
-          {todayReservations.length === 0 ? (
-            <p className="placeholder-text">No check-ins or check-outs today</p>
-          ) : (
-            <div className="reservation-list">
-              {todayReservations.map(r => (
-                <div key={r.id} className="reservation-item">
-                  <div>
-                    <strong>{r.guests?.name || 'Unknown'}</strong>
-                    <p style={{fontSize: '13px', color: '#6b7280'}}>
-                      {r.check_in_date === new Date().toISOString().split('T')[0] ? 'Check-in' : 'Check-out'}
-                    </p>
+        {/* Recent Bookings Card */}
+        <div className={`${styles.dashboardCard} ${styles.recentBookingsCard}`}>
+          <div className={styles.cardHeader}>
+            <h3 className={styles.cardTitle}>Recent Bookings</h3>
+          </div>
+          <div className={styles.cardBody}>
+            {reservations.length === 0 ? (
+              <div className={styles.emptyState}>
+                <Calendar className={styles.emptyStateIcon} />
+                <p className={styles.emptyStateText}>No bookings yet</p>
+              </div>
+            ) : (
+              <div className={styles.reservationList}>
+                {reservations.slice(0, 5).map(r => (
+                  <div key={r.id} className={styles.reservationItem}>
+                    <div className={styles.reservationInfo}>
+                      <span className={styles.guestName}>{r.guests?.name || 'Unknown'}</span>
+                      <div className={styles.reservationDetails}>
+                        <Calendar size={14} />
+                        <span>{r.check_in_date}</span>
+                        <span className={styles.divider}></span>
+                        <span>{r.check_out_date}</span>
+                      </div>
+                    </div>
+                    <div className={styles.statusBadgeContainer}>
+                      <span className={`status-badge status-${r.status.toLowerCase()}`}>{r.status}</span>
+                    </div>
                   </div>
-                  <span className={`status-badge status-${r.status.toLowerCase()}`}>{r.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card title="Recent Bookings">
-          {reservations.length === 0 ? (
-            <p className="placeholder-text">No bookings yet</p>
-          ) : (
-            <div className="reservation-list">
-              {reservations.slice(0, 5).map(r => (
-                <div key={r.id} className="reservation-item">
-                  <div>
-                    <strong>{r.guests?.name || 'Unknown'}</strong>
-                    <p style={{fontSize: '13px', color: '#6b7280'}}>{r.check_in_date} - {r.check_out_date}</p>
-                  </div>
-                  <span className={`status-badge status-${r.status.toLowerCase()}`}>{r.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

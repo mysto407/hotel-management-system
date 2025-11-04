@@ -1,0 +1,593 @@
+/* ReservationSummary.module.css */
+
+
+/* --- Summary Container --- */
+
+.summaryContainer {
+    margin-bottom: 24px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.summaryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .summaryHeader {
+        padding: 12px 16px;
+    }
+    .summaryTitle {
+        font-size: 14px !important;
+    }
+    .summarySubtitle {
+        font-size: 12px !important;
+        gap: 3px;
+    }
+}
+
+.summaryHeaderClosed {
+    border-bottom: none;
+}
+
+.summaryHeaderContent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .summaryHeaderContent {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
+
+.summaryTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.summarySubtitle {
+    color: #6b7280;
+    font-size: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.summaryCount {
+    color: #1f2937;
+    font-weight: 700;
+}
+
+.dateRange {
+    color: #3b82f6;
+    font-weight: 600;
+    background: #dbeafe;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .dateRange {
+        font-size: 11px;
+        padding: 2px 6px;
+    }
+}
+
+.summaryBody {
+    padding: 20px;
+}
+
+@media (max-width: 768px) {
+    .summaryBody {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .summaryBody {
+        padding: 12px;
+    }
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+
+/* Responsive Design for Mobile */
+
+@media (max-width: 768px) {
+    .summaryGrid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+
+/* --- Summary Cards --- */
+
+.summaryCard {
+    padding: 16px;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .summaryCard {
+        padding: 14px;
+    }
+    .summaryCardTitle {
+        font-size: 13px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .summaryCard {
+        padding: 12px;
+    }
+}
+
+.summaryCardTitle {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.summaryCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.summaryCardLargeValue {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.summaryCardRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.summaryCardRow.bordered {
+    padding-top: 8px;
+}
+
+.summaryCardItem {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+}
+
+.summaryCardItemValue {
+    font-weight: 600;
+}
+
+
+/* Card: Financial */
+
+.summaryCard.financial {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 1px solid #6ee7b7;
+    --border-color: #6ee7b7;
+}
+
+.summaryCard.financial .summaryCardTitle {
+    color: #065f46;
+    margin-bottom: 16px;
+}
+
+
+/* Financial Header */
+
+.financialHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 480px) {
+    .financialHeader {
+        padding: 10px 12px;
+    }
+    .financialHeaderValue {
+        font-size: 24px !important;
+    }
+}
+
+.financialHeaderLabel {
+    font-size: 13px;
+    color: #065f46;
+    font-weight: 600;
+}
+
+.financialHeaderValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: #064e3b;
+    line-height: 1;
+}
+
+
+/* Financial Grid */
+
+.financialGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 480px) {
+    .financialGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.financialCard {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.financialCardLabel {
+    font-size: 11px;
+    color: #065f46;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.financialCardValue {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+@media (max-width: 480px) {
+    .financialCardValue {
+        font-size: 18px;
+    }
+}
+
+.financialCardValue.advance {
+    color: #047857;
+}
+
+.financialCardValue.balance {
+    color: #dc2626;
+}
+
+
+/* Financial Progress Section */
+
+.financialProgressSection {
+    padding-top: 12px;
+    border-top: 1px solid rgba(110, 231, 183, 0.5);
+}
+
+.progressBarBackground {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.paymentProgressBar {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.progressLabel {
+    font-size: 11px;
+    color: #065f46;
+    text-align: center;
+    font-weight: 500;
+}
+
+
+/* Card: Booking Status */
+
+.summaryCard.bookingStatus {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fbbf24;
+    --border-color: #fbbf24;
+}
+
+.summaryCard.bookingStatus .summaryCardTitle {
+    color: #92400e;
+    margin-bottom: 12px;
+}
+
+
+/* Card: Payment Status */
+
+.summaryCard.paymentStatus {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border: 1px solid #c4b5fd;
+    --border-color: #c4b5fd;
+}
+
+.summaryCard.paymentStatus .summaryCardTitle {
+    color: #6d28d9;
+    margin-bottom: 12px;
+}
+
+
+/* Card: Guests & Meals */
+
+.summaryCard.guestsAndMeals {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 1px solid #93c5fd;
+    --border-color: #93c5fd;
+}
+
+.summaryCard.guestsAndMeals .summaryCardTitle {
+    color: #1e40af;
+    margin-bottom: 16px;
+}
+
+
+/* Active Guests Section */
+
+.activeGuestsSection {
+    margin-bottom: 16px;
+}
+
+.activeGuestsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 480px) {
+    .activeGuestsHeader {
+        padding: 10px 12px;
+    }
+    .activeGuestsCount {
+        font-size: 28px !important;
+    }
+}
+
+.activeGuestsLabel {
+    font-size: 13px;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.activeGuestsCount {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1e3a8a;
+    line-height: 1;
+}
+
+
+/* Guest Type Grid */
+
+.guestTypeGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .guestTypeGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.guestTypeCard {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.guestTypeValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e3a8a;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 480px) {
+    .guestTypeValue {
+        font-size: 20px;
+    }
+}
+
+.guestTypeLabel {
+    font-size: 11px;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+
+/* Meal Plans Section */
+
+.mealPlansSection {
+    padding-top: 16px;
+    border-top: 1px solid rgba(147, 197, 253, 0.5);
+}
+
+.mealPlansSectionTitle {
+    font-size: 12px;
+    color: #1e40af;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.mealPlansGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .mealPlansGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.mealPlanCard {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mealPlanCount {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+@media (max-width: 480px) {
+    .mealPlanCount {
+        font-size: 20px;
+    }
+}
+
+.mealPlanLabel {
+    font-size: 12px;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+
+/* Status Grid - For Booking Status Card */
+
+.statusGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 768px) {
+    .statusGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .statusGrid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+.statusItem {
+    text-align: center;
+    padding: 8px 4px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    transition: opacity 0.2s;
+}
+
+.statusItem.statusItemZero {
+    opacity: 0.5;
+}
+
+.statusItemValue {
+    font-size: 22px;
+    font-weight: 700;
+    color: #92400e;
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 480px) {
+    .statusItemValue {
+        font-size: 20px;
+    }
+}
+
+.statusItemLabel {
+    font-size: 11px;
+    color: #78350f;
+    display: block;
+    line-height: 1.2;
+}
+
+
+/* Payment Status Grid - For Payment Status Card */
+
+.paymentStatusGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.paymentStatusItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    transition: opacity 0.2s;
+}
+
+.paymentStatusItem.paymentStatusItemZero {
+    opacity: 0.5;
+}
+
+.paymentStatusValue {
+    font-size: 13px;
+    color: #5b21b6;
+    font-weight: 600;
+}
+
+
+/* Chevron for toggle */
+
+.filterChevron {
+    color: #6b7280;
+    transition: transform 0.2s;
+}
+
+.filterChevronOpen {
+    transform: rotate(180deg);
+}
