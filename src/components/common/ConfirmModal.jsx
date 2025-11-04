@@ -5,8 +5,7 @@ import styles from './ConfirmModal.module.css';
 
 /**
  * ConfirmModal - A reusable confirmation dialog component
- * 
- * @param {boolean} isOpen - Controls modal visibility
+ * * @param {boolean} isOpen - Controls modal visibility
  * @param {function} onClose - Called when modal is closed
  * @param {function} onConfirm - Called when user confirms (for confirm type)
  * @param {string} type - 'alert' | 'confirm' - Dialog type
@@ -37,16 +36,18 @@ export const ConfirmModal = ({
   };
 
   const getIcon = () => {
+    const iconSize = 40; // <-- Reduced from 48
+
     switch (variant) {
       case 'warning':
-        return <AlertTriangle size={48} className={styles.iconWarning} />;
+        return <AlertTriangle size={iconSize} className={styles.iconWarning} />;
       case 'danger':
-        return <XCircle size={48} className={styles.iconDanger} />;
+        return <XCircle size={iconSize} className={styles.iconDanger} />;
       case 'success':
-        return <CheckCircle size={48} className={styles.iconSuccess} />;
+        return <CheckCircle size={iconSize} className={styles.iconSuccess} />;
       case 'info':
       default:
-        return <Info size={48} className={styles.iconInfo} />;
+        return <Info size={iconSize} className={styles.iconInfo} />;
     }
   };
 

@@ -474,63 +474,82 @@ body {
 /* Modal */
 
 .modal-overlay {
+    /* This creates the dark backdrop */
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent black */
+    /* This is the key: Use Flexbox to center the child */
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 20px;
 }
 
 .modal-content {
     background: white;
-    border-radius: 12px;
-    max-width: 600px;
-    width: 100%;
+    border-radius: 8px;
+    /* Or your preferred border radius */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    /* We get the width from your ConfirmModal.module.css, 
+    but we can set a min-width here for safety.
+  */
+    min-width: 320px;
+    /* This is important: 
+    It prevents the modal from growing too large on tall screens
+    and enables internal scrolling if the content overflows.
+  */
     max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
 }
+
+
+/* These styles are based on your Modal.jsx 
+  and are needed for it to function correctly 
+*/
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px;
+    padding: 16px;
     border-bottom: 1px solid #e5e7eb;
 }
 
 .modal-header h3 {
-    font-size: 20px;
+    margin: 0;
+    font-size: 18px;
     font-weight: 600;
-    color: #1f2937;
 }
 
 .modal-close {
-    background: transparent;
+    background: none;
     border: none;
-    padding: 4px;
     cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #6b7280;
-    border-radius: 6px;
-    transition: background 0.2s;
 }
 
 .modal-close:hover {
     background: #f3f4f6;
+    color: #111827;
 }
 
 .modal-body {
-    padding: 24px;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 0 24px 24px;
+    /* This part is crucial. 
+    It allows the content (your ConfirmModal) to scroll 
+    if it's too tall,
+    while the header stays put.
+  */
+    overflow-y: auto;
 }
 
 
