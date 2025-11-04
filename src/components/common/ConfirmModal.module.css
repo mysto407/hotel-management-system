@@ -1,141 +1,142 @@
-/* Styles for the custom confirmation modal */
+/* ConfirmModal.module.css */
 
 .confirmModal {
-    max-width: 450px;
-    border-radius: 12px;
-    padding: 0;
-    /* Control padding inside the component */
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    /* Ensures rounded corners */
-}
-
-.modalHeader {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    padding: 16px 24px;
-    border-bottom: 1px solid #e2e8f0;
-    /* Light border */
-}
-
-.modalTitle {
-    font-size: 18px;
-    font-weight: 600;
-    color: #111827;
-    /* Dark text */
-    margin: 0;
-}
-
-.closeButton {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #6b7280;
-    padding: 4px;
-    border-radius: 50%;
-    display: flex;
-}
-
-.closeButton:hover {
-    background: #f1f5f9;
-    color: #111827;
-}
-
-.modalBody {
-    display: flex;
     padding: 24px;
-    gap: 16px;
-    align-items: flex-start;
+    min-width: 400px;
+    max-width: 500px;
 }
 
-.iconWrapper {
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+@media (max-width: 768px) {
+    .confirmModal {
+        min-width: 300px;
+        padding: 20px;
+    }
+}
+
+.iconContainer {
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #dbeafe;
-    /* Light blue */
-    color: #3b82f6;
-    /* Primary blue */
 }
 
-.defaultIcon {
+.iconInfo {
     color: #3b82f6;
 }
 
-.messageWrapper p {
-    margin: 0;
+.iconWarning {
+    color: #f59e0b;
+}
+
+.iconDanger {
+    color: #ef4444;
+}
+
+.iconSuccess {
+    color: #10b981;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.titleInfo {
+    color: #1e40af;
+}
+
+.titleWarning {
+    color: #92400e;
+}
+
+.titleDanger {
+    color: #991b1b;
+}
+
+.titleSuccess {
+    color: #065f46;
+}
+
+.message {
+    margin-bottom: 24px;
+    text-align: center;
+    width: 100%;
+}
+
+.messageText {
     font-size: 15px;
     color: #374151;
-    /* Medium-dark text */
-    line-height: 1.5;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-line;
 }
 
-.modalFooter {
+.buttonGroup {
     display: flex;
-    justify-content: flex-end;
     gap: 12px;
-    padding: 16px 24px;
-    background: #f8fafc;
-    /* Light BG for footer */
-    border-top: 1px solid #e2e8f0;
+    width: 100%;
+    justify-content: center;
 }
 
-.actionButton {
-    padding: 10px 16px;
+.button {
+    padding: 10px 24px;
     font-size: 14px;
     font-weight: 600;
-    border-radius: 8px;
-    border: 1px solid transparent;
+    border: none;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
+    min-width: 100px;
 }
 
-
-/* Primary style (like 'OK' or 'Edit All') */
-
-.primary {
-    background: #3b82f6;
-    /* Primary blue */
-    color: #ffffff;
-    border-color: #3b82f6;
-}
-
-.primary:hover {
-    background: #2563eb;
-    border-color: #2563eb;
-}
-
-
-/* Secondary style (like 'Cancel' or 'Just This One') */
-
-.secondary {
-    background: #ffffff;
+.buttonCancel {
+    background: #f3f4f6;
     color: #374151;
-    border-color: #e2e8f0;
-    /* Light border */
+    border: 1px solid #d1d5db;
 }
 
-.secondary:hover {
-    background: #f8fafc;
-    border-color: #d1d5db;
+.buttonCancel:hover {
+    background: #e5e7eb;
 }
 
+.buttonInfo {
+    background: #3b82f6;
+    color: white;
+}
 
-/* A bonus 'danger' style for delete confirmations */
+.buttonInfo:hover {
+    background: #2563eb;
+}
 
-.danger {
+.buttonWarning {
+    background: #f59e0b;
+    color: white;
+}
+
+.buttonWarning:hover {
+    background: #d97706;
+}
+
+.buttonDanger {
     background: #ef4444;
-    /* Red */
-    color: #ffffff;
-    border-color: #ef4444;
+    color: white;
 }
 
-.danger:hover {
+.buttonDanger:hover {
     background: #dc2626;
-    border-color: #dc2626;
+}
+
+.buttonSuccess {
+    background: #10b981;
+    color: white;
+}
+
+.buttonSuccess:hover {
+    background: #059669;
 }

@@ -25,8 +25,10 @@ export const QuickBookingModal = ({
   guests,
   rooms,
   roomTypes,
+  agents,
   pendingBookings = [],
-  onAddGuestClick
+  onAddGuestClick,
+  onAddAgentClick
 }) => {
   return (
     <Modal
@@ -82,6 +84,69 @@ export const QuickBookingModal = ({
             )}
           </div>
         </div>
+
+        {/* Booking Source */}
+        <div className="form-group">
+          <label>Booking Source *</label>
+          <select
+            value={bookingData.booking_source || 'direct'}
+            onChange={(e) => {
+              setBookingData({
+                ...bookingData, 
+                booking_source: e.target.value, 
+                agent_id: '', 
+                direct_source: ''
+              });
+            }}
+          >
+            <option value="direct">Direct</option>
+            <option value="agent">Agent</option>
+          </select>
+        </div>
+
+        {/* Direct Source */}
+        {bookingData.booking_source === 'direct' && (
+          <div className="form-group">
+            <label>Direct Booking Source</label>
+            <input
+              type="text"
+              value={bookingData.direct_source || ''}
+              onChange={(e) => setBookingData({...bookingData, direct_source: e.target.value})}
+              placeholder="e.g., Walk-in, Phone Call, Website"
+            />
+            <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
+              Optional: Specify where this booking came from
+            </small>
+          </div>
+        )}
+
+        {/* Agent Selection */}
+        {bookingData.booking_source === 'agent' && (
+          <div className="form-group">
+            <label>Select Agent *</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                style={{ flex: 1 }}
+                value={bookingData.agent_id || ''}
+                onChange={(e) => setBookingData({...bookingData, agent_id: e.target.value})}
+              >
+                <option value="">Select Agent</option>
+                {agents && agents.map(agent => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name} - {agent.phone}
+                  </option>
+                ))}
+              </select>
+              <button 
+                onClick={onAddAgentClick} 
+                className="btn-secondary"
+                type="button"
+              >
+                <UserPlus size={18} /> New Agent
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Guest Selection */}
         <div className="form-group full-width">

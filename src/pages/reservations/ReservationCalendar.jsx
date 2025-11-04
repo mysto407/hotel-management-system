@@ -1,10 +1,12 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus, Lock, Calendar as CalendarIcon, Edit2, XOctagon } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Save, UserPlus, Lock, Calendar as CalendarIcon, Edit2, XOctagon, Trash2 } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
+import { useAgents } from '../../context/AgentContext';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import { updateRoomStatus } from '../../lib/supabase';
 import { calculateDays } from '../../utils/helpers';
@@ -13,17 +15,31 @@ import styles from './ReservationCalendar.module.css';
 // Import the new components
 import { QuickBookingModal } from '../../components/reservations/QuickBookingModal';
 import { AddGuestModal } from '../../components/guests/AddGuestModal';
+import { AddAgentModal } from '../../components/agents/AddAgentModal';
 import { RoomStatusModal } from '../../components/rooms/RoomStatusModal';
 
 const ReservationCalendar = () => {
-  const { reservations, fetchReservations, addReservation, updateReservation, cancelReservation } = useReservations();
+  const { reservations, fetchReservations, addReservation, updateReservation, cancelReservation, deleteReservation } = useReservations();
   const { rooms, roomTypes, fetchRooms } = useRooms();
   const { guests } = useGuests(); // Removed addGuest
+  const { agents } = useAgents(); // Get agents for booking source
   
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState({});
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    type: 'confirm',
+    variant: 'info',
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    onConfirm: null
+  });
   
   // Action menu state
   const [actionMenu, setActionMenu] = useState({
@@ -46,7 +62,11 @@ const ReservationCalendar = () => {
   // Quick booking modal state
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [bookingData, setBookingData] = useState({
+    booking_source: 'direct',
+    agent_id: '',
+    direct_source: 'Calendar',
     room_id: '',
     check_in_date: '',
     check_out_date: '',
@@ -173,6 +193,40 @@ const ReservationCalendar = () => {
   const handleDatePickerChange = (e) => {
     const selectedDate = new Date(e.target.value);
     setStartDate(selectedDate);
+  };
+
+  // Helper functions for confirm modal
+  const showConfirm = (options) => {
+    return new Promise((resolve) => {
+      setConfirmModal({
+        isOpen: true,
+        type: 'confirm',
+        variant: options.variant || 'info',
+        title: options.title || 'Confirm',
+        message: options.message || '',
+        confirmText: options.confirmText || 'Confirm',
+        cancelText: options.cancelText || 'Cancel',
+        onConfirm: () => resolve(true)
+      });
+    });
+  };
+
+  const showAlert = (options) => {
+    return new Promise((resolve) => {
+      setConfirmModal({
+        isOpen: true,
+        type: 'alert',
+        variant: options.variant || 'info',
+        title: options.title || 'Notice',
+        message: options.message || '',
+        confirmText: options.confirmText || 'OK',
+        onConfirm: () => resolve(true)
+      });
+    });
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
   };
 
   // Refresh calendar data
@@ -397,11 +451,15 @@ const ReservationCalendar = () => {
     
     const uniqueRoomIds = [...new Set(selectedCells.map(c => c.roomId))];
     
-    if (!window.confirm(
-      `Block ${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''}?`
-    )) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      variant: 'warning',
+      title: 'Block Rooms',
+      message: `Are you sure you want to block ${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''}?`,
+      confirmText: 'Block',
+      cancelText: 'Cancel'
+    });
+    
+    if (!confirmed) return;
     
     try {
       const blockPromises = uniqueRoomIds.map(roomId => 
@@ -411,10 +469,20 @@ const ReservationCalendar = () => {
       await Promise.all(blockPromises);
       await fetchRooms();
       
-      alert(`${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''} blocked successfully`);
+      await showAlert({
+        variant: 'success',
+        title: 'Success',
+        message: `${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''} blocked successfully`,
+        confirmText: 'OK'
+      });
     } catch (error) {
       console.error('Error blocking rooms:', error);
-      alert('Failed to block rooms: ' + error.message);
+      await showAlert({
+        variant: 'danger',
+        title: 'Error',
+        message: 'Failed to block rooms: ' + error.message,
+        confirmText: 'OK'
+      });
     }
     
     closeActionMenu();
@@ -444,18 +512,20 @@ const ReservationCalendar = () => {
   };
 
   // Handle Edit Reservation action (single or group)
-  const handleEditReservation = () => {
+  const handleEditReservation = async () => {
     if (!actionMenu.reservation) return;
     
     const relatedReservations = findRelatedReservations(actionMenu.reservation);
     
     if (relatedReservations.length > 1) {
       // Show option to edit as group or single
-      const editAsGroup = window.confirm(
-        `This reservation is part of a ${relatedReservations.length}-room booking.\n\n` +
-        `Click OK to edit all rooms together.\n` +
-        `Click Cancel to edit only this room.`
-      );
+      const editAsGroup = await showConfirm({
+        variant: 'info',
+        title: 'Edit Reservation',
+        message: `This reservation is part of a ${relatedReservations.length}-room booking.\n\nClick "Edit All" to edit all rooms together, or "Edit Single" to edit only this room.`,
+        confirmText: 'Edit All',
+        cancelText: 'Edit Single'
+      });
       
       if (editAsGroup) {
         handleEditGroup(relatedReservations);
@@ -578,7 +648,13 @@ const ReservationCalendar = () => {
         };
         
         await updateReservation(editingReservation.id, reservationData);
-        alert('Reservation updated successfully!');
+        
+        await showAlert({
+          variant: 'success',
+          title: 'Success',
+          message: 'Reservation updated successfully!',
+          confirmText: 'OK'
+        });
       } else if (editingGroup) {
         // Group edit
         const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / editingGroup.length;
@@ -614,7 +690,12 @@ const ReservationCalendar = () => {
           await updateReservation(reservation.id, reservationData);
         }
         
-        alert(`Successfully updated ${editingGroup.length} reservations!`);
+        await showAlert({
+          variant: 'success',
+          title: 'Success',
+          message: `Successfully updated ${editingGroup.length} reservations!`,
+          confirmText: 'OK'
+        });
       }
       
       await fetchReservations();
@@ -627,7 +708,12 @@ const ReservationCalendar = () => {
       setEditModalRoomDetails(null);
     } catch (error) {
       console.error('Error updating reservation:', error);
-      alert('Failed to update reservation: ' + error.message);
+      await showAlert({
+        variant: 'danger',
+        title: 'Error',
+        message: 'Failed to update reservation: ' + error.message,
+        confirmText: 'OK'
+      });
     }
   };
 
@@ -641,13 +727,18 @@ const ReservationCalendar = () => {
     let confirmMessage = `Are you sure you want to cancel the reservation for ${guestName}?`;
     
     if (relatedReservations.length > 1) {
-      confirmMessage = `This reservation is part of a ${relatedReservations.length}-room booking.\n\n` +
-                      `Are you sure you want to cancel ALL ${relatedReservations.length} rooms for ${guestName}?`;
+      confirmMessage = `This reservation is part of a ${relatedReservations.length}-room booking.\n\nAre you sure you want to cancel ALL ${relatedReservations.length} rooms for ${guestName}?`;
     }
     
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+    const confirmed = await showConfirm({
+      variant: 'warning',
+      title: 'Cancel Reservation',
+      message: confirmMessage,
+      confirmText: 'Cancel Reservation',
+      cancelText: 'Keep Reservation'
+    });
+    
+    if (!confirmed) return;
     
     try {
       // Cancel all related reservations
@@ -662,11 +753,90 @@ const ReservationCalendar = () => {
         ? `Successfully cancelled ${relatedReservations.length} reservations!`
         : 'Reservation cancelled successfully!';
       
-      alert(message);
+      await showAlert({
+        variant: 'success',
+        title: 'Success',
+        message: message,
+        confirmText: 'OK'
+      });
       closeActionMenu();
     } catch (error) {
       console.error('Error cancelling reservation:', error);
-      alert('Failed to cancel reservation: ' + error.message);
+      await showAlert({
+        variant: 'danger',
+        title: 'Error',
+        message: 'Failed to cancel reservation: ' + error.message,
+        confirmText: 'OK'
+      });
+    }
+  };
+
+  // Handle Delete Reservation action (permanent)
+  const handleDeleteReservation = async () => {
+    if (!actionMenu.reservation) return;
+    
+    const relatedReservations = findRelatedReservations(actionMenu.reservation);
+    const guestName = actionMenu.reservation.guests?.name || 'Unknown';
+    
+    let confirmMessage = `âš ï¸ WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE this reservation?\n\nGuest: ${guestName}\nRoom: ${actionMenu.reservation.rooms?.room_number || 'Unknown'}\nCheck-in: ${actionMenu.reservation.check_in_date}\n\nThis action CANNOT be undone!`;
+    
+    if (relatedReservations.length > 1) {
+      confirmMessage = `âš ï¸ WARNING: Permanent Deletion\n\nThis is part of a ${relatedReservations.length}-room booking.\n\nAre you absolutely sure you want to PERMANENTLY DELETE ALL ${relatedReservations.length} reservations for ${guestName}?\n\nThis action CANNOT be undone!`;
+    }
+    
+    const firstConfirm = await showConfirm({
+      variant: 'danger',
+      title: 'Permanent Deletion Warning',
+      message: confirmMessage,
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel'
+    });
+    
+    if (!firstConfirm) return;
+    
+    // Double confirmation for safety
+    const finalConfirmMessage = relatedReservations.length > 1
+      ? `Final confirmation: Delete ALL ${relatedReservations.length} reservations permanently?`
+      : 'Final confirmation: Delete this reservation permanently?';
+    
+    const finalConfirm = await showConfirm({
+      variant: 'danger',
+      title: 'Final Confirmation',
+      message: finalConfirmMessage,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel'
+    });
+    
+    if (!finalConfirm) return;
+    
+    try {
+      // Delete all related reservations
+      for (const reservation of relatedReservations) {
+        await deleteReservation(reservation.id);
+      }
+      
+      await fetchReservations();
+      await fetchRooms();
+      
+      const message = relatedReservations.length > 1 
+        ? `Successfully deleted ${relatedReservations.length} reservations!`
+        : 'Reservation deleted successfully!';
+      
+      await showAlert({
+        variant: 'success',
+        title: 'Deleted',
+        message: message,
+        confirmText: 'OK'
+      });
+      closeActionMenu();
+    } catch (error) {
+      console.error('Error deleting reservation:', error);
+      await showAlert({
+        variant: 'danger',
+        title: 'Error',
+        message: 'Failed to delete reservation: ' + error.message,
+        confirmText: 'OK'
+      });
     }
   };
 
@@ -698,6 +868,9 @@ const ReservationCalendar = () => {
       checkOutDate.setDate(checkOutDate.getDate() + 1);
       
       setBookingData({
+        booking_source: 'direct',
+        agent_id: '',
+        direct_source: 'Calendar',
         room_id: cell.roomId,
         check_in_date: cell.date,
         check_out_date: checkOutDate.toISOString().split('T')[0],
@@ -767,19 +940,27 @@ const ReservationCalendar = () => {
     const totalNights = selectedCells.length;
     const bookingCount = bookings.length;
     
-    if (!window.confirm(
-      `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} —  ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
-      `You'll enter guest details once, and all bookings will be created with the same guest.`
-    )) {
-      return;
-    }
+    const confirmMessage = `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} × ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `You'll enter guest details once, and all bookings will be created with the same guest.`;
     
+    const confirmed = await showConfirm({
+      variant: 'info',
+      title: 'Create Multiple Bookings',
+      message: confirmMessage,
+      confirmText: 'Continue',
+      cancelText: 'Cancel'
+    });
+    
+    if (!confirmed) return;
     setPendingBookings(bookings);
     
     const firstBooking = bookings[0];
     
     setBookingData({
+      booking_source: 'direct',
+      agent_id: '',
+      direct_source: 'Calendar',
       room_id: firstBooking.roomId,
       check_in_date: firstBooking.checkIn,
       check_out_date: firstBooking.checkOut,
@@ -808,6 +989,9 @@ const ReservationCalendar = () => {
       checkOutDate.setDate(checkOutDate.getDate() + 1);
       
       setBookingData({
+        booking_source: 'direct',
+        agent_id: '',
+        direct_source: 'Calendar',
         room_id: cell.roomId,
         check_in_date: cell.date,
         check_out_date: checkOutDate.toISOString().split('T')[0],
@@ -830,12 +1014,33 @@ const ReservationCalendar = () => {
   // Submit quick booking
   const handleQuickBooking = async () => {
     if (!bookingData.guest_id) {
-      alert('Please select a guest');
+      await showAlert({
+        variant: 'warning',
+        title: 'Missing Information',
+        message: 'Please select a guest',
+        confirmText: 'OK'
+      });
       return;
     }
     
     if (!bookingData.check_out_date) {
-      alert('Please select check-out date');
+      await showAlert({
+        variant: 'warning',
+        title: 'Missing Information',
+        message: 'Please select check-out date',
+        confirmText: 'OK'
+      });
+      return;
+    }
+
+    // Validate agent selection if booking source is agent
+    if (bookingData.booking_source === 'agent' && !bookingData.agent_id) {
+      await showAlert({
+        variant: 'warning',
+        title: 'Missing Information',
+        message: 'Please select an agent',
+        confirmText: 'OK'
+      });
       return;
     }
     
@@ -849,8 +1054,9 @@ const ReservationCalendar = () => {
       const totalAmount = (roomType?.base_price || 0) * nights;
       
       const reservationData = {
-        booking_source: 'direct',
-        direct_source: 'Calendar',
+        booking_source: bookingData.booking_source,
+        agent_id: bookingData.booking_source === 'agent' ? bookingData.agent_id : null,
+        direct_source: bookingData.booking_source === 'direct' ? (bookingData.direct_source || 'Calendar') : null,
         guest_id: bookingData.guest_id,
         room_id: bookingData.room_id,
         check_in_date: bookingData.check_in_date,
@@ -885,8 +1091,9 @@ const ReservationCalendar = () => {
           
           try {
             await addReservation({
-              booking_source: 'direct',
-              direct_source: 'Calendar',
+              booking_source: bookingData.booking_source,
+              agent_id: bookingData.booking_source === 'agent' ? bookingData.agent_id : null,
+              direct_source: bookingData.booking_source === 'direct' ? (bookingData.direct_source || 'Calendar') : null,
               guest_id: bookingData.guest_id,
               room_id: booking.roomId,
               check_in_date: booking.checkIn,
@@ -914,18 +1121,36 @@ const ReservationCalendar = () => {
         await fetchReservations();
         
         if (failCount > 0) {
-          alert(`Created ${successCount} of ${pendingBookings.length} bookings successfully. ${failCount} booking(s) failed.`);
+          await showAlert({
+            variant: 'warning',
+            title: 'Partial Success',
+            message: `Created ${successCount} of ${pendingBookings.length} bookings successfully. ${failCount} booking(s) failed.`,
+            confirmText: 'OK'
+          });
         } else {
-          alert(`All ${successCount} bookings created successfully!`);
+          await showAlert({
+            variant: 'success',
+            title: 'Success',
+            message: `All ${successCount} bookings created successfully!`,
+            confirmText: 'OK'
+          });
         }
       } else {
         await fetchReservations();
-        alert('Booking created successfully!');
+        await showAlert({
+          variant: 'success',
+          title: 'Success',
+          message: 'Booking created successfully!',
+          confirmText: 'OK'
+        });
         setPendingBookings([]);
       }
       
       setIsBookingModalOpen(false);
       setBookingData({
+        booking_source: 'direct',
+        agent_id: '',
+        direct_source: 'Calendar',
         room_id: '',
         check_in_date: '',
         check_out_date: '',
@@ -940,7 +1165,12 @@ const ReservationCalendar = () => {
       
     } catch (error) {
       console.error('Error creating booking:', error);
-      alert('Failed to create booking: ' + error.message);
+      await showAlert({
+        variant: 'danger',
+        title: 'Error',
+        message: 'Failed to create booking: ' + error.message,
+        confirmText: 'OK'
+      });
     }
   };
 
@@ -950,6 +1180,14 @@ const ReservationCalendar = () => {
     if (newGuest) {
       setBookingData({ ...bookingData, guest_id: newGuest.id });
       setIsGuestModalOpen(false);
+    }
+  };
+
+  // Agent modal handlers
+  const onAgentAdded = (newAgent) => {
+    if (newAgent) {
+      setBookingData({ ...bookingData, agent_id: newAgent.id, booking_source: 'agent' });
+      setIsAgentModalOpen(false);
     }
   };
 
@@ -1391,7 +1629,7 @@ const ReservationCalendar = () => {
                         {selectedCells.length} cell{selectedCells.length !== 1 ? 's' : ''} selected
                       </div>
                       <div className={styles.actionMenuHeaderDates}>
-                        {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} × {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
+                        {uniqueRooms.length} room{uniqueRooms.length !== 1 ? 's' : ''} Ã— {uniqueDates.length} night{uniqueDates.length !== 1 ? 's' : ''}
                       </div>
                       <div className={styles.actionMenuHeaderDates} style={{ color: '#166534', fontWeight: '600' }}>
                         {uniqueDates[0] && new Date(uniqueDates[0]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -1423,6 +1661,20 @@ const ReservationCalendar = () => {
                 >
                   <XOctagon size={16} />
                   Cancel Reservation
+                </button>
+                
+                <button
+                  onClick={handleDeleteReservation}
+                  className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
+                  style={{
+                    background: '#7f1d1d',
+                    color: '#fef2f2'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#991b1b'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#7f1d1d'}
+                >
+                  <Trash2 size={16} />
+                  Delete Permanently
                 </button>
                 
                 <button
@@ -1497,8 +1749,10 @@ const ReservationCalendar = () => {
         guests={guests}
         rooms={rooms}
         roomTypes={roomTypes}
+        agents={agents}
         pendingBookings={pendingBookings}
         onAddGuestClick={() => setIsGuestModalOpen(true)}
+        onAddAgentClick={() => setIsAgentModalOpen(true)}
       />
 
       {/* Quick Add Guest Modal */}
@@ -1506,6 +1760,13 @@ const ReservationCalendar = () => {
         isOpen={isGuestModalOpen}
         onClose={() => setIsGuestModalOpen(false)}
         onGuestAdded={onGuestAdded}
+      />
+
+      {/* Quick Add Agent Modal */}
+      <AddAgentModal
+        isOpen={isAgentModalOpen}
+        onClose={() => setIsAgentModalOpen(false)}
+        onAgentAdded={onAgentAdded}
       />
 
       {/* Edit Reservation Modal */}
@@ -1533,6 +1794,19 @@ const ReservationCalendar = () => {
           setSelectedRoomForStatus(null);
         }}
         room={selectedRoomForStatus}
+      />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={closeConfirmModal}
+        onConfirm={confirmModal.onConfirm}
+        type={confirmModal.type}
+        variant={confirmModal.variant}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
       />
     </div>
   );
