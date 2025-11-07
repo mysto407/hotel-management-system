@@ -1,13 +1,42 @@
-// ==========================================
-// FILE: src/pages/billing/Billing.jsx
-// ==========================================
+// src/pages/billing/Billing.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, DollarSign, FileText, Printer, Receipt } from 'lucide-react';
-import { Modal } from '../../components/common/Modal';
-import { Card } from '../../components/common/Card';
 import { useBilling } from '../../context/BillingContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
+
+// Import shadcn components
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Billing = () => {
   const { bills, addBill, updateBill, deleteBill, recordPayment, getBillsByReservation, getMasterBill } = useBilling();
@@ -22,20 +51,19 @@ const Billing = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-
-const [formData, setFormData] = useState({
-  reservation_id: '',        // Changed from reservationId
-  bill_type: 'Room',         // Changed from billType
-  items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
-  subtotal: 0,
-  tax: 0,
-  discount: 0,
-  total: 0,
-  paid_amount: 0,           // Changed from paidAmount
-  balance: 0,
-  payment_status: 'Pending', // Changed from paymentStatus
-  notes: ''
-});
+  const [formData, setFormData] = useState({
+    reservation_id: '',
+    bill_type: 'Room',
+    items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+    subtotal: 0,
+    tax: 0,
+    discount: 0,
+    total: 0,
+    paid_amount: 0,
+    balance: 0,
+    payment_status: 'Pending',
+    notes: ''
+  });
 
   const [paymentAmount, setPaymentAmount] = useState(0);
 
@@ -45,16 +73,7 @@ const [formData, setFormData] = useState({
   ];
 
   const handleReservationChange = (reservationId) => {
-    const reservation = reservations.find(r => r.id === reservationId);
-    if (reservation) {
-      const room = rooms.find(r => r.id === reservation.room_id);
-      setFormData({
-        ...formData,
-        reservation_id: reservation.id,  // Changed from reservationId
-        guestName: reservation.guests?.name || 'Unknown',
-        roomNumber: room?.room_number || ''
-      });
-    }
+    setFormData({ ...formData, reservation_id: reservationId });
   };
 
   const addItem = () => {
@@ -67,7 +86,7 @@ const [formData, setFormData] = useState({
   const removeItem = (index) => {
     const newItems = formData.items.filter((_, i) => i !== index);
     setFormData({ ...formData, items: newItems });
-    calculateTotals(newItems);
+    calculateTotals(newItems, formData.discount);
   };
 
   const updateItem = (index, field, value) => {
@@ -75,26 +94,33 @@ const [formData, setFormData] = useState({
     newItems[index][field] = value;
     
     if (field === 'quantity' || field === 'rate') {
-      newItems[index].amount = newItems[index].quantity * newItems[index].rate;
+      newItems[index].amount = (parseFloat(newItems[index].quantity) || 0) * (parseFloat(newItems[index].rate) || 0);
     }
     
     setFormData({ ...formData, items: newItems });
-    calculateTotals(newItems);
+    calculateTotals(newItems, formData.discount);
+  };
+  
+  const handleDiscountChange = (discountValue) => {
+    const discount = parseFloat(discountValue) || 0;
+    setFormData(prev => ({ ...prev, discount }));
+    calculateTotals(formData.items, discount);
   };
 
-  const calculateTotals = (items) => {
+  const calculateTotals = (items, discount) => {
     const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
     const tax = subtotal * 0.18; // 18% GST
-    const total = subtotal + tax - formData.discount;
-    const balance = total - formData.paidAmount;
+    const total = subtotal + tax - discount;
+    const balance = total - formData.paid_amount;
     
     setFormData(prev => ({
       ...prev,
+      items,
       subtotal,
       tax,
       total,
       balance,
-      paymentStatus: balance === 0 ? 'Paid' : balance === total ? 'Pending' : 'Partial'
+      payment_status: balance <= 0 ? 'Paid' : balance === total ? 'Pending' : 'Partial'
     }));
   };
 
@@ -110,32 +136,24 @@ const [formData, setFormData] = useState({
       balance: formData.balance,
       payment_status: formData.payment_status,
       notes: formData.notes,
-      items: formData.items  // Will be handled by context
     };
   
     if (editingBill) {
+      // UpdateBill doesn't handle items update in context, this is a limitation
       await updateBill(editingBill.id, billData);
     } else {
-      await addBill(billData);
+      // addBill (via createBillAPI) handles items
+      await addBill({ ...billData, items: formData.items });
     }
     resetForm();
   };
 
   const resetForm = () => {
     setFormData({
-      reservationId: '',
-      guestName: '',
-      roomNumber: '',
-      billType: 'Room',
+      reservation_id: '', bill_type: 'Room',
       items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
-      subtotal: 0,
-      tax: 0,
-      discount: 0,
-      total: 0,
-      paidAmount: 0,
-      balance: 0,
-      paymentStatus: 'Pending',
-      notes: ''
+      subtotal: 0, tax: 0, discount: 0, total: 0,
+      paid_amount: 0, balance: 0, payment_status: 'Pending', notes: ''
     });
     setEditingBill(null);
     setIsModalOpen(false);
@@ -143,7 +161,19 @@ const [formData, setFormData] = useState({
 
   const handleEdit = (bill) => {
     setEditingBill(bill);
-    setFormData(bill);
+    setFormData({
+      reservation_id: bill.reservation_id,
+      bill_type: bill.bill_type,
+      items: bill.bill_items || [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+      subtotal: bill.subtotal,
+      tax: bill.tax,
+      discount: bill.discount,
+      total: bill.total,
+      paid_amount: bill.paid_amount,
+      balance: bill.balance,
+      payment_status: bill.payment_status,
+      notes: bill.notes || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -154,26 +184,20 @@ const [formData, setFormData] = useState({
   };
 
   const handlePayment = (bill) => {
-    // Ensure the bill has all required properties
-    const billWithDetails = {
-      ...bill,
-      guestName: bill.reservations?.guests?.name || 'Unknown',
-      billType: bill.bill_type,
-      paidAmount: bill.paid_amount || 0
-    };
-    setSelectedBill(billWithDetails);
+    setSelectedBill(bill);
     setPaymentAmount(0);
     setIsPaymentModalOpen(true);
   };
 
   const processPayment = () => {
-    if (paymentAmount > 0 && paymentAmount <= selectedBill.balance) {
-      recordPayment(selectedBill.id, parseFloat(paymentAmount));
+    const amount = parseFloat(paymentAmount);
+    if (amount > 0 && amount <= selectedBill.balance) {
+      recordPayment(selectedBill.id, amount);
       setIsPaymentModalOpen(false);
       setSelectedBill(null);
       setPaymentAmount(0);
     } else {
-      alert('Invalid payment amount');
+      alert('Invalid payment amount. Must be greater than 0 and less than or equal to the balance.');
     }
   };
 
@@ -184,7 +208,9 @@ const [formData, setFormData] = useState({
   };
 
   const printBill = (bill) => {
-    window.print();
+    // This is a simple print, replace with a dedicated print component for formatted output
+    alert("Printing is not fully implemented. This would open a print dialog.");
+    // window.print(); // <-- This would print the whole page
   };
 
   const filteredBills = bills
@@ -194,137 +220,143 @@ const [formData, setFormData] = useState({
     b.reservations?.rooms?.room_number?.includes(searchTerm) ||
     b.bill_type?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  const getPaymentStatusVariant = (status) => {
+    switch (status) {
+      case 'Paid': return 'success';
+      case 'Partial': return 'warning';
+      case 'Pending': return 'destructive';
+      default: return 'secondary';
+    }
+  };
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">Billing</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={20} /> Create Bill
-        </button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Billing</h1>
+        <Button onClick={() => { setEditingBill(null); setIsModalOpen(true); }}>
+          <Plus size={20} className="mr-2" /> Create Bill
+        </Button>
       </div>
 
-      <div className="filters-bar">
-        <div className="search-box">
-          <Search size={18} />
-          <input
+      <div className="flex justify-between items-center gap-4">
+        <div className="relative w-full sm:w-96">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
             type="text"
             placeholder="Search by guest, room, or bill type..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
           />
         </div>
-        <div className="filter-group">
-          <Filter size={18} />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Bills</option>
-            <option value="Pending">Pending</option>
-            <option value="Partial">Partial</option>
-            <option value="Paid">Paid</option>
-          </select>
+        <div className="flex items-center gap-2">
+          <Filter size={18} className="text-muted-foreground" />
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Bills</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Partial">Partial</SelectItem>
+              <SelectItem value="Paid">Paid</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Bill #</th>
-              <th>Guest Name</th>
-              <th>Room</th>
-              <th>Bill Type</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Paid</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-  {filteredBills.map(bill => (
-    <tr key={bill.id}>
-      <td><strong>#{bill.id}</strong></td>
-      <td>{bill.reservations?.guests?.name || 'Unknown'}</td>
-      <td>{bill.reservations?.rooms?.room_number || 'N/A'}</td>
-      <td>
-        <span className="bill-type-badge">{bill.bill_type}</span>
-      </td>
-      <td>{bill.created_at?.split('T')[0]}</td>
-      <td>₹{bill.total.toFixed(2)}</td>
-      <td>₹{bill.paid_amount.toFixed(2)}</td>
-      <td>₹{bill.balance.toFixed(2)}</td>
-      <td>
-        <span className={`status-badge ${
-          bill.payment_status === 'Paid' ? 'status-available' :
-          bill.payment_status === 'Partial' ? 'status-maintenance' :
-          'status-blocked'
-        }`}>
-          {bill.payment_status}
-        </span>
-      </td>
-                <td>
-                  <div className="action-buttons">
-                    {bill.balance > 0 && (
-                      <button
-                        onClick={() => handlePayment(bill)}
-                        className="btn-icon btn-success"
-                        title="Record Payment"
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Bill #</TableHead>
+                <TableHead>Guest Name</TableHead>
+                <TableHead>Room</TableHead>
+                <TableHead>Bill Type</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Paid</TableHead>
+                <TableHead>Balance</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBills.map(bill => (
+                <TableRow key={bill.id}>
+                  <TableCell className="font-medium">#{bill.id}</TableCell>
+                  <TableCell>{bill.reservations?.guests?.name || 'Unknown'}</TableCell>
+                  <TableCell>{bill.reservations?.rooms?.room_number || 'N/A'}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{bill.bill_type}</Badge>
+                  </TableCell>
+                  <TableCell>{new Date(bill.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>₹{bill.total.toFixed(2)}</TableCell>
+                  <TableCell>₹{bill.paid_amount.toFixed(2)}</TableCell>
+                  <TableCell>₹{bill.balance.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge variant={getPaymentStatusVariant(bill.payment_status)}>
+                      {bill.payment_status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {bill.balance > 0 && (
+                        <Button
+                          onClick={() => handlePayment(bill)}
+                          variant="ghost" size="icon" title="Record Payment"
+                        >
+                          <DollarSign size={16} className="text-green-600" />
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => printBill(bill)}
+                        variant="ghost" size="icon" title="Print"
                       >
-                        <DollarSign size={16} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => printBill(bill)}
-                      className="btn-icon"
-                      title="Print"
-                      style={{ color: '#6b7280' }}
-                    >
-                      <Printer size={16} />
-                    </button>
-                    <button onClick={() => handleEdit(bill)} className="btn-icon btn-edit">
-                      <Edit2 size={16} />
-                    </button>
-                    <button onClick={() => handleDelete(bill.id)} className="btn-icon btn-delete">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                        <Printer size={16} className="text-gray-600" />
+                      </Button>
+                      <Button onClick={() => handleEdit(bill)} variant="ghost" size="icon" title="Edit">
+                        <Edit2 size={16} className="text-blue-600" />
+                      </Button>
+                      <Button onClick={() => handleDelete(bill.id)} variant="ghost" size="icon" title="Delete">
+                        <Trash2 size={16} className="text-red-600" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <div style={{ marginTop: '24px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px' }}>Master Bills</h2>
-        <div className="stats-grid">
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold">Master Bills</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {reservations.filter(r => r.status === 'Checked-in' || r.status === 'Checked-out').map(reservation => {
             const masterBill = getMasterBill(reservation.id);
             if (!masterBill) return null;
             
             return (
               <Card key={reservation.id}>
-                <div>
-                  <p style={{ color: '#6b7280', fontSize: '14px' }}>{reservation.guestName}</p>
-                  <p style={{ fontSize: '24px', fontWeight: '700', color: '#1f2937', margin: '8px 0' }}>
-                    ₹{masterBill.grandTotal.toFixed(2)}
+                <CardHeader>
+                  <CardTitle className="text-lg">{masterBill.guestName}</CardTitle>
+                  <p className="text-sm text-muted-foreground">Room: {masterBill.roomNumber}</p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-3xl font-bold">₹{masterBill.grandTotal.toFixed(2)}</p>
+                  <p className="text-sm font-medium">
+                    Balance: <span className="text-red-600 font-bold">₹{masterBill.balance.toFixed(2)}</span>
                   </p>
-                  <p style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Balance: ₹{masterBill.balance.toFixed(2)}
-                  </p>
-                  <button
+                  <Button
                     onClick={() => viewMasterBill(reservation.id)}
-                    className="btn-primary"
-                    style={{ marginTop: '12px', fontSize: '14px', padding: '8px 16px' }}
+                    className="w-full"
                   >
-                    <Receipt size={16} /> View Master Bill
-                  </button>
-                </div>
+                    <Receipt size={16} className="mr-2" /> View Master Bill
+                  </Button>
+                </CardContent>
               </Card>
             );
           })}
@@ -332,256 +364,270 @@ const [formData, setFormData] = useState({
       </div>
 
       {/* Create/Edit Bill Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={resetForm}
-        title={editingBill ? 'Edit Bill' : 'Create Bill'}
-        size="large"
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Reservation *</label>
-            <select
-  value={formData.reservation_id}
-  onChange={(e) => handleReservationChange(e.target.value)}
-  disabled={editingBill}
->
-  <option value="">Select Reservation</option>
-  {reservations.filter(r => r.status === 'Checked-in' || r.status === 'Checked-out').map(r => (
-    <option key={r.id} value={r.id}>
-      {r.guests?.name || 'Unknown'} - Room {rooms.find(room => room.id === r.room_id)?.room_number}
-    </option>
-  ))}
-</select>
-          </div>
-          <div className="form-group">
-            <label>Bill Type *</label>
-            <select
-  value={formData.bill_type}
-  onChange={(e) => setFormData({...formData, bill_type: e.target.value})}
->
-  {billTypes.map(type => (
-    <option key={type} value={type}>{type}</option>
-  ))}
-</select>
-          </div>
-        </div>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{editingBill ? 'Edit Bill' : 'Create Bill'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-1 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Reservation *</Label>
+                <Select
+                  value={formData.reservation_id}
+                  onValueChange={handleReservationChange}
+                  disabled={!!editingBill}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Reservation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reservations.filter(r => r.status === 'Checked-in' || r.status === 'Checked-out').map(r => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.guests?.name || 'Unknown'} - Room {rooms.find(room => room.id === r.room_id)?.room_number}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Bill Type *</Label>
+                <Select
+                  value={formData.bill_type}
+                  onValueChange={(value) => setFormData({...formData, bill_type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {billTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-        <div style={{ marginTop: '24px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '16px', fontWeight: '600' }}>Items</h4>
-            <button onClick={addItem} className="btn-primary" style={{ fontSize: '14px', padding: '6px 12px' }}>
-              <Plus size={16} /> Add Item
-            </button>
+            <div className="mt-6 space-y-3">
+              <div className="flex justify-between items-center">
+                <h4 className="font-semibold">Items</h4>
+                <Button onClick={addItem} size="sm">
+                  <Plus size={16} className="mr-2" /> Add Item
+                </Button>
+              </div>
+              
+              <div className="space-y-2">
+                {formData.items.map((item, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <Input
+                      type="text"
+                      placeholder="Description"
+                      value={item.description}
+                      onChange={(e) => updateItem(index, 'description', e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Qty"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, 'quantity', e.target.value)}
+                      className="w-20"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Rate"
+                      value={item.rate}
+                      onChange={(e) => updateItem(index, 'rate', e.target.value)}
+                      className="w-24"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Amount"
+                      value={item.amount.toFixed(2)}
+                      readOnly
+                      className="w-28 bg-gray-100"
+                    />
+                    {formData.items.length > 1 && (
+                      <Button
+                        onClick={() => removeItem(index)}
+                        variant="ghost" size="icon"
+                      >
+                        <Trash2 size={16} className="text-red-600" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Subtotal:</span>
+                <span>₹{formData.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Tax (18% GST):</span>
+                <span>₹{formData.tax.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <Label htmlFor="discount" className="text-muted-foreground">Discount:</Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  value={formData.discount}
+                  onChange={(e) => handleDiscountChange(e.target.value)}
+                  className="w-28 h-8 text-right"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex justify-between items-center text-lg font-bold pt-2 border-t">
+                <span>Total:</span>
+                <span>₹{formData.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 mt-4">
+              <Label>Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                rows="2"
+                placeholder="Additional notes..."
+              />
+            </div>
           </div>
           
-          {formData.items.map((item, index) => (
-            <div key={index} className="bill-item-row">
-              <input
-                type="text"
-                placeholder="Description"
-                value={item.description}
-                onChange={(e) => updateItem(index, 'description', e.target.value)}
-                style={{ flex: 2 }}
-              />
-              <input
-                type="number"
-                placeholder="Qty"
-                value={item.quantity}
-                onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                style={{ width: '80px' }}
-              />
-              <input
-                type="number"
-                placeholder="Rate"
-                value={item.rate}
-                onChange={(e) => updateItem(index, 'rate', parseFloat(e.target.value) || 0)}
-                style={{ width: '100px' }}
-              />
-              <input
-                type="number"
-                placeholder="Amount"
-                value={item.amount}
-                readOnly
-                style={{ width: '120px', background: '#f3f4f6' }}
-              />
-              {formData.items.length > 1 && (
-                <button
-                  onClick={() => removeItem(index)}
-                  className="btn-icon btn-delete"
-                  style={{ marginLeft: '8px' }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="bill-totals">
-          <div className="bill-total-row">
-            <span>Subtotal:</span>
-            <span>₹{formData.subtotal.toFixed(2)}</span>
-          </div>
-          <div className="bill-total-row">
-            <span>Tax (18% GST):</span>
-            <span>₹{formData.tax.toFixed(2)}</span>
-          </div>
-          <div className="bill-total-row">
-            <span>Discount:</span>
-            <input
-              type="number"
-              value={formData.discount}
-              onChange={(e) => {
-                const discount = parseFloat(e.target.value) || 0;
-                setFormData({...formData, discount});
-                calculateTotals(formData.items);
-              }}
-              style={{ width: '120px', textAlign: 'right' }}
-            />
-          </div>
-          <div className="bill-total-row" style={{ fontWeight: '700', fontSize: '18px', borderTop: '2px solid #e5e7eb', paddingTop: '12px' }}>
-            <span>Total:</span>
-            <span>₹{formData.total.toFixed(2)}</span>
-          </div>
-        </div>
-
-        <div className="form-group full-width" style={{ marginTop: '16px' }}>
-          <label>Notes</label>
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData({...formData, notes: e.target.value})}
-            rows="2"
-            placeholder="Additional notes..."
-          />
-        </div>
-
-        <div className="modal-actions">
-          <button onClick={resetForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleSubmit} className="btn-primary">
-            <Save size={18} /> Save Bill
-          </button>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                <XCircle size={18} className="mr-2" /> Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleSubmit}>
+              <Save size={18} className="mr-2" /> Save Bill
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Modal */}
-      <Modal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        title="Record Payment"
-      >
-        {selectedBill && (
-          <div>
-            <div style={{ marginBottom: '20px', padding: '16px', background: '#f9fafb', borderRadius: '8px' }}>
-              <p><strong>Guest:</strong> {selectedBill.guestName}</p>
-              <p><strong>Bill Type:</strong> {selectedBill.billType}</p>
-              <p><strong>Total Amount:</strong> ₹{selectedBill.total.toFixed(2)}</p>
-              <p><strong>Already Paid:</strong> ₹{selectedBill.paidAmount.toFixed(2)}</p>
-              <p style={{ fontSize: '18px', fontWeight: '700', marginTop: '8px' }}>
-                <strong>Balance Due:</strong> ₹{selectedBill.balance.toFixed(2)}
-              </p>
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+          </DialogHeader>
+          {selectedBill && (
+            <div className="py-4 space-y-4">
+              <Alert>
+                <AlertTitle className="font-semibold">{selectedBill.reservations?.guests?.name}</AlertTitle>
+                <AlertDescription>
+                  <p>Bill Type: {selectedBill.bill_type}</p>
+                  <p>Total: ₹{selectedBill.total.toFixed(2)}</p>
+                  <p>Paid: ₹{selectedBill.paid_amount.toFixed(2)}</p>
+                  <strong className="block mt-2 text-base">
+                    Balance Due: ₹{selectedBill.balance.toFixed(2)}
+                  </strong>
+                </AlertDescription>
+              </Alert>
+              <div className="space-y-2">
+                <Label htmlFor="payment_amount">Payment Amount *</Label>
+                <Input
+                  id="payment_amount"
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  max={selectedBill.balance}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Maximum: ₹{selectedBill.balance.toFixed(2)}
+                </p>
+              </div>
             </div>
-
-            <div className="form-group">
-              <label>Payment Amount *</label>
-              <input
-                type="number"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="Enter amount"
-                max={selectedBill.balance}
-              />
-              <small style={{ color: '#6b7280', marginTop: '4px' }}>
-                Maximum: ₹{selectedBill.balance.toFixed(2)}
-              </small>
-            </div>
-
-            <div className="modal-actions">
-              <button onClick={() => setIsPaymentModalOpen(false)} className="btn-secondary">
-                Cancel
-              </button>
-              <button onClick={processPayment} className="btn-primary">
-                <DollarSign size={18} /> Record Payment
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={processPayment}>
+              <DollarSign size={18} className="mr-2" /> Record Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Master Bill Modal */}
-      <Modal
-        isOpen={isMasterBillModalOpen}
-        onClose={() => setIsMasterBillModalOpen(false)}
-        title="Master Bill"
-        size="large"
-      >
-        {selectedReservation && (
-          <div className="master-bill">
-            <div className="master-bill-header">
-              <h2>{selectedReservation.guestName}</h2>
-              <p>Room: {selectedReservation.roomNumber}</p>
-            </div>
+      <Dialog open={isMasterBillModalOpen} onOpenChange={setIsMasterBillModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Master Bill</DialogTitle>
+          </DialogHeader>
+          {selectedReservation && (
+            <div className="py-4">
+              <div className="text-center mb-4 p-4 bg-gray-50 rounded-lg">
+                <h2 className="text-xl font-bold">{selectedReservation.guestName}</h2>
+                <p className="text-muted-foreground">Room: {selectedReservation.roomNumber}</p>
+              </div>
 
-            <table className="data-table" style={{ marginTop: '20px' }}>
-              <thead>
-                <tr>
-                  <th>Bill Type</th>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Paid</th>
-                  <th>Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedReservation.bills.map(bill => (
-                  <tr key={bill.id}>
-                    <td>{bill.billType}</td>
-                    <td>{bill.createdAt}</td>
-                    <td>₹{bill.total.toFixed(2)}</td>
-                    <td>₹{bill.paidAmount.toFixed(2)}</td>
-                    <td>₹{bill.balance.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Bill Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Paid</TableHead>
+                    <TableHead>Balance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedReservation.bills.map(bill => (
+                    <TableRow key={bill.id}>
+                      <TableCell>{bill.bill_type}</TableCell>
+                      <TableCell>₹{bill.total.toFixed(2)}</TableCell>
+                      <TableCell>₹{bill.paid_amount.toFixed(2)}</TableCell>
+                      <TableCell>₹{bill.balance.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-            <div className="master-bill-totals">
-              <div className="bill-total-row">
-                <span>Subtotal:</span>
-                <span>₹{selectedReservation.subtotal.toFixed(2)}</span>
-              </div>
-              <div className="bill-total-row">
-                <span>Tax:</span>
-                <span>₹{selectedReservation.tax.toFixed(2)}</span>
-              </div>
-              <div className="bill-total-row">
-                <span>Discount:</span>
-                <span>₹{selectedReservation.discount.toFixed(2)}</span>
-              </div>
-              <div className="bill-total-row" style={{ fontWeight: '700', fontSize: '20px', borderTop: '2px solid #e5e7eb', paddingTop: '12px' }}>
-                <span>Grand Total:</span>
-                <span>₹{selectedReservation.grandTotal.toFixed(2)}</span>
-              </div>
-              <div className="bill-total-row" style={{ color: '#10b981' }}>
-                <span>Total Paid:</span>
-                <span>₹{selectedReservation.totalPaid.toFixed(2)}</span>
-              </div>
-              <div className="bill-total-row" style={{ fontWeight: '700', fontSize: '18px', color: selectedReservation.balance > 0 ? '#ef4444' : '#10b981' }}>
-                <span>Balance Due:</span>
-                <span>₹{selectedReservation.balance.toFixed(2)}</span>
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span className="font-medium">₹{selectedReservation.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Tax:</span>
+                  <span className="font-medium">₹{selectedReservation.tax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Discount:</span>
+                  <span className="font-medium">- ₹{selectedReservation.discount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                  <span>Grand Total:</span>
+                  <span>₹{selectedReservation.grandTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-medium text-green-600">
+                  <span>Total Paid:</span>
+                  <span>₹{selectedReservation.totalPaid.toFixed(2)}</span>
+                </div>
+                <div className={cn(
+                  "flex justify-between text-lg font-bold",
+                  selectedReservation.balance > 0 ? "text-red-600" : "text-green-600"
+                )}>
+                  <span>Balance Due:</span>
+                  <span>₹{selectedReservation.balance.toFixed(2)}</span>
+                </div>
               </div>
             </div>
-
-            <div className="modal-actions">
-              <button onClick={() => window.print()} className="btn-primary">
-                <Printer size={18} /> Print Master Bill
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+          )}
+          <DialogFooter>
+            <Button onClick={() => window.print()} variant="default">
+              <Printer size={18} className="mr-2" /> Print Master Bill
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

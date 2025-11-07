@@ -1,8 +1,40 @@
 // src/pages/rooms/Rooms.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle } from 'lucide-react';
-import { Modal } from '../../components/common/Modal';
 import { useRooms } from '../../context/RoomContext';
+
+// Import shadcn components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 const Rooms = () => {
   const { rooms, roomTypes, addRoom, updateRoom, deleteRoom } = useRooms();
@@ -67,124 +99,155 @@ const Rooms = () => {
     const type = roomTypes.find(t => t.id === typeId);
     return type ? type.name : 'Unknown';
   };
+  
+  const getStatusVariant = (status) => {
+    switch (status.toLowerCase()) {
+      case 'available': return 'success';
+      case 'occupied': return 'destructive';
+      case 'maintenance': return 'warning';
+      case 'blocked': return 'secondary';
+      default: return 'default';
+    }
+  };
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">Rooms</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={20} /> Add Room
-        </button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Rooms</h1>
+        <Button onClick={() => { setEditingRoom(null); setIsModalOpen(true); }}>
+          <Plus size={20} className="mr-2" /> Add Room
+        </Button>
       </div>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Room Number</th>
-              <th>Floor</th>
-              <th>Category</th>
-              <th>Room Type</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rooms.map(room => (
-              <tr key={room.id}>
-                <td><strong>{room.room_number}</strong></td>
-                <td>{room.floor ? `Floor ${room.floor}` : '-'}</td>
-                <td>{room.category || 'main building'}</td>
-                <td>{getRoomTypeName(room.room_type_id)}</td>
-                <td>
-                  <span className={`status-badge status-${room.status.toLowerCase()}`}>
-                    {room.status}
-                  </span>
-                </td>
-                <td>
-                  <div className="action-buttons">
-                    <button onClick={() => handleEdit(room)} className="btn-icon btn-edit">
-                      <Edit2 size={16} />
-                    </button>
-                    <button onClick={() => handleDelete(room.id)} className="btn-icon btn-delete">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={resetForm}
-        title={editingRoom ? 'Edit Room' : 'Add Room'}
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Room Number</label>
-            <input
-              type="text"
-              value={formData.room_number}
-              onChange={(e) => setFormData({...formData, room_number: e.target.value})}
-              placeholder="101"
-            />
-          </div>
-          <div className="form-group">
-            <label>Floor</label>
-            <input
-              type="number"
-              value={formData.floor}
-              onChange={(e) => setFormData({...formData, floor: e.target.value})}
-              placeholder="1"
-            />
-          </div>
-          <div className="form-group">
-            <label>Category</label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
-            >
-              <option value="main building">Main Building</option>
-              <option value="cottage">Cottage</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Room Type</label>
-            <select
-              value={formData.room_type_id}
-              onChange={(e) => setFormData({...formData, room_type_id: e.target.value})}
-            >
-              <option value="">Select Room Type</option>
-              {roomTypes.map(type => (
-                <option key={type.id} value={type.id}>{type.name}</option>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Room Number</TableHead>
+                <TableHead>Floor</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Room Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rooms.map(room => (
+                <TableRow key={room.id}>
+                  <TableCell className="font-medium">{room.room_number}</TableCell>
+                  <TableCell>{room.floor ? `Floor ${room.floor}` : '-'}</TableCell>
+                  <TableCell className="capitalize">{room.category || 'main building'}</TableCell>
+                  <TableCell>{getRoomTypeName(room.room_type_id)}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(room.status)}>
+                      {room.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(room)}>
+                        <Edit2 size={16} className="text-blue-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(room.id)}>
+                        <Trash2 size={16} className="text-red-600" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-            </select>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingRoom ? 'Edit Room' : 'Add Room'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="room_number">Room Number</Label>
+              <Input
+                id="room_number"
+                value={formData.room_number}
+                onChange={(e) => setFormData({...formData, room_number: e.target.value})}
+                placeholder="101"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="floor">Floor</Label>
+              <Input
+                id="floor"
+                type="number"
+                value={formData.floor}
+                onChange={(e) => setFormData({...formData, floor: e.target.value})}
+                placeholder="1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({...formData, category: value})}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="main building">Main Building</SelectItem>
+                  <SelectItem value="cottage">Cottage</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="room_type_id">Room Type</Label>
+              <Select
+                value={formData.room_type_id}
+                onValueChange={(value) => setFormData({...formData, room_type_id: value})}
+              >
+                <SelectTrigger id="room_type_id">
+                  <SelectValue placeholder="Select Room Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Select Room Type</SelectItem>
+                  {roomTypes.map(type => (
+                    <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({...formData, status: value})}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="Occupied">Occupied</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Blocked">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="form-group">
-            <label>Status</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({...formData, status: e.target.value})}
-            >
-              <option value="Available">Available</option>
-              <option value="Occupied">Occupied</option>
-              <option value="Maintenance">Maintenance</option>
-              <option value="Blocked">Blocked</option>
-            </select>
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleSubmit} className="btn-primary">
-            <Save size={18} /> Save
-          </button>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                <XCircle size={18} className="mr-2" /> Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleSubmit}>
+              <Save size={18} className="mr-2" /> Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

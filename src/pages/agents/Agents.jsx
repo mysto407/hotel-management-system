@@ -1,9 +1,34 @@
 // src/pages/agents/Agents.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Phone, Mail, Percent, MapPin, TrendingUp } from 'lucide-react';
-import { Modal } from '../../components/common/Modal';
+import { Modal } from '../../components/common/Modal'; // This is now our shadcn wrapper
 import { useAgents } from '../../context/AgentContext';
 import { useReservations } from '../../context/ReservationContext';
+
+// Import shadcn-ui components
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"; // We use Dialog directly for the Add/Edit form
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 const Agents = () => {
   const { agents, addAgent, updateAgent, deleteAgent } = useAgents();
@@ -96,309 +121,248 @@ const Agents = () => {
   };
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">Travel Agents</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={20} /> Add Agent
-        </button>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Travel Agents</h1>
+        <Button onClick={() => { setEditingAgent(null); setIsModalOpen(true); }}>
+          <Plus size={20} className="mr-2" /> Add Agent
+        </Button>
       </div>
 
       {/* Summary Statistics */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '16px',
-        marginBottom: '24px'
-      }}>
-        <div style={{ 
-          padding: '20px', 
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '12px',
-          color: 'white',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Agents</div>
-          <div style={{ fontSize: '32px', fontWeight: '700' }}>{agents.length}</div>
-        </div>
-
-        <div style={{ 
-          padding: '20px', 
-          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          borderRadius: '12px',
-          color: 'white',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Bookings</div>
-          <div style={{ fontSize: '32px', fontWeight: '700' }}>
-            {reservations.filter(r => r.booking_source === 'agent').length}
-          </div>
-        </div>
-
-        <div style={{ 
-          padding: '20px', 
-          background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          borderRadius: '12px',
-          color: 'white',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Revenue</div>
-          <div style={{ fontSize: '32px', fontWeight: '700' }}>
-            ₹{reservations
-              .filter(r => r.booking_source === 'agent')
-              .reduce((sum, r) => sum + (r.total_amount || 0), 0)
-              .toLocaleString()}
-          </div>
-        </div>
-
-        <div style={{ 
-          padding: '20px', 
-          background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-          borderRadius: '12px',
-          color: 'white',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Commission</div>
-          <div style={{ fontSize: '32px', fontWeight: '700' }}>
-            ₹{agents
-              .reduce((sum, agent) => {
-                const commission = calculateCommission(agent.id, agent);
-                return sum + (commission || 0);
-              }, 0)
-              .toLocaleString()}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Agents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{agents.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {reservations.filter(r => r.booking_source === 'agent').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              ₹{reservations
+                .filter(r => r.booking_source === 'agent')
+                .reduce((sum, r) => sum + (r.total_amount || 0), 0)
+                .toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Commission</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              ₹{agents
+                .reduce((sum, agent) => {
+                  const commission = calculateCommission(agent.id, agent);
+                  return sum + (commission || 0);
+                }, 0)
+                .toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Agent Name</th>
-              <th>Contact Info</th>
-              <th>Commission</th>
-              <th>Total Bookings</th>
-              <th>Active Bookings</th>
-              <th>Total Revenue</th>
-              <th>Commission Earned</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {agents.map(agent => {
-              const stats = getAgentStats(agent.id);
-              const commissionEarned = calculateCommission(agent.id, agent);
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Agent Name</TableHead>
+                <TableHead>Contact Info</TableHead>
+                <TableHead>Commission</TableHead>
+                <TableHead>Total Bookings</TableHead>
+                <TableHead>Active Bookings</TableHead>
+                <TableHead>Total Revenue</TableHead>
+                <TableHead>Commission Earned</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {agents.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center h-48">
+                     <div className="flex flex-col items-center justify-center gap-4">
+                        <Phone size={40} className="text-muted-foreground" />
+                        <h3 className="text-lg font-semibold">No Agents Yet</h3>
+                        <p className="text-sm text-muted-foreground">Start by adding your first travel agent or agency</p>
+                        <Button onClick={() => setIsModalOpen(true)}>
+                          <Plus size={18} className="mr-2" /> Add Your First Agent
+                        </Button>
+                      </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              {agents.map(agent => {
+                const stats = getAgentStats(agent.id);
+                const commissionEarned = calculateCommission(agent.id, agent);
 
-              return (
-                <tr key={agent.id}>
-                  <td>
-                    <strong>{agent.name}</strong>
-                    {agent.address && (
-                      <>
-                        <br />
-                        <small style={{ color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                return (
+                  <TableRow key={agent.id}>
+                    <TableCell className="font-medium">
+                      {agent.name}
+                      {agent.address && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                           <MapPin size={12} />
                           {agent.address}
-                        </small>
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    {agent.phone && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                        <Phone size={14} color="#6b7280" />
-                        <span>{agent.phone}</span>
-                      </div>
-                    )}
-                    {agent.email && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Mail size={14} color="#6b7280" />
-                        <span style={{ fontSize: '13px', color: '#6b7280' }}>{agent.email}</span>
-                      </div>
-                    )}
-                    {!agent.phone && !agent.email && (
-                      <span style={{ color: '#9ca3af', fontSize: '13px' }}>No contact info</span>
-                    )}
-                  </td>
-                  <td>
-                    {agent.commission ? (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '4px',
-                        color: '#7c3aed',
-                        fontWeight: '600'
-                      }}>
-                        <Percent size={14} />
-                        {agent.commission}%
-                      </div>
-                    ) : (
-                      <span style={{ 
-                        color: '#9ca3af', 
-                        fontSize: '13px',
-                        fontStyle: 'italic',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
-                        <Percent size={12} />
-                        Not set
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '6px',
-                      fontSize: '16px',
-                      fontWeight: '600'
-                    }}>
-                      {stats.totalBookings}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${
-                      stats.activeBookings > 0 ? 'status-occupied' : 'status-available'
-                    }`}>
-                      {stats.activeBookings} Active
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: '600', color: '#059669' }}>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {agent.phone && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <Phone size={14} className="text-muted-foreground" />
+                          <span>{agent.phone}</span>
+                        </div>
+                      )}
+                      {agent.email && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail size={14} />
+                          <span>{agent.email}</span>
+                        </div>
+                      )}
+                      {!agent.phone && !agent.email && (
+                        <span className="text-sm text-muted-foreground italic">No contact info</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {agent.commission ? (
+                        <div className="flex items-center gap-1 font-semibold text-violet-600">
+                          <Percent size={14} />
+                          {agent.commission}%
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">Not set</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-semibold text-lg">{stats.totalBookings}</TableCell>
+                    <TableCell>
+                      <Badge variant={stats.activeBookings > 0 ? "destructive" : "secondary"}>
+                        {stats.activeBookings} Active
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold text-green-700">
                       ₹{stats.totalRevenue.toLocaleString()}
-                    </div>
-                  </td>
-                  <td>
-                    {commissionEarned !== null ? (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '4px',
-                        fontWeight: '700',
-                        color: '#7c3aed',
-                        fontSize: '15px'
-                      }}>
-                        <TrendingUp size={16} />
-                        ₹{commissionEarned.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      {commissionEarned !== null ? (
+                        <div className="flex items-center gap-1 font-bold text-violet-700 text-base">
+                          <TrendingUp size={16} />
+                          ₹{commissionEarned.toLocaleString()}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">No commission</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(agent)}>
+                          <Edit2 size={16} className="text-blue-600" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(agent.id)}>
+                          <Trash2 size={16} className="text-red-600" />
+                        </Button>
                       </div>
-                    ) : (
-                      <span style={{ color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>
-                        No commission set
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button onClick={() => handleEdit(agent)} className="btn-icon btn-edit">
-                        <Edit2 size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(agent.id)} className="btn-icon btn-delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-        {agents.length === 0 && (
-          <div style={{ 
-            padding: '60px 20px', 
-            textAlign: 'center', 
-            color: '#6b7280' 
-          }}>
-            <div style={{ 
-              width: '80px', 
-              height: '80px', 
-              margin: '0 auto 20px',
-              background: '#f3f4f6',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Phone size={40} color="#9ca3af" />
+      {/* Agent Modal (using Dialog) */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingAgent ? 'Edit Agent' : 'Add New Agent'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="name">Agent/Agency Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                placeholder="Travel Agency Name or Agent Name"
+              />
             </div>
-            <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#374151' }}>No Agents Yet</h3>
-            <p style={{ fontSize: '14px', marginBottom: '20px' }}>Start by adding your first travel agent or agency</p>
-            <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-              <Plus size={18} /> Add Your First Agent
-            </button>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                placeholder="9876543210"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="agent@example.com"
+              />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="commission">Commission Rate (%) <span className="text-muted-foreground font-normal">- Optional</span></Label>
+              <Input
+                id="commission"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.commission}
+                onChange={(e) => setFormData({...formData, commission: e.g.target.value})}
+                placeholder="e.g., 10.00"
+              />
+              <p className="text-sm text-muted-foreground">
+                Commission percentage this agent receives on bookings (leave empty if not applicable)
+              </p>
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="address">Address</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                rows="2"
+                placeholder="Complete address of the agency..."
+              />
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* Agent Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={resetForm}
-        title={editingAgent ? 'Edit Agent' : 'Add New Agent'}
-      >
-        <div className="form-grid">
-          <div className="form-group full-width">
-            <label>Agent/Agency Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              placeholder="Travel Agency Name or Agent Name"
-            />
-          </div>
-          <div className="form-group">
-            <label>Phone Number</label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
-              placeholder="9876543210"
-            />
-          </div>
-          <div className="form-group">
-            <label>Email Address</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="agent@example.com"
-            />
-          </div>
-          <div className="form-group full-width">
-            <label>Commission Rate (%) <span style={{ color: '#9ca3af', fontWeight: 'normal' }}>- Optional</span></label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={formData.commission}
-              onChange={(e) => setFormData({...formData, commission: e.target.value})}
-              placeholder="e.g., 10.00"
-            />
-            <small style={{ color: '#6b7280', marginTop: '4px', display: 'block' }}>
-              Commission percentage this agent receives on bookings (leave empty if not applicable)
-            </small>
-          </div>
-          <div className="form-group full-width">
-            <label>Address</label>
-            <textarea
-              value={formData.address}
-              onChange={(e) => setFormData({...formData, address: e.target.value})}
-              rows="2"
-              placeholder="Complete address of the agency..."
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleSubmit} className="btn-primary">
-            <Save size={18} /> {editingAgent ? 'Update Agent' : 'Add Agent'}
-          </button>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                <XCircle size={18} className="mr-2" /> Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleSubmit}>
+              <Save size={18} className="mr-2" /> {editingAgent ? 'Update Agent' : 'Add Agent'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

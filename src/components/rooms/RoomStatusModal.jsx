@@ -1,12 +1,18 @@
 // src/components/rooms/RoomStatusModal.jsx
-import { Modal } from '../common/Modal';
 import { Home, RefreshCw, Lock, X } from 'lucide-react';
 import { useRooms } from '../../context/RoomContext';
-import { updateRoomStatus } from '../../lib/supabase'; // Assuming this path
-import styles from './RoomStatusModal.module.css'; // You'll need to create this CSS file or adapt styles
-
-
-
+import { updateRoomStatus } from '../../lib/supabase';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from '@/lib/utils';
 
 export const RoomStatusModal = ({ isOpen, onClose, room }) => {
   const { fetchRooms } = useRooms();
@@ -17,7 +23,6 @@ export const RoomStatusModal = ({ isOpen, onClose, room }) => {
     try {
       await updateRoomStatus(room.id, newStatus);
       await fetchRooms();
-      alert(`Room ${room.room_number} status changed to ${newStatus}`);
       onClose();
     } catch (error) {
       console.error('Error updating room status:', error);
@@ -26,90 +31,66 @@ export const RoomStatusModal = ({ isOpen, onClose, room }) => {
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Change Room Status"
-      size="small"
-    >
-      {room && (
-        <div>
-          <div className={styles.modalInfoBox} style={{ marginBottom: '24px' }}>
-            <div className={styles.modalInfoBoxTitle}>
-              Room {room.room_number}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Change Room Status</DialogTitle>
+        </DialogHeader>
+        {room && (
+          <div className="py-4 space-y-6">
+            <Alert>
+              <AlertTitle className="font-semibold">
+                Room {room.room_number}
+              </AlertTitle>
+              <AlertDescription>
+                Floor {room.floor}
+                <br />
+                Current Status: <strong>{room.status}</strong>
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Select New Status:</Label>
+              <Button
+                onClick={() => handleSubmitRoomStatus('Available')}
+                variant={room.status === 'Available' ? 'default' : 'outline'}
+                className="w-full justify-start"
+              >
+                <Home size={18} className="mr-2" />
+                Available
+              </Button>
+
+              <Button
+                onClick={() => handleSubmitRoomStatus('Maintenance')}
+                variant={room.status === 'Maintenance' ? 'default' : 'outline'}
+                className="w-full justify-start"
+              >
+                <RefreshCw size={18} className="mr-2" />
+                Maintenance
+              </Button>
+
+              <Button
+                onClick={() => handleSubmitRoomStatus('Blocked')}
+                variant={room.status === 'Blocked' ? 'destructive' : 'outline'}
+                className={cn(
+                  "w-full justify-start",
+                  room.status === 'Blocked' && "bg-gray-700 hover:bg-gray-800 text-white"
+                )}
+              >
+                <Lock size={18} className="mr-2" />
+                Blocked
+              </Button>
             </div>
-            <div className={styles.modalInfoBoxText}>
-              Floor {room.floor}
-            </div>
-            <div className={styles.modalInfoBoxText} style={{ marginTop: '8px' }}>
-              Current Status: <strong>{room.status}</strong>
-            </div>
           </div>
-
-          <div style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#374151',
-            marginBottom: '12px'
-          }}>
-            Select New Status:
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button
-              onClick={() => handleSubmitRoomStatus('Available')}
-              className="btn-secondary"
-              style={{
-                justifyContent: 'flex-start',
-                padding: '12px 16px',
-                background: room.status === 'Available' ? '#f0fdf4' : 'white',
-                border: room.status === 'Available' ? '2px solid #10b981' : '1px solid #d1d5db'
-              }}
-            >
-              <Home size={18} />
-              <span>Available</span>
-            </button>
-
-            <button
-              onClick={() => handleSubmitRoomStatus('Maintenance')}
-              className="btn-secondary"
-              style={{
-                justifyContent: 'flex-start',
-                padding: '12px 16px',
-                background: room.status === 'Maintenance' ? '#fef3c7' : 'white',
-                border: room.status === 'Maintenance' ? '2px solid #f59e0b' : '1px solid #d1d5db'
-              }}
-            >
-              <RefreshCw size={18} />
-              <span>Maintenance</span>
-            </button>
-
-            <button
-              onClick={() => handleSubmitRoomStatus('Blocked')}
-              className="btn-secondary"
-              style={{
-                justifyContent: 'flex-start',
-                padding: '12px 16px',
-                background: room.status === 'Blocked' ? '#fee2e2' : 'white',
-                border: room.status === 'Blocked' ? '2px solid #ef4444' : '1px solid #d1d5db'
-              }}
-            >
-              <Lock size={18} />
-              <span>Blocked</span>
-            </button>
-          </div>
-
-          <div className="modal-actions" style={{ marginTop: '24px' }}>
-            <button
-              onClick={onClose}
-              className="btn-secondary"
-              style={{ width: '100%' }}
-            >
-              <X size={18} /> Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </Modal>
+        )}
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" className="w-full">
+              <X size={18} className="mr-2" /> Cancel
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

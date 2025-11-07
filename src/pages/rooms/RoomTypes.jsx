@@ -1,8 +1,37 @@
 // src/pages/rooms/RoomTypes.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle } from 'lucide-react';
-import { Modal } from '../../components/common/Modal';
 import { useRooms } from '../../context/RoomContext';
+
+// Import shadcn components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 
 const RoomTypes = () => {
   const { roomTypes, addRoomType, updateRoomType, deleteRoomType } = useRooms();
@@ -58,109 +87,117 @@ const RoomTypes = () => {
   };
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">Room Types</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={20} /> Add Room Type
-        </button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Room Types</h1>
+        <Button onClick={() => { setEditingType(null); setIsModalOpen(true); }}>
+          <Plus size={20} className="mr-2" /> Add Room Type
+        </Button>
       </div>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Base Price</th>
-              <th>Capacity</th>
-              <th>Amenities</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {roomTypes.map(type => (
-              <tr key={type.id}>
-                <td><strong>{type.name}</strong></td>
-                <td>₹{type.base_price}</td>
-                <td>{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</td>
-                <td>{type.amenities}</td>
-                <td>
-                  <div className="action-buttons">
-                    <button onClick={() => handleEdit(type)} className="btn-icon btn-edit">
-                      <Edit2 size={16} />
-                    </button>
-                    <button onClick={() => deleteRoomType(type.id)} className="btn-icon btn-delete">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Base Price</TableHead>
+                <TableHead>Capacity</TableHead>
+                <TableHead>Amenities</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {roomTypes.map(type => (
+                <TableRow key={type.id}>
+                  <TableCell className="font-medium">{type.name}</TableCell>
+                  <TableCell>₹{type.base_price}</TableCell>
+                  <TableCell>{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</TableCell>
+                  <TableCell className="max-w-xs truncate">{type.amenities}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(type)}>
+                        <Edit2 size={16} className="text-blue-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteRoomType(type.id)}>
+                        <Trash2 size={16} className="text-red-600" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={resetForm}
-        title={editingType ? 'Edit Room Type' : 'Add Room Type'}
-      >
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Room Type Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              placeholder="e.g., Deluxe Suite"
-            />
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingType ? 'Edit Room Type' : 'Add Room Type'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Room Type Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                placeholder="e.g., Deluxe Suite"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="base_price">Base Price (₹) *</Label>
+              <Input
+                id="base_price"
+                type="number"
+                value={formData.base_price}
+                onChange={(e) => setFormData({...formData, base_price: e.target.value})}
+                placeholder="2500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="capacity">Capacity *</Label>
+              <Input
+                id="capacity"
+                type="number"
+                value={formData.capacity}
+                onChange={(e) => setFormData({...formData, capacity: e.target.value})}
+                placeholder="2"
+              />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="amenities">Amenities</Label>
+              <Input
+                id="amenities"
+                value={formData.amenities}
+                onChange={(e) => setFormData({...formData, amenities: e.target.value})}
+                placeholder="AC, TV, WiFi, Mini Bar"
+              />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Brief description of the room type"
+                rows="3"
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label>Base Price (₹) *</label>
-            <input
-              type="number"
-              value={formData.base_price}
-              onChange={(e) => setFormData({...formData, base_price: e.target.value})}
-              placeholder="2500"
-            />
-          </div>
-          <div className="form-group">
-            <label>Capacity *</label>
-            <input
-              type="number"
-              value={formData.capacity}
-              onChange={(e) => setFormData({...formData, capacity: e.target.value})}
-              placeholder="2"
-            />
-          </div>
-          <div className="form-group full-width">
-            <label>Amenities</label>
-            <input
-              type="text"
-              value={formData.amenities}
-              onChange={(e) => setFormData({...formData, amenities: e.target.value})}
-              placeholder="AC, TV, WiFi, Mini Bar"
-            />
-          </div>
-          <div className="form-group full-width">
-            <label>Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Brief description of the room type"
-              rows="3"
-            />
-          </div>
-        </div>
-        <div className="modal-actions">
-          <button onClick={resetForm} className="btn-secondary">
-            <XCircle size={18} /> Cancel
-          </button>
-          <button onClick={handleSubmit} className="btn-primary">
-            <Save size={18} /> Save
-          </button>
-        </div>
-      </Modal>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                <XCircle size={18} className="mr-2" /> Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleSubmit}>
+              <Save size={18} className="mr-2" /> Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

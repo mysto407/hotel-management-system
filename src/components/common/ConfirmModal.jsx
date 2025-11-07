@@ -1,20 +1,18 @@
 // src/components/common/ConfirmModal.jsx
 import { AlertTriangle, Info, XCircle, CheckCircle } from 'lucide-react';
-import { Modal } from './Modal';
-import styles from './ConfirmModal.module.css';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-/**
- * ConfirmModal - A reusable confirmation dialog component
- * * @param {boolean} isOpen - Controls modal visibility
- * @param {function} onClose - Called when modal is closed
- * @param {function} onConfirm - Called when user confirms (for confirm type)
- * @param {string} type - 'alert' | 'confirm' - Dialog type
- * @param {string} variant - 'info' | 'warning' | 'danger' | 'success' - Visual style
- * @param {string} title - Modal title
- * @param {string|React.Node} message - Main message content
- * @param {string} confirmText - Text for confirm button (default: 'Confirm')
- * @param {string} cancelText - Text for cancel button (default: 'Cancel')
- */
 export const ConfirmModal = ({
   isOpen,
   onClose,
@@ -26,69 +24,53 @@ export const ConfirmModal = ({
   confirmText = 'Confirm',
   cancelText = 'Cancel'
 }) => {
-  const handleConfirm = () => {
-    if (onConfirm) onConfirm();
-    onClose();
-  };
-
-  const handleCancel = () => {
-    onClose();
-  };
-
+  
   const getIcon = () => {
-    const iconSize = 40; // <-- Reduced from 48
-
+    const iconSize = 40;
     switch (variant) {
       case 'warning':
-        return <AlertTriangle size={iconSize} className={styles.iconWarning} />;
+        return <AlertTriangle size={iconSize} className="text-yellow-500" />;
       case 'danger':
-        return <XCircle size={iconSize} className={styles.iconDanger} />;
+        return <XCircle size={iconSize} className="text-red-500" />;
       case 'success':
-        return <CheckCircle size={iconSize} className={styles.iconSuccess} />;
+        return <CheckCircle size={iconSize} className="text-green-500" />;
       case 'info':
       default:
-        return <Info size={iconSize} className={styles.iconInfo} />;
+        return <Info size={iconSize} className="text-blue-500" />;
     }
   };
 
+  const confirmVariant = {
+    info: 'default',
+    success: 'default', // You might want to add a 'success' variant to your button
+    warning: 'default',
+    danger: 'destructive',
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" size="small">
-      <div className={styles.confirmModal}>
-        <div className={styles.iconContainer}>
-          {getIcon()}
-        </div>
-        
-        {title && (
-          <h3 className={`${styles.title} ${styles[`title${variant.charAt(0).toUpperCase() + variant.slice(1)}`]}`}>
-            {title}
-          </h3>
-        )}
-        
-        <div className={styles.message}>
-          {typeof message === 'string' ? (
-            <p className={styles.messageText}>{message}</p>
-          ) : (
-            message
-          )}
-        </div>
-        
-        <div className={styles.buttonGroup}>
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <div className="flex justify-center mb-4">
+            {getIcon()}
+          </div>
+          <AlertDialogTitle className="text-center">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-center whitespace-pre-line">
+            {message}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="sm:justify-center">
           {type === 'confirm' && (
-            <button
-              onClick={handleCancel}
-              className={`${styles.button} ${styles.buttonCancel}`}
-            >
-              {cancelText}
-            </button>
+            <AlertDialogCancel onClick={onClose}>{cancelText}</AlertDialogCancel>
           )}
-          <button
-            onClick={handleConfirm}
-            className={`${styles.button} ${styles[`button${variant.charAt(0).toUpperCase() + variant.slice(1)}`]}`}
+          <AlertDialogAction
+            onClick={onConfirm}
+            className={cn(buttonVariants({ variant: confirmVariant[variant] }))}
           >
             {confirmText}
-          </button>
-        </div>
-      </div>
-    </Modal>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

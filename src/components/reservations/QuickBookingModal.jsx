@@ -1,20 +1,26 @@
 // src/components/reservations/QuickBookingModal.jsx
-import { Modal } from '../common/Modal';
 import { Save, X, UserPlus } from 'lucide-react';
-// You will need to move the relevant styles from ReservationCalendar.module.css
-// to a new file, e.g., QuickBookingModal.module.css
-import styles from './QuickBookingModal.module.css';
-
-/*
-Create src/components/reservations/QuickBookingModal.module.css
-and add these styles from ReservationCalendar.module.css:
-.modalInfoBox
-.modalInfoBoxTitle
-.modalInfoBoxText
-.modalInfoBoxWarning
-.modalInfoBoxWarningTitle
-.modalInfoBoxWarningText
-*/
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { calculateDays } from '../../utils/helpers';
 
 export const QuickBookingModal = ({
   isOpen,
@@ -30,239 +36,247 @@ export const QuickBookingModal = ({
   onAddGuestClick,
   onAddAgentClick
 }) => {
+  
+  const room = rooms.find(r => r.id === bookingData.room_id);
+  const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
+  const nights = (bookingData.check_in_date && bookingData.check_out_date)
+    ? calculateDays(bookingData.check_in_date, bookingData.check_out_date)
+    : 0;
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={pendingBookings.length > 1 ? `Quick Booking (Creating ${pendingBookings.length} bookings)` : "Quick Booking"}
-      size="medium"
-    >
-      <div className="form-grid">
-        {/* Multi-booking indicator */}
-        {pendingBookings.length > 1 && (
-          <div className="form-group full-width">
-            <div className={`${styles.modalInfoBox} ${styles.modalInfoBoxWarning}`}>
-              <div className={styles.modalInfoBoxWarningTitle}>
-                Multi-Room Booking
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {pendingBookings.length > 1 ? `Quick Booking (Creating ${pendingBookings.length} bookings)` : "Quick Booking"}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+          {/* Multi-booking indicator */}
+          {pendingBookings.length > 1 && (
+            <div className="md:col-span-2">
+              <Alert variant="warning">
+                <AlertTitle>Multi-Room Booking</AlertTitle>
+                <AlertDescription>
+                  You're creating <strong>{pendingBookings.length} bookings</strong> at once. Guest details will be applied to all.
+                  <br />
+                  <span className="italic">
+                    Rooms: {pendingBookings.map((b) => {
+                      const room = rooms.find(r => r.id === b.roomId);
+                      return room?.room_number || '?';
+                    }).join(', ')}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* Room and Date Info */}
+          <div className="md:col-span-2">
+            <Alert variant="info">
+              <AlertTitle>
+                {`Room ${room?.room_number || ''} - ${roomType?.name || ''}`}
+              </AlertTitle>
+              <AlertDescription>
+                Check-in: {bookingData.check_in_date}
+                <br />
+                Check-out: {bookingData.check_out_date}
+                {nights > 0 && (
+                  <strong className="block mt-1">{nights} night{nights !== 1 ? 's' : ''}</strong>
+                )}
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          {/* Booking Source */}
+          <div className="space-y-2">
+            <Label>Booking Source *</Label>
+            <Select
+              value={bookingData.booking_source || 'direct'}
+              onValueChange={(value) => {
+                setBookingData({
+                  ...bookingData, 
+                  booking_source: value, 
+                  agent_id: '', 
+                  direct_source: ''
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="direct">Direct</SelectItem>
+                <SelectItem value="agent">Agent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Direct Source / Agent */}
+          {bookingData.booking_source === 'direct' ? (
+            <div className="space-y-2">
+              <Label>Direct Booking Source</Label>
+              <Input
+                type="text"
+                value={bookingData.direct_source || ''}
+                onChange={(e) => setBookingData({...bookingData, direct_source: e.target.value})}
+                placeholder="e.g., Walk-in, Phone Call"
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Select Agent *</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={bookingData.agent_id || ''}
+                  onValueChange={(value) => setBookingData({...bookingData, agent_id: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Agent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Select Agent</SelectItem>
+                    {agents && agents.map(agent => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={onAddAgentClick} variant="outline" size="icon" type="button">
+                  <UserPlus size={18} />
+                </Button>
               </div>
-              <div className={styles.modalInfoBoxWarningText}>
-                You're creating <strong>{pendingBookings.length} bookings</strong> at once. Enter guest details once, and all bookings will use the same information.
-              </div>
-              <div className={`${styles.modalInfoBoxWarningText}`} style={{ marginTop: '8px', fontStyle: 'italic' }}>
-                Rooms: {pendingBookings.map((b) => {
-                  const room = rooms.find(r => r.id === b.roomId);
-                  return room?.room_number || '?';
-                }).join(', ')}
-              </div>
+            </div>
+          )}
+
+          {/* Guest Selection */}
+          <div className="space-y-2 md:col-span-2">
+            <Label>Select Guest *</Label>
+            <div className="flex gap-2">
+              <Select
+                value={bookingData.guest_id}
+                onValueChange={(value) => setBookingData({ ...bookingData, guest_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Guest" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Select Guest</SelectItem>
+                  {guests.map(guest => (
+                    <SelectItem key={guest.id} value={guest.id}>
+                      {guest.name} - {guest.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={onAddGuestClick} variant="outline" size="icon" type="button">
+                <UserPlus size={18} />
+              </Button>
             </div>
           </div>
-        )}
 
-        {/* Room and Date Info */}
-        <div className="form-group full-width">
-          <div className={styles.modalInfoBox}>
-            <div className={styles.modalInfoBoxTitle}>
-              {(() => {
-                const room = rooms.find(r => r.id === bookingData.room_id);
-                const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
-                return `Room ${room?.room_number || ''} - ${roomType?.name || ''}`;
-              })()}
-            </div>
-            <div className={styles.modalInfoBoxText}>
-              Check-in: {bookingData.check_in_date}
-            </div>
-            <div className={styles.modalInfoBoxText}>
-              Check-out: {bookingData.check_out_date}
-            </div>
-            {bookingData.check_in_date && bookingData.check_out_date && (
-              <div className={styles.modalInfoBoxText} style={{ fontWeight: '700', marginTop: '6px' }}>
-                {(() => {
-                  const nights = Math.ceil((new Date(bookingData.check_out_date) - new Date(bookingData.check_in_date)) / (1000 * 60 * 60 * 24));
-                  return `${nights} night${nights !== 1 ? 's' : ''}`;
-                })()}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Booking Source */}
-        <div className="form-group">
-          <label>Booking Source *</label>
-          <select
-            value={bookingData.booking_source || 'direct'}
-            onChange={(e) => {
-              setBookingData({
-                ...bookingData, 
-                booking_source: e.target.value, 
-                agent_id: '', 
-                direct_source: ''
-              });
-            }}
-          >
-            <option value="direct">Direct</option>
-            <option value="agent">Agent</option>
-          </select>
-        </div>
-
-        {/* Direct Source */}
-        {bookingData.booking_source === 'direct' && (
-          <div className="form-group">
-            <label>Direct Booking Source</label>
-            <input
-              type="text"
-              value={bookingData.direct_source || ''}
-              onChange={(e) => setBookingData({...bookingData, direct_source: e.target.value})}
-              placeholder="e.g., Walk-in, Phone Call, Website"
+          {/* Check-out Date */}
+          <div className="space-y-2">
+            <Label>Check-out Date *</Label>
+            <Input
+              type="date"
+              value={bookingData.check_out_date}
+              onChange={(e) => setBookingData({ ...bookingData, check_out_date: e.target.value })}
+              min={bookingData.check_in_date}
             />
-            <small style={{ color: '#6b7280', marginTop: '4px', display: 'block', fontSize: '12px' }}>
-              Optional: Specify where this booking came from
-            </small>
           </div>
-        )}
 
-        {/* Agent Selection */}
-        {bookingData.booking_source === 'agent' && (
-          <div className="form-group">
-            <label>Select Agent *</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                style={{ flex: 1 }}
-                value={bookingData.agent_id || ''}
-                onChange={(e) => setBookingData({...bookingData, agent_id: e.target.value})}
-              >
-                <option value="">Select Agent</option>
-                {agents && agents.map(agent => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.name} - {agent.phone}
-                  </option>
-                ))}
-              </select>
-              <button 
-                onClick={onAddAgentClick} 
-                className="btn-secondary"
-                type="button"
-              >
-                <UserPlus size={18} /> New Agent
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Guest Selection */}
-        <div className="form-group full-width">
-          <label>Select Guest *</label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <select
-              style={{ flex: 1 }}
-              value={bookingData.guest_id}
-              onChange={(e) => setBookingData({ ...bookingData, guest_id: e.target.value })}
+          {/* Status */}
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select
+              value={bookingData.status}
+              onValueChange={(value) => setBookingData({ ...bookingData, status: value })}
             >
-              <option value="">Select Guest</option>
-              {guests.map(guest => (
-                <option key={guest.id} value={guest.id}>
-                  {guest.name} - {guest.phone}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={onAddGuestClick}
-              className="btn-secondary"
-              type="button"
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Confirmed">Confirmed</SelectItem>
+                <SelectItem value="Hold">Hold</SelectItem>
+                <SelectItem value="Tentative">Tentative</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Number of Guests */}
+          <div className="space-y-2">
+            <Label>Adults *</Label>
+            <Input
+              type="number"
+              min="1"
+              value={bookingData.number_of_adults}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_adults: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Children</Label>
+            <Input
+              type="number"
+              min="0"
+              value={bookingData.number_of_children}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_children: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Infants</Label>
+            <Input
+              type="number"
+              min="0"
+              value={bookingData.number_of_infants}
+              onChange={(e) => setBookingData({ ...bookingData, number_of_infants: e.target.value })}
+            />
+          </div>
+
+          {/* Meal Plan */}
+          <div className="space-y-2">
+            <Label>Meal Plan</Label>
+            <Select
+              value={bookingData.meal_plan}
+              onValueChange={(value) => setBookingData({ ...bookingData, meal_plan: value })}
             >
-              <UserPlus size={18} />
-            </button>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NM">No Meal</SelectItem>
+                <SelectItem value="BO">Breakfast Only</SelectItem>
+                <SelectItem value="HB">Half Board</SelectItem>
+                <SelectItem value="FB">Full Board</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Special Requests */}
+          <div className="space-y-2 md:col-span-2">
+            <Label>Special Requests</Label>
+            <Textarea
+              value={bookingData.special_requests}
+              onChange={(e) => setBookingData({ ...bookingData, special_requests: e.target.value })}
+              rows="2"
+              placeholder="Any special requirements..."
+            />
           </div>
         </div>
-
-        {/* Check-out Date */}
-        <div className="form-group">
-          <label>Check-out Date *</label>
-          <input
-            type="date"
-            value={bookingData.check_out_date}
-            onChange={(e) => setBookingData({ ...bookingData, check_out_date: e.target.value })}
-            min={bookingData.check_in_date}
-          />
-        </div>
-
-        {/* Status */}
-        <div className="form-group">
-          <label>Status</label>
-          <select
-            value={bookingData.status}
-            onChange={(e) => setBookingData({ ...bookingData, status: e.target.value })}
-          >
-            <option value="Confirmed">Confirmed</option>
-            <option value="Hold">Hold</option>
-            <option value="Tentative">Tentative</option>
-          </select>
-        </div>
-
-        {/* Number of Guests */}
-        <div className="form-group">
-          <label>Adults *</label>
-          <input
-            type="number"
-            min="1"
-            value={bookingData.number_of_adults}
-            onChange={(e) => setBookingData({ ...bookingData, number_of_adults: e.target.value })}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Children</label>
-          <input
-            type="number"
-            min="0"
-            value={bookingData.number_of_children}
-            onChange={(e) => setBookingData({ ...bookingData, number_of_children: e.target.value })}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Infants</label>
-          <input
-            type="number"
-            min="0"
-            value={bookingData.number_of_infants}
-            onChange={(e) => setBookingData({ ...bookingData, number_of_infants: e.target.value })}
-          />
-        </div>
-
-        {/* Meal Plan */}
-        <div className="form-group">
-          <label>Meal Plan</label>
-          <select
-            value={bookingData.meal_plan}
-            onChange={(e) => setBookingData({ ...bookingData, meal_plan: e.target.value })}
-          >
-            <option value="NM">No Meal</option>
-            <option value="BO">Breakfast Only</option>
-            <option value="HB">Half Board</option>
-            <option value="FB">Full Board</option>
-          </select>
-        </div>
-
-        {/* Special Requests */}
-        <div className="form-group full-width">
-          <label>Special Requests</label>
-          <textarea
-            value={bookingData.special_requests}
-            onChange={(e) => setBookingData({ ...bookingData, special_requests: e.target.value })}
-            rows="2"
-            placeholder="Any special requirements..."
-          />
-        </div>
-      </div>
-
-      <div className="modal-actions">
-        <button onClick={onClose} className="btn-secondary">
-          <X size={18} /> Cancel
-        </button>
-        <button onClick={onSubmit} className="btn-primary">
-          <Save size={18} /> Create Booking
-        </button>
-      </div>
-    </Modal>
+        
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" onClick={onClose}>
+              <X size={18} className="mr-2" /> Cancel
+            </Button>
+          </DialogClose>
+          <Button type="button" onClick={onSubmit}>
+            <Save size={18} className="mr-2" /> Create Booking
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

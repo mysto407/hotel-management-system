@@ -3,6 +3,20 @@ import { useState } from 'react';
 import { Hotel } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
+// Import shadcn components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,10 +30,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      console.log('Attempting login with:', email);
       const success = await login(email, password);
-      console.log('Login result:', success);
-      
       if (!success) {
         setError('Invalid email or password. Please check your credentials.');
       }
@@ -38,12 +49,9 @@ const Login = () => {
     setLoading(true);
 
     try {
-      console.log('Quick login attempt for:', demoEmail);
       const success = await login(demoEmail, demoPassword);
-      console.log('Quick login result:', success);
-      
       if (!success) {
-        setError('Demo login failed. Please make sure the demo accounts are created in Supabase Authentication.');
+        setError('Demo login failed. Please make sure the demo accounts are created.');
       }
     } catch (err) {
       console.error('Quick login error:', err);
@@ -54,69 +62,85 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <Hotel className="login-icon" size={48} />
-          <h1>Hotel Manager</h1>
-        </div>
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email"
-              disabled={loading}
-              required
-            />
+    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-2xl">
+        <CardHeader className="text-center">
+          <div className="flex justify-center items-center gap-3 mb-4">
+            <Hotel className="h-12 w-12 text-blue-600" />
+            <CardTitle className="text-3xl font-bold">Hotel Manager</CardTitle>
           </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+                disabled={loading}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                disabled={loading}
+                required
+              />
+            </div>
+            
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            <Button 
+              type="submit" 
+              className="w-full"
               disabled={loading}
-              required
-            />
-          </div>
-          {error && <div className="error-message">{error}</div>}
-          <button 
-            type="submit" 
-            className="btn-primary btn-block"
-            disabled={loading}
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-        <div className="login-demo">
-          <p><strong>Demo Accounts:</strong></p>
-          <p style={{ marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
-            Click to quick login (make sure accounts exist in Supabase first)
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-            <button
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4 bg-gray-50 p-6 rounded-b-lg">
+           <div>
+            <p className="text-sm font-semibold text-center">Demo Accounts:</p>
+            <p className="text-xs text-muted-foreground text-center">
+              Click to quick login
+            </p>
+           </div>
+          <div className="w-full flex flex-col gap-2">
+            <Button
               onClick={() => quickLogin('admin@hotel.com', 'admin123')}
-              className="btn-secondary btn-block"
+              variant="secondary"
+              className="w-full"
               disabled={loading}
               type="button"
             >
               🔐 Admin Login
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => quickLogin('frontdesk@hotel.com', 'front123')}
-              className="btn-secondary btn-block"
+              variant="secondary"
+              className="w-full"
               disabled={loading}
               type="button"
             >
               👤 Front Desk Login
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 };
