@@ -3,11 +3,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* * BLOCK 1: Define all your CSS variables (colors, radius, etc.)
-*/
-
 @layer base {
+    /* * BLOCK 1: Define all your CSS variables (colors, radius, etc.) */
      :root {
         --background: 0 0% 100%;
         --foreground: 0 0% 3.9%;
@@ -61,17 +58,16 @@
         --chart-4: 280 65% 60%;
         --chart-5: 340 75% 55%
     }
-}
-
-
-/* * BLOCK 2: Apply global styles using the utilities defined from the variables above
-*/
-
-@layer base {
+    /* * BLOCK 2: Apply global styles using the utilities defined from the variables above */
     * {
-        @apply border-border;
+        /* Use the CSS variable directly to avoid circular dependency */
+        border-color: hsl(var(--border));
     }
     body {
-        @apply bg-background text-foreground;
+        /* * The Fix: 
+         * Use the CSS variables directly instead of @apply.
+         */
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
     }
 }
