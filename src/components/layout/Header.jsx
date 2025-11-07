@@ -1,7 +1,7 @@
 import { Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export const Header = ({ onMenuClick }) => {
+export const Header = ({ onMenuClick, pageTitle = 'Dashboard' }) => {
   const { user, logout } = useAuth();
   
   return (
@@ -11,7 +11,7 @@ export const Header = ({ onMenuClick }) => {
           <button onClick={onMenuClick} className="menu-btn mobile-only">
             <Menu size={24} />
           </button>
-          <h2>Hotel Management System</h2>
+          <h2>{pageTitle}</h2>
         </div>
         <div className="header-right">
           <div className="user-info">

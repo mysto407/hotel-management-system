@@ -38,6 +38,25 @@ export const Layout = () => {
     settings: <SettingsPage />
   };
 
+  const getPageTitle = () => {
+    const pageTitles = {
+      'dashboard': 'Dashboard',
+      'room-types': 'Room Types',
+      'rooms': 'Rooms',
+      'room-status': 'Room Status',
+      'reservations': 'Reservations',
+      'reservation-calendar': 'Reservation Calendar',
+      'billing': 'Billing',
+      'reports': 'Reports',
+      'inventory': 'Inventory',
+      'guests': 'Guests',
+      'agents': 'Agents',
+      'expenses': 'Expenses',
+      'settings': 'Settings'
+    };
+    return pageTitles[currentPage] || 'Dashboard';
+  };
+
   return (
     <div className="app-layout">
       <Sidebar
@@ -47,7 +66,10 @@ export const Layout = () => {
         onClose={() => setSidebarOpen(false)}
       />
       <div className="main-content">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header 
+          pageTitle={getPageTitle()} 
+          onMenuClick={() => setSidebarOpen(true)} 
+        />
         <main className="content">{pages[currentPage]}</main>
       </div>
     </div>

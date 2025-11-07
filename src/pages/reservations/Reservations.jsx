@@ -391,11 +391,11 @@ const Reservations = () => {
 
   const handleDelete = async (reservation) => {
     const guestName = reservation.guests?.name || 'Unknown';
-    const confirmMessage = `âš ï¸ WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE this reservation?\n\nGuest: ${guestName}\nRoom: ${getRoomInfo(reservation.rooms)}\nCheck-in: ${reservation.check_in_date}\n\nThis action CANNOT be undone!`;
+    const confirmMessage = `Ã¢Å¡Â Ã¯Â¸Â WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE this reservation?\n\nGuest: ${guestName}\nRoom: ${getRoomInfo(reservation.rooms)}\nCheck-in: ${reservation.check_in_date}\n\nThis action CANNOT be undone!`;
     
     const firstConfirm = await showConfirm({
       variant: 'danger',
-      title: 'âš ï¸ Permanent Deletion Warning',
+      title: 'Ã¢Å¡Â Ã¯Â¸Â Permanent Deletion Warning',
       message: confirmMessage,
       confirmText: 'Yes, Delete',
       cancelText: 'Cancel'
@@ -419,11 +419,11 @@ const Reservations = () => {
 
   const handleDeleteGroup = async (group) => {
     const guestName = group[0].guests?.name || 'Unknown';
-    const confirmMessage = `âš ï¸ WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE all ${group.length} reservations?\n\nGuest: ${guestName}\nRooms: ${group.length}\n\nThis action CANNOT be undone!`;
+    const confirmMessage = `Ã¢Å¡Â Ã¯Â¸Â WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE all ${group.length} reservations?\n\nGuest: ${guestName}\nRooms: ${group.length}\n\nThis action CANNOT be undone!`;
     
     const firstConfirm = await showConfirm({
       variant: 'danger',
-      title: 'âš ï¸ Permanent Deletion Warning',
+      title: 'Ã¢Å¡Â Ã¯Â¸Â Permanent Deletion Warning',
       message: confirmMessage,
       confirmText: 'Yes, Delete All',
       cancelText: 'Cancel'
@@ -559,7 +559,6 @@ const Reservations = () => {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Reservations</h1>
         <div className={styles.headerActions}>
           {/* Search Input */}
           <div className={styles.searchBox}>
@@ -960,7 +959,7 @@ const Reservations = () => {
                         {getMealPlanLabel(primaryReservation.meal_plan)}
                       </span>
                     </td>
-                    <td>â‚¹{totalAmount.toLocaleString()}</td>
+                    <td>Ã¢â€šÂ¹{totalAmount.toLocaleString()}</td>
                     <td>
                       <span className={`status-badge ${
                         primaryReservation.payment_status === 'Paid' ? 'status-available' :
@@ -1115,7 +1114,7 @@ const Reservations = () => {
                       </td>
                       <td>-</td>
                       <td>
-                        <small>â‚¹{(reservation.total_amount || 0).toLocaleString()}</small>
+                        <small>Ã¢â€šÂ¹{(reservation.total_amount || 0).toLocaleString()}</small>
                       </td>
                       <td>-</td>
                       <td>-</td>
