@@ -1,10 +1,35 @@
 // src/pages/expenses/Expenses.jsx
-import { useState, useEffect, useCallback, useRef } from 'react';
-
-import { Download, Edit2, X, Check, Plus, Trash2 } from 'lucide-react';
-import { Card } from '../../components/common/Card';
-import { Modal } from '../../components/common/Modal';
+import { useState, useEffect, useRef } from 'react';
+import { Download, Edit2, X, Check, Plus, Trash2, FileText, FilePlus, Sheet } from 'lucide-react';
 import { useExpense } from '../../context/ExpensesContext';
+import { cn } from '@/lib/utils';
+
+// Import shadcn components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const Expenses = () => {
   const {
@@ -32,8 +57,6 @@ const Expenses = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const saveTimeoutRef = useRef(null);
 
-
-  // Fixed columns - split into groups to allow custom columns between them
   const fixedColumns = [
     { id: 'date', name: 'Date', type: 'date', fixed: true, group: 'start' },
     { id: 'refNo', name: 'Ref No.', type: 'text', fixed: true, group: 'start' },
@@ -44,7 +67,7 @@ const Expenses = () => {
   const [customColumns, setCustomColumns] = useState([]);
   const [rows, setRows] = useState([
     {
-      id: Date.now(),
+      id: `temp_${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
       refNo: '',
       totalAmount: 0,
@@ -53,21 +76,18 @@ const Expenses = () => {
     }
   ]);
 
-  // Build allColumns with custom columns interspersed
   const allColumns = [
     ...fixedColumns.filter(col => col.group === 'start'),
     ...customColumns,
     ...fixedColumns.filter(col => col.group === 'end')
   ];
 
-  // Helper function to get month/year from date
   const getMonthYear = (dateString) => {
     if (!dateString) return null;
     const date = new Date(dateString);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   };
 
-  // Helper function to format month header
   const formatMonthHeader = (monthYear) => {
     if (!monthYear) return '';
     const [year, month] = monthYear.split('-');
@@ -75,7 +95,6 @@ const Expenses = () => {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
-  // Group rows by month
   const getGroupedRows = () => {
     const grouped = [];
     let currentMonth = null;
@@ -102,7 +121,6 @@ const Expenses = () => {
     return grouped;
   };
 
-  // Load sheets when category changes
   useEffect(() => {
     if (selectedCategory) {
       loadCategorySheets();
@@ -110,9 +128,8 @@ const Expenses = () => {
       setSheets([]);
       setSelectedSheet(null);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, categories]); // Added categories dependency
 
-  // Load sheet data when selected sheet changes
   useEffect(() => {
     if (selectedSheet) {
       loadSelectedSheetData();
@@ -135,7 +152,7 @@ const Expenses = () => {
         setCustomColumns(data.customColumns || []);
         setRows(data.rows && data.rows.length > 0 ? data.rows : [
           {
-            id: Date.now(),
+            id: `temp_${Date.now()}`,
             date: new Date().toISOString().split('T')[0],
             refNo: '',
             totalAmount: 0,
@@ -253,7 +270,7 @@ const Expenses = () => {
 
   const addRowAfter = (afterIndex) => {
     const newRow = {
-      id: Date.now(),
+      id: `temp_${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
       refNo: '',
       totalAmount: 0,
@@ -301,7 +318,6 @@ const Expenses = () => {
     });
     setRows(updatedRows);
     
-    // Debounce save - wait 1 second after user stops typing
     if (selectedSheet) {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -312,8 +328,8 @@ const Expenses = () => {
       }, 1000);
     }
   };
-  // Add cleanup on unmount
-useEffect(() => {
+
+  useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -380,313 +396,302 @@ useEffect(() => {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading expenses...</p>
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-3 text-muted-foreground">Loading expenses...</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Page Header with Category Pills */}
-      <div className="page-header">
-        <div className="expenses-header-content">
-          <h1 className="page-title expenses-title">Expenses Management</h1>
-          
-          <div className="category-pills">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <h1 className="text-3xl font-bold">Expenses</h1>
+          <div className="flex items-center gap-2 flex-wrap">
             {categories.map(cat => (
-              <div key={cat.id} style={{ position: 'relative', display: 'inline-block' }}>
-                <button
+              <div key={cat.id} className="relative group">
+                <Button
                   onClick={() => {
                     setSelectedCategory(cat.name);
                     setSelectedSheet(null);
                     setSheetName('');
                   }}
-                  className={`category-pill ${selectedCategory === cat.name ? 'active' : ''}`}
+                  variant={selectedCategory === cat.name ? 'default' : 'outline'}
+                  size="sm"
+                  className="rounded-full"
                 >
-                  📁 {cat.name}
-                </button>
-                {selectedCategory === cat.name && (
-                  <button
-                    onClick={() => handleDeleteCategory(cat.name)}
-                    style={{
-                      position: 'absolute',
-                      top: '-8px',
-                      right: '-8px',
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: '#ef4444',
-                      color: 'white',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Delete category"
-                  >
-                    ×
-                  </button>
-                )}
+                  <FileText size={16} className="mr-2" />
+                  {cat.name}
+                </Button>
+                <Button
+                  onClick={() => handleDeleteCategory(cat.name)}
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full hidden group-hover:flex"
+                  title="Delete category"
+                >
+                  <X size={12} />
+                </Button>
               </div>
             ))}
-            <button
+            <Button
               onClick={() => setIsCategoryModalOpen(true)}
-              className="category-pill add-pill"
+              variant="outline"
+              size="sm"
+              className="rounded-full border-dashed"
               title="Add new category"
             >
-              <Plus size={16} /> Add Category
-            </button>
+              <Plus size={16} className="mr-2" /> Add Category
+            </Button>
           </div>
         </div>
 
         {selectedCategory && selectedSheet && (
-          <div className="action-buttons">
-            <button onClick={exportToCSV} className="btn-primary">
-              <Download size={18} /> Export CSV
-            </button>
-          </div>
+          <Button onClick={exportToCSV}>
+            <Download size={18} className="mr-2" /> Export CSV
+          </Button>
         )}
       </div>
 
       {/* Sheet Tabs */}
       {selectedCategory && (
-        <Card className="sheet-tabs-card">
-          <div className="sheet-tabs-container">
-            <span className="sheet-tabs-label">Sheets:</span>
-            {sheets.map(sheet => (
-              <button
-                key={sheet.id}
-                onClick={() => setSelectedSheet(sheet)}
-                className={`sheet-tab ${selectedSheet?.id === sheet.id ? 'active' : ''}`}
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-muted-foreground mr-2">Sheets:</span>
+              {sheets.map(sheet => (
+                <Button
+                  key={sheet.id}
+                  onClick={() => setSelectedSheet(sheet)}
+                  variant={selectedSheet?.id === sheet.id ? 'secondary' : 'ghost'}
+                  size="sm"
+                >
+                  <Sheet size={16} className="mr-2" />
+                  {sheet.name}
+                </Button>
+              ))}
+              <Button
+                onClick={() => setIsSheetModalOpen(true)}
+                variant="outline"
+                size="sm"
+                className="border-dashed"
+                title="Add new sheet"
               >
-                📄 {sheet.name}
-              </button>
-            ))}
-            <button
-              onClick={() => setIsSheetModalOpen(true)}
-              className="sheet-tab add-tab"
-              title="Add new sheet"
-            >
-              <Plus size={16} /> Add Sheet
-            </button>
-          </div>
+                <Plus size={16} className="mr-2" /> Add Sheet
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       )}
 
       {/* Spreadsheet */}
       {selectedCategory && selectedSheet && (
-        <Card className="spreadsheet-card">
+        <Card>
           {/* Sheet Name Header */}
-          <div className="sheet-name-header">
-            {isEditingName ? (
-              <>
-                <input
-                  type="text"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  className="sheet-name-input"
-                  autoFocus
-                />
-                <button onClick={saveName} className="btn-icon sheet-name-btn save">
-                  <Check size={16} />
-                </button>
-                <button onClick={cancelEditName} className="btn-icon sheet-name-btn cancel">
-                  <X size={16} />
-                </button>
-              </>
-            ) : (
-              <>
-                <h3 className="sheet-name-title">{sheetName}</h3>
-                <button onClick={startEditingName} className="btn-icon" title="Edit name">
-                  <Edit2 size={14} />
-                </button>
-              </>
-            )}
-          </div>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              {isEditingName ? (
+                <>
+                  <Input
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    className="h-9 text-lg font-semibold"
+                    autoFocus
+                  />
+                  <Button onClick={saveName} size="icon" variant="ghost" className="text-green-600">
+                    <Check size={16} />
+                  </Button>
+                  <Button onClick={cancelEditName} size="icon" variant="ghost" className="text-red-600">
+                    <X size={16} />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <CardTitle className="text-xl">{sheetName}</CardTitle>
+                  <Button onClick={startEditingName} variant="ghost" size="icon" title="Edit name">
+                    <Edit2 size={16} />
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardHeader>
 
           {/* Spreadsheet Table */}
-          <div className="spreadsheet-container">
-            <table className="spreadsheet-table">
-              <thead>
-                <tr>
-                  <th className="spreadsheet-row-header"></th>
+          <CardContent className="overflow-x-auto">
+            <Table className="relative border-collapse border border-border">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="sticky left-0 z-10 bg-gray-100 w-12 min-w-12 border-r border-b"></TableHead>
                   {allColumns.map((col, colIndex) => (
-                    <th 
+                    <TableHead 
                       key={col.id}
                       onMouseEnter={() => setHoveredColumn(colIndex)}
                       onMouseLeave={() => setHoveredColumn(null)}
-                      className={`spreadsheet-col-header ${hoveredColumn === colIndex ? 'hovered' : ''}`}
+                      className="min-w-[120px] border-b relative group"
                     >
-                      <div className="spreadsheet-col-header-content">
+                      <div className="flex items-center justify-between gap-1">
                         <span>{col.name}</span>
-                        {hoveredColumn === colIndex && (
-                          <div className="spreadsheet-col-actions">
-                            {!col.fixed && (
-                              <button
-                                onClick={() => removeColumn(col.id)}
-                                className="btn-icon spreadsheet-action-btn delete"
-                                title="Delete column"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => addColumnAfter(colIndex)}
-                              className="btn-icon spreadsheet-action-btn"
-                              title="Add column after"
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex">
+                          {!col.fixed && (
+                            <Button
+                              onClick={() => removeColumn(col.id)}
+                              variant="ghost" size="icon"
+                              className="h-6 w-6 text-red-600"
+                              title="Delete column"
                             >
-                              <Plus size={12} />
-                            </button>
-                          </div>
-                        )}
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => addColumnAfter(colIndex)}
+                            variant="ghost" size="icon"
+                            className="h-6 w-6"
+                            title="Add column after"
+                          >
+                            <Plus size={14} />
+                          </Button>
+                        </div>
                       </div>
-                    </th>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {getGroupedRows().map((item, idx) => {
                   if (item.type === 'header') {
                     return (
-                      <tr key={`header-${item.monthYear}-${idx}`}>
-                        <td colSpan={allColumns.length + 1} className="spreadsheet-month-header">
-                          📅 {item.displayText}
-                        </td>
-                      </tr>
+                      <TableRow key={`header-${item.monthYear}-${idx}`}>
+                        <TableCell colSpan={allColumns.length + 1} className="p-2 bg-blue-600 text-white font-semibold sticky left-0 z-10">
+                          {item.displayText}
+                        </TableCell>
+                      </TableRow>
                     );
                   } else {
                     const row = item.data;
                     const rowIndex = item.originalIndex;
                     return (
-                      <tr key={row.id}>
-                        <td 
+                      <TableRow key={row.id}>
+                        <TableCell 
                           onMouseEnter={() => setHoveredRow(rowIndex)}
                           onMouseLeave={() => setHoveredRow(null)}
-                          className={`spreadsheet-row-number ${hoveredRow === rowIndex ? 'hovered' : ''}`}
+                          className="sticky left-0 z-10 bg-gray-100 p-0 w-12 min-w-12 border-r group"
                         >
-                          <div className="spreadsheet-row-number-content">
+                          <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground font-mono relative py-2">
                             <span>{rowIndex + 1}</span>
-                            {hoveredRow === rowIndex && (
-                              <div className="spreadsheet-row-actions">
-                                <button
-                                  onClick={() => addRowAfter(rowIndex)}
-                                  className="btn-icon spreadsheet-action-btn"
-                                  title="Add row after"
+                            <div className="absolute top-0 right-0 flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                onClick={() => addRowAfter(rowIndex)}
+                                variant="ghost" size="icon"
+                                className="h-5 w-5"
+                                title="Add row after"
+                              >
+                                <Plus size={10} />
+                              </Button>
+                              {rows.length > 1 && (
+                                <Button
+                                  onClick={() => removeRow(row.id)}
+                                  variant="ghost" size="icon"
+                                  className="h-5 w-5 text-red-600"
+                                  title="Delete row"
                                 >
-                                  <Plus size={10} />
-                                </button>
-                                {rows.length > 1 && (
-                                  <button
-                                    onClick={() => removeRow(row.id)}
-                                    className="btn-icon spreadsheet-action-btn delete"
-                                    title="Delete row"
-                                  >
-                                    <Trash2 size={10} />
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                                  <Trash2 size={10} />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </td>
+                        </TableCell>
                         {allColumns.map(col => (
-                          <td key={col.id} className="spreadsheet-cell">
-                            <input
+                          <TableCell key={col.id} className="p-0 border-l">
+                            <Input
                               type={col.type}
                               value={getCellValue(row, col.id)}
                               onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                              className="spreadsheet-cell-input"
+                              className="w-full h-full border-none rounded-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset"
                             />
-                          </td>
+                          </TableCell>
                         ))}
-                      </tr>
+                      </TableRow>
                     );
                   }
                 })}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+          </CardContent>
 
           {/* Total Row */}
-          <div className="spreadsheet-total">
-            <span className="spreadsheet-total-label">Total:</span>
-            <span className="spreadsheet-total-value">₹{calculateTotal().toFixed(2)}</span>
-          </div>
+          <CardContent>
+            <div className="flex justify-end items-center mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
+              <span className="text-lg font-semibold text-yellow-800">Total:</span>
+              <span className="text-xl font-bold text-yellow-900 ml-4">
+                ₹{calculateTotal().toFixed(2)}
+              </span>
+            </div>
+          </CardContent>
         </Card>
       )}
 
       {/* Add Category Modal */}
-      <Modal
-        isOpen={isCategoryModalOpen}
-        onClose={() => {
-          setIsCategoryModalOpen(false);
-          setNewCategoryName('');
-        }}
-        title="Add New Category"
-      >
-        <div className="form-group">
-          <label>Category Name</label>
-          <input
-            type="text"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            placeholder="e.g., Office Expenses, Travel, Utilities"
-            onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-          />
-        </div>
-        <div className="modal-actions">
-          <button 
-            onClick={() => {
-              setIsCategoryModalOpen(false);
-              setNewCategoryName('');
-            }} 
-            className="btn-secondary"
-          >
-            Cancel
-          </button>
-          <button onClick={handleAddCategory} className="btn-primary">
-            <Plus size={18} /> Add Category
-          </button>
-        </div>
-      </Modal>
+      <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Category</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="catName">Category Name</Label>
+            <Input
+              id="catName"
+              type="text"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="e.g., Office Expenses, Travel"
+              onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={() => setNewCategoryName('')}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleAddCategory}>
+              <Plus size={18} className="mr-2" /> Add Category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Sheet Modal */}
-      <Modal
-        isOpen={isSheetModalOpen}
-        onClose={() => {
-          setIsSheetModalOpen(false);
-          setNewSheetName('');
-        }}
-        title={`Add New Sheet to ${selectedCategory}`}
-      >
-        <div className="form-group">
-          <label>Sheet Name</label>
-          <input
-            type="text"
-            value={newSheetName}
-            onChange={(e) => setNewSheetName(e.target.value)}
-            placeholder="e.g., January 2025, Q1 Expenses"
-            onKeyPress={(e) => e.key === 'Enter' && handleAddSheet()}
-          />
-        </div>
-        <div className="modal-actions">
-          <button 
-            onClick={() => {
-              setIsSheetModalOpen(false);
-              setNewSheetName('');
-            }} 
-            className="btn-secondary"
-          >
-            Cancel
-          </button>
-          <button onClick={handleAddSheet} className="btn-primary">
-            <Plus size={18} /> Add Sheet
-          </button>
-        </div>
-      </Modal>
+      <Dialog open={isSheetModalOpen} onOpenChange={setIsSheetModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Sheet to {selectedCategory}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <Label htmlFor="sheetName">Sheet Name</Label>
+            <Input
+              id="sheetName"
+              type="text"
+              value={newSheetName}
+              onChange={(e) => setNewSheetName(e.target.value)}
+              placeholder="e.g., January 2025, Q1 Expenses"
+              onKeyPress={(e) => e.key === 'Enter' && handleAddSheet()}
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={() => setNewSheetName('')}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleAddSheet}>
+              <Plus size={18} className="mr-2" /> Add Sheet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

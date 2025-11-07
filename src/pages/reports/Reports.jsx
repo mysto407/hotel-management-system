@@ -1,10 +1,31 @@
 // src/pages/reports/Reports.jsx
 import { useState, useMemo } from 'react';
 import { Calendar, DollarSign, TrendingUp, FileText, Download, Printer, Filter } from 'lucide-react';
-import { Card } from '../../components/common/Card';
 import { useBilling } from '../../context/BillingContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
+
+// Import shadcn components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 const Reports = () => {
   const { bills } = useBilling();
@@ -98,7 +119,6 @@ const Reports = () => {
   };
 
   const handleExport = () => {
-    // Simple CSV export
     let csv = 'Bill Type,Count,Total Amount,Paid Amount,Outstanding\n';
     Object.entries(revenueByType).forEach(([type, data]) => {
       csv += `${type},${data.count},${data.total.toFixed(2)},${data.paid.toFixed(2)},${data.outstanding.toFixed(2)}\n`;
@@ -150,268 +170,244 @@ const Reports = () => {
   };
 
   return (
-    <div className="reports-container">
-      <div className="page-header">
-        <h1 className="page-title">Reports & Analytics</h1>
-        <div className="action-buttons">
-          <button onClick={handleExport} className="btn-secondary">
-            <Download size={18} /> Export CSV
-          </button>
-          <button onClick={handlePrint} className="btn-primary">
-            <Printer size={18} /> Print Report
-          </button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center print:hidden">
+        <h1 className="text-3xl font-bold">Reports & Analytics</h1>
+        <div className="flex gap-2">
+          <Button onClick={handleExport} variant="outline">
+            <Download size={18} className="mr-2" /> Export CSV
+          </Button>
+          <Button onClick={handlePrint}>
+            <Printer size={18} className="mr-2" /> Print Report
+          </Button>
         </div>
       </div>
 
       {/* Date Range Filters */}
-      <Card>
-        <div className="report-filters">
-          <div className="quick-dates">
-            <button onClick={() => setQuickDate('today')} className="quick-date-btn">Today</button>
-            <button onClick={() => setQuickDate('yesterday')} className="quick-date-btn">Yesterday</button>
-            <button onClick={() => setQuickDate('this-week')} className="quick-date-btn">This Week</button>
-            <button onClick={() => setQuickDate('this-month')} className="quick-date-btn">This Month</button>
-            <button onClick={() => setQuickDate('last-month')} className="quick-date-btn">Last Month</button>
+      <Card className="print:hidden">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setQuickDate('today')} variant="outline" size="sm">Today</Button>
+            <Button onClick={() => setQuickDate('yesterday')} variant="outline" size="sm">Yesterday</Button>
+            <Button onClick={() => setQuickDate('this-week')} variant="outline" size="sm">This Week</Button>
+            <Button onClick={() => setQuickDate('this-month')} variant="outline" size="sm">This Month</Button>
+            <Button onClick={() => setQuickDate('last-month')} variant="outline" size="sm">Last Month</Button>
           </div>
-          <div className="date-range">
-            <div className="form-group">
-              <label>From Date</label>
-              <input
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="space-y-2 flex-1">
+              <Label htmlFor="startDate">From Date</Label>
+              <Input
+                id="startDate"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
-            <div className="form-group">
-              <label>To Date</label>
-              <input
+            <div className="space-y-2 flex-1">
+              <Label htmlFor="endDate">To Date</Label>
+              <Input
+                id="endDate"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
+      
+      <div className="text-center print:block hidden mb-4">
+        <h2 className="text-2xl font-bold">Report for {startDate} to {endDate}</h2>
+      </div>
 
       {/* Summary Cards */}
-      <div className="stats-grid">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <div className="stat-card">
-            <div>
-              <p className="stat-label">Total Revenue</p>
-              <p className="stat-value">₹{totals.total.toFixed(2)}</p>
-              <small style={{ color: '#6b7280' }}>{filteredBills.length} bills</small>
-            </div>
-            <div className="stat-icon" style={{ backgroundColor: '#3b82f6' }}>
-              <DollarSign color="white" size={24} />
-            </div>
-          </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{totals.total.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">{filteredBills.length} bills</p>
+          </CardContent>
         </Card>
-
         <Card>
-          <div className="stat-card">
-            <div>
-              <p className="stat-label">Amount Collected</p>
-              <p className="stat-value">₹{totals.paid.toFixed(2)}</p>
-              <small style={{ color: '#10b981' }}>
-                {((totals.paid / totals.total) * 100 || 0).toFixed(1)}% collected
-              </small>
-            </div>
-            <div className="stat-icon" style={{ backgroundColor: '#10b981' }}>
-              <TrendingUp color="white" size={24} />
-            </div>
-          </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Amount Collected</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{totals.paid.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              {((totals.paid / totals.total) * 100 || 0).toFixed(1)}% collected
+            </p>
+          </CardContent>
         </Card>
-
         <Card>
-          <div className="stat-card">
-            <div>
-              <p className="stat-label">Outstanding</p>
-              <p className="stat-value">₹{totals.outstanding.toFixed(2)}</p>
-              <small style={{ color: '#ef4444' }}>
-                {((totals.outstanding / totals.total) * 100 || 0).toFixed(1)}% pending
-              </small>
-            </div>
-            <div className="stat-icon" style={{ backgroundColor: '#ef4444' }}>
-              <FileText color="white" size={24} />
-            </div>
-          </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
+            <FileText className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{totals.outstanding.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              {((totals.outstanding / totals.total) * 100 || 0).toFixed(1)}% pending
+            </p>
+          </CardContent>
         </Card>
-
         <Card>
-          <div className="stat-card">
-            <div>
-              <p className="stat-label">Occupancy Rate</p>
-              <p className="stat-value">{occupancyStats.occupancyRate}%</p>
-              <small style={{ color: '#6b7280' }}>
-                {occupancyStats.occupiedRooms}/{occupancyStats.totalRooms} rooms
-              </small>
-            </div>
-            <div className="stat-icon" style={{ backgroundColor: '#f59e0b' }}>
-              <Calendar color="white" size={24} />
-            </div>
-          </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+            <Calendar className="h-4 w-4 text-amber-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{occupancyStats.occupancyRate}%</div>
+            <p className="text-xs text-muted-foreground">
+              {occupancyStats.occupiedRooms}/{occupancyStats.totalRooms} rooms
+            </p>
+          </CardContent>
         </Card>
       </div>
 
       {/* Revenue Breakdown */}
-      <Card title="Revenue Breakdown by Bill Type">
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Bill Type</th>
-                <th>Number of Bills</th>
-                <th>Total Amount</th>
-                <th>Amount Collected</th>
-                <th>Outstanding</th>
-                <th>Collection %</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue Breakdown by Bill Type</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Bill Type</TableHead>
+                <TableHead># of Bills</TableHead>
+                <TableHead>Total Amount</TableHead>
+                <TableHead>Collected</TableHead>
+                <TableHead>Outstanding</TableHead>
+                <TableHead>Collection %</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {Object.entries(revenueByType).sort((a, b) => b[1].total - a[1].total).map(([type, data]) => (
-                <tr key={type}>
-                  <td><strong>{type}</strong></td>
-                  <td>{data.count}</td>
-                  <td>₹{data.total.toFixed(2)}</td>
-                  <td style={{ color: '#10b981' }}>₹{data.paid.toFixed(2)}</td>
-                  <td style={{ color: '#ef4444' }}>₹{data.outstanding.toFixed(2)}</td>
-                  <td>
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill"
-                        style={{ width: `${(data.paid / data.total * 100) || 0}%` }}
-                      />
+                <TableRow key={type}>
+                  <TableCell className="font-medium">{type}</TableCell>
+                  <TableCell>{data.count}</TableCell>
+                  <TableCell>₹{data.total.toFixed(2)}</TableCell>
+                  <TableCell className="text-emerald-600">₹{data.paid.toFixed(2)}</TableCell>
+                  <TableCell className="text-destructive">₹{data.outstanding.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Progress value={((data.paid / data.total * 100) || 0)} className="w-20 h-2" />
+                      <span className="text-xs text-muted-foreground">
+                        {((data.paid / data.total * 100) || 0).toFixed(1)}%
+                      </span>
                     </div>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {((data.paid / data.total * 100) || 0).toFixed(1)}%
-                    </span>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-              <tr style={{ fontWeight: '700', borderTop: '2px solid #e5e7eb' }}>
-                <td>TOTAL</td>
-                <td>{filteredBills.length}</td>
-                <td>₹{totals.total.toFixed(2)}</td>
-                <td style={{ color: '#10b981' }}>₹{totals.paid.toFixed(2)}</td>
-                <td style={{ color: '#ef4444' }}>₹{totals.outstanding.toFixed(2)}</td>
-                <td>{((totals.paid / totals.total * 100) || 0).toFixed(1)}%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+            <TableRow className="font-bold bg-gray-50 hover:bg-gray-50">
+              <TableCell>TOTAL</TableCell>
+              <TableCell>{filteredBills.length}</TableCell>
+              <TableCell>₹{totals.total.toFixed(2)}</TableCell>
+              <TableCell className="text-emerald-700">₹{totals.paid.toFixed(2)}</TableCell>
+              <TableCell className="text-destructive">₹{totals.outstanding.toFixed(2)}</TableCell>
+              <TableCell>{((totals.paid / totals.total * 100) || 0).toFixed(1)}%</TableCell>
+            </TableRow>
+          </Table>
+        </CardContent>
       </Card>
 
       {/* Financial Summary */}
-      <div className="dashboard-grid">
-        <Card title="Financial Summary">
-          <div className="financial-summary">
-            <div className="summary-row">
-              <span>Subtotal (Before Tax):</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Financial Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal (Before Tax):</span>
               <span>₹{totals.subtotal.toFixed(2)}</span>
             </div>
-            <div className="summary-row">
-              <span>Tax Collected:</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Tax Collected:</span>
               <span>₹{totals.tax.toFixed(2)}</span>
             </div>
-            <div className="summary-row">
-              <span>Discounts Given:</span>
-              <span style={{ color: '#ef4444' }}>- ₹{totals.discount.toFixed(2)}</span>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Discounts Given:</span>
+              <span className="text-destructive">- ₹{totals.discount.toFixed(2)}</span>
             </div>
-            <div className="summary-row" style={{ fontWeight: '700', borderTop: '2px solid #e5e7eb', paddingTop: '12px', fontSize: '18px' }}>
+            <div className="flex justify-between text-lg font-bold pt-3 border-t">
               <span>Net Revenue:</span>
-              <span style={{ color: '#10b981' }}>₹{totals.total.toFixed(2)}</span>
+              <span className="text-emerald-600">₹{totals.total.toFixed(2)}</span>
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        <Card title="Payment Status">
-          <div className="payment-status-chart">
-            <div className="status-item">
-              <div className="status-indicator" style={{ backgroundColor: '#ef4444' }} />
-              <div>
-                <p style={{ fontSize: '14px', color: '#6b7280' }}>Pending</p>
-                <p style={{ fontSize: '20px', fontWeight: '700' }}>{paymentStatusBreakdown.pending}</p>
-              </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Status</CardTitle>
+          </CardHeader>
+          <CardContent className="flex justify-around items-center pt-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-destructive">{paymentStatusBreakdown.pending}</div>
+              <Badge variant="destructive">Pending</Badge>
             </div>
-            <div className="status-item">
-              <div className="status-indicator" style={{ backgroundColor: '#f59e0b' }} />
-              <div>
-                <p style={{ fontSize: '14px', color: '#6b7280' }}>Partial</p>
-                <p style={{ fontSize: '20px', fontWeight: '700' }}>{paymentStatusBreakdown.partial}</p>
-              </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-yellow-500">{paymentStatusBreakdown.partial}</div>
+              <Badge variant="warning">Partial</Badge>
             </div>
-            <div className="status-item">
-              <div className="status-indicator" style={{ backgroundColor: '#10b981' }} />
-              <div>
-                <p style={{ fontSize: '14px', color: '#6b7280' }}>Paid</p>
-                <p style={{ fontSize: '20px', fontWeight: '700' }}>{paymentStatusBreakdown.paid}</p>
-              </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-emerald-600">{paymentStatusBreakdown.paid}</div>
+              <Badge variant="success">Paid</Badge>
             </div>
-          </div>
+          </CardContent>
         </Card>
       </div>
 
       {/* Reservations Report */}
-      <Card title="Reservations in Period">
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Guest Name</th>
-                <th>Room</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card>
+        <CardHeader>
+          <CardTitle>Reservations in Period</CardTitle>
+          <CardDescription>
+            Reservations checking in or out within the selected date range.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Guest Name</TableHead>
+                <TableHead>Room</TableHead>
+                <TableHead>Check-in</TableHead>
+                <TableHead>Check-out</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredReservations.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center h-24">No reservations found for this period</TableCell>
+                </TableRow>
+              )}
               {filteredReservations.map(reservation => (
-                <tr key={reservation.id}>
-                  <td><strong>{reservation.guests?.name || 'Unknown'}</strong></td>
-                  <td>{reservation.rooms?.room_number || 'N/A'}</td>
-                  <td>{reservation.check_in_date}</td>
-                  <td>{reservation.check_out_date}</td>
-                  <td>₹{reservation.total_amount.toFixed(2)}</td>
-                  <td>
-                    <span className={`status-badge status-${reservation.status?.toLowerCase()}`}>
+                <TableRow key={reservation.id}>
+                  <TableCell className="font-medium">{reservation.guests?.name || 'Unknown'}</TableCell>
+                  <TableCell>{reservation.rooms?.room_number || 'N/A'}</TableCell>
+                  <TableCell>{reservation.check_in_date}</TableCell>
+                  <TableCell>{reservation.check_out_date}</TableCell>
+                  <TableCell>₹{reservation.total_amount.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge variant={reservation.status === 'Checked-out' ? 'success' : (reservation.status === 'Cancelled' ? 'destructive' : 'secondary')}>
                       {reservation.status}
-                    </span>
-                  </td>
-                </tr>
+                    </Badge>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-          {filteredReservations.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-              No reservations found for this period
-            </p>
-          )}
-        </div>
-      </Card>
-
-      {/* Occupancy Report */}
-      <Card title="Occupancy Details">
-        <div className="occupancy-grid">
-          <div className="occupancy-item">
-            <h4>Total Rooms</h4>
-            <p className="occupancy-number">{occupancyStats.totalRooms}</p>
-          </div>
-          <div className="occupancy-item">
-            <h4>Occupied</h4>
-            <p className="occupancy-number" style={{ color: '#ef4444' }}>{occupancyStats.occupiedRooms}</p>
-          </div>
-          <div className="occupancy-item">
-            <h4>Available</h4>
-            <p className="occupancy-number" style={{ color: '#10b981' }}>{occupancyStats.availableRooms}</p>
-          </div>
-          <div className="occupancy-item">
-            <h4>Occupancy Rate</h4>
-            <p className="occupancy-number" style={{ color: '#3b82f6' }}>{occupancyStats.occupancyRate}%</p>
-          </div>
-        </div>
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
     </div>
   );

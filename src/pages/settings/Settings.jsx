@@ -1,28 +1,51 @@
 // src/pages/settings/Settings.jsx
 import { useState, useEffect } from 'react';
-import { Save, Building2, DollarSign, Clock, Bell, Globe, Download, Calendar } from 'lucide-react';
-import { Card } from '../../components/common/Card';
+import { Save, Building2, DollarSign, Clock, Globe, Download, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase, getHotelSettings, updateHotelSetting } from '../../lib/supabase';
+import { cn } from '@/lib/utils';
+
+// Import shadcn components
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox"; // Assuming you have added this component
+import { Alert, AlertDescription } from "@/components/ui/alert"; // For showing user info
 
 const Settings = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('hotel');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Hotel Settings State
   const [hotelSettings, setHotelSettings] = useState({
-    hotel_name: 'Grand Plaza Hotel',
-    hotel_address: '123 Main Street, Business District',
-    hotel_city: 'Mumbai',
-    hotel_state: 'Maharashtra',
-    hotel_country: 'India',
-    hotel_pincode: '400001',
-    hotel_phone: '+91 22 1234 5678',
-    hotel_email: 'info@grandplaza.com',
-    hotel_website: 'www.grandplaza.com',
+    hotel_name: '',
+    hotel_address: '',
+    hotel_city: '',
+    hotel_state: '',
+    hotel_country: '',
+    hotel_pincode: '',
+    hotel_phone: '',
+    hotel_email: '',
+    hotel_website: '',
     hotel_gst: '',
-    hotel_description: 'A luxury hotel in the heart of the city'
+    hotel_description: ''
   });
 
   // Tax Settings State
@@ -67,40 +90,15 @@ const Settings = () => {
       if (error) throw error;
       
       if (data && data.length > 0) {
-        // Convert array of settings to object
         const settingsObj = {};
         data.forEach(setting => {
           settingsObj[setting.setting_key] = setting.setting_value;
         });
         
-        // Update state with loaded settings
-        const hotelKeys = Object.keys(hotelSettings);
-        const taxKeys = Object.keys(taxSettings);
-        const roomKeys = Object.keys(roomSettings);
-        const bookingKeys = Object.keys(bookingSettings);
-
-        const newHotelSettings = {};
-        const newTaxSettings = {};
-        const newRoomSettings = {};
-        const newBookingSettings = {};
-
-        hotelKeys.forEach(key => {
-          if (settingsObj[key]) newHotelSettings[key] = settingsObj[key];
-        });
-        taxKeys.forEach(key => {
-          if (settingsObj[key]) newTaxSettings[key] = settingsObj[key];
-        });
-        roomKeys.forEach(key => {
-          if (settingsObj[key]) newRoomSettings[key] = settingsObj[key];
-        });
-        bookingKeys.forEach(key => {
-          if (settingsObj[key]) newBookingSettings[key] = settingsObj[key];
-        });
-
-        if (Object.keys(newHotelSettings).length > 0) setHotelSettings(prev => ({ ...prev, ...newHotelSettings }));
-        if (Object.keys(newTaxSettings).length > 0) setTaxSettings(prev => ({ ...prev, ...newTaxSettings }));
-        if (Object.keys(newRoomSettings).length > 0) setRoomSettings(prev => ({ ...prev, ...newRoomSettings }));
-        if (Object.keys(newBookingSettings).length > 0) setBookingSettings(prev => ({ ...prev, ...newBookingSettings }));
+        setHotelSettings(prev => ({ ...prev, ...settingsObj }));
+        setTaxSettings(prev => ({ ...prev, ...settingsObj }));
+        setRoomSettings(prev => ({ ...prev, ...settingsObj }));
+        setBookingSettings(prev => ({ ...prev, ...settingsObj }));
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -108,16 +106,20 @@ const Settings = () => {
       setLoading(false);
     }
   };
+  
+  const showSuccessMessage = () => {
+    setSuccessMessage('Settings saved successfully!');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
 
   const saveSettings = async (settingsObject) => {
     setLoading(true);
     try {
-      // Save each setting individually
       for (const [key, value] of Object.entries(settingsObject)) {
         const { error } = await updateHotelSetting(key, value);
         if (error) throw error;
       }
-      alert('Settings saved successfully!');
+      showSuccessMessage();
     } catch (error) {
       console.error('Error saving settings:', error);
       alert('Failed to save settings: ' + error.message);
@@ -133,7 +135,6 @@ const Settings = () => {
 
   const handleBackup = async () => {
     try {
-      // Export all data as JSON
       const { data: rooms } = await supabase.from('rooms').select('*');
       const { data: roomTypes } = await supabase.from('room_types').select('*');
       const { data: guests } = await supabase.from('guests').select('*');
@@ -163,360 +164,281 @@ const Settings = () => {
       alert('Failed to create backup: ' + error.message);
     }
   };
-
-  const tabs = [
-    { id: 'hotel', label: 'Hotel Profile', icon: Building2 },
-    { id: 'tax', label: 'Tax Settings', icon: DollarSign },
-    { id: 'room', label: 'Room Settings', icon: Clock },
-    { id: 'booking', label: 'Booking Settings', icon: Calendar },
-    { id: 'system', label: 'System', icon: Globe }
-  ];
+  
+  // Helper to handle text input changes
+  const handleHotelChange = (e) => setHotelSettings({...hotelSettings, [e.target.id]: e.target.value});
+  const handleTaxChange = (e) => setTaxSettings({...taxSettings, [e.target.id]: e.target.value});
+  const handleRoomChange = (e) => setRoomSettings({...roomSettings, [e.target.id]: e.target.value});
+  const handleBookingChange = (e) => setBookingSettings({...bookingSettings, [e.target.id]: e.target.value});
 
   return (
-    <div>
-      <div className="page-header">
-        <h1 className="page-title">Settings</h1>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Settings</h1>
+        {successMessage && (
+          <Alert className="w-auto py-2 px-4 border-green-300 bg-green-50 text-green-700">
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        )}
       </div>
 
-      <div className="settings-container">
-        {/* Tabs */}
-        <div className="settings-tabs">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`settings-tab ${activeTab === tab.id ? 'active' : ''}`}
-              >
-                <Icon size={18} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      <Tabs defaultValue="hotel" className="flex flex-col md:flex-row gap-6">
+        <TabsList className="flex-col h-auto justify-start p-2 w-full md:w-64">
+          <TabsTrigger value="hotel" className="w-full justify-start gap-2">
+            <Building2 size={18} /> Hotel Profile
+          </TabsTrigger>
+          <TabsTrigger value="tax" className="w-full justify-start gap-2">
+            <DollarSign size={18} /> Tax Settings
+          </TabsTrigger>
+          <TabsTrigger value="room" className="w-full justify-start gap-2">
+            <Clock size={18} /> Room Settings
+          </TabsTrigger>
+          <TabsTrigger value="booking" className="w-full justify-start gap-2">
+            <Calendar size={18} /> Booking Settings
+          </TabsTrigger>
+          <TabsTrigger value="system" className="w-full justify-start gap-2">
+            <Globe size={18} /> System
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Tab Content */}
-        <div className="settings-content">
+        <div className="flex-1">
           {/* Hotel Profile Tab */}
-          {activeTab === 'hotel' && (
-            <Card title="Hotel Information">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Hotel Name *</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_name}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_name: e.target.value})}
-                  />
+          <TabsContent value="hotel">
+            <Card>
+              <CardHeader>
+                <CardTitle>Hotel Information</CardTitle>
+                <CardDescription>Update your hotel's public details.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_name">Hotel Name *</Label>
+                    <Input id="hotel_name" value={hotelSettings.hotel_name} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_phone">Phone *</Label>
+                    <Input id="hotel_phone" type="tel" value={hotelSettings.hotel_phone} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_email">Email *</Label>
+                    <Input id="hotel_email" type="email" value={hotelSettings.hotel_email} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_website">Website</Label>
+                    <Input id="hotel_website" value={hotelSettings.hotel_website} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="hotel_address">Address *</Label>
+                    <Input id="hotel_address" value={hotelSettings.hotel_address} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_city">City *</Label>
+                    <Input id="hotel_city" value={hotelSettings.hotel_city} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_state">State *</Label>
+                    <Input id="hotel_state" value={hotelSettings.hotel_state} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_country">Country *</Label>
+                    <Input id="hotel_country" value={hotelSettings.hotel_country} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_pincode">Pincode *</Label>
+                    <Input id="hotel_pincode" value={hotelSettings.hotel_pincode} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hotel_gst">GST Number</Label>
+                    <Input id="hotel_gst" value={hotelSettings.hotel_gst} onChange={handleHotelChange} />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="hotel_description">Description</Label>
+                    <Textarea id="hotel_description" value={hotelSettings.hotel_description} onChange={handleHotelChange} rows="3" />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Phone *</label>
-                  <input
-                    type="tel"
-                    value={hotelSettings.hotel_phone}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_phone: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    value={hotelSettings.hotel_email}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_email: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Website</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_website}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_website: e.target.value})}
-                  />
-                </div>
-                <div className="form-group full-width">
-                  <label>Address *</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_address}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_address: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>City *</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_city}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_city: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>State *</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_state}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_state: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Country *</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_country}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_country: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Pincode *</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_pincode}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_pincode: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>GST Number</label>
-                  <input
-                    type="text"
-                    value={hotelSettings.hotel_gst}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_gst: e.target.value})}
-                  />
-                </div>
-                <div className="form-group full-width">
-                  <label>Description</label>
-                  <textarea
-                    value={hotelSettings.hotel_description}
-                    onChange={(e) => setHotelSettings({...hotelSettings, hotel_description: e.target.value})}
-                    rows="3"
-                  />
-                </div>
-              </div>
-              <div className="settings-actions">
-                <button onClick={handleSaveHotelSettings} className="btn-primary" disabled={loading}>
-                  <Save size={18} /> {loading ? 'Saving...' : 'Save Hotel Settings'}
-                </button>
-              </div>
+                <Button onClick={handleSaveHotelSettings} disabled={loading}>
+                  <Save size={18} className="mr-2" /> {loading ? 'Saving...' : 'Save Hotel Settings'}
+                </Button>
+              </CardContent>
             </Card>
-          )}
+          </TabsContent>
 
           {/* Tax Settings Tab */}
-          {activeTab === 'tax' && (
-            <Card title="Tax Configuration">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>GST Rate (%)</label>
-                  <input
-                    type="number"
-                    value={taxSettings.gst_rate}
-                    onChange={(e) => setTaxSettings({...taxSettings, gst_rate: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Service Charge (%)</label>
-                  <input
-                    type="number"
-                    value={taxSettings.service_charge_rate}
-                    onChange={(e) => setTaxSettings({...taxSettings, service_charge_rate: e.target.value})}
-                  />
-                </div>
-                <div className="form-group full-width">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
+          <TabsContent value="tax">
+            <Card>
+              <CardHeader>
+                <CardTitle>Tax Configuration</CardTitle>
+                <CardDescription>Manage tax rates and billing rules.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gst_rate">GST Rate (%)</Label>
+                    <Input id="gst_rate" type="number" value={taxSettings.gst_rate} onChange={handleTaxChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="service_charge_rate">Service Charge (%)</Label>
+                    <Input id="service_charge_rate" type="number" value={taxSettings.service_charge_rate} onChange={handleTaxChange} />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-4">
+                    <Checkbox
+                      id="apply_service_charge"
                       checked={taxSettings.apply_service_charge === 'true'}
-                      onChange={(e) => setTaxSettings({...taxSettings, apply_service_charge: e.target.checked ? 'true' : 'false'})}
+                      onCheckedChange={(checked) => setTaxSettings({...taxSettings, apply_service_charge: checked ? 'true' : 'false'})}
                     />
-                    <span>Apply Service Charge</span>
-                  </label>
-                </div>
-                <div className="form-group full-width">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
+                    <Label htmlFor="apply_service_charge" className="font-normal">Apply Service Charge</Label>
+                  </div>
+                  <div className="flex items-center space-x-2 pt-4">
+                    <Checkbox
+                      id="tax_inclusive"
                       checked={taxSettings.tax_inclusive === 'true'}
-                      onChange={(e) => setTaxSettings({...taxSettings, tax_inclusive: e.target.checked ? 'true' : 'false'})}
+                      onCheckedChange={(checked) => setTaxSettings({...taxSettings, tax_inclusive: checked ? 'true' : 'false'})}
                     />
-                    <span>Tax Inclusive Pricing</span>
-                  </label>
+                    <Label htmlFor="tax_inclusive" className="font-normal">Tax Inclusive Pricing</Label>
+                  </div>
                 </div>
-              </div>
-              <div className="settings-actions">
-                <button onClick={handleSaveTaxSettings} className="btn-primary" disabled={loading}>
-                  <Save size={18} /> {loading ? 'Saving...' : 'Save Tax Settings'}
-                </button>
-              </div>
+                <Button onClick={handleSaveTaxSettings} disabled={loading}>
+                  <Save size={18} className="mr-2" /> {loading ? 'Saving...' : 'Save Tax Settings'}
+                </Button>
+              </CardContent>
             </Card>
-          )}
+          </TabsContent>
 
           {/* Room Settings Tab */}
-          {activeTab === 'room' && (
-            <Card title="Room Configuration">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Default Check-in Time</label>
-                  <input
-                    type="time"
-                    value={roomSettings.default_checkin_time}
-                    onChange={(e) => setRoomSettings({...roomSettings, default_checkin_time: e.target.value})}
-                  />
+          <TabsContent value="room">
+            <Card>
+              <CardHeader>
+                <CardTitle>Room Configuration</CardTitle>
+                <CardDescription>Manage default room policies and charges.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="default_checkin_time">Default Check-in Time</Label>
+                    <Input id="default_checkin_time" type="time" value={roomSettings.default_checkin_time} onChange={handleRoomChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="default_checkout_time">Default Check-out Time</Label>
+                    <Input id="default_checkout_time" type="time" value={roomSettings.default_checkout_time} onChange={handleRoomChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="early_checkin_charge">Early Check-in Charge (₹)</Label>
+                    <Input id="early_checkin_charge" type="number" value={roomSettings.early_checkin_charge} onChange={handleRoomChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="late_checkout_charge">Late Check-out Charge (₹)</Label>
+                    <Input id="late_checkout_charge" type="number" value={roomSettings.late_checkout_charge} onChange={handleRoomChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="extra_bed_charge">Extra Bed Charge (₹)</Label>
+                    <Input id="extra_bed_charge" type="number" value={roomSettings.extra_bed_charge} onChange={handleRoomChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="child_age_limit">Child Age Limit (years)</Label>
+                    <Input id="child_age_limit" type="number" value={roomSettings.child_age_limit} onChange={handleRoomChange} />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Default Check-out Time</label>
-                  <input
-                    type="time"
-                    value={roomSettings.default_checkout_time}
-                    onChange={(e) => setRoomSettings({...roomSettings, default_checkout_time: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Early Check-in Charge (₹)</label>
-                  <input
-                    type="number"
-                    value={roomSettings.early_checkin_charge}
-                    onChange={(e) => setRoomSettings({...roomSettings, early_checkin_charge: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Late Check-out Charge (₹)</label>
-                  <input
-                    type="number"
-                    value={roomSettings.late_checkout_charge}
-                    onChange={(e) => setRoomSettings({...roomSettings, late_checkout_charge: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Extra Bed Charge (₹)</label>
-                  <input
-                    type="number"
-                    value={roomSettings.extra_bed_charge}
-                    onChange={(e) => setRoomSettings({...roomSettings, extra_bed_charge: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Child Age Limit (years)</label>
-                  <input
-                    type="number"
-                    value={roomSettings.child_age_limit}
-                    onChange={(e) => setRoomSettings({...roomSettings, child_age_limit: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="settings-actions">
-                <button onClick={handleSaveRoomSettings} className="btn-primary" disabled={loading}>
-                  <Save size={18} /> {loading ? 'Saving...' : 'Save Room Settings'}
-                </button>
-              </div>
+                <Button onClick={handleSaveRoomSettings} disabled={loading}>
+                  <Save size={18} className="mr-2" /> {loading ? 'Saving...' : 'Save Room Settings'}
+                </Button>
+              </CardContent>
             </Card>
-          )}
+          </TabsContent>
 
           {/* Booking Settings Tab */}
-          {activeTab === 'booking' && (
-            <Card title="Booking Configuration">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Advance Booking Days</label>
-                  <input
-                    type="number"
-                    value={bookingSettings.advance_booking_days}
-                    onChange={(e) => setBookingSettings({...bookingSettings, advance_booking_days: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Minimum Booking Days</label>
-                  <input
-                    type="number"
-                    value={bookingSettings.min_booking_days}
-                    onChange={(e) => setBookingSettings({...bookingSettings, min_booking_days: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Maximum Booking Days</label>
-                  <input
-                    type="number"
-                    value={bookingSettings.max_booking_days}
-                    onChange={(e) => setBookingSettings({...bookingSettings, max_booking_days: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Cancellation Notice (hours)</label>
-                  <input
-                    type="number"
-                    value={bookingSettings.cancellation_hours}
-                    onChange={(e) => setBookingSettings({...bookingSettings, cancellation_hours: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Cancellation Charge (%)</label>
-                  <input
-                    type="number"
-                    value={bookingSettings.cancellation_charge_percent}
-                    onChange={(e) => setBookingSettings({...bookingSettings, cancellation_charge_percent: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Minimum Advance Payment (%)</label>
-                  <input
-                    type="number"
-                    value={bookingSettings.minimum_advance_percent}
-                    onChange={(e) => setBookingSettings({...bookingSettings, minimum_advance_percent: e.target.value})}
-                  />
-                </div>
-                <div className="form-group full-width">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
+          <TabsContent value="booking">
+            <Card>
+              <CardHeader>
+                <CardTitle>Booking Configuration</CardTitle>
+                <CardDescription>Manage rules for online and offline bookings.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="advance_booking_days">Advance Booking Days</Label>
+                    <Input id="advance_booking_days" type="number" value={bookingSettings.advance_booking_days} onChange={handleBookingChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="min_booking_days">Minimum Booking Days</Label>
+                    <Input id="min_booking_days" type="number" value={bookingSettings.min_booking_days} onChange={handleBookingChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="max_booking_days">Maximum Booking Days</Label>
+                    <Input id="max_booking_days" type="number" value={bookingSettings.max_booking_days} onChange={handleBookingChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cancellation_hours">Cancellation Notice (hours)</Label>
+                    <Input id="cancellation_hours" type="number" value={bookingSettings.cancellation_hours} onChange={handleBookingChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cancellation_charge_percent">Cancellation Charge (%)</Label>
+                    <Input id="cancellation_charge_percent" type="number" value={bookingSettings.cancellation_charge_percent} onChange={handleBookingChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="minimum_advance_percent">Minimum Advance Payment (%)</Label>
+                    <Input id="minimum_advance_percent" type="number" value={bookingSettings.minimum_advance_percent} onChange={handleBookingChange} />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-4 col-span-2">
+                    <Checkbox
+                      id="require_advance_payment"
                       checked={bookingSettings.require_advance_payment === 'true'}
-                      onChange={(e) => setBookingSettings({...bookingSettings, require_advance_payment: e.target.checked ? 'true' : 'false'})}
+                      onCheckedChange={(checked) => setBookingSettings({...bookingSettings, require_advance_payment: checked ? 'true' : 'false'})}
                     />
-                    <span>Require Advance Payment</span>
-                  </label>
+                    <Label htmlFor="require_advance_payment" className="font-normal">Require Advance Payment for Bookings</Label>
+                  </div>
                 </div>
-              </div>
-              <div className="settings-actions">
-                <button onClick={handleSaveBookingSettings} className="btn-primary" disabled={loading}>
-                  <Save size={18} /> {loading ? 'Saving...' : 'Save Booking Settings'}
-                </button>
-              </div>
+                <Button onClick={handleSaveBookingSettings} disabled={loading}>
+                  <Save size={18} className="mr-2" /> {loading ? 'Saving...' : 'Save Booking Settings'}
+                </Button>
+              </CardContent>
             </Card>
-          )}
+          </TabsContent>
 
           {/* System Settings Tab */}
-          {activeTab === 'system' && (
-            <>
-              <Card title="Data Management">
-                <div className="data-management">
-                  <div className="data-action">
+          <TabsContent value="system">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Data Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
                     <div>
-                      <h4>Backup Database</h4>
-                      <p>Create a complete backup of all system data as JSON</p>
+                      <h4 className="font-semibold">Backup Database</h4>
+                      <p className="text-sm text-muted-foreground">Create a complete backup of all system data as JSON</p>
                     </div>
-                    <button onClick={handleBackup} className="btn-primary" disabled={loading}>
-                      <Download size={18} /> Create Backup
-                    </button>
+                    <Button onClick={handleBackup} disabled={loading}>
+                      <Download size={18} className="mr-2" /> Create Backup
+                    </Button>
                   </div>
-                  <div className="data-action">
-                    <div>
-                      <h4>Current User</h4>
-                      <p><strong>Name:</strong> {user?.name}</p>
-                      <p><strong>Role:</strong> {user?.role}</p>
-                      <p><strong>Email:</strong> {user?.email || 'Not set'}</p>
-                    </div>
-                  </div>
-                </div>
+                </CardContent>
               </Card>
 
-              <Card title="About">
-                <div style={{ padding: '16px' }}>
-                  <h4 style={{ marginBottom: '12px' }}>Hotel Management System</h4>
-                  <p style={{ color: '#6b7280', marginBottom: '8px' }}>Version 1.0.0</p>
-                  <p style={{ color: '#6b7280', marginBottom: '8px' }}>Built with React + Supabase</p>
-                  <p style={{ color: '#6b7280' }}>© 2025 All rights reserved</p>
-                </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Current User</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p><strong>Name:</strong> {user?.name}</p>
+                  <p><strong>Role:</strong> {user?.role}</p>
+                  <p><strong>Email:</strong> {user?.email || 'Not set'}</p>
+                </CardContent>
               </Card>
-            </>
-          )}
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>About</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-1">
+                  <p><strong>Hotel Management System</strong> Version 1.0.0</p>
+                  <p>Built with React + Supabase</p>
+                  <p>© 2025 All rights reserved</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </div>
-      </div>
+      </Tabs>
     </div>
   );
 };
