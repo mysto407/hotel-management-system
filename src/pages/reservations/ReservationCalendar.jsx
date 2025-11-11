@@ -1,6 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronRight, ChevronLeft, Calendar, CalendarDays, Users, Home, RefreshCw, X, Lock, UserPlus, Edit2, XOctagon, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft, Calendar, RefreshCw, X, Lock, Edit2, XOctagon, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
@@ -1249,103 +1249,8 @@ const ReservationCalendar = () => {
     }
   };
 
-  // Calculate summary statistics
-  const totalAvailable = rooms.filter(r => {
-    const today = new Date().toISOString().split('T')[0];
-    const roomReservations = getReservationsForRoom(r.id);
-    const todayObj = new Date(today);
-    
-    const isOccupied = roomReservations.some(res => {
-      const checkIn = new Date(res.check_in_date);
-      const checkOut = new Date(res.check_out_date);
-      return todayObj >= checkIn && todayObj < checkOut;
-    });
-    
-    return !isOccupied && r.status === 'Available';
-  }).length;
-
-  const totalOccupied = rooms.length - totalAvailable;
-
   return (
     <div className={styles.calendarPage}>
-      {/* Page Header */}
-      <div className={styles.calendarPageHeader}>
-        <div className={styles.calendarTitleBar}>
-          <div>
-            <h1 className={styles.calendarMainTitle}>
-              <CalendarDays size={28} />
-              Booking Calendar
-            </h1>
-            <p className={styles.calendarSubtitle}>Manage room availability and reservations</p>
-          </div>
-        </div>
-
-        {/* Navigation & Controls Toolbar */}
-        <div className={styles.calendarToolbar}>
-          <div className={styles.calendarNavButtons}>
-            <button onClick={goToPreviousWeek} className={styles.calendarNavBtn}>
-              <ChevronLeft size={18} />
-              <span>Previous</span>
-            </button>
-            <button onClick={goToToday} className={`${styles.calendarNavBtn} ${styles.todayBtn}`}>
-              <Calendar size={18} />
-              <span>Today</span>
-            </button>
-            <button onClick={goToNextWeek} className={styles.calendarNavBtn}>
-              <span>Next</span>
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          <div className={styles.calendarViewControls}>
-            <input
-              type="date"
-              value={startDate.toISOString().split('T')[0]}
-              onChange={handleDatePickerChange}
-              className={styles.calendarDateInput}
-            />
-            <select
-              value={daysToShow}
-              onChange={(e) => setDaysToShow(parseInt(e.target.value))}
-              className={styles.calendarDaysSelect}
-            >
-              <option value="7">7 Days</option>
-              <option value="14">14 Days</option>
-              <option value="30">30 Days</option>
-            </select>
-          </div>
-          
-          <div className={styles.calendarHeaderActions}>
-            <div className={styles.calendarQuickStats}>
-              <div className={styles.quickStatItem}>
-                <Home size={20} />
-                <div>
-                  <div className={styles.quickStatValue}>{totalAvailable}</div>
-                  <div className={styles.quickStatLabel}>Available</div>
-                </div>
-              </div>
-              <div className={styles.quickStatItem}>
-                <Users size={20} />
-                <div>
-                  <div className={styles.quickStatValue}>{totalOccupied}</div>
-                  <div className={styles.quickStatLabel}>Occupied</div>
-                </div>
-              </div>
-            </div>
-            
-            <button 
-              onClick={handleRefresh} 
-              className={`${styles.calendarRefreshBtn} ${isRefreshing ? styles.refreshing : ''}`}
-              disabled={isRefreshing}
-              title="Refresh calendar data"
-            >
-              <RefreshCw size={18} />
-              <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Calendar Grid */}
       <div ref={containerRef} className={styles.calendarContainer}>
         <table className={styles.calendarTable}>
@@ -1353,7 +1258,47 @@ const ReservationCalendar = () => {
             <tr>
               <th className={styles.calendarFixedColumn}>
                 <div className={styles.fixedColumnHeader}>
-                  <span>Room Type / Room</span>
+                  {/* Navigation & Controls Toolbar */}
+                  <div className={styles.calendarToolbar}>
+                    <div className={styles.calendarNavButtons}>
+                      <button onClick={goToPreviousWeek} className={styles.calendarNavBtn} title="Previous week">
+                        <ChevronLeft size={16} />
+                      </button>
+                      <button onClick={goToToday} className={`${styles.calendarNavBtn} ${styles.todayBtn}`} title="Go to today">
+                        <Calendar size={16} />
+                      </button>
+                      <button onClick={goToNextWeek} className={styles.calendarNavBtn} title="Next week">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+
+                    <div className={styles.calendarViewControls}>
+                      <input
+                        type="date"
+                        value={startDate.toISOString().split('T')[0]}
+                        onChange={handleDatePickerChange}
+                        className={styles.calendarDateInput}
+                      />
+                      <select
+                        value={daysToShow}
+                        onChange={(e) => setDaysToShow(parseInt(e.target.value))}
+                        className={styles.calendarDaysSelect}
+                      >
+                        <option value="7">7 Days</option>
+                        <option value="14">14 Days</option>
+                        <option value="30">30 Days</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={handleRefresh}
+                      className={`${styles.calendarRefreshBtn} ${isRefreshing ? styles.refreshing : ''}`}
+                      disabled={isRefreshing}
+                      title="Refresh calendar data"
+                    >
+                      <RefreshCw size={16} />
+                    </button>
+                  </div>
                 </div>
               </th>
               {generateDates.map(date => {
