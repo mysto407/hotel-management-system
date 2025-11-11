@@ -16,8 +16,7 @@ export const Header = ({ currentPage, onNavigate }) => {
   const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'reservations', label: 'Reservation', icon: Calendar },
-    { id: 'reservation-calendar', label: 'Calendar', icon: CalendarDays },
-    { id: 'settings', label: 'Account', icon: Settings }
+    { id: 'reservation-calendar', label: 'Calendar', icon: CalendarDays }
   ];
 
   // All navigation items organized by category
