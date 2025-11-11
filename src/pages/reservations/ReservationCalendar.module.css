@@ -249,7 +249,7 @@
 .roomRow {
     border-top: 1px solid #f1f5f9;
     position: relative;
-    height: 36px;
+    height: 15px;
 }
 
 .roomRow:hover {
@@ -278,7 +278,7 @@
 .calendarCell {
     min-width: 90px;
     max-width: 90px;
-    height: 36px;
+    height: 15px;
     padding: 0;
     border-right: 1px solid #e2e8f0;
     border-bottom: 1px solid #f1f5f9;
@@ -318,7 +318,7 @@
     left: 200px;
     /* Match fixed column width */
     right: 0;
-    height: 36px;
+    height: 15px;
     pointer-events: none;
     z-index: 5;
 }
