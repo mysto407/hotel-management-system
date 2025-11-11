@@ -149,7 +149,6 @@
 .calendarContainer {
     overflow: auto;
     width: 100%;
-    height: 100%;
     flex: 1;
     background: white;
     position: relative;
@@ -269,7 +268,7 @@
 .roomTypeRow {
     background: #fafafa;
     border-top: 2px solid #e2e8f0;
-    height: 28px;
+    height: 20px;
 }
 
 .roomTypeRow:hover {
@@ -281,7 +280,7 @@
     text-align: center;
     border-right: 1px solid #e2e8f0;
     background: #fafafa;
-    height: 28px;
+    height: 20px;
 }
 
 .roomTypeToggle {
