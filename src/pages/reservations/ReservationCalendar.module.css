@@ -346,7 +346,7 @@
 .roomRow {
     border-top: 1px solid #f1f5f9;
     position: relative;
-    height: 10px;
+    height: 36px;
 }
 
 .roomRow:hover {
@@ -375,7 +375,7 @@
 .calendarCell {
     min-width: 90px;
     max-width: 90px;
-    height: 10px;
+    height: 36px;
     padding: 0;
     border-right: 1px solid #e2e8f0;
     border-bottom: 1px solid #f1f5f9;
@@ -415,7 +415,7 @@
     left: 200px;
     /* Match fixed column width */
     right: 0;
-    height: 10px;
+    height: 36px;
     pointer-events: none;
     z-index: 5;
 }
@@ -431,7 +431,7 @@
     /* MODIFIED: Changed top from 6px to 3px */
     top: 3px;
     /* MODIFIED: Changed height to 30px to fit the 36px row */
-    height: 10px;
+    height: 30px;
     border-radius: 0px;
     display: flex;
     align-items: center;
@@ -459,7 +459,7 @@
 .selectionBar {
     position: absolute;
     top: 3px;
-    height: 10px;
+    height: 30px;
     display: flex;
     align-items: center;
     padding: 0 24px;
@@ -676,10 +676,10 @@
     .calendarCell {
         min-width: 70px;
         max-width: 70px;
-        height: 10px;
+        height: 34px;
     }
     .roomRow {
-        height: 10px;
+        height: 34px;
     }
     .reservationBarsContainer {
         height: 34px;
