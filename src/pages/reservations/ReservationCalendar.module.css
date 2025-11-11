@@ -346,7 +346,7 @@
 .roomRow {
     border-top: 1px solid #f1f5f9;
     position: relative;
-    height: 36px;
+    height: 10px;
 }
 
 .roomRow:hover {
@@ -679,7 +679,7 @@
         height: 34px;
     }
     .roomRow {
-        height: 34px;
+        height: 10px;
     }
     .reservationBarsContainer {
         height: 34px;
