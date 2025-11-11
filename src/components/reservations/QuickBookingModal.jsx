@@ -136,7 +136,7 @@ export const QuickBookingModal = ({
                     <SelectValue placeholder="Select Agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Select Agent</SelectItem>
+                    {/* <SelectItem value="">Select Agent</SelectItem>  <-- REMOVED THIS LINE */}
                     {agents && agents.map(agent => (
                       <SelectItem key={agent.id} value={agent.id}>
                         {agent.name}
@@ -163,7 +163,7 @@ export const QuickBookingModal = ({
                   <SelectValue placeholder="Select Guest" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Select Guest</SelectItem>
+                  {/* <SelectItem value="">Select Guest</SelectItem>  <-- REMOVED THIS LINE */}
                   {guests.map(guest => (
                     <SelectItem key={guest.id} value={guest.id}>
                       {guest.name} - {guest.phone}

@@ -10,9 +10,14 @@
 /* Calendar Page Layout */
 
 .calendarPage {
-    padding: 24px;
     background: #f8fafc;
-    min-height: 100vh;
+    width: 100%;
+}
+
+.calendarPage *,
+.calendarPage *::before,
+.calendarPage *::after {
+    box-sizing: border-box;
 }
 
 
@@ -735,9 +740,6 @@
 }
 
 @media (max-width: 768px) {
-    .calendarPage {
-        padding: 12px;
-    }
     .calendarPageHeader {
         padding: 16px;
     }

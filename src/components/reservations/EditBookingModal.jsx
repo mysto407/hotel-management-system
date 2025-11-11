@@ -268,7 +268,7 @@ export const EditBookingModal = ({
                       <SelectValue placeholder="Select agent" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Select Agent</SelectItem>
+                      {/* <SelectItem value="">Select Agent</SelectItem>  <-- REMOVED THIS LINE */}
                       {agents.map(agent => (
                         <SelectItem key={agent.id} value={agent.id}>
                           {agent.name} - {agent.phone}
@@ -299,7 +299,7 @@ export const EditBookingModal = ({
                     <SelectValue placeholder="Select guest" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Select Guest</SelectItem>
+                    {/* <SelectItem value="">Select Guest</SelectItem>  <-- REMOVED THIS LINE */}
                     {guests.map(guest => (
                       <SelectItem key={guest.id} value={guest.id}>
                         {guest.name} - {guest.phone}
@@ -408,7 +408,7 @@ export const EditBookingModal = ({
                             <SelectValue placeholder="Select Room Type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Select Room Type</SelectItem>
+                            {/* <SelectItem value="">Select Room Type</SelectItem>  <-- REMOVED THIS LINE */}
                             {roomTypes.map(roomType => {
                               const availableCount = getAvailableRoomsByType(roomType.id).length;
                               return (
@@ -433,7 +433,7 @@ export const EditBookingModal = ({
                               <SelectValue placeholder="Select Room Number" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Select Room Number</SelectItem>
+                              {/* <SelectItem value="">Select Room Number</SelectItem>  <-- REMOVED THIS LINE */}
                               {getAvailableRoomsByType(roomDetail.room_type_id)
                                 .filter(room => 
                                   room.id === roomDetail.room_id || 

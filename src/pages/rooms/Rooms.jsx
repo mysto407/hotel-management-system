@@ -208,10 +208,14 @@ const Rooms = () => {
                 onValueChange={(value) => setFormData({...formData, room_type_id: value})}
               >
                 <SelectTrigger id="room_type_id">
+                  {/* This placeholder will show when value is "" */}
                   <SelectValue placeholder="Select Room Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Select Room Type</SelectItem>
+                  {/*
+                    THIS LINE WAS REMOVED:
+                    <SelectItem value="">Select Room Type</SelectItem>
+                  */}
                   {roomTypes.map(type => (
                     <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                   ))}

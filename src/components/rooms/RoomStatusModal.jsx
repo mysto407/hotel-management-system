@@ -12,6 +12,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label"; // <-- ADD THIS LINE
+
 import { cn } from '@/lib/utils';
 
 export const RoomStatusModal = ({ isOpen, onClose, room }) => {

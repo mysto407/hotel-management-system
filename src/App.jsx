@@ -6,19 +6,21 @@ import { BillingProvider } from './context/BillingContext';
 import { InventoryProvider } from './context/InventoryContext';
 import { GuestProvider } from './context/GuestContext';
 import { AgentProvider } from './context/AgentContext';
-import { ExpenseProvider } from './context/ExpensesContext'; // ADD THIS
+import { ExpenseProvider } from './context/ExpensesContext';
 import { Layout } from './components/layout/Layout';
 import Login from './pages/auth/Login';
-import './styles/App.css';
+import { Loader2 } from 'lucide-react'; // Import a loading icon
+// import './styles/App.css'; // REMOVE THIS LINE
 
 function AppContent() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
+      // Use Tailwind for loading screen
+      <div className="flex h-screen w-full flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-lg text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -39,9 +41,9 @@ function App() {
             <InventoryProvider>
               <GuestProvider>
                 <AgentProvider>
-                  <ExpenseProvider> {/* ADD THIS */}
+                  <ExpenseProvider>
                     <AppContent />
-                  </ExpenseProvider> {/* ADD THIS */}
+                  </ExpenseProvider>
                 </AgentProvider>
               </GuestProvider>
             </InventoryProvider>

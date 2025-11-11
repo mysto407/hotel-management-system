@@ -1,13 +1,19 @@
+// src/components/layout/Sidebar.jsx
 import { useState, useEffect } from 'react';
 import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import styles from './Sidebar.module.css'; // Import the CSS module
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
   const { user } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   
-  // Detect mobile/desktop
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 1024);
@@ -17,13 +23,11 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
   
-  // Load sidebar collapsed state from localStorage (desktop only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved ? JSON.parse(saved) : false;
   });
   
-  // All categories collapsed by default (desktop only)
   const [expandedCategories, setExpandedCategories] = useState({
     'Room Management': false,
     'Reservations': false,
@@ -32,7 +36,6 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     'Operations': false
   });
   
-  // Simple flat menu for mobile (original style)
   const flatMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, roles: ['Admin', 'Front Desk', 'Accounts'] },
     { id: 'room-types', label: 'Room Types', icon: Building2, roles: ['Admin'] },
@@ -125,45 +128,51 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     const newState = !sidebarCollapsed;
     setSidebarCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
+    // Dispatch custom event to notify Layout component
+    window.dispatchEvent(new Event('sidebarCollapseChange'));
   };
 
-  // --- Compile class names ---
-  const sidebarClasses = [
-    styles.sidebar,
-    isOpen ? styles.open : '',
-    !isMobile && sidebarCollapsed ? styles.collapsed : ''
-  ].filter(Boolean).join(' ');
-
-  // Mobile: Render simple flat menu
+  // --- Mobile Sidebar ---
   if (isMobile) {
     return (
       <>
-        {isOpen && <div className={`${styles.overlay} ${styles.mobileOnly}`} onClick={onClose} />}
+        {/* Overlay */}
+        <div
+          onClick={onClose}
+          className={cn(
+            "fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden",
+            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+        />
         
-        <aside className={sidebarClasses}>
-          <div className={styles.sidebarHeader}>
-            <button onClick={onClose} className={styles.menuBtn}>
+        {/* Mobile Sidebar Content */}
+        <aside
+          className={cn(
+            "fixed inset-y-0 left-0 z-50 flex h-full w-72 flex-col border-r bg-background transition-transform duration-300 ease-in-out lg:hidden",
+            isOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="flex h-16 items-center border-b px-6">
+            <Button onClick={onClose} variant="ghost" size="icon">
               <Menu size={24} />
-            </button>
+            </Button>
+            {/* You can add a logo here if you want */}
           </div>
           
-          <nav className={styles.sidebarNav}>
+          <nav className="flex-1 overflow-y-auto p-4">
             {filteredFlatItems.map((item) => {
               const Icon = item.icon;
-              const itemClasses = [
-                styles.navItem,
-                currentPage === item.id ? styles.active : ''
-              ].filter(Boolean).join(' ');
-
               return (
-                <button
+                <Button
                   key={item.id}
+                  variant={currentPage === item.id ? "secondary" : "ghost"}
+                  size="lg"
+                  className="w-full justify-start gap-3"
                   onClick={() => handleNavigate(item.id)}
-                  className={itemClasses}
                 >
                   <Icon size={20} />
                   <span>{item.label}</span>
-                </button>
+                </Button>
               );
             })}
           </nav>
@@ -172,128 +181,167 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     );
   }
 
-  // Desktop: Render categorized collapsible menu
+  // --- Desktop Sidebar ---
   return (
-    <>
-      <aside className={sidebarClasses}>
-        <div className={styles.sidebarHeader}>
-           <button 
-              className={styles.menuBtn} 
-              onClick={toggleSidebarCollapse}
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              <Menu size={24} />
-            </button>
+    <aside
+      className={cn(
+        "hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex h-screen flex-col border-r bg-background shadow-lg transition-all duration-300 ease-in-out",
+        sidebarCollapsed ? "w-20" : "w-72"
+      )}
+    >
+      {/* Header Section */}
+      <div className="flex h-16 items-center border-b px-4 bg-gradient-to-r from-primary/5 to-primary/10">
+        <div className={cn("flex items-center gap-3 flex-1", sidebarCollapsed && "justify-center")}>
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2">
+              <Hotel className="h-7 w-7 text-primary" />
+              <div className="flex flex-col">
+                <span className="font-bold text-base leading-tight">Hotel Manager</span>
+                <span className="text-xs text-muted-foreground">Management System</span>
+              </div>
+            </div>
+          )}
+          {sidebarCollapsed && (
+            <Hotel className="h-7 w-7 text-primary" />
+          )}
         </div>
-        
-        <nav className={styles.sidebarNav}>
-          {filteredCategories.map((category, categoryIndex) => (
-            <div key={categoryIndex}>
-              {category.category ? (
-                <>
-                  <button
-                    className={styles.navCategoryToggle}
-                    onClick={() => toggleCategory(category.category)}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebarCollapse}
+          className="ml-auto"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <Menu size={20} />
+        </Button>
+      </div>
+
+      {/* Navigation */}
+      <nav className={cn("flex-1 overflow-y-auto px-3 py-4 space-y-1", sidebarCollapsed && "px-2")}>
+        {filteredCategories.map((category, categoryIndex) => (
+          <div key={categoryIndex} className={cn(categoryIndex > 0 && "mt-4")}>
+            {category.category ? (
+              <Collapsible
+                open={expandedCategories[category.category]}
+                onOpenChange={() => toggleCategory(category.category)}
+              >
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start gap-2 h-auto py-2 px-3 hover:bg-muted/50",
+                      sidebarCollapsed && "justify-center px-2"
+                    )}
                     title={sidebarCollapsed ? category.category : ''}
                   >
                     {!sidebarCollapsed && (
                       <>
-                        <span className={styles.navCategoryLabel}>{category.category}</span>
-                        <ChevronDown 
-                          size={16} 
-                          style={{
-                            transform: expandedCategories[category.category] ? 'rotate(0deg)' : 'rotate(-90deg)',
-                            transition: 'transform 0.2s ease'
-                          }}
+                        <span className="text-xs font-semibold uppercase text-muted-foreground/80 flex-1 text-left tracking-wide">
+                          {category.category}
+                        </span>
+                        <ChevronDown
+                          size={14}
+                          className={cn(
+                            "transition-transform text-muted-foreground/60",
+                            expandedCategories[category.category] && "rotate-180"
+                          )}
                         />
                       </>
                     )}
                     {sidebarCollapsed && (
-                      <div className={styles.collapsedCategoryIcon}>
+                      <div className="flex items-center justify-center h-6">
                         {category.items[0] && (() => {
                           const Icon = category.items[0].icon;
-                          return <Icon size={20} />;
+                          return <Icon size={18} className="text-muted-foreground/60" />;
                         })()}
                       </div>
                     )}
-                  </button>
-                  
-                  {!sidebarCollapsed && expandedCategories[category.category] && (
-                    <div className={styles.navCategoryItems}>
-                      {category.items.map((item) => {
-                        const Icon = item.icon;
-                        const itemClasses = [
-                          styles.navItem,
-                          currentPage === item.id ? styles.active : ''
-                        ].filter(Boolean).join(' ');
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNavigate(item.id)}
-                            className={itemClasses}
-                          >
-                            <Icon size={20} />
-                            <span>{item.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  
-                  {sidebarCollapsed && (
-                    <div className={styles.collapsedCategoryItems}>
-                      {category.items.map((item) => {
-                        const Icon = item.icon;
-                        const itemClasses = [
-                          styles.navItem,
-                          styles.collapsed,
-                          currentPage === item.id ? styles.active : ''
-                        ].filter(Boolean).join(' ');
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleNavigate(item.id)}
-                            className={itemClasses}
-                            title={item.label}
-                          >
-                            <Icon size={20} />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
+                  </Button>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className={cn("space-y-0.5 mt-1", !sidebarCollapsed && "ml-0")}>
                   {category.items.map((item) => {
                     const Icon = item.icon;
-                    const itemClasses = [
-                      styles.navItem,
-                      currentPage === item.id ? styles.active : '',
-                      sidebarCollapsed ? styles.collapsed : ''
-                    ].filter(Boolean).join(' ');
+                    const isActive = currentPage === item.id;
                     return (
-                      <button
+                      <Button
                         key={item.id}
-                        onClick={() => handleNavigate(item.id)}
-                        className={itemClasses}
+                        variant={isActive ? "secondary" : "ghost"}
+                        className={cn(
+                          "w-full justify-start gap-3 h-10 px-3 font-medium transition-all",
+                          sidebarCollapsed && "justify-center px-2",
+                          isActive && "bg-primary/10 text-primary hover:bg-primary/15 shadow-sm",
+                          !isActive && "hover:bg-muted/70"
+                        )}
                         title={sidebarCollapsed ? item.label : ''}
+                        onClick={() => handleNavigate(item.id)}
                       >
-                        <Icon size={20} />
-                        {!sidebarCollapsed && <span>{item.label}</span>}
-                      </button>
+                        <Icon size={20} className={isActive ? "text-primary" : ""} />
+                        {!sidebarCollapsed && <span className="text-sm">{item.label}</span>}
+                      </Button>
                     );
                   })}
-                </>
-              )}
-              
-              {categoryIndex < filteredCategories.length - 1 && !sidebarCollapsed && (
-                <div className={styles.navSeparator}></div>
-              )}
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              // Items without a category (like Dashboard, Settings)
+              category.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                return (
+                  <Button
+                    key={item.id}
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start gap-3 h-11 px-3 font-medium transition-all",
+                      sidebarCollapsed && "justify-center px-2",
+                      isActive && "bg-primary/10 text-primary hover:bg-primary/15 shadow-sm",
+                      !isActive && "hover:bg-muted/70"
+                    )}
+                    title={sidebarCollapsed ? item.label : ''}
+                    onClick={() => handleNavigate(item.id)}
+                  >
+                    <Icon size={22} className={isActive ? "text-primary" : ""} />
+                    {!sidebarCollapsed && <span className="text-sm">{item.label}</span>}
+                  </Button>
+                );
+              })
+            )}
+
+            {categoryIndex < filteredCategories.length - 1 && !sidebarCollapsed && (
+              <div className="py-3">
+                <div className="h-px w-full bg-border/50"></div>
+              </div>
+            )}
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer Section */}
+      <div className={cn("border-t p-4 bg-muted/30", sidebarCollapsed && "p-2")}>
+        <div className={cn("flex items-center gap-3", sidebarCollapsed && "justify-center")}>
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-semibold text-primary">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.role || 'Role'}</p>
+              </div>
             </div>
-          ))}
-        </nav>
-      </aside>
-    </>
+          )}
+          {sidebarCollapsed && (
+            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-sm font-semibold text-primary">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
   );
 };
