@@ -128,11 +128,28 @@ export const Header = ({ currentPage, onNavigate }) => {
 
         {/* User Info + Logout */}
         <div className="ml-auto lg:ml-4 flex items-center gap-2">
-          <div className="hidden md:flex flex-col items-end">
+          <div className="hidden xl:flex flex-col items-end">
             <span className="font-medium text-sm">{user?.name}</span>
             <span className="text-xs text-muted-foreground">{user?.role}</span>
           </div>
-          <Button onClick={logout} variant="ghost" size="icon" title="Logout">
+          <Button
+            onClick={logout}
+            variant="ghost"
+            size="sm"
+            className="gap-2 hidden lg:flex"
+            title="Logout"
+          >
+            <LogOut size={18} />
+            <span>Logout</span>
+          </Button>
+          {/* Mobile Logout */}
+          <Button
+            onClick={logout}
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            title="Logout"
+          >
             <LogOut className="h-5 w-5" />
             <span className="sr-only">Logout</span>
           </Button>
