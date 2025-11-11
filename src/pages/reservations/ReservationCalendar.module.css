@@ -269,7 +269,7 @@
 .roomTypeRow {
     background: #fafafa;
     border-top: 2px solid #e2e8f0;
-    height: 28px;
+    height: 36px;
 }
 
 .roomTypeRow:hover {
@@ -281,15 +281,15 @@
     text-align: center;
     border-right: 1px solid #e2e8f0;
     background: #fafafa;
-    height: 28px;
+    height: 36px;
 }
 
 .roomTypeToggle {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
+    gap: 8px;
+    padding: 8px 12px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -300,13 +300,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     background: #dbeafe;
     color: #2563eb;
-    border-radius: 3px;
+    border-radius: 6px;
     transition: all 0.2s ease;
-    flex-shrink: 0;
 }
 
 .roomTypeToggle:hover .roomTypeIcon {
@@ -316,18 +315,17 @@
 .roomTypeInfo {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 3px;
 }
 
 .roomTypeInfo strong {
-    font-size: 12px;
+    font-size: 14px;
     color: #111827;
     font-weight: 600;
-    line-height: 1.1;
 }
 
 .roomCount {
-    font-size: 9px;
+    font-size: 11px;
     color: #6b7280;
     font-weight: 500;
 }
@@ -336,8 +334,8 @@
 /* Room Type Availability */
 
 .roomTypeAvailability {
-    padding: 4px;
-    font-size: 12px;
+    padding: 12px 8px;
+    font-size: 13px;
     font-weight: 700;
     color: #374151;
 }
