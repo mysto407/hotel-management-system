@@ -17,6 +17,12 @@ import { AddGuestModal } from '../../components/guests/AddGuestModal';
 import { AddAgentModal } from '../../components/agents/AddAgentModal';
 import { RoomStatusModal } from '../../components/rooms/RoomStatusModal';
 
+// Import shadcn/ui components
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Badge } from '../../components/ui/badge';
+
 const ReservationCalendar = () => {
   const { reservations, fetchReservations, addReservation, updateReservation, cancelReservation, deleteReservation } = useReservations();
   const { rooms, roomTypes, fetchRooms } = useRooms();
@@ -1261,43 +1267,67 @@ const ReservationCalendar = () => {
                   {/* Navigation & Controls Toolbar */}
                   <div className={styles.calendarToolbar}>
                     <div className={styles.calendarNavButtons}>
-                      <button onClick={goToPreviousWeek} className={styles.calendarNavBtn} title="Previous week">
+                      <Button
+                        onClick={goToPreviousWeek}
+                        variant="outline"
+                        size="sm"
+                        title="Previous week"
+                        className="flex-1"
+                      >
                         <ChevronLeft size={16} />
-                      </button>
-                      <button onClick={goToToday} className={`${styles.calendarNavBtn} ${styles.todayBtn}`} title="Go to today">
+                      </Button>
+                      <Button
+                        onClick={goToToday}
+                        variant="secondary"
+                        size="sm"
+                        title="Go to today"
+                        className="flex-1 bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200"
+                      >
                         <Calendar size={16} />
-                      </button>
-                      <button onClick={goToNextWeek} className={styles.calendarNavBtn} title="Next week">
+                      </Button>
+                      <Button
+                        onClick={goToNextWeek}
+                        variant="outline"
+                        size="sm"
+                        title="Next week"
+                        className="flex-1"
+                      >
                         <ChevronRight size={16} />
-                      </button>
+                      </Button>
                     </div>
 
                     <div className={styles.calendarViewControls}>
-                      <input
+                      <Input
                         type="date"
                         value={startDate.toISOString().split('T')[0]}
                         onChange={handleDatePickerChange}
-                        className={styles.calendarDateInput}
+                        className="h-8 text-xs"
                       />
-                      <select
-                        value={daysToShow}
-                        onChange={(e) => setDaysToShow(parseInt(e.target.value))}
-                        className={styles.calendarDaysSelect}
+                      <Select
+                        value={daysToShow.toString()}
+                        onValueChange={(value) => setDaysToShow(parseInt(value))}
                       >
-                        <option value="7">7 Days</option>
-                        <option value="14">14 Days</option>
-                        <option value="30">30 Days</option>
-                      </select>
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="7">7 Days</SelectItem>
+                          <SelectItem value="14">14 Days</SelectItem>
+                          <SelectItem value="30">30 Days</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    <button
+                    <Button
                       onClick={handleRefresh}
-                      className={`${styles.calendarRefreshBtn} ${isRefreshing ? styles.refreshing : ''}`}
+                      variant="outline"
+                      size="sm"
                       disabled={isRefreshing}
                       title="Refresh calendar data"
+                      className="w-full h-8 text-xs"
                     >
-                      <RefreshCw size={16} />
-                    </button>
+                      <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                    </Button>
                   </div>
                 </div>
               </th>
@@ -1514,46 +1544,48 @@ const ReservationCalendar = () => {
                 {new Date(selectedReservation.check_out_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </div>
               <div className={styles.actionMenuHeaderStatus}>
-                <span className={styles.actionMenuHeaderStatusTag} style={{ 
-                  background: selectedReservation.status === 'Confirmed' ? '#dcfce7' : 
-                             selectedReservation.status === 'Checked-in' ? '#dbeafe' : 
-                             selectedReservation.status === 'Hold' ? '#fed7aa' : '#e5e7eb',
-                  color: selectedReservation.status === 'Confirmed' ? '#166534' : 
-                        selectedReservation.status === 'Checked-in' ? '#1e40af' : 
-                        selectedReservation.status === 'Hold' ? '#9a3412' : '#374151'
-                }}>
+                <Badge
+                  className={
+                    selectedReservation.status === 'Confirmed'
+                      ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                      : selectedReservation.status === 'Checked-in'
+                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                      : selectedReservation.status === 'Hold'
+                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-100'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-200'
+                  }
+                >
                   {selectedReservation.status}
-                </span>
+                </Badge>
               </div>
             </div>
             
-            <button
+            <Button
               onClick={handleEditReservation}
-              className={`${styles.actionMenuItem} ${styles.actionMenuItemAccent}`}
+              variant="ghost"
+              className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
             >
               <Edit2 size={16} />
               Edit Reservation
-            </button>
-            
-            <button
+            </Button>
+
+            <Button
               onClick={handleCancelReservation}
-              className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
+              variant="ghost"
+              className="w-full justify-start text-rose-700 hover:text-rose-800 hover:bg-rose-50"
             >
               <XOctagon size={16} />
               Cancel Reservation
-            </button>
-            
-            <button
+            </Button>
+
+            <Button
               onClick={handleDeleteReservation}
-              className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
-              style={{
-                background: '#7f1d1d',
-                color: '#fef2f2'
-              }}
+              variant="ghost"
+              className="w-full justify-start bg-red-900 text-red-50 hover:bg-red-950 hover:text-red-50"
             >
               <Trash2 size={16} />
               Delete Permanently
-            </button>
+            </Button>
           </div>
         )}
 
@@ -1599,29 +1631,32 @@ const ReservationCalendar = () => {
               })()}
             </div>
             
-            <button
+            <Button
               onClick={handleBookRoom}
-              className={`${styles.actionMenuItem} ${styles.actionMenuItemPrimary}`}
+              variant="ghost"
+              className="w-full justify-start text-green-700 hover:text-green-800 hover:bg-green-50"
             >
               <CalendarIcon size={16} />
               Book
-            </button>
-            
-            <button
+            </Button>
+
+            <Button
               onClick={handleHoldRoom}
-              className={`${styles.actionMenuItem} ${styles.actionMenuItemWarning}`}
+              variant="ghost"
+              className="w-full justify-start text-amber-700 hover:text-amber-800 hover:bg-amber-50"
             >
               <Lock size={16} />
               Hold
-            </button>
-            
-            <button
+            </Button>
+
+            <Button
               onClick={handleBlockRoom}
-              className={`${styles.actionMenuItem} ${styles.actionMenuItemDanger}`}
+              variant="ghost"
+              className="w-full justify-start text-rose-700 hover:text-rose-800 hover:bg-rose-50"
             >
               <X size={16} />
               Block
-            </button>
+            </Button>
           </div>
         )}
       </div>

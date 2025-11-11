@@ -40,107 +40,10 @@
     justify-content: center;
 }
 
-.calendarNavBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 6px;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    color: #374151;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex: 1;
-    min-width: 0;
-}
-
-.calendarNavBtn:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-}
-
-.todayBtn {
-    background: #dbeafe;
-    color: #2563eb;
-    font-weight: 700;
-    border-color: #bfdbfe;
-}
-
-.todayBtn:hover {
-    background: #bfdbfe;
-    border-color: #93c5fd;
-}
-
 .calendarViewControls {
     display: flex;
     flex-direction: column;
     gap: 3px;
-}
-
-.calendarDateInput,
-.calendarDaysSelect {
-    padding: 5px 6px;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 500;
-    color: #111827;
-    cursor: pointer;
-    width: 100%;
-}
-
-.calendarDateInput:focus,
-.calendarDaysSelect:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-
-/* Refresh Button */
-
-.calendarRefreshBtn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 6px;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    color: #374151;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: 100%;
-}
-
-.calendarRefreshBtn:hover:not(:disabled) {
-    background: #f9fafb;
-    border-color: #9ca3af;
-}
-
-.calendarRefreshBtn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.calendarRefreshBtn.refreshing svg {
-    animation: rotate 1s linear infinite;
-}
-
-@keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
 }
 
 
@@ -569,64 +472,6 @@
     font-size: 11px;
 }
 
-.actionMenuHeaderStatusTag {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-weight: 600;
-}
-
-.actionMenuItem {
-    width: 100%;
-    padding: 10px 12px;
-    border: none;
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 6px;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 500;
-    transition: background-color 0.15s ease;
-}
-
-.actionMenuItem:hover {
-    background: #f4f4f5;
-}
-
-.actionMenuItemPrimary {
-    color: #166534;
-}
-
-.actionMenuItemPrimary:hover {
-    background: #f0fdf4;
-}
-
-.actionMenuItemWarning {
-    color: #92400e;
-}
-
-.actionMenuItemWarning:hover {
-    background: #fffbeb;
-}
-
-.actionMenuItemAccent {
-    color: #2563eb;
-}
-
-.actionMenuItemAccent:hover {
-    background: #dbeafe;
-}
-
-.actionMenuItemDanger {
-    color: #9f1239;
-}
-
-.actionMenuItemDanger:hover {
-    background: #fff1f2;
-}
-
 
 /* Responsive */
 
@@ -656,18 +501,6 @@
     }
     .calendarToolbar {
         gap: 4px;
-    }
-    .calendarNavBtn {
-        padding: 5px;
-    }
-    .calendarDateInput,
-    .calendarDaysSelect {
-        padding: 4px 5px;
-        font-size: 10px;
-    }
-    .calendarRefreshBtn {
-        padding: 5px;
-        font-size: 10px;
     }
     .reservationBarsContainer {
         left: 140px;
