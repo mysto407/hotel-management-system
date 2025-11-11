@@ -110,17 +110,17 @@ const RoomTypes = () => {
             <TableBody>
               {roomTypes.map(type => (
                 <TableRow key={type.id}>
-                  <TableCell className="font-medium">{type.name}</TableCell>
-                  <TableCell>₹{type.base_price}</TableCell>
-                  <TableCell>{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</TableCell>
-                  <TableCell className="max-w-xs truncate">{type.amenities}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(type)}>
-                        <Edit2 size={16} className="text-blue-600" />
+                  <TableCell className="font-medium py-2">{type.name}</TableCell>
+                  <TableCell className="py-2">₹{type.base_price}</TableCell>
+                  <TableCell className="py-2">{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</TableCell>
+                  <TableCell className="max-w-xs truncate py-2">{type.amenities}</TableCell>
+                  <TableCell className="py-2">
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEdit(type)}>
+                        <Edit2 size={14} className="text-blue-600" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteRoomType(type.id)}>
-                        <Trash2 size={16} className="text-red-600" />
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => deleteRoomType(type.id)}>
+                        <Trash2 size={14} className="text-red-600" />
                       </Button>
                     </div>
                   </TableCell>
