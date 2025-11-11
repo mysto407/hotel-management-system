@@ -40,7 +40,7 @@ export const Layout = () => {
         currentPage={currentPage}
         onNavigate={setCurrentPage}
       />
-      <main className="flex-1 p-4 md:p-6">
+      <main className={`flex-1 ${currentPage === 'reservation-calendar' ? '' : 'p-4 md:p-6'}`}>
         {pages[currentPage]}
       </main>
     </div>

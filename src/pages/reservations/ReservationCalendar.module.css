@@ -30,13 +30,13 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
 }
 
 .calendarNavButtons {
     display: flex;
-    gap: 4px;
+    gap: 3px;
     justify-content: center;
 }
 
@@ -44,16 +44,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
+    padding: 6px;
     background: #ffffff;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
+    border-radius: 4px;
     color: #374151;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     flex: 1;
+    min-width: 0;
 }
 
 .calendarNavBtn:hover {
@@ -75,20 +76,21 @@
 
 .calendarViewControls {
     display: flex;
-    gap: 4px;
+    flex-direction: column;
+    gap: 3px;
 }
 
 .calendarDateInput,
 .calendarDaysSelect {
-    padding: 6px 8px;
+    padding: 5px 6px;
     background: #ffffff;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 12px;
+    border-radius: 4px;
+    font-size: 11px;
     font-weight: 500;
     color: #111827;
     cursor: pointer;
-    flex: 1;
+    width: 100%;
 }
 
 .calendarDateInput:focus,
@@ -105,13 +107,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 8px;
+    gap: 4px;
+    padding: 6px;
     background: #ffffff;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
+    border-radius: 4px;
     color: #374151;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -185,7 +187,7 @@
 }
 
 .fixedColumnHeader {
-    padding: 12px;
+    padding: 10px;
     font-size: 13px;
     font-weight: 700;
     color: #374151;
@@ -651,19 +653,19 @@
         padding: 8px;
     }
     .calendarToolbar {
-        gap: 6px;
+        gap: 4px;
     }
     .calendarNavBtn {
-        padding: 6px;
+        padding: 5px;
     }
     .calendarDateInput,
     .calendarDaysSelect {
-        padding: 4px 6px;
-        font-size: 11px;
+        padding: 4px 5px;
+        font-size: 10px;
     }
     .calendarRefreshBtn {
-        padding: 6px;
-        font-size: 11px;
+        padding: 5px;
+        font-size: 10px;
     }
     .reservationBarsContainer {
         left: 140px;
