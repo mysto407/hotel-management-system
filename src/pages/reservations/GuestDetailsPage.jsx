@@ -249,30 +249,31 @@ export default function GuestDetailsPage({ onNavigate }) {
         </div>
 
         {/* Right Content - Guest Form */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto bg-white">
           <div className="p-6">
-            <div className="max-w-4xl mx-auto">
-              {/* Photo Upload Section */}
-              <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <Label className="text-base font-semibold mb-4 block">Guest Photo</Label>
-                <div className="flex items-start gap-6">
-                  {/* Photo Preview */}
-                  <div className="relative">
+            {/* Single Unified Card with All Information */}
+            <div className="bg-white border rounded-lg shadow-sm">
+              {/* Photo Section - Compact Header */}
+              <div className="border-b bg-gray-50 px-6 py-4">
+                <div className="flex items-center gap-6">
+                  {/* Compact Photo Preview */}
+                  <div className="relative flex-shrink-0">
                     {guestDetails.photoUrl ? (
                       <img
                         src={guestDetails.photoUrl}
                         alt="Guest"
-                        className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
+                        className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
                       />
                     ) : (
-                      <div className="w-32 h-32 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                        <User className="w-12 h-12 text-gray-400" />
+                      <div className="w-24 h-24 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                        <User className="w-10 h-10 text-gray-400" />
                       </div>
                     )}
                   </div>
 
-                  {/* Upload Controls */}
+                  {/* Upload Controls - Inline */}
                   <div className="flex-1">
+                    <Label className="text-base font-semibold mb-2 block">Guest Photo</Label>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -284,158 +285,161 @@ export default function GuestDetailsPage({ onNavigate }) {
                       <Button
                         type="button"
                         variant="outline"
+                        size="sm"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <Upload className="w-4 h-4 mr-2" />
-                        {guestDetails.photoUrl ? 'Change Photo' : 'Upload Photo'}
+                        {guestDetails.photoUrl ? 'Change' : 'Upload'}
                       </Button>
                       {guestDetails.photoUrl && (
                         <Button
                           type="button"
                           variant="outline"
+                          size="sm"
                           onClick={handleRemovePhoto}
                         >
                           Remove
                         </Button>
                       )}
+                      <span className="text-xs text-gray-500 ml-2">JPG, PNG. Max 5MB</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Accepts JPG, PNG. Max size 5MB.
-                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Personal Information */}
-              <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      value={guestDetails.name}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, name: e.target.value })}
-                      placeholder="John Doe"
-                      className={errors.name ? 'border-red-500' : ''}
-                    />
-                    {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
-                  </div>
+              {/* Form Fields - Three Column Layout */}
+              <div className="p-6">
+                {/* Personal Information Section */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Personal Information</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name" className="text-sm">Full Name *</Label>
+                      <Input
+                        id="name"
+                        value={guestDetails.name}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, name: e.target.value })}
+                        placeholder="John Doe"
+                        className={errors.name ? 'border-red-500' : ''}
+                      />
+                      {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={guestDetails.phone}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, phone: e.target.value })}
-                      placeholder="9876543210"
-                      className={errors.phone ? 'border-red-500' : ''}
-                    />
-                    {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-                  </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-sm">Phone *</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={guestDetails.phone}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, phone: e.target.value })}
+                        placeholder="9876543210"
+                        className={errors.phone ? 'border-red-500' : ''}
+                      />
+                      {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
+                    </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={guestDetails.email}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, email: e.target.value })}
-                      placeholder="john@example.com"
-                      className={errors.email ? 'border-red-500' : ''}
-                    />
-                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* ID Proof Information */}
-              <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h3 className="text-lg font-semibold mb-4">ID Proof</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="idType">ID Proof Type</Label>
-                    <Select
-                      value={guestDetails.idType}
-                      onValueChange={(value) => setGuestDetails({ ...guestDetails, idType: value })}
-                    >
-                      <SelectTrigger id="idType">
-                        <SelectValue placeholder="Select ID type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="N/A">None</SelectItem>
-                        {idProofTypes.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="idNumber">ID Proof Number</Label>
-                    <Input
-                      id="idNumber"
-                      value={guestDetails.idNumber}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, idNumber: e.target.value })}
-                      placeholder="ID Number"
-                    />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-sm">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={guestDetails.email}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, email: e.target.value })}
+                        placeholder="john@example.com"
+                        className={errors.email ? 'border-red-500' : ''}
+                      />
+                      {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Address Information */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold mb-4">Address</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address">Street Address</Label>
-                    <Input
-                      id="address"
-                      value={guestDetails.address}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, address: e.target.value })}
-                      placeholder="123 Main Street"
-                    />
+                {/* ID Proof Section */}
+                <div className="mb-6 pt-6 border-t">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">ID Proof</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="idType" className="text-sm">ID Proof Type</Label>
+                      <Select
+                        value={guestDetails.idType}
+                        onValueChange={(value) => setGuestDetails({ ...guestDetails, idType: value })}
+                      >
+                        <SelectTrigger id="idType">
+                          <SelectValue placeholder="Select ID type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="N/A">None</SelectItem>
+                          {idProofTypes.map(type => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5 lg:col-span-2">
+                      <Label htmlFor="idNumber" className="text-sm">ID Proof Number</Label>
+                      <Input
+                        id="idNumber"
+                        value={guestDetails.idNumber}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, idNumber: e.target.value })}
+                        placeholder="ID Number"
+                      />
+                    </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={guestDetails.city}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, city: e.target.value })}
-                      placeholder="Mumbai"
-                    />
-                  </div>
+                {/* Address Section */}
+                <div className="pt-6 border-t">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Address</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="space-y-1.5 lg:col-span-3">
+                      <Label htmlFor="address" className="text-sm">Street Address</Label>
+                      <Input
+                        id="address"
+                        value={guestDetails.address}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, address: e.target.value })}
+                        placeholder="123 Main Street"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      value={guestDetails.state}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, state: e.target.value })}
-                      placeholder="Maharashtra"
-                    />
-                  </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="city" className="text-sm">City</Label>
+                      <Input
+                        id="city"
+                        value={guestDetails.city}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, city: e.target.value })}
+                        placeholder="Mumbai"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      value={guestDetails.country}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, country: e.target.value })}
-                      placeholder="India"
-                    />
-                  </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="state" className="text-sm">State</Label>
+                      <Input
+                        id="state"
+                        value={guestDetails.state}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, state: e.target.value })}
+                        placeholder="Maharashtra"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="pincode">Pincode</Label>
-                    <Input
-                      id="pincode"
-                      value={guestDetails.pincode}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, pincode: e.target.value })}
-                      placeholder="400001"
-                    />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="country" className="text-sm">Country</Label>
+                      <Input
+                        id="country"
+                        value={guestDetails.country}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, country: e.target.value })}
+                        placeholder="India"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pincode" className="text-sm">Pincode</Label>
+                      <Input
+                        id="pincode"
+                        value={guestDetails.pincode}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, pincode: e.target.value })}
+                        placeholder="400001"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
