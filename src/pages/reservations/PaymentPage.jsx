@@ -121,15 +121,10 @@ export default function PaymentPage({ onNavigate }) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4">
           {/* Compact Reservation Summary */}
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Guest:</span>
-                <span className="font-medium">{guestDetails.name}</span>
-              </div>
-              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Check-in:</span>
                 <span className="font-medium">
@@ -182,167 +177,193 @@ export default function PaymentPage({ onNavigate }) {
             </div>
           </div>
 
-          {/* Bill Breakdown with Payment Information */}
-          <div className="bg-white rounded-lg shadow">
-            {/* Bill Breakdown */}
-            <div className="p-6 pb-4 border-b">
-              <h2 className="text-lg font-semibold mb-4">Bill Breakdown</h2>
-
-              <div className="space-y-3">
-                {/* Room Charges */}
-                <div className="pb-3 border-b">
-                  <h3 className="font-medium mb-2 text-sm">Room Charges</h3>
-                  {selectedRooms.map(room => (
-                    <div key={room.id} className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">
-                        {room.name} × {room.quantity} × {bill.nights} nights
-                      </span>
-                      <span>₹{(room.base_price * room.quantity * bill.nights).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add-ons */}
-                {addons && addons.length > 0 && (
-                  <div className="pb-3 border-b">
-                    <h3 className="font-medium mb-2 text-sm">Add-ons</h3>
-                    {addons.map(addon => (
-                      <div key={addon.id} className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">
-                          {addon.name} × {addon.quantity}
-                        </span>
-                        <span>₹{(addon.price * addon.quantity).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Totals */}
-                <div className="space-y-2 pt-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span>₹{bill.subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>GST (18%)</span>
-                    <span>₹{bill.tax.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                    <span>Grand Total</span>
-                    <span>₹{bill.total.toFixed(2)}</span>
-                  </div>
-                </div>
+          {/* Guest Details */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Guest:</span>
+                <span className="font-medium">{guestDetails.name}</span>
               </div>
-            </div>
-
-            {/* Payment Information */}
-            <div className="p-6 pt-4 bg-gray-50">
-              <h3 className="text-base font-semibold mb-4">Payment Information</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>Payment Type</Label>
-                  <Select
-                    value={paymentInfo.paymentType}
-                    onValueChange={(value) => setPaymentInfo({ ...paymentInfo, paymentType: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Do Not Collect</SelectItem>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="upi">UPI</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {paymentInfo.paymentType !== 'none' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Amount</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={paymentInfo.amount}
-                        onChange={(e) => setPaymentInfo({ ...paymentInfo, amount: parseFloat(e.target.value) || 0 })}
-                        placeholder="0.00"
-                      />
-                      <p className="text-xs text-gray-500">
-                        Suggested: ₹{bill.suggestedDeposit.toFixed(2)}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Balance Due</Label>
-                      <div className="h-10 flex items-center px-3 bg-white rounded border text-gray-700 font-medium">
-                        ₹{(bill.total - (paymentInfo.amount || 0)).toFixed(2)}
-                      </div>
-                    </div>
-                  </>
-                )}
+              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Email:</span>
+                <span className="font-medium">{guestDetails.email}</span>
               </div>
-
-              {paymentInfo.paymentType !== 'none' && (
-                <div className="space-y-2 mt-4">
-                  <Label>Payment Notes</Label>
-                  <Textarea
-                    value={paymentInfo.notes}
-                    onChange={(e) => setPaymentInfo({ ...paymentInfo, notes: e.target.value })}
-                    placeholder="Transaction ID, reference number, etc."
-                    rows={2}
-                    className="bg-white"
-                  />
-                </div>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Phone:</span>
+                <span className="font-medium">{guestDetails.phone}</span>
+              </div>
+              {guestDetails.address && (
+                <>
+                  <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Address:</span>
+                    <span className="font-medium">{guestDetails.address}, {guestDetails.city}</span>
+                  </div>
+                </>
               )}
             </div>
           </div>
 
-          {/* Accommodation Summary Table */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold">Accommodation Summary</h2>
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Side: Accommodation Summary Table */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b">
+                <h2 className="text-lg font-semibold">Accommodation Summary</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left p-3 text-sm font-semibold">Type</th>
+                      <th className="text-left p-3 text-sm font-semibold">Arrival</th>
+                      <th className="text-left p-3 text-sm font-semibold">Departure</th>
+                      <th className="text-center p-3 text-sm font-semibold">Nights</th>
+                      <th className="text-right p-3 text-sm font-semibold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedRooms.flatMap(room =>
+                      Array.from({ length: room.quantity }, (_, index) => (
+                        <tr key={`${room.id}-${index}`} className="border-b">
+                          <td className="p-3 text-sm">{room.name}</td>
+                          <td className="p-3 text-sm">
+                            {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
+                          </td>
+                          <td className="p-3 text-sm">
+                            {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
+                          </td>
+                          <td className="p-3 text-sm text-center">{bill.nights}</td>
+                          <td className="p-3 text-sm text-right font-medium">
+                            ₹{(room.base_price * bill.nights).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left p-3 text-sm font-semibold">Type</th>
-                    <th className="text-left p-3 text-sm font-semibold">Guest Name</th>
-                    <th className="text-left p-3 text-sm font-semibold">Arrival</th>
-                    <th className="text-left p-3 text-sm font-semibold">Departure</th>
-                    <th className="text-center p-3 text-sm font-semibold">Guests</th>
-                    <th className="text-center p-3 text-sm font-semibold">Nights</th>
-                    <th className="text-right p-3 text-sm font-semibold">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedRooms.flatMap(room =>
-                    Array.from({ length: room.quantity }, (_, index) => (
-                      <tr key={`${room.id}-${index}`} className="border-b">
-                        <td className="p-3 text-sm">{room.name}</td>
-                        <td className="p-3 text-sm">{guestDetails.name}</td>
-                        <td className="p-3 text-sm">
-                          {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
-                        </td>
-                        <td className="p-3 text-sm">
-                          {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
-                        </td>
-                        <td className="p-3 text-sm text-center">
-                          {guestDetails.adults + guestDetails.children + guestDetails.infants}
-                        </td>
-                        <td className="p-3 text-sm text-center">{bill.nights}</td>
-                        <td className="p-3 text-sm text-right font-medium">
-                          ₹{(room.base_price * bill.nights).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))
+
+            {/* Right Side: Bill Breakdown with Payment Information */}
+            <div className="bg-white rounded-lg shadow">
+              {/* Bill Breakdown */}
+              <div className="p-6 pb-4 border-b">
+                <h2 className="text-lg font-semibold mb-4">Bill Breakdown</h2>
+
+                <div className="space-y-3">
+                  {/* Room Charges */}
+                  <div className="pb-3 border-b">
+                    <h3 className="font-medium mb-2 text-sm">Room Charges</h3>
+                    {selectedRooms.map(room => (
+                      <div key={room.id} className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">
+                          {room.name} × {room.quantity} × {bill.nights} nights
+                        </span>
+                        <span>₹{(room.base_price * room.quantity * bill.nights).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add-ons */}
+                  {addons && addons.length > 0 && (
+                    <div className="pb-3 border-b">
+                      <h3 className="font-medium mb-2 text-sm">Add-ons</h3>
+                      {addons.map(addon => (
+                        <div key={addon.id} className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">
+                            {addon.name} × {addon.quantity}
+                          </span>
+                          <span>₹{(addon.price * addon.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </tbody>
-              </table>
+
+                  {/* Totals */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal</span>
+                      <span>₹{bill.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>GST (18%)</span>
+                      <span>₹{bill.tax.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                      <span>Grand Total</span>
+                      <span>₹{bill.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Information */}
+              <div className="p-6 pt-4 bg-gray-50">
+                <h3 className="text-base font-semibold mb-4">Payment Information</h3>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label>Payment Type</Label>
+                    <Select
+                      value={paymentInfo.paymentType}
+                      onValueChange={(value) => setPaymentInfo({ ...paymentInfo, paymentType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Do Not Collect</SelectItem>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="card">Card</SelectItem>
+                        <SelectItem value="upi">UPI</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {paymentInfo.paymentType !== 'none' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Amount</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={paymentInfo.amount}
+                            onChange={(e) => setPaymentInfo({ ...paymentInfo, amount: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Suggested: ₹{bill.suggestedDeposit.toFixed(2)}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Balance Due</Label>
+                          <div className="h-10 flex items-center px-3 bg-white rounded border text-gray-700 font-medium">
+                            ₹{(bill.total - (paymentInfo.amount || 0)).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Payment Notes</Label>
+                        <Textarea
+                          value={paymentInfo.notes}
+                          onChange={(e) => setPaymentInfo({ ...paymentInfo, notes: e.target.value })}
+                          placeholder="Transaction ID, reference number, etc."
+                          rows={2}
+                          className="bg-white"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
