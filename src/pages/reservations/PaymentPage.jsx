@@ -65,11 +65,24 @@ export default function PaymentPage({ onNavigate }) {
 
       // Create reservations for each selected room
       const reservationPromises = selectedRooms.flatMap(roomType => {
+        // Calculate total amount for this room type
+        const roomSubtotal = roomType.base_price * bill.nights
+        const roomTax = roomSubtotal * 0.18 // 18% GST
+        const roomTotal = roomSubtotal + roomTax
+
         // Create one reservation per quantity
         return Array.from({ length: roomType.quantity }, (_, index) => {
+          // Get the assigned room ID, or fall back to any available room
+          const assignedRoomId = roomType.assignedRooms?.[index] || roomType.roomIds?.[index]
+
+          if (!assignedRoomId) {
+            console.error(`No room assigned for ${roomType.name} slot ${index + 1}`)
+            return null
+          }
+
           return addReservation({
             guest_id: guestId,
-            room_id: roomType.roomIds[index], // Assign specific room ID
+            room_id: assignedRoomId,
             check_in_date: filters.checkIn,
             check_out_date: filters.checkOut,
             booking_source: filters.source === 'walk-in' ? 'direct' : filters.source,
@@ -79,9 +92,10 @@ export default function PaymentPage({ onNavigate }) {
             number_of_infants: guestDetails.infants,
             status: 'Confirmed',
             meal_plan: 'NM',
-            special_requests: ''
+            special_requests: '',
+            total_amount: roomTotal
           })
-        })
+        }).filter(Boolean) // Remove null entries
       })
 
       await Promise.all(reservationPromises)
