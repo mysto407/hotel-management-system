@@ -78,7 +78,7 @@ export default function NewReservation({ onNavigate }) {
   const canProceed = filters.checkIn && filters.checkOut && selectedRooms.length > 0
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">

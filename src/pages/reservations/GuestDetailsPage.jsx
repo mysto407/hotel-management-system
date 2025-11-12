@@ -15,23 +15,30 @@ import {
 } from '../../components/ui/select'
 
 export default function GuestDetailsPage({ onNavigate }) {
-  const { guestDetails, setGuestDetails, selectedRooms } = useReservationFlow()
-  const { idProofTypes } = useGuests()
-  const fileInputRef = useRef(null)
+  console.log('GuestDetailsPage rendering...')
 
+  const flowContext = useReservationFlow()
+  const guestContext = useGuests()
+  const fileInputRef = useRef(null)
   const [errors, setErrors] = useState({})
+
+  const { guestDetails, setGuestDetails, selectedRooms } = flowContext
+  const { idProofTypes } = guestContext
+
+  console.log('Context loaded:', { guestDetails, selectedRooms, idProofTypes })
 
   // Redirect if no rooms selected
   if (!selectedRooms || selectedRooms.length === 0) {
+    console.log('No rooms selected, showing redirect UI')
     return (
-      <div className="h-full flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         <div className="bg-white border-b px-6 py-4">
           <h1 className="text-2xl font-bold">Guest Details</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">No rooms selected. Please start from the beginning.</p>
-            <Button onClick={() => onNavigate('new-reservation')}>
+          <div className="text-center p-8 bg-white rounded-lg shadow">
+            <p className="text-gray-600 mb-4 text-lg">No rooms selected. Please start from the beginning.</p>
+            <Button onClick={() => onNavigate('new-reservation')} size="lg">
               Go to Room Selection
             </Button>
           </div>
@@ -39,6 +46,8 @@ export default function GuestDetailsPage({ onNavigate }) {
       </div>
     )
   }
+
+  console.log('Rendering full guest details form')
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0]
@@ -111,7 +120,7 @@ export default function GuestDetailsPage({ onNavigate }) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
