@@ -121,94 +121,77 @@ export default function PaymentPage({ onNavigate }) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        <div className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Left Side: Reservation Summary */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold mb-4">Reservation Summary</h2>
-
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Check-in</span>
-                  <span className="font-medium">
-                    {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    }) : '-'}
-                  </span>
-                </div>
-
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Check-out</span>
-                  <span className="font-medium">
-                    {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    }) : '-'}
-                  </span>
-                </div>
-
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Nights</span>
-                  <span className="font-medium">{bill.nights}</span>
-                </div>
-
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Reservation Date</span>
-                  <span className="font-medium">
-                    {new Date().toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
-                  </span>
-                </div>
-
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="text-gray-600">Source</span>
-                  <span className="font-medium capitalize">{filters.source}</span>
-                </div>
-
-                {filters.promoCode && (
-                  <div className="flex justify-between pb-2 border-b">
-                    <span className="text-gray-600">Promo Code</span>
+        <div className="p-6 space-y-6">
+          {/* Compact Reservation Summary */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Guest:</span>
+                <span className="font-medium">{guestDetails.name}</span>
+              </div>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Check-in:</span>
+                <span className="font-medium">
+                  {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  }) : '-'}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Check-out:</span>
+                <span className="font-medium">
+                  {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  }) : '-'}
+                </span>
+              </div>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Nights:</span>
+                <span className="font-medium">{bill.nights}</span>
+              </div>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Guests:</span>
+                <span className="font-medium">
+                  {guestDetails.adults + guestDetails.children + guestDetails.infants} ({guestDetails.adults}A
+                  {guestDetails.children > 0 && `, ${guestDetails.children}C`}
+                  {guestDetails.infants > 0 && `, ${guestDetails.infants}I`})
+                </span>
+              </div>
+              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Source:</span>
+                <span className="font-medium capitalize">{filters.source}</span>
+              </div>
+              {filters.promoCode && (
+                <>
+                  <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600">Promo:</span>
                     <span className="font-medium">{filters.promoCode}</span>
                   </div>
-                )}
-
-                <div className="pt-3 mt-3 border-t">
-                  <h3 className="font-semibold mb-2">Primary Guest</h3>
-                  <div className="space-y-1 text-sm">
-                    <div><strong>Name:</strong> {guestDetails.name}</div>
-                    <div><strong>Email:</strong> {guestDetails.email}</div>
-                    <div><strong>Phone:</strong> {guestDetails.phone}</div>
-                    {guestDetails.address && (
-                      <div><strong>Address:</strong> {guestDetails.address}, {guestDetails.city}</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-3 mt-3 border-t">
-                  <h3 className="font-semibold mb-2">Total Guests</h3>
-                  <div className="text-sm">
-                    {guestDetails.adults} Adult{guestDetails.adults !== 1 ? 's' : ''}
-                    {guestDetails.children > 0 && `, ${guestDetails.children} Child${guestDetails.children !== 1 ? 'ren' : ''}`}
-                    {guestDetails.infants > 0 && `, ${guestDetails.infants} Infant${guestDetails.infants !== 1 ? 's' : ''}`}
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
+          </div>
 
-            {/* Right Side: Bill Breakdown */}
-            <div className="bg-white rounded-lg shadow p-6">
+          {/* Bill Breakdown with Payment Information */}
+          <div className="bg-white rounded-lg shadow">
+            {/* Bill Breakdown */}
+            <div className="p-6 pb-4 border-b">
               <h2 className="text-lg font-semibold mb-4">Bill Breakdown</h2>
 
               <div className="space-y-3">
                 {/* Room Charges */}
                 <div className="pb-3 border-b">
-                  <h3 className="font-medium mb-2">Room Charges</h3>
+                  <h3 className="font-medium mb-2 text-sm">Room Charges</h3>
                   {selectedRooms.map(room => (
                     <div key={room.id} className="flex justify-between text-sm mb-1">
                       <span className="text-gray-600">
@@ -222,7 +205,7 @@ export default function PaymentPage({ onNavigate }) {
                 {/* Add-ons */}
                 {addons && addons.length > 0 && (
                   <div className="pb-3 border-b">
-                    <h3 className="font-medium mb-2">Add-ons</h3>
+                    <h3 className="font-medium mb-2 text-sm">Add-ons</h3>
                     {addons.map(addon => (
                       <div key={addon.id} className="flex justify-between text-sm mb-1">
                         <span className="text-gray-600">
@@ -251,70 +234,71 @@ export default function PaymentPage({ onNavigate }) {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Payment Information */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Payment Information</h2>
+            {/* Payment Information */}
+            <div className="p-6 pt-4 bg-gray-50">
+              <h3 className="text-base font-semibold mb-4">Payment Information</h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Payment Type</Label>
-                <Select
-                  value={paymentInfo.paymentType}
-                  onValueChange={(value) => setPaymentInfo({ ...paymentInfo, paymentType: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Do Not Collect</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
-                    <SelectItem value="upi">UPI</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Payment Type</Label>
+                  <Select
+                    value={paymentInfo.paymentType}
+                    onValueChange={(value) => setPaymentInfo({ ...paymentInfo, paymentType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Do Not Collect</SelectItem>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="card">Card</SelectItem>
+                      <SelectItem value="upi">UPI</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {paymentInfo.paymentType !== 'none' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Amount</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={paymentInfo.amount}
+                        onChange={(e) => setPaymentInfo({ ...paymentInfo, amount: parseFloat(e.target.value) || 0 })}
+                        placeholder="0.00"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Suggested: ₹{bill.suggestedDeposit.toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Balance Due</Label>
+                      <div className="h-10 flex items-center px-3 bg-white rounded border text-gray-700 font-medium">
+                        ₹{(bill.total - (paymentInfo.amount || 0)).toFixed(2)}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {paymentInfo.paymentType !== 'none' && (
-                <>
-                  <div className="space-y-2">
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={paymentInfo.amount}
-                      onChange={(e) => setPaymentInfo({ ...paymentInfo, amount: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Suggested: ₹{bill.suggestedDeposit.toFixed(2)}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Balance Due</Label>
-                    <div className="h-10 flex items-center px-3 bg-gray-50 rounded border text-gray-700 font-medium">
-                      ₹{(bill.total - (paymentInfo.amount || 0)).toFixed(2)}
-                    </div>
-                  </div>
-                </>
+                <div className="space-y-2 mt-4">
+                  <Label>Payment Notes</Label>
+                  <Textarea
+                    value={paymentInfo.notes}
+                    onChange={(e) => setPaymentInfo({ ...paymentInfo, notes: e.target.value })}
+                    placeholder="Transaction ID, reference number, etc."
+                    rows={2}
+                    className="bg-white"
+                  />
+                </div>
               )}
             </div>
-
-            {paymentInfo.paymentType !== 'none' && (
-              <div className="space-y-2 mt-4">
-                <Label>Payment Notes</Label>
-                <Textarea
-                  value={paymentInfo.notes}
-                  onChange={(e) => setPaymentInfo({ ...paymentInfo, notes: e.target.value })}
-                  placeholder="Transaction ID, reference number, etc."
-                  rows={2}
-                />
-              </div>
-            )}
           </div>
 
           {/* Accommodation Summary Table */}
