@@ -14,6 +14,19 @@ import {
   SelectValue,
 } from '../../components/ui/select'
 
+// Common add-on types
+const ADDON_TYPES = [
+  { value: 'breakfast', label: 'Breakfast' },
+  { value: 'lunch', label: 'Lunch' },
+  { value: 'dinner', label: 'Dinner' },
+  { value: 'transport', label: 'Transport' },
+  { value: 'parking', label: 'Parking' },
+  { value: 'laundry', label: 'Laundry' },
+  { value: 'spa', label: 'Spa' },
+  { value: 'minibar', label: 'Minibar' },
+  { value: 'other', label: 'Other' },
+]
+
 export default function NewReservation({ onNavigate }) {
   const { roomTypes, rooms } = useRooms()
   const {
@@ -29,7 +42,13 @@ export default function NewReservation({ onNavigate }) {
     calculateBill
   } = useReservationFlow()
 
-  const [addonForm, setAddonForm] = useState({ name: '', price: '', quantity: 1 })
+  const [addonForm, setAddonForm] = useState({
+    roomId: '',
+    addonType: 'breakfast',
+    customName: '',
+    price: '',
+    quantity: 1
+  })
 
   // Calculate bill
   const bill = calculateBill()
@@ -65,13 +84,34 @@ export default function NewReservation({ onNavigate }) {
   }
 
   const handleAddAddon = () => {
-    if (addonForm.name && addonForm.price) {
+    if (addonForm.roomId && addonForm.price) {
+      const addonName = addonForm.addonType === 'other'
+        ? addonForm.customName
+        : ADDON_TYPES.find(t => t.value === addonForm.addonType)?.label
+
+      if (!addonName) {
+        alert('Please enter a name for the custom add-on')
+        return
+      }
+
+      const room = selectedRooms.find(r => r.id === addonForm.roomId)
+
       addAddon({
-        name: addonForm.name,
+        roomId: addonForm.roomId,
+        roomName: room?.name || 'Unknown Room',
+        addonType: addonForm.addonType,
+        name: addonName,
         price: parseFloat(addonForm.price),
         quantity: parseInt(addonForm.quantity) || 1
       })
-      setAddonForm({ name: '', price: '', quantity: 1 })
+
+      setAddonForm({
+        roomId: '',
+        addonType: 'breakfast',
+        customName: '',
+        price: '',
+        quantity: 1
+      })
     }
   }
 
@@ -165,203 +205,285 @@ export default function NewReservation({ onNavigate }) {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-          {/* Left Side: Cart */}
-          <div className="space-y-6">
-            {/* Selected Rooms */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold mb-4">Selected Rooms</h2>
-              {selectedRooms.length === 0 ? (
-                <p className="text-gray-500 text-sm">No rooms selected</p>
-              ) : (
-                <div className="space-y-3">
-                  {selectedRooms.map(room => (
-                    <div key={room.id} className="flex items-center justify-between border-b pb-3">
-                      <div className="flex-1">
-                        <div className="font-medium">{room.name}</div>
-                        <div className="text-sm text-gray-500">
-                          ₹{room.base_price} × {bill.nights} nights
+        <div className="p-6 space-y-6">
+          {/* Room Selection Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Side: Selected Rooms */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow p-4">
+                <h2 className="text-lg font-semibold mb-4">Selected Rooms</h2>
+                {selectedRooms.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No rooms selected</p>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedRooms.map(room => (
+                      <div key={room.id} className="flex items-center justify-between border-b pb-3">
+                        <div className="flex-1">
+                          <div className="font-medium">{room.name}</div>
+                          <div className="text-sm text-gray-500">
+                            ₹{room.base_price} × {bill.nights} nights
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={room.quantity}
+                            onChange={(e) => updateRoomQuantity(room.id, parseInt(e.target.value))}
+                            className="w-16 text-center"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeRoom(room.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="1"
-                          value={room.quantity}
-                          onChange={(e) => updateRoomQuantity(room.id, parseInt(e.target.value))}
-                          className="w-16 text-center"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeRoom(room.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Add-ons */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold mb-4">Add-ons</h2>
-
-              {/* Add-on Form */}
-              <div className="space-y-3 mb-4 pb-4 border-b">
-                <Input
-                  type="text"
-                  placeholder="Add-on name"
-                  value={addonForm.name}
-                  onChange={(e) => setAddonForm({ ...addonForm, name: e.target.value })}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Price"
-                    value={addonForm.price}
-                    onChange={(e) => setAddonForm({ ...addonForm, price: e.target.value })}
-                  />
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="Qty"
-                    value={addonForm.quantity}
-                    onChange={(e) => setAddonForm({ ...addonForm, quantity: e.target.value })}
-                  />
-                </div>
-                <Button
-                  onClick={handleAddAddon}
-                  variant="outline"
-                  className="w-full"
-                  disabled={!addonForm.name || !addonForm.price}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add
-                </Button>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {/* Added Add-ons */}
-              {addons.length === 0 ? (
-                <p className="text-gray-500 text-sm">No add-ons</p>
-              ) : (
-                <div className="space-y-2">
-                  {addons.map(addon => (
-                    <div key={addon.id} className="flex items-center justify-between text-sm">
-                      <div>
-                        <div className="font-medium">{addon.name}</div>
-                        <div className="text-gray-500">
-                          ₹{addon.price} × {addon.quantity}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeAddon(addon.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Bill Summary */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold mb-4">Bill Summary</h2>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>₹{bill.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>GST (18%)</span>
-                  <span>₹{bill.tax.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-bold text-lg border-t pt-2">
-                  <span>Grand Total</span>
-                  <span>₹{bill.total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-blue-600 mt-3 pt-3 border-t">
-                  <span>Suggested Deposit (30%)</span>
-                  <span>₹{bill.suggestedDeposit.toFixed(2)}</span>
+            {/* Right Side: Available Rooms Table */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="text-left p-3 text-sm font-semibold">Type</th>
+                        <th className="text-right p-3 text-sm font-semibold">Starting From</th>
+                        <th className="text-center p-3 text-sm font-semibold">Available</th>
+                        <th className="text-center p-3 text-sm font-semibold">Capacity</th>
+                        <th className="text-center p-3 text-sm font-semibold">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {availableRoomTypes.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center p-8 text-gray-500">
+                            No rooms available
+                          </td>
+                        </tr>
+                      ) : (
+                        availableRoomTypes.map(roomType => {
+                          const isSelected = selectedRooms.some(sr => sr.id === roomType.id)
+                          const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
+
+                          return (
+                            <tr key={roomType.id} className="border-b hover:bg-gray-50">
+                              <td className="p-3">
+                                <div>
+                                  <div className="font-medium">{roomType.name}</div>
+                                  {roomType.description && (
+                                    <div className="text-sm text-gray-500">{roomType.description}</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-right font-semibold">
+                                ₹{roomType.base_price}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`
+                                  px-2 py-1 rounded text-sm font-medium
+                                  ${roomType.availableCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
+                                `}>
+                                  {roomType.availableCount}
+                                  {isSelected && ` (${selectedQty} selected)`}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center text-gray-600">
+                                {roomType.capacity} guests
+                              </td>
+                              <td className="p-3 text-center">
+                                <Button
+                                  onClick={() => handleAddRoom(roomType)}
+                                  disabled={roomType.availableCount === 0}
+                                  size="sm"
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Side: Available Rooms Table */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="text-left p-3 text-sm font-semibold">Type</th>
-                      <th className="text-right p-3 text-sm font-semibold">Starting From</th>
-                      <th className="text-center p-3 text-sm font-semibold">Available</th>
-                      <th className="text-center p-3 text-sm font-semibold">Capacity</th>
-                      <th className="text-center p-3 text-sm font-semibold">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {availableRoomTypes.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="text-center p-8 text-gray-500">
-                          No rooms available
-                        </td>
-                      </tr>
-                    ) : (
-                      availableRoomTypes.map(roomType => {
-                        const isSelected = selectedRooms.some(sr => sr.id === roomType.id)
-                        const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
+          {/* Add-ons Section */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold mb-4">Add-ons</h2>
 
-                        return (
-                          <tr key={roomType.id} className="border-b hover:bg-gray-50">
-                            <td className="p-3">
-                              <div>
-                                <div className="font-medium">{roomType.name}</div>
-                                {roomType.description && (
-                                  <div className="text-sm text-gray-500">{roomType.description}</div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="p-3 text-right font-semibold">
-                              ₹{roomType.base_price}
-                            </td>
-                            <td className="p-3 text-center">
-                              <span className={`
-                                px-2 py-1 rounded text-sm font-medium
-                                ${roomType.availableCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
-                              `}>
-                                {roomType.availableCount}
-                                {isSelected && ` (${selectedQty} selected)`}
-                              </span>
-                            </td>
-                            <td className="p-3 text-center text-gray-600">
-                              {roomType.capacity} guests
+            {selectedRooms.length === 0 ? (
+              <p className="text-gray-500 text-sm">Please select rooms first to add add-ons</p>
+            ) : (
+              <>
+                {/* Add-on Form */}
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 pb-6 border-b">
+                  <div className="space-y-2">
+                    <Label>Room *</Label>
+                    <Select
+                      value={addonForm.roomId}
+                      onValueChange={(value) => setAddonForm({ ...addonForm, roomId: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select room" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedRooms.map(room => (
+                          <SelectItem key={room.id} value={room.id}>
+                            {room.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Add-on Type *</Label>
+                    <Select
+                      value={addonForm.addonType}
+                      onValueChange={(value) => setAddonForm({ ...addonForm, addonType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ADDON_TYPES.map(type => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {addonForm.addonType === 'other' && (
+                    <div className="space-y-2">
+                      <Label>Custom Name *</Label>
+                      <Input
+                        type="text"
+                        placeholder="Enter name"
+                        value={addonForm.customName}
+                        onChange={(e) => setAddonForm({ ...addonForm, customName: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>Price *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={addonForm.price}
+                      onChange={(e) => setAddonForm({ ...addonForm, price: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Quantity *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={addonForm.quantity}
+                      onChange={(e) => setAddonForm({ ...addonForm, quantity: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="invisible">Add</Label>
+                    <Button
+                      onClick={handleAddAddon}
+                      disabled={!addonForm.roomId || !addonForm.price || (addonForm.addonType === 'other' && !addonForm.customName)}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Added Add-ons Table */}
+                {addons.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No add-ons added yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="text-left p-3 text-sm font-semibold">Room</th>
+                          <th className="text-left p-3 text-sm font-semibold">Add-on Type</th>
+                          <th className="text-left p-3 text-sm font-semibold">Name</th>
+                          <th className="text-right p-3 text-sm font-semibold">Price</th>
+                          <th className="text-center p-3 text-sm font-semibold">Quantity</th>
+                          <th className="text-right p-3 text-sm font-semibold">Total</th>
+                          <th className="text-center p-3 text-sm font-semibold">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {addons.map(addon => (
+                          <tr key={addon.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3 text-sm">{addon.roomName}</td>
+                            <td className="p-3 text-sm capitalize">{addon.addonType}</td>
+                            <td className="p-3 text-sm font-medium">{addon.name}</td>
+                            <td className="p-3 text-sm text-right">₹{addon.price.toFixed(2)}</td>
+                            <td className="p-3 text-sm text-center">{addon.quantity}</td>
+                            <td className="p-3 text-sm text-right font-semibold">
+                              ₹{(addon.price * addon.quantity).toFixed(2)}
                             </td>
                             <td className="p-3 text-center">
                               <Button
-                                onClick={() => handleAddRoom(roomType)}
-                                disabled={roomType.availableCount === 0}
-                                size="sm"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeAddon(addon.id)}
                               >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add
+                                <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
                             </td>
                           </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bill Summary Row */}
+      <div className="bg-gray-100 border-t px-6 py-3">
+        <div className="flex items-center justify-end gap-8 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Subtotal:</span>
+            <span className="font-semibold">₹{bill.subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Taxes (18%):</span>
+            <span className="font-semibold">₹{bill.tax.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Grand Total:</span>
+            <span className="font-bold text-lg text-blue-600">₹{bill.total.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Suggested Deposit:</span>
+            <span className="font-semibold text-green-600">₹{bill.suggestedDeposit.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Balance Due:</span>
+            <span className="font-semibold">₹{(bill.total - bill.suggestedDeposit).toFixed(2)}</span>
           </div>
         </div>
       </div>
