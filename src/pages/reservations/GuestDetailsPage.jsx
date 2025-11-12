@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Upload, User } from 'lucide-react'
+import { useState, useRef, useMemo } from 'react'
+import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
@@ -19,9 +19,23 @@ export default function GuestDetailsPage({ onNavigate }) {
   const guestContext = useGuests()
   const fileInputRef = useRef(null)
   const [errors, setErrors] = useState({})
+  const [guestSearch, setGuestSearch] = useState('')
+  const [selectedGuestId, setSelectedGuestId] = useState(null)
+  const [showNewGuest, setShowNewGuest] = useState(true)
 
   const { guestDetails, setGuestDetails, selectedRooms } = flowContext
-  const { idProofTypes } = guestContext
+  const { idProofTypes, guests } = guestContext
+
+  // Filter guests based on search
+  const filteredGuests = useMemo(() => {
+    if (!guestSearch) return guests
+    const search = guestSearch.toLowerCase()
+    return guests.filter(guest =>
+      guest.name?.toLowerCase().includes(search) ||
+      guest.email?.toLowerCase().includes(search) ||
+      guest.phone?.includes(search)
+    )
+  }, [guests, guestSearch])
 
   // Redirect if no rooms selected
   if (!selectedRooms || selectedRooms.length === 0) {
@@ -40,6 +54,45 @@ export default function GuestDetailsPage({ onNavigate }) {
         </div>
       </div>
     )
+  }
+
+  const handleSelectGuest = (guest) => {
+    setSelectedGuestId(guest.id)
+    setShowNewGuest(false)
+    setGuestDetails({
+      ...guestDetails,
+      name: guest.name || '',
+      email: guest.email || '',
+      phone: guest.phone || '',
+      idType: guest.id_proof_type || 'N/A',
+      idNumber: guest.id_proof_number || '',
+      address: guest.address || '',
+      city: guest.city || '',
+      state: guest.state || '',
+      country: guest.country || '',
+      pincode: guest.pincode || '',
+      photo: null,
+      photoUrl: guest.photo_url || null
+    })
+  }
+
+  const handleNewGuest = () => {
+    setSelectedGuestId(null)
+    setShowNewGuest(true)
+    setGuestDetails({
+      name: '',
+      email: '',
+      phone: '',
+      idType: 'N/A',
+      idNumber: '',
+      address: '',
+      city: '',
+      state: '',
+      country: '',
+      pincode: '',
+      photo: null,
+      photoUrl: null
+    })
   }
 
   const handlePhotoUpload = (e) => {
