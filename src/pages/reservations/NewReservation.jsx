@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, Trash2, ChevronRight } from 'lucide-react'
+import { Search, Plus, Trash2, ChevronRight, Shuffle } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useRooms } from '../../context/RoomContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
@@ -36,6 +36,9 @@ export default function NewReservation({ onNavigate }) {
     addRoom,
     removeRoom,
     updateRoomQuantity,
+    assignRoom,
+    unassignRoom,
+    autoAssignRooms,
     addons,
     addAddon,
     removeAddon,
@@ -56,8 +59,27 @@ export default function NewReservation({ onNavigate }) {
   // Calculate bill
   const bill = calculateBill()
 
+  // Check if filters are applied (dates are required)
+  const hasFiltersApplied = filters.checkIn && filters.checkOut
+
+  // Get available rooms for a specific room type (excluding already assigned rooms)
+  const getAvailableRoomsForType = (roomTypeId) => {
+    // Get all rooms of this type that are available
+    const typeRooms = rooms.filter(r => r.room_type_id === roomTypeId && r.status === 'Available')
+
+    // Get already assigned room IDs across all selected rooms
+    const assignedRoomIds = selectedRooms.flatMap(sr => sr.assignedRooms || []).filter(Boolean)
+
+    // Return rooms that haven't been assigned yet
+    return typeRooms.filter(r => !assignedRoomIds.includes(r.id))
+  }
+
   // Filter available room types based on search and date availability
   const availableRoomTypes = useMemo(() => {
+    if (!hasFiltersApplied) {
+      return []
+    }
+
     return roomTypes.map(roomType => {
       // Get all rooms of this type
       const typeRooms = rooms.filter(r => r.room_type_id === roomType.id && r.status === 'Available')
@@ -78,7 +100,7 @@ export default function NewReservation({ onNavigate }) {
       }
       return true
     })
-  }, [roomTypes, rooms, selectedRooms, filters.searchQuery])
+  }, [roomTypes, rooms, selectedRooms, filters.searchQuery, hasFiltersApplied])
 
   const handleAddRoom = (roomType) => {
     if (roomType.availableCount > 0) {
@@ -99,6 +121,12 @@ export default function NewReservation({ onNavigate }) {
 
   const getGuestCount = (roomTypeId, field) => {
     return guestCounts[roomTypeId]?.[field] || (field === 'quantity' ? 1 : 0)
+  }
+
+  const handleAutoAssign = (roomTypeId) => {
+    const availableRooms = getAvailableRoomsForType(roomTypeId)
+    const availableRoomIds = availableRooms.map(r => r.id)
+    autoAssignRooms(roomTypeId, availableRoomIds)
   }
 
   const handleAddAddon = () => {
@@ -229,37 +257,101 @@ export default function NewReservation({ onNavigate }) {
             {/* Left Side: Selected Rooms */}
             <div className="space-y-6">
               <div className="bg-white rounded-lg shadow p-4">
-                <h2 className="text-lg font-semibold mb-4">Selected Rooms</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Selected Rooms</h2>
+                </div>
                 {selectedRooms.length === 0 ? (
                   <p className="text-gray-500 text-sm">No rooms selected</p>
                 ) : (
-                  <div className="space-y-3">
-                    {selectedRooms.map(room => (
-                      <div key={room.id} className="flex items-center justify-between border-b pb-3">
-                        <div className="flex-1">
-                          <div className="font-medium">{room.name}</div>
-                          <div className="text-sm text-gray-500">
-                            ₹{room.base_price} × {bill.nights} nights
+                  <div className="space-y-4">
+                    {selectedRooms.map(room => {
+                      const availableRooms = getAvailableRoomsForType(room.id)
+                      return (
+                        <div key={room.id} className="border rounded-lg p-3 space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="font-medium">{room.name}</div>
+                              <div className="text-sm text-gray-500">
+                                ₹{room.base_price} × {bill.nights} nights
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                value={room.quantity}
+                                onChange={(e) => updateRoomQuantity(room.id, parseInt(e.target.value))}
+                                className="w-16 text-center"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeRoom(room.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Room Number Assignments */}
+                          <div className="space-y-2 border-t pt-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-sm font-medium">Assign Room Numbers</Label>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAutoAssign(room.id)}
+                                disabled={availableRooms.length < room.quantity}
+                              >
+                                <Shuffle className="h-3 w-3 mr-1" />
+                                Auto Assign
+                              </Button>
+                            </div>
+                            {Array.from({ length: room.quantity }).map((_, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <Label className="text-xs text-gray-600 w-12">#{index + 1}</Label>
+                                <Select
+                                  value={room.assignedRooms?.[index] || ''}
+                                  onValueChange={(value) => {
+                                    if (value === 'unassign') {
+                                      unassignRoom(room.id, index)
+                                    } else {
+                                      assignRoom(room.id, value, index)
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder="Select room" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="unassign">
+                                      <span className="text-gray-500">Not assigned</span>
+                                    </SelectItem>
+                                    {availableRooms.map(r => (
+                                      <SelectItem
+                                        key={r.id}
+                                        value={r.id}
+                                        disabled={
+                                          room.assignedRooms?.includes(r.id) &&
+                                          room.assignedRooms[index] !== r.id
+                                        }
+                                      >
+                                        Room {r.room_number}
+                                      </SelectItem>
+                                    ))}
+                                    {room.assignedRooms?.[index] && (
+                                      <SelectItem value={room.assignedRooms[index]}>
+                                        Room {rooms.find(r => r.id === room.assignedRooms[index])?.room_number}
+                                      </SelectItem>
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min="1"
-                            value={room.quantity}
-                            onChange={(e) => updateRoomQuantity(room.id, parseInt(e.target.value))}
-                            className="w-16 text-center"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeRoom(room.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -267,29 +359,38 @@ export default function NewReservation({ onNavigate }) {
 
             {/* Right Side: Available Rooms Table */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b">
-                      <tr>
-                        <th className="text-left p-3 text-sm font-semibold">Type</th>
-                        <th className="text-right p-3 text-sm font-semibold">Starting From</th>
-                        <th className="text-center p-3 text-sm font-semibold">Available</th>
-                        <th className="text-center p-3 text-sm font-semibold">Adult</th>
-                        <th className="text-center p-3 text-sm font-semibold">Child</th>
-                        <th className="text-center p-3 text-sm font-semibold">Infant</th>
-                        <th className="text-center p-3 text-sm font-semibold">Quantity</th>
-                        <th className="text-center p-3 text-sm font-semibold">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {availableRoomTypes.length === 0 ? (
+              {!hasFiltersApplied ? (
+                <div className="bg-white rounded-lg shadow p-8">
+                  <div className="text-center text-gray-500">
+                    <Search className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p className="text-lg font-medium">Apply Filters to View Available Rooms</p>
+                    <p className="text-sm mt-2">Please select check-in and check-out dates to see available room types.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b">
                         <tr>
-                          <td colSpan="8" className="text-center p-8 text-gray-500">
-                            No rooms available
-                          </td>
+                          <th className="text-left p-3 text-sm font-semibold">Type</th>
+                          <th className="text-right p-3 text-sm font-semibold">Starting From</th>
+                          <th className="text-center p-3 text-sm font-semibold">Available</th>
+                          <th className="text-center p-3 text-sm font-semibold">Adult</th>
+                          <th className="text-center p-3 text-sm font-semibold">Child</th>
+                          <th className="text-center p-3 text-sm font-semibold">Infant</th>
+                          <th className="text-center p-3 text-sm font-semibold">Quantity</th>
+                          <th className="text-center p-3 text-sm font-semibold">Action</th>
                         </tr>
-                      ) : (
+                      </thead>
+                      <tbody>
+                        {availableRoomTypes.length === 0 ? (
+                          <tr>
+                            <td colSpan="8" className="text-center p-8 text-gray-500">
+                              No rooms available matching your criteria
+                            </td>
+                          </tr>
+                        ) : (
                         availableRoomTypes.map(roomType => {
                           const isSelected = selectedRooms.some(sr => sr.id === roomType.id)
                           const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
@@ -370,10 +471,11 @@ export default function NewReservation({ onNavigate }) {
                           )
                         })
                       )}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

@@ -56,11 +56,11 @@ export function ReservationFlowProvider({ children }) {
       if (existing) {
         return prev.map(r =>
           r.id === room.id
-            ? { ...r, quantity: r.quantity + quantity }
+            ? { ...r, quantity: r.quantity + quantity, assignedRooms: r.assignedRooms || [] }
             : r
         )
       }
-      return [...prev, { ...room, quantity }]
+      return [...prev, { ...room, quantity, assignedRooms: [] }]
     })
   }, [])
 
@@ -74,9 +74,56 @@ export function ReservationFlowProvider({ children }) {
       return
     }
     setSelectedRooms(prev =>
-      prev.map(r => r.id === roomId ? { ...r, quantity } : r)
+      prev.map(r => {
+        if (r.id === roomId) {
+          // Trim assigned rooms if quantity decreased
+          const assignedRooms = (r.assignedRooms || []).slice(0, quantity)
+          return { ...r, quantity, assignedRooms }
+        }
+        return r
+      })
     )
   }, [removeRoom])
+
+  // Room assignment handlers
+  const assignRoom = useCallback((roomTypeId, roomId, index) => {
+    setSelectedRooms(prev =>
+      prev.map(r => {
+        if (r.id === roomTypeId) {
+          const assignedRooms = [...(r.assignedRooms || [])]
+          assignedRooms[index] = roomId
+          return { ...r, assignedRooms }
+        }
+        return r
+      })
+    )
+  }, [])
+
+  const unassignRoom = useCallback((roomTypeId, index) => {
+    setSelectedRooms(prev =>
+      prev.map(r => {
+        if (r.id === roomTypeId) {
+          const assignedRooms = [...(r.assignedRooms || [])]
+          assignedRooms[index] = null
+          return { ...r, assignedRooms }
+        }
+        return r
+      })
+    )
+  }, [])
+
+  const autoAssignRooms = useCallback((roomTypeId, availableRoomIds) => {
+    setSelectedRooms(prev =>
+      prev.map(r => {
+        if (r.id === roomTypeId) {
+          // Auto-assign available rooms up to the quantity
+          const assignedRooms = availableRoomIds.slice(0, r.quantity)
+          return { ...r, assignedRooms }
+        }
+        return r
+      })
+    )
+  }, [])
 
   // Addon handlers
   const addAddon = useCallback((addon) => {
@@ -188,6 +235,9 @@ export function ReservationFlowProvider({ children }) {
     addRoom,
     removeRoom,
     updateRoomQuantity,
+    assignRoom,
+    unassignRoom,
+    autoAssignRooms,
 
     // Addon handlers
     addAddon,
