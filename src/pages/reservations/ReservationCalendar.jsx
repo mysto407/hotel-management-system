@@ -499,11 +499,14 @@ const ReservationCalendar = () => {
   // Handle Block action
   const handleBlockRoom = async () => {
     const selectedCells = actionMenu.selectedCells || [];
-    
+
     if (selectedCells.length === 0) return;
-    
+
+    // Close action menu immediately to prevent overlap with confirm modal
+    closeActionMenu();
+
     const uniqueRoomIds = [...new Set(selectedCells.map(c => c.roomId))];
-    
+
     const confirmed = await showConfirm({
       variant: 'warning',
       title: 'Block Rooms',
@@ -537,16 +540,17 @@ const ReservationCalendar = () => {
         confirmText: 'OK'
       });
     }
-    
-    closeActionMenu();
   };
 
   // Handle Hold action
   const handleHoldRoom = async () => {
     const selectedCells = actionMenu.selectedCells || [];
-    
+
     if (selectedCells.length === 0) return;
-    
+
+    // Close action menu immediately to prevent overlap with modals
+    closeActionMenu();
+
     if (selectedCells.length === 1) {
       const cell = selectedCells[0];
       const checkOutDate = new Date(cell.date);
@@ -567,8 +571,7 @@ const ReservationCalendar = () => {
         status: 'Hold',
         special_requests: ''
       });
-      
-      closeActionMenu();
+
       setIsBookingModalOpen(true);
     } else {
       handleMultiCellBooking('Hold');
@@ -578,9 +581,12 @@ const ReservationCalendar = () => {
   // Handle Book action
   const handleBookRoom = () => {
     const selectedCells = actionMenu.selectedCells || [];
-    
+
     if (selectedCells.length === 0) return;
-    
+
+    // Close action menu immediately to prevent overlap with modals
+    closeActionMenu();
+
     if (selectedCells.length === 1) {
       const cell = selectedCells[0];
       const checkOutDate = new Date(cell.date);
@@ -601,8 +607,7 @@ const ReservationCalendar = () => {
         status: 'Confirmed',
         special_requests: ''
       });
-      
-      closeActionMenu();
+
       setIsBookingModalOpen(true);
     } else {
       handleMultiCellBooking('Confirmed');
@@ -612,8 +617,11 @@ const ReservationCalendar = () => {
   // Handle multi-cell booking
   const handleMultiCellBooking = async (status) => {
     const selectedCells = actionMenu.selectedCells || [];
-    
+
     if (selectedCells.length === 0) return;
+
+    // Close action menu immediately (if not already closed) to prevent overlap with modals
+    closeActionMenu();
     
     const cellsByRoom = {};
     selectedCells.forEach(cell => {
@@ -692,8 +700,7 @@ const ReservationCalendar = () => {
       status: status,
       special_requests: bookingCount > 1 ? `Multi-room booking (1 of ${bookingCount})` : ''
     });
-    
-    closeActionMenu();
+
     setIsBookingModalOpen(true);
   };
 
@@ -721,8 +728,12 @@ const ReservationCalendar = () => {
   // Handle Edit Reservation
   const handleEditReservation = async () => {
     if (!selectedReservation) return;
-    
-    const relatedReservations = findRelatedReservations(selectedReservation);
+
+    // Close reservation menu immediately to prevent overlap with modals
+    const reservationToEdit = selectedReservation;
+    setSelectedReservation(null);
+
+    const relatedReservations = findRelatedReservations(reservationToEdit);
     
     if (relatedReservations.length > 1) {
       const editAsGroup = await showConfirm({
@@ -736,13 +747,11 @@ const ReservationCalendar = () => {
       if (editAsGroup) {
         handleEditGroup(relatedReservations);
       } else {
-        handleEditSingle(selectedReservation);
+        handleEditSingle(reservationToEdit);
       }
     } else {
-      handleEditSingle(selectedReservation);
+      handleEditSingle(reservationToEdit);
     }
-    
-    setSelectedReservation(null);
   };
   
   const handleEditSingle = (reservation) => {
@@ -918,9 +927,13 @@ const ReservationCalendar = () => {
   // Handle Cancel Reservation
   const handleCancelReservation = async () => {
     if (!selectedReservation) return;
-    
-    const relatedReservations = findRelatedReservations(selectedReservation);
-    const guestName = selectedReservation.guests?.name || 'Unknown';
+
+    // Close reservation menu immediately to prevent overlap with modals
+    const reservationToCancel = selectedReservation;
+    setSelectedReservation(null);
+
+    const relatedReservations = findRelatedReservations(reservationToCancel);
+    const guestName = reservationToCancel.guests?.name || 'Unknown';
     
     let confirmMessage = `Are you sure you want to cancel the reservation for ${guestName}?`;
     
@@ -956,8 +969,6 @@ const ReservationCalendar = () => {
         message: message,
         confirmText: 'OK'
       });
-      
-      setSelectedReservation(null);
     } catch (error) {
       console.error('Error cancelling reservation:', error);
       await showAlert({
@@ -972,9 +983,13 @@ const ReservationCalendar = () => {
   // Handle Delete Reservation
   const handleDeleteReservation = async () => {
     if (!selectedReservation) return;
-    
-    const relatedReservations = findRelatedReservations(selectedReservation);
-    const guestName = selectedReservation.guests?.name || 'Unknown';
+
+    // Close reservation menu immediately to prevent overlap with modals
+    const reservationToDelete = selectedReservation;
+    setSelectedReservation(null);
+
+    const relatedReservations = findRelatedReservations(reservationToDelete);
+    const guestName = reservationToDelete.guests?.name || 'Unknown';
     
     let confirmMessage = `Ã¢Å¡Â Ã¯Â¸Â WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE this reservation?\n\nGuest: ${guestName}\nRoom: ${selectedReservation.rooms?.room_number || 'Unknown'}\nCheck-in: ${selectedReservation.check_in_date}\n\nThis action CANNOT be undone!`;
     
@@ -1024,8 +1039,6 @@ const ReservationCalendar = () => {
         message: message,
         confirmText: 'OK'
       });
-      
-      setSelectedReservation(null);
     } catch (error) {
       console.error('Error deleting reservation:', error);
       await showAlert({
