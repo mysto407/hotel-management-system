@@ -122,87 +122,88 @@ export default function PaymentPage({ onNavigate }) {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         <div className="p-6 space-y-4">
-          {/* Compact Reservation Summary */}
+          {/* Reservation Summary */}
           <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Check-in:</span>
-                <span className="font-medium">
-                  {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  }) : '-'}
-                </span>
+            <div className="space-y-2">
+              {/* First Line: Check-in, Check-out, Nights, Guests, Source, Promo */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Check-in:</span>
+                  <span className="font-medium">
+                    {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    }) : '-'}
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Check-out:</span>
+                  <span className="font-medium">
+                    {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    }) : '-'}
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Nights:</span>
+                  <span className="font-medium">{bill.nights}</span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Guests:</span>
+                  <span className="font-medium">
+                    {guestDetails.adults + guestDetails.children + guestDetails.infants} ({guestDetails.adults}A
+                    {guestDetails.children > 0 && `, ${guestDetails.children}C`}
+                    {guestDetails.infants > 0 && `, ${guestDetails.infants}I`})
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Source:</span>
+                  <span className="font-medium capitalize">{filters.source}</span>
+                </div>
+                {filters.promoCode && (
+                  <>
+                    <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">Promo:</span>
+                      <span className="font-medium">{filters.promoCode}</span>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Check-out:</span>
-                <span className="font-medium">
-                  {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  }) : '-'}
-                </span>
-              </div>
-              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Nights:</span>
-                <span className="font-medium">{bill.nights}</span>
-              </div>
-              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Guests:</span>
-                <span className="font-medium">
-                  {guestDetails.adults + guestDetails.children + guestDetails.infants} ({guestDetails.adults}A
-                  {guestDetails.children > 0 && `, ${guestDetails.children}C`}
-                  {guestDetails.infants > 0 && `, ${guestDetails.infants}I`})
-                </span>
-              </div>
-              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Source:</span>
-                <span className="font-medium capitalize">{filters.source}</span>
-              </div>
-              {filters.promoCode && (
-                <>
-                  <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600">Promo:</span>
-                    <span className="font-medium">{filters.promoCode}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
 
-          {/* Guest Details */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Guest:</span>
-                <span className="font-medium">{guestDetails.name}</span>
+              {/* Second Line: Guest Details */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Guest:</span>
+                  <span className="font-medium">{guestDetails.name}</span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Email:</span>
+                  <span className="font-medium">{guestDetails.email}</span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">Phone:</span>
+                  <span className="font-medium">{guestDetails.phone}</span>
+                </div>
+                {guestDetails.address && (
+                  <>
+                    <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">Address:</span>
+                      <span className="font-medium">{guestDetails.address}, {guestDetails.city}</span>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Email:</span>
-                <span className="font-medium">{guestDetails.email}</span>
-              </div>
-              <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Phone:</span>
-                <span className="font-medium">{guestDetails.phone}</span>
-              </div>
-              {guestDetails.address && (
-                <>
-                  <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600">Address:</span>
-                    <span className="font-medium">{guestDetails.address}, {guestDetails.city}</span>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
