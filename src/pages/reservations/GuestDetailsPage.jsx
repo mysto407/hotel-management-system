@@ -15,11 +15,30 @@ import {
 } from '../../components/ui/select'
 
 export default function GuestDetailsPage({ onNavigate }) {
-  const { guestDetails, setGuestDetails } = useReservationFlow()
+  const { guestDetails, setGuestDetails, selectedRooms } = useReservationFlow()
   const { idProofTypes } = useGuests()
   const fileInputRef = useRef(null)
 
   const [errors, setErrors] = useState({})
+
+  // Redirect if no rooms selected
+  if (!selectedRooms || selectedRooms.length === 0) {
+    return (
+      <div className="h-full flex flex-col bg-gray-50">
+        <div className="bg-white border-b px-6 py-4">
+          <h1 className="text-2xl font-bold">Guest Details</h1>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">No rooms selected. Please start from the beginning.</p>
+            <Button onClick={() => onNavigate('new-reservation')}>
+              Go to Room Selection
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0]
