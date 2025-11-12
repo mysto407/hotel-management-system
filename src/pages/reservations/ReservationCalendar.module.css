@@ -182,6 +182,7 @@
 .calendarTable thead .calendarFixedColumn {
     z-index: 20;
     background: #f1f5f9;
+    top: 0;
 }
 
 .fixedColumnHeader {
