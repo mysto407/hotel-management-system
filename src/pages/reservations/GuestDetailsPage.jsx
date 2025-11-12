@@ -98,10 +98,6 @@ export default function GuestDetailsPage({ onNavigate }) {
       newErrors.email = 'Email is invalid'
     }
 
-    if (guestDetails.adults < 1) {
-      newErrors.adults = 'At least 1 adult is required'
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -297,47 +293,6 @@ export default function GuestDetailsPage({ onNavigate }) {
                   onChange={(e) => setGuestDetails({ ...guestDetails, pincode: e.target.value })}
                   placeholder="400001"
                 />
-              </div>
-
-              {/* Guest Count */}
-              <div className="md:col-span-2 pt-4 border-t">
-                <h3 className="font-semibold mb-3">Number of Guests</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="adults">Adults *</Label>
-                    <Input
-                      id="adults"
-                      type="number"
-                      min="1"
-                      value={guestDetails.adults}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, adults: parseInt(e.target.value) || 1 })}
-                      className={errors.adults ? 'border-red-500' : ''}
-                    />
-                    {errors.adults && <p className="text-sm text-red-500">{errors.adults}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="children">Children</Label>
-                    <Input
-                      id="children"
-                      type="number"
-                      min="0"
-                      value={guestDetails.children}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, children: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="infants">Infants</Label>
-                    <Input
-                      id="infants"
-                      type="number"
-                      min="0"
-                      value={guestDetails.infants}
-                      onChange={(e) => setGuestDetails({ ...guestDetails, infants: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                </div>
               </div>
             </div>
           </div>
