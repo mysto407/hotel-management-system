@@ -83,6 +83,10 @@ export function ReservationFlowProvider({ children }) {
     setAddons(prev => [...prev, { ...addon, id: Date.now() }])
   }, [])
 
+  const updateAddon = useCallback((addonId, updatedAddon) => {
+    setAddons(prev => prev.map(a => a.id === addonId ? { ...a, ...updatedAddon } : a))
+  }, [])
+
   const removeAddon = useCallback((addonId) => {
     setAddons(prev => prev.filter(a => a.id !== addonId))
   }, [])
@@ -187,6 +191,7 @@ export function ReservationFlowProvider({ children }) {
 
     // Addon handlers
     addAddon,
+    updateAddon,
     removeAddon,
 
     // Utilities
