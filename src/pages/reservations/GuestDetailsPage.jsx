@@ -15,8 +15,6 @@ import {
 } from '../../components/ui/select'
 
 export default function GuestDetailsPage({ onNavigate }) {
-  console.log('GuestDetailsPage rendering...')
-
   const flowContext = useReservationFlow()
   const guestContext = useGuests()
   const fileInputRef = useRef(null)
@@ -25,11 +23,8 @@ export default function GuestDetailsPage({ onNavigate }) {
   const { guestDetails, setGuestDetails, selectedRooms } = flowContext
   const { idProofTypes } = guestContext
 
-  console.log('Context loaded:', { guestDetails, selectedRooms, idProofTypes })
-
   // Redirect if no rooms selected
   if (!selectedRooms || selectedRooms.length === 0) {
-    console.log('No rooms selected, showing redirect UI')
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <div className="bg-white border-b px-6 py-4">
@@ -46,8 +41,6 @@ export default function GuestDetailsPage({ onNavigate }) {
       </div>
     )
   }
-
-  console.log('Rendering full guest details form')
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0]
@@ -238,7 +231,7 @@ export default function GuestDetailsPage({ onNavigate }) {
                     <SelectValue placeholder="Select ID type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="N/A">None</SelectItem>
                     {idProofTypes.map(type => (
                       <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
