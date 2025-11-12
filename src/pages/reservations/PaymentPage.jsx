@@ -28,7 +28,7 @@ export default function PaymentPage({ onNavigate }) {
     resetFlow
   } = useReservationFlow()
 
-  const { createReservation } = useReservations()
+  const { addReservation } = useReservations()
   const { addGuest } = useGuests()
 
   const [loading, setLoading] = useState(false)
@@ -67,7 +67,7 @@ export default function PaymentPage({ onNavigate }) {
       const reservationPromises = selectedRooms.flatMap(roomType => {
         // Create one reservation per quantity
         return Array.from({ length: roomType.quantity }, (_, index) => {
-          return createReservation({
+          return addReservation({
             guest_id: guestId,
             room_id: roomType.roomIds[index], // Assign specific room ID
             check_in_date: filters.checkIn,
