@@ -991,7 +991,7 @@ const ReservationCalendar = () => {
     const relatedReservations = findRelatedReservations(reservationToDelete);
     const guestName = reservationToDelete.guests?.name || 'Unknown';
     
-    let confirmMessage = `Ã¢Å¡Â Ã¯Â¸Â WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE this reservation?\n\nGuest: ${guestName}\nRoom: ${selectedReservation.rooms?.room_number || 'Unknown'}\nCheck-in: ${selectedReservation.check_in_date}\n\nThis action CANNOT be undone!`;
+    let confirmMessage = `Ã¢Å¡Â Ã¯Â¸Â WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE this reservation?\n\nGuest: ${guestName}\nRoom: ${reservationToDelete.rooms?.room_number || 'Unknown'}\nCheck-in: ${reservationToDelete.check_in_date}\n\nThis action CANNOT be undone!`;
     
     if (relatedReservations.length > 1) {
       confirmMessage = `Ã¢Å¡Â Ã¯Â¸Â WARNING: Permanent Deletion\n\nThis is part of a ${relatedReservations.length}-room booking.\n\nAre you absolutely sure you want to PERMANENTLY DELETE ALL ${relatedReservations.length} reservations for ${guestName}?\n\nThis action CANNOT be undone!`;
