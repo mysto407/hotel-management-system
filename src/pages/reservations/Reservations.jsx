@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
 
-const Reservations = () => {
+const Reservations = ({ onNavigate }) => {
   const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation, deleteReservation } = useReservations();
   const { rooms, roomTypes } = useRooms();
   const { guests } = useGuests();
@@ -554,7 +554,7 @@ const Reservations = () => {
             className="pl-10"
           />
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
+        <Button onClick={() => onNavigate('new-reservation')} className="w-full sm:w-auto">
           <Plus size={20} className="mr-2" /> New Booking
         </Button>
       </div>
