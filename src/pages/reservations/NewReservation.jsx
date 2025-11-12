@@ -50,6 +50,9 @@ export default function NewReservation({ onNavigate }) {
     quantity: 1
   })
 
+  // State to track guest counts for each room type
+  const [guestCounts, setGuestCounts] = useState({})
+
   // Calculate bill
   const bill = calculateBill()
 
@@ -79,8 +82,23 @@ export default function NewReservation({ onNavigate }) {
 
   const handleAddRoom = (roomType) => {
     if (roomType.availableCount > 0) {
-      addRoom(roomType, 1)
+      const counts = guestCounts[roomType.id] || { adult: 0, child: 0, infant: 0, quantity: 1 }
+      addRoom(roomType, counts.quantity, counts)
     }
+  }
+
+  const updateGuestCount = (roomTypeId, field, value) => {
+    setGuestCounts(prev => ({
+      ...prev,
+      [roomTypeId]: {
+        ...prev[roomTypeId],
+        [field]: parseInt(value) || 0
+      }
+    }))
+  }
+
+  const getGuestCount = (roomTypeId, field) => {
+    return guestCounts[roomTypeId]?.[field] || (field === 'quantity' ? 1 : 0)
   }
 
   const handleAddAddon = () => {
@@ -257,14 +275,17 @@ export default function NewReservation({ onNavigate }) {
                         <th className="text-left p-3 text-sm font-semibold">Type</th>
                         <th className="text-right p-3 text-sm font-semibold">Starting From</th>
                         <th className="text-center p-3 text-sm font-semibold">Available</th>
-                        <th className="text-center p-3 text-sm font-semibold">Capacity</th>
+                        <th className="text-center p-3 text-sm font-semibold">Adult</th>
+                        <th className="text-center p-3 text-sm font-semibold">Child</th>
+                        <th className="text-center p-3 text-sm font-semibold">Infant</th>
+                        <th className="text-center p-3 text-sm font-semibold">Quantity</th>
                         <th className="text-center p-3 text-sm font-semibold">Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {availableRoomTypes.length === 0 ? (
                         <tr>
-                          <td colSpan="5" className="text-center p-8 text-gray-500">
+                          <td colSpan="8" className="text-center p-8 text-gray-500">
                             No rooms available
                           </td>
                         </tr>
@@ -295,8 +316,45 @@ export default function NewReservation({ onNavigate }) {
                                   {isSelected && ` (${selectedQty} selected)`}
                                 </span>
                               </td>
-                              <td className="p-3 text-center text-gray-600">
-                                {roomType.capacity} guests
+                              <td className="p-3 text-center">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={getGuestCount(roomType.id, 'adult')}
+                                  onChange={(e) => updateGuestCount(roomType.id, 'adult', e.target.value)}
+                                  className="w-16 text-center"
+                                  placeholder="0"
+                                />
+                              </td>
+                              <td className="p-3 text-center">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={getGuestCount(roomType.id, 'child')}
+                                  onChange={(e) => updateGuestCount(roomType.id, 'child', e.target.value)}
+                                  className="w-16 text-center"
+                                  placeholder="0"
+                                />
+                              </td>
+                              <td className="p-3 text-center">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={getGuestCount(roomType.id, 'infant')}
+                                  onChange={(e) => updateGuestCount(roomType.id, 'infant', e.target.value)}
+                                  className="w-16 text-center"
+                                  placeholder="0"
+                                />
+                              </td>
+                              <td className="p-3 text-center">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={getGuestCount(roomType.id, 'quantity')}
+                                  onChange={(e) => updateGuestCount(roomType.id, 'quantity', e.target.value)}
+                                  className="w-16 text-center"
+                                  placeholder="1"
+                                />
                               </td>
                               <td className="p-3 text-center">
                                 <Button
