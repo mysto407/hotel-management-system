@@ -57,11 +57,11 @@ export function ReservationFlowProvider({ children }) {
       if (existing) {
         return prev.map(r =>
           r.id === room.id
-            ? { ...r, quantity: r.quantity + quantity, assignedRooms: r.assignedRooms || [] }
+            ? { ...r, quantity: r.quantity + quantity, assignedRooms: r.assignedRooms || [], mealPlans: r.mealPlans || [] }
             : r
         )
       }
-      return [...prev, { ...room, quantity, assignedRooms: [] }]
+      return [...prev, { ...room, quantity, assignedRooms: [], mealPlans: [] }]
     })
   }, [])
 
@@ -77,9 +77,10 @@ export function ReservationFlowProvider({ children }) {
     setSelectedRooms(prev =>
       prev.map(r => {
         if (r.id === roomId) {
-          // Trim assigned rooms if quantity decreased
+          // Trim assigned rooms and meal plans if quantity decreased
           const assignedRooms = (r.assignedRooms || []).slice(0, quantity)
-          return { ...r, quantity, assignedRooms }
+          const mealPlans = (r.mealPlans || []).slice(0, quantity)
+          return { ...r, quantity, assignedRooms, mealPlans }
         }
         return r
       })
@@ -122,6 +123,29 @@ export function ReservationFlowProvider({ children }) {
           return { ...r, assignedRooms }
         }
         return r
+      })
+    )
+  }, [])
+
+  // Meal plan handlers
+  const setMealPlan = useCallback((roomTypeId, index, mealPlan) => {
+    setSelectedRooms(prev =>
+      prev.map(r => {
+        if (r.id === roomTypeId) {
+          const mealPlans = [...(r.mealPlans || [])]
+          mealPlans[index] = mealPlan
+          return { ...r, mealPlans }
+        }
+        return r
+      })
+    )
+  }, [])
+
+  const setMealPlanForAll = useCallback((mealPlan) => {
+    setSelectedRooms(prev =>
+      prev.map(r => {
+        const mealPlans = Array(r.quantity).fill(mealPlan)
+        return { ...r, mealPlans }
       })
     )
   }, [])
@@ -240,6 +264,8 @@ export function ReservationFlowProvider({ children }) {
     assignRoom,
     unassignRoom,
     autoAssignRooms,
+    setMealPlan,
+    setMealPlanForAll,
 
     // Addon handlers
     addAddon,

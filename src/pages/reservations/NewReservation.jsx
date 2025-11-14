@@ -27,6 +27,14 @@ const ADDON_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
+// Meal plan options
+const MEAL_PLANS = [
+  { value: 'EP', label: 'EP (Room Only)' },
+  { value: 'CP', label: 'CP (Breakfast)' },
+  { value: 'MAP', label: 'MAP (Breakfast + Dinner)' },
+  { value: 'AP', label: 'AP (All Meals)' },
+]
+
 export default function NewReservation({ onNavigate }) {
   const { roomTypes, rooms } = useRooms()
   const {
@@ -39,6 +47,8 @@ export default function NewReservation({ onNavigate }) {
     assignRoom,
     unassignRoom,
     autoAssignRooms,
+    setMealPlan,
+    setMealPlanForAll,
     addons,
     addAddon,
     removeAddon,
@@ -55,6 +65,8 @@ export default function NewReservation({ onNavigate }) {
 
   // State to track quantity for each room type
   const [roomQuantities, setRoomQuantities] = useState({})
+  const [sameMealPlanForAll, setSameMealPlanForAll] = useState(true)
+  const [globalMealPlan, setGlobalMealPlan] = useState('EP')
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
@@ -65,6 +77,21 @@ export default function NewReservation({ onNavigate }) {
       ...prev,
       [roomTypeId]: Math.max(1, parseInt(quantity) || 1)
     }))
+  }
+
+  const handleGlobalMealPlanChange = (mealPlan) => {
+    setGlobalMealPlan(mealPlan)
+    if (sameMealPlanForAll) {
+      setMealPlanForAll(mealPlan)
+    }
+  }
+
+  const handleAutoAssignAll = () => {
+    selectedRooms.forEach(roomType => {
+      const availableRooms = getAvailableRoomsForType(roomType.id)
+      const availableRoomIds = availableRooms.map(r => r.id)
+      autoAssignRooms(roomType.id, availableRoomIds)
+    })
   }
 
   // Calculate bill
@@ -157,7 +184,13 @@ export default function NewReservation({ onNavigate }) {
     }
   }
 
-  const canProceed = filters.checkIn && filters.checkOut && selectedRooms.length > 0
+  // Validate that all rooms have assigned room numbers
+  const allRoomsAssigned = selectedRooms.every(roomType => {
+    const assignedCount = (roomType.assignedRooms || []).filter(Boolean).length
+    return assignedCount === roomType.quantity
+  })
+
+  const canProceed = filters.checkIn && filters.checkOut && selectedRooms.length > 0 && allRoomsAssigned
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -253,9 +286,62 @@ export default function NewReservation({ onNavigate }) {
             {/* Left Side: Selected Rooms */}
             <div className="space-y-6">
               <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Selected Rooms</h2>
+                {/* Header with Auto Assign All and Meal Plan */}
+                <div className="mb-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">Selected Rooms</h2>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleAutoAssignAll}
+                      disabled={selectedRooms.length === 0}
+                    >
+                      <Shuffle className="h-3 w-3 mr-1" />
+                      Auto Assign All
+                    </Button>
+                  </div>
+
+                  {/* Meal Plan Selection */}
+                  {selectedRooms.length > 0 && (
+                    <div className="flex items-center gap-3 pt-3 border-t">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="sameMealPlan"
+                          checked={sameMealPlanForAll}
+                          onChange={(e) => {
+                            setSameMealPlanForAll(e.target.checked)
+                            if (e.target.checked) {
+                              setMealPlanForAll(globalMealPlan)
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <Label htmlFor="sameMealPlan" className="text-sm cursor-pointer">
+                          Same Meal Plan for All
+                        </Label>
+                      </div>
+                      {sameMealPlanForAll && (
+                        <Select
+                          value={globalMealPlan}
+                          onValueChange={handleGlobalMealPlanChange}
+                        >
+                          <SelectTrigger className="h-8 w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MEAL_PLANS.map(plan => (
+                              <SelectItem key={plan.value} value={plan.value}>
+                                {plan.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  )}
                 </div>
+
                 {selectedRooms.length === 0 ? (
                   <p className="text-gray-500 text-sm">No rooms selected</p>
                 ) : (
@@ -291,57 +377,70 @@ export default function NewReservation({ onNavigate }) {
 
                           {/* Room Number Assignments */}
                           <div className="space-y-2 border-t pt-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <Label className="text-sm font-medium">Assign Room Numbers</Label>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAutoAssign(room.id)}
-                                disabled={availableRooms.length < room.quantity}
-                              >
-                                <Shuffle className="h-3 w-3 mr-1" />
-                                Auto Assign
-                              </Button>
-                            </div>
+                            <Label className="text-sm font-medium">Room Assignments *</Label>
                             {Array.from({ length: room.quantity }).map((_, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <Label className="text-xs text-gray-600 w-12">#{index + 1}</Label>
-                                <Select
-                                  value={room.assignedRooms?.[index] || ''}
-                                  onValueChange={(value) => {
-                                    if (value === 'unassign') {
-                                      unassignRoom(room.id, index)
-                                    } else {
-                                      assignRoom(room.id, value, index)
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 text-sm">
-                                    <SelectValue placeholder="Select room" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="unassign">
-                                      <span className="text-gray-500">Not assigned</span>
-                                    </SelectItem>
-                                    {availableRooms.map(r => (
-                                      <SelectItem
-                                        key={r.id}
-                                        value={r.id}
-                                        disabled={
-                                          room.assignedRooms?.includes(r.id) &&
-                                          room.assignedRooms[index] !== r.id
-                                        }
-                                      >
-                                        Room {r.room_number}
+                              <div key={index} className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-xs text-gray-600 w-12">#{index + 1}</Label>
+                                  <Select
+                                    value={room.assignedRooms?.[index] || ''}
+                                    onValueChange={(value) => {
+                                      if (value === 'unassign') {
+                                        unassignRoom(room.id, index)
+                                      } else {
+                                        assignRoom(room.id, value, index)
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className={`h-8 text-sm flex-1 ${!room.assignedRooms?.[index] ? 'border-red-300' : ''}`}>
+                                      <SelectValue placeholder="Select room *" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="unassign">
+                                        <span className="text-gray-500">Not assigned</span>
                                       </SelectItem>
-                                    ))}
-                                    {room.assignedRooms?.[index] && (
-                                      <SelectItem value={room.assignedRooms[index]}>
-                                        Room {rooms.find(r => r.id === room.assignedRooms[index])?.room_number}
-                                      </SelectItem>
-                                    )}
-                                  </SelectContent>
-                                </Select>
+                                      {availableRooms.map(r => (
+                                        <SelectItem
+                                          key={r.id}
+                                          value={r.id}
+                                          disabled={
+                                            room.assignedRooms?.includes(r.id) &&
+                                            room.assignedRooms[index] !== r.id
+                                          }
+                                        >
+                                          Room {r.room_number}
+                                        </SelectItem>
+                                      ))}
+                                      {room.assignedRooms?.[index] && (
+                                        <SelectItem value={room.assignedRooms[index]}>
+                                          Room {rooms.find(r => r.id === room.assignedRooms[index])?.room_number}
+                                        </SelectItem>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {/* Individual Meal Plan if not using same for all */}
+                                {!sameMealPlanForAll && (
+                                  <div className="flex items-center gap-2 pl-14">
+                                    <Label className="text-xs text-gray-600 w-20">Meal Plan:</Label>
+                                    <Select
+                                      value={room.mealPlans?.[index] || 'EP'}
+                                      onValueChange={(value) => setMealPlan(room.id, index, value)}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs flex-1">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {MEAL_PLANS.map(plan => (
+                                          <SelectItem key={plan.value} value={plan.value}>
+                                            {plan.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
