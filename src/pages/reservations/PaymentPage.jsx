@@ -29,7 +29,6 @@ export default function PaymentPage({ onNavigate }) {
   } = useReservationFlow()
 
   const { addReservation } = useReservations()
-  // FIX 1: Import updateGuest and updateGuestStats
   const { addGuest, updateGuest, updateGuestStats } = useGuests()
 
   const [loading, setLoading] = useState(false)
@@ -48,10 +47,12 @@ export default function PaymentPage({ onNavigate }) {
     return totals
   }, { adults: 0, children: 0, infants: 0 })
 
-  // FIX 2: Add the helper function to prepare guest data
+  /**
+   * FIX: This helper is updated to remove 'pincode' and the 'id' field.
+   * The 'id' will be handled by the logic in handleConfirmReservation.
+   */
   const prepareGuestDataForSave = (details) => {
     const { 
-      id, 
       firstName, 
       surname, 
       email, 
@@ -62,10 +63,10 @@ export default function PaymentPage({ onNavigate }) {
       city, 
       state, 
       country
+      // 'pincode' removed as it's not in the DB schema
     } = details;
     
     return {
-      id: id || null,
       name: `${firstName || ''} ${surname || ''}`.trim(),
       email: email || '',
       phone: phone || '',
@@ -75,38 +76,40 @@ export default function PaymentPage({ onNavigate }) {
       city: city || '',
       state: state || '',
       country: country || 'India',
-      guest_type: 'Regular' // Default for new guests
+      guest_type: 'Regular'
     };
   };
 
   const handleConfirmReservation = async () => {
     setLoading(true)
     try {
-      // FIX 3: Replace the guest creation logic
       // First, create or update the guest
       let guestId = null;
+      
+      // Get the formatted data *without* an ID
       const guestData = prepareGuestDataForSave(guestDetails);
 
-      if (guestData.id) {
+      /**
+       * FIX: We check guestDetails.id (from context) here.
+       * This correctly separates the logic for updating vs. creating.
+       */
+      if (guestDetails.id) {
         // --- EXISTING GUEST ---
-        // An ID exists, so we update the guest's info
-        console.log("Updating existing guest:", guestData.id);
-        const { id, ...dataToUpdate } = guestData;
-        await updateGuest(id, dataToUpdate);
-        guestId = id; // Use the existing ID
+        console.log("Updating existing guest:", guestDetails.id);
+        // Pass the ID and the data to update separately
+        await updateGuest(guestDetails.id, guestData);
+        guestId = guestDetails.id; // Use the existing ID
       } else {
         // --- NEW GUEST ---
-        // No ID, so we create a new guest
         console.log("Adding new guest...");
-        const newGuest = await addGuest(guestData);
+        // Pass data *without* an 'id' key.
+        // Supabase will now use the database's default UUID generator.
+        const newGuest = await addGuest(guestData); 
         if (!newGuest) {
-          alert('Failed to create guest');
-          setLoading(false);
-          return;
+          throw new Error("Failed to create new guest.");
         }
         guestId = newGuest.id; // Use the newly created ID
       }
-      // END OF FIX 3
 
       // Create reservations for each selected room
       const reservationPromises = selectedRooms.flatMap(roomType => {
@@ -151,7 +154,7 @@ export default function PaymentPage({ onNavigate }) {
 
       await Promise.all(reservationPromises)
       
-      // FIX 4: Update guest stats
+      // Update the guest's stats (total spent, total bookings, etc.)
       await updateGuestStats(guestId, bill.total)
 
       // TODO: Create bill with payment if not "Do Not Collect"
