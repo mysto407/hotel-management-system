@@ -1,11 +1,18 @@
 import { useState, useMemo } from 'react'
 import { Search, Plus, Trash2, ChevronRight, Shuffle } from 'lucide-react'
+import { format } from 'date-fns'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useRooms } from '../../context/RoomContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
+import { Calendar } from '../../components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '../../components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -67,6 +74,7 @@ export default function NewReservation({ onNavigate }) {
   const [roomQuantities, setRoomQuantities] = useState({})
   const [sameMealPlanForAll, setSameMealPlanForAll] = useState(true)
   const [globalMealPlan, setGlobalMealPlan] = useState('EP')
+  const [dateRangeOpen, setDateRangeOpen] = useState(false)
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
@@ -224,23 +232,54 @@ export default function NewReservation({ onNavigate }) {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Check-in Date *</Label>
-            <Input
-              type="date"
-              value={filters.checkIn || ''}
-              onChange={(e) => setFilters({ ...filters, checkIn: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Check-out Date *</Label>
-            <Input
-              type="date"
-              value={filters.checkOut || ''}
-              onChange={(e) => setFilters({ ...filters, checkOut: e.target.value })}
-              min={filters.checkIn || ''}
-            />
+          <div className="space-y-2 md:col-span-2">
+            <Label>Check-in / Check-out Date *</Label>
+            <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  {filters.checkIn && filters.checkOut ? (
+                    <>
+                      {format(new Date(filters.checkIn), 'dd MMM yyyy')} - {format(new Date(filters.checkOut), 'dd MMM yyyy')}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Select date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={
+                    filters.checkIn && filters.checkOut
+                      ? {
+                          from: new Date(filters.checkIn),
+                          to: new Date(filters.checkOut)
+                        }
+                      : undefined
+                  }
+                  onSelect={(range) => {
+                    if (range?.from) {
+                      const fromDate = format(range.from, 'yyyy-MM-dd')
+                      const toDate = range.to ? format(range.to, 'yyyy-MM-dd') : fromDate
+                      setFilters({
+                        ...filters,
+                        checkIn: fromDate,
+                        checkOut: toDate
+                      })
+                      // Close popover only when both dates are selected
+                      if (range.to) {
+                        setDateRangeOpen(false)
+                      }
+                    }
+                  }}
+                  numberOfMonths={2}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
