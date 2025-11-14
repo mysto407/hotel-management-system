@@ -3,6 +3,7 @@ import { ChevronLeft, Check } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useReservations } from '../../context/ReservationContext'
 import { useGuests } from '../../context/GuestContext'
+import { useMealPlans } from '../../context/MealPlanContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -30,6 +31,7 @@ export default function PaymentPage({ onNavigate }) {
 
   const { addReservation } = useReservations()
   const { addGuest, updateGuest, updateGuestStats } = useGuests()
+  const { getMealPlanPrice, getMealPlanName } = useMealPlans()
 
   const [loading, setLoading] = useState(false)
 
@@ -308,7 +310,11 @@ export default function PaymentPage({ onNavigate }) {
                       {selectedRooms.flatMap(room =>
                         Array.from({ length: room.quantity }, (_, index) => {
                           const guestCount = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
-                          const mealPlan = room.mealPlans?.[index] || 'EP'
+                          const mealPlanCode = room.mealPlans?.[index] || 'EP'
+                          const mealPlanName = getMealPlanName(mealPlanCode)
+                          const mealPlanPrice = getMealPlanPrice(mealPlanCode)
+                          const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
+                          const mealPlanCost = mealPlanPrice * totalGuests * bill.nights
 
                           return (
                             <div key={`${room.id}-${index}`} className="bg-gray-50 rounded p-3 space-y-1.5">
@@ -326,7 +332,7 @@ export default function PaymentPage({ onNavigate }) {
                               </div>
                               <div className="flex justify-between text-xs text-gray-600">
                                 <span>Meal Plan:</span>
-                                <span>{mealPlan}</span>
+                                <span>{mealPlanName} {mealPlanCost > 0 && `(+₹${mealPlanCost.toFixed(2)})`}</span>
                               </div>
                               <div className="flex justify-between text-xs text-gray-600">
                                 <span>Rate per night:</span>
@@ -445,6 +451,87 @@ export default function PaymentPage({ onNavigate }) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Meal Plan Charges - Detailed */}
+                  {bill.mealPlanSubtotal > 0 && (
+                    <div className="pt-3 border-t">
+                      <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Meal Plan Charges</h3>
+                      <div className="space-y-3">
+                        {selectedRooms.flatMap(room =>
+                          Array.from({ length: room.quantity }, (_, index) => {
+                            const mealPlanCode = room.mealPlans?.[index] || 'EP'
+                            const mealPlanName = getMealPlanName(mealPlanCode)
+                            const pricePerPerson = getMealPlanPrice(mealPlanCode)
+                            const guestCount = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
+                            const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
+
+                            const mealPlanSubtotal = pricePerPerson * totalGuests * bill.nights
+                            const mealPlanTax = mealPlanSubtotal * 0.18
+                            const mealPlanTotal = mealPlanSubtotal + mealPlanTax
+
+                            // Skip if no meal plan cost
+                            if (mealPlanSubtotal === 0) return null
+
+                            return (
+                              <div key={`meal-${room.id}-${index}`} className="bg-gray-50 rounded p-3 space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <div className="font-medium text-sm">{room.name} - {mealPlanName}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                      Room {index + 1} of {room.quantity}
+                                    </div>
+                                  </div>
+                                  <span className="text-sm font-semibold">₹{mealPlanTotal.toFixed(2)}</span>
+                                </div>
+                                <div className="space-y-1 pt-2 border-t border-gray-200">
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-gray-600">Rate per person per day</span>
+                                    <span>₹{pricePerPerson.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-gray-600">Guests × Nights</span>
+                                    <span>{totalGuests} × {bill.nights}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-gray-600">Subtotal</span>
+                                    <span>₹{mealPlanSubtotal.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-gray-600">GST (18%)</span>
+                                    <span>₹{mealPlanTax.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs font-medium pt-1 border-t border-gray-200">
+                                    <span>Meal Plan Total</span>
+                                    <span>₹{mealPlanTotal.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          }).filter(Boolean)
+                        )}
+                      </div>
+
+                      {/* Meal Plan Charges Summary */}
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex justify-between text-sm font-medium">
+                          <span>Total Meal Plan Charges</span>
+                          <span>₹{selectedRooms.reduce((sum, room) => {
+                            let roomMealPlanTotal = 0
+                            for (let i = 0; i < room.quantity; i++) {
+                              const mealPlanCode = room.mealPlans?.[i] || 'EP'
+                              const pricePerPerson = getMealPlanPrice(mealPlanCode)
+                              const guestCount = room.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
+                              const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
+                              const mealPlanSubtotal = pricePerPerson * totalGuests * bill.nights
+                              const mealPlanTax = mealPlanSubtotal * 0.18
+                              roomMealPlanTotal += mealPlanSubtotal + mealPlanTax
+                            }
+                            return sum + roomMealPlanTotal
+                          }, 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Add-ons - Detailed */}
                   {addons && addons.length > 0 && (

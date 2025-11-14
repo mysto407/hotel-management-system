@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react'
+import { useMealPlans } from './MealPlanContext'
 
 const ReservationFlowContext = createContext()
 
@@ -11,6 +12,8 @@ export function useReservationFlow() {
 }
 
 export function ReservationFlowProvider({ children }) {
+  const { getMealPlanPrice } = useMealPlans()
+
   // Step 1: Availability & Room Selection
   const [filters, setFilters] = useState({
     checkIn: null,
@@ -196,7 +199,8 @@ export function ReservationFlowProvider({ children }) {
         total: 0,
         nights: 0,
         suggestedDeposit: 0,
-        balanceDue: 0
+        balanceDue: 0,
+        mealPlanSubtotal: 0
       }
     }
 
@@ -208,12 +212,34 @@ export function ReservationFlowProvider({ children }) {
       return sum + roomTotal
     }, 0)
 
+    // Calculate meal plan charges
+    const mealPlanSubtotal = selectedRooms.reduce((sum, room) => {
+      let roomMealPlanTotal = 0
+
+      // Calculate for each room instance
+      for (let i = 0; i < room.quantity; i++) {
+        const mealPlanCode = room.mealPlans?.[i] || 'EP'
+        const guestCount = room.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
+
+        // Calculate total guests (adults + children, excluding infants)
+        const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
+
+        // Get price per person per day for this meal plan
+        const pricePerPerson = getMealPlanPrice(mealPlanCode)
+
+        // Calculate total meal plan cost for this room
+        roomMealPlanTotal += pricePerPerson * totalGuests * nights
+      }
+
+      return sum + roomMealPlanTotal
+    }, 0)
+
     // Calculate addon charges
     const addonSubtotal = addons.reduce((sum, addon) => {
       return sum + (addon.price || 0) * (addon.quantity || 1)
     }, 0)
 
-    const subtotal = roomSubtotal + addonSubtotal
+    const subtotal = roomSubtotal + mealPlanSubtotal + addonSubtotal
     const tax = subtotal * 0.18 // 18% GST
     const total = subtotal + tax
     const suggestedDeposit = total * 0.3 // 30% suggested deposit
@@ -225,9 +251,10 @@ export function ReservationFlowProvider({ children }) {
       total,
       nights,
       suggestedDeposit,
-      balanceDue
+      balanceDue,
+      mealPlanSubtotal
     }
-  }, [filters, selectedRooms, addons, paymentInfo.amount])
+  }, [filters, selectedRooms, addons, paymentInfo.amount, getMealPlanPrice])
 
   // Reset flow
   const resetFlow = useCallback(() => {
