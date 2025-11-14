@@ -387,48 +387,128 @@ export default function PaymentPage({ onNavigate }) {
               <div className="p-6 pb-4 border-b">
                 <h2 className="text-lg font-semibold mb-4">Bill Breakdown</h2>
 
-                <div className="space-y-3">
-                  {/* Room Charges */}
-                  <div className="pb-3 border-b">
-                    <h3 className="font-medium mb-2 text-sm">Room Charges</h3>
-                    {selectedRooms.map(room => (
-                      <div key={room.id} className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">
-                          {room.name} × {room.quantity} × {bill.nights} nights
-                        </span>
-                        <span>₹{(room.base_price * room.quantity * bill.nights).toFixed(2)}</span>
+                <div className="space-y-4">
+                  {/* Room Charges - Detailed */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Room Charges</h3>
+                    <div className="space-y-3">
+                      {selectedRooms.flatMap(room =>
+                        Array.from({ length: room.quantity }, (_, index) => {
+                          const roomSubtotal = room.base_price * bill.nights
+                          const roomTax = roomSubtotal * 0.18
+                          const roomTotal = roomSubtotal + roomTax
+
+                          return (
+                            <div key={`bill-${room.id}-${index}`} className="bg-gray-50 rounded p-3 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="font-medium text-sm">{room.name}</div>
+                                  <div className="text-xs text-gray-500 mt-0.5">
+                                    Room {index + 1} of {room.quantity}
+                                  </div>
+                                </div>
+                                <span className="text-sm font-semibold">₹{roomTotal.toFixed(2)}</span>
+                              </div>
+                              <div className="space-y-1 pt-2 border-t border-gray-200">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">Base Rate</span>
+                                  <span>₹{room.base_price.toFixed(2)} × {bill.nights} nights</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">Subtotal</span>
+                                  <span>₹{roomSubtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">GST (18%)</span>
+                                  <span>₹{roomTax.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs font-medium pt-1 border-t border-gray-200">
+                                  <span>Room Total</span>
+                                  <span>₹{roomTotal.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+
+                    {/* Room Charges Summary */}
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="flex justify-between text-sm font-medium">
+                        <span>Total Room Charges</span>
+                        <span>₹{selectedRooms.reduce((sum, room) => {
+                          const roomSubtotal = room.base_price * bill.nights * room.quantity
+                          const roomTax = roomSubtotal * 0.18
+                          return sum + roomSubtotal + roomTax
+                        }, 0).toFixed(2)}</span>
                       </div>
-                    ))}
+                    </div>
                   </div>
 
-                  {/* Add-ons */}
+                  {/* Add-ons - Detailed */}
                   {addons && addons.length > 0 && (
-                    <div className="pb-3 border-b">
-                      <h3 className="font-medium mb-2 text-sm">Add-ons</h3>
-                      {addons.map(addon => (
-                        <div key={addon.id} className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">
-                            {addon.name} × {addon.quantity}
-                          </span>
-                          <span>₹{(addon.price * addon.quantity).toFixed(2)}</span>
+                    <div className="pt-3 border-t">
+                      <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Add-ons & Services</h3>
+                      <div className="space-y-2">
+                        {addons.map(addon => {
+                          const addonSubtotal = addon.price * addon.quantity
+                          const addonTax = addonSubtotal * 0.18
+                          const addonTotal = addonSubtotal + addonTax
+
+                          return (
+                            <div key={addon.id} className="bg-gray-50 rounded p-3 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div className="font-medium text-sm">{addon.name}</div>
+                                <span className="text-sm font-semibold">₹{addonTotal.toFixed(2)}</span>
+                              </div>
+                              <div className="space-y-1 pt-2 border-t border-gray-200">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">Unit Price</span>
+                                  <span>₹{addon.price.toFixed(2)} × {addon.quantity}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">Subtotal</span>
+                                  <span>₹{addonSubtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-600">GST (18%)</span>
+                                  <span>₹{addonTax.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Add-ons Summary */}
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex justify-between text-sm font-medium">
+                          <span>Total Add-ons</span>
+                          <span>₹{addons.reduce((sum, addon) => {
+                            const addonSubtotal = addon.price * addon.quantity
+                            const addonTax = addonSubtotal * 0.18
+                            return sum + addonSubtotal + addonTax
+                          }, 0).toFixed(2)}</span>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Totals */}
-                  <div className="space-y-2 pt-2">
+                  {/* Grand Totals */}
+                  <div className="pt-4 border-t-2 space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Summary</h3>
                     <div className="flex justify-between text-sm">
-                      <span>Subtotal</span>
-                      <span>₹{bill.subtotal.toFixed(2)}</span>
+                      <span className="text-gray-600">Subtotal (Before Tax)</span>
+                      <span className="font-medium">₹{bill.subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>GST (18%)</span>
-                      <span>₹{bill.tax.toFixed(2)}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total GST (18%)</span>
+                      <span className="font-medium">₹{bill.tax.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                    <div className="flex justify-between text-lg font-bold pt-3 border-t-2">
                       <span>Grand Total</span>
-                      <span>₹{bill.total.toFixed(2)}</span>
+                      <span className="text-blue-600">₹{bill.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
