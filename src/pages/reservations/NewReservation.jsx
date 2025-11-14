@@ -250,82 +250,102 @@ export default function NewReservation({ onNavigate }) {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  selected={
-                    filters.checkIn && filters.checkOut
-                      ? {
-                          from: new Date(filters.checkIn),
-                          to: new Date(filters.checkOut)
-                        }
-                      : filters.checkIn
-                      ? {
-                          from: new Date(filters.checkIn),
-                          to: undefined
-                        }
-                      : undefined
-                  }
-                  onSelect={(range) => {
-                    if (range?.from) {
-                      const fromDate = format(range.from, 'yyyy-MM-dd')
+                <div className="space-y-2">
+                  <Calendar
+                    mode="range"
+                    selected={
+                      filters.checkIn && filters.checkOut
+                        ? {
+                            from: new Date(filters.checkIn),
+                            to: new Date(filters.checkOut)
+                          }
+                        : filters.checkIn
+                        ? {
+                            from: new Date(filters.checkIn),
+                            to: undefined
+                          }
+                        : undefined
+                    }
+                    onSelect={(range) => {
+                      if (range?.from) {
+                        const fromDate = format(range.from, 'yyyy-MM-dd')
 
-                      if (range.to) {
-                        const toDate = format(range.to, 'yyyy-MM-dd')
+                        if (range.to) {
+                          const toDate = format(range.to, 'yyyy-MM-dd')
 
-                        // Check if check-out is different from check-in
-                        if (fromDate === toDate) {
-                          // Don't update if same date - keep calendar open
+                          // Check if check-out is different from check-in
+                          if (fromDate === toDate) {
+                            // Don't update if same date - keep calendar open
+                            setFilters({
+                              ...filters,
+                              checkIn: fromDate,
+                              checkOut: null
+                            })
+                          } else {
+                            // Both dates selected and valid - update and close
+                            setFilters({
+                              ...filters,
+                              checkIn: fromDate,
+                              checkOut: toDate
+                            })
+                            setDateRangeOpen(false)
+                          }
+                        } else {
+                          // Only check-in selected - keep popover open
                           setFilters({
                             ...filters,
                             checkIn: fromDate,
                             checkOut: null
                           })
-                        } else {
-                          // Both dates selected and valid - update and close
-                          setFilters({
-                            ...filters,
-                            checkIn: fromDate,
-                            checkOut: toDate
-                          })
-                          setDateRangeOpen(false)
                         }
                       } else {
-                        // Only check-in selected - keep popover open
+                        // Range was cleared
                         setFilters({
                           ...filters,
-                          checkIn: fromDate,
+                          checkIn: null,
                           checkOut: null
                         })
                       }
-                    } else {
-                      // Range was cleared
-                      setFilters({
-                        ...filters,
-                        checkIn: null,
-                        checkOut: null
-                      })
-                    }
-                  }}
-                  numberOfMonths={2}
-                  disabled={(date) => {
-                    const today = new Date(new Date().setHours(0, 0, 0, 0))
-                    // Disable past dates
-                    if (date < today) return true
+                    }}
+                    numberOfMonths={2}
+                    disabled={(date) => {
+                      const today = new Date(new Date().setHours(0, 0, 0, 0))
+                      // Disable past dates
+                      if (date < today) return true
 
-                    // If check-in is selected, disable the same date for check-out
-                    if (filters.checkIn) {
-                      const checkInDate = new Date(filters.checkIn)
-                      checkInDate.setHours(0, 0, 0, 0)
+                      // If check-in is selected, disable the same date for check-out
+                      if (filters.checkIn) {
+                        const checkInDate = new Date(filters.checkIn)
+                        checkInDate.setHours(0, 0, 0, 0)
 
-                      // Disable the check-in date to prevent same-day check-out
-                      if (date.getTime() === checkInDate.getTime()) {
-                        return true
+                        // Disable the check-in date to prevent same-day check-out
+                        if (date.getTime() === checkInDate.getTime()) {
+                          return true
+                        }
                       }
-                    }
 
-                    return false
-                  }}
-                />
+                      return false
+                    }}
+                  />
+                  {(filters.checkIn || filters.checkOut) && (
+                    <div className="px-3 pb-3 border-t pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFilters({
+                            ...filters,
+                            checkIn: null,
+                            checkOut: null
+                          })
+                        }}
+                        className="w-full"
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </PopoverContent>
             </Popover>
           </div>
