@@ -75,6 +75,7 @@ export default function NewReservation({ onNavigate }) {
   const [sameMealPlanForAll, setSameMealPlanForAll] = useState(true)
   const [globalMealPlan, setGlobalMealPlan] = useState('EP')
   const [dateRangeOpen, setDateRangeOpen] = useState(false)
+  const [hoveredDate, setHoveredDate] = useState(null)
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
