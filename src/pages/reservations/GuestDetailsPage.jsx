@@ -40,7 +40,7 @@ export default function GuestDetailsPage({ onNavigate }) {
   // Redirect if no rooms selected
   if (!selectedRooms || selectedRooms.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="h-full flex flex-col bg-gray-50">
         <div className="bg-white border-b px-6 py-4">
           <h1 className="text-2xl font-bold">Guest Details</h1>
         </div>
@@ -176,7 +176,7 @@ const handleSelectGuest = (guest) => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
