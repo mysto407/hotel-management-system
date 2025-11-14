@@ -37,10 +37,7 @@ export function ReservationFlowProvider({ children }) {
     idType: 'N/A',
     idNumber: '',
     photo: null,
-    photoUrl: null,
-    adults: 1,
-    children: 0,
-    infants: 0
+    photoUrl: null
   })
 
   // Step 3: Payment
@@ -57,11 +54,11 @@ export function ReservationFlowProvider({ children }) {
       if (existing) {
         return prev.map(r =>
           r.id === room.id
-            ? { ...r, quantity: r.quantity + quantity, assignedRooms: r.assignedRooms || [], mealPlans: r.mealPlans || [] }
+            ? { ...r, quantity: r.quantity + quantity, assignedRooms: r.assignedRooms || [], mealPlans: r.mealPlans || [], guestCounts: r.guestCounts || [] }
             : r
         )
       }
-      return [...prev, { ...room, quantity, assignedRooms: [], mealPlans: [] }]
+      return [...prev, { ...room, quantity, assignedRooms: [], mealPlans: [], guestCounts: [] }]
     })
   }, [])
 
@@ -77,10 +74,11 @@ export function ReservationFlowProvider({ children }) {
     setSelectedRooms(prev =>
       prev.map(r => {
         if (r.id === roomId) {
-          // Trim assigned rooms and meal plans if quantity decreased
+          // Trim assigned rooms, meal plans, and guest counts if quantity decreased
           const assignedRooms = (r.assignedRooms || []).slice(0, quantity)
           const mealPlans = (r.mealPlans || []).slice(0, quantity)
-          return { ...r, quantity, assignedRooms, mealPlans }
+          const guestCounts = (r.guestCounts || []).slice(0, quantity)
+          return { ...r, quantity, assignedRooms, mealPlans, guestCounts }
         }
         return r
       })
@@ -146,6 +144,29 @@ export function ReservationFlowProvider({ children }) {
       prev.map(r => {
         const mealPlans = Array(r.quantity).fill(mealPlan)
         return { ...r, mealPlans }
+      })
+    )
+  }, [])
+
+  // Guest count handlers
+  const setGuestCount = useCallback((roomTypeId, index, guestCount) => {
+    setSelectedRooms(prev =>
+      prev.map(r => {
+        if (r.id === roomTypeId) {
+          const guestCounts = [...(r.guestCounts || [])]
+          guestCounts[index] = guestCount
+          return { ...r, guestCounts }
+        }
+        return r
+      })
+    )
+  }, [])
+
+  const setGuestCountForAll = useCallback((guestCount) => {
+    setSelectedRooms(prev =>
+      prev.map(r => {
+        const guestCounts = Array(r.quantity).fill(guestCount)
+        return { ...r, guestCounts }
       })
     )
   }, [])
@@ -232,10 +253,7 @@ export function ReservationFlowProvider({ children }) {
       idType: 'N/A',
       idNumber: '',
       photo: null,
-      photoUrl: null,
-      adults: 1,
-      children: 0,
-      infants: 0
+      photoUrl: null
     })
     setPaymentInfo({
       paymentType: 'cash',
@@ -266,6 +284,8 @@ export function ReservationFlowProvider({ children }) {
     autoAssignRooms,
     setMealPlan,
     setMealPlanForAll,
+    setGuestCount,
+    setGuestCountForAll,
 
     // Addon handlers
     addAddon,
