@@ -29,7 +29,8 @@ export default function PaymentPage({ onNavigate }) {
   } = useReservationFlow()
 
   const { addReservation } = useReservations()
-  const { addGuest } = useGuests()
+  // FIX 1: Import updateGuest and updateGuestStats
+  const { addGuest, updateGuest, updateGuestStats } = useGuests()
 
   const [loading, setLoading] = useState(false)
 
@@ -47,34 +48,65 @@ export default function PaymentPage({ onNavigate }) {
     return totals
   }, { adults: 0, children: 0, infants: 0 })
 
+  // FIX 2: Add the helper function to prepare guest data
+  const prepareGuestDataForSave = (details) => {
+    const { 
+      id, 
+      firstName, 
+      surname, 
+      email, 
+      phone, 
+      idType, 
+      idNumber, 
+      address, 
+      city, 
+      state, 
+      country
+    } = details;
+    
+    return {
+      id: id || null,
+      name: `${firstName || ''} ${surname || ''}`.trim(),
+      email: email || '',
+      phone: phone || '',
+      id_proof_type: idType || 'N/A',
+      id_proof_number: idNumber || '',
+      address: address || '',
+      city: city || '',
+      state: state || '',
+      country: country || 'India',
+      guest_type: 'Regular' // Default for new guests
+    };
+  };
+
   const handleConfirmReservation = async () => {
     setLoading(true)
     try {
-      // First, create or get the guest
-      let guestId = null
+      // FIX 3: Replace the guest creation logic
+      // First, create or update the guest
+      let guestId = null;
+      const guestData = prepareGuestDataForSave(guestDetails);
 
-      // Create guest (simplified - in production you'd check if guest exists first)
-      const fullName = `${guestDetails.firstName} ${guestDetails.surname}`.trim()
-      const newGuest = await addGuest({
-        name: fullName,
-        email: guestDetails.email || '',
-        phone: guestDetails.phone || '',
-        address: guestDetails.address || '',
-        city: guestDetails.city || '',
-        state: guestDetails.state || '',
-        country: guestDetails.country || '',
-        id_proof_type: guestDetails.idType || 'N/A',
-        id_proof_number: guestDetails.idNumber || '',
-        guest_type: 'Regular'
-      })
-
-      if (!newGuest) {
-        alert('Failed to create guest')
-        setLoading(false)
-        return
+      if (guestData.id) {
+        // --- EXISTING GUEST ---
+        // An ID exists, so we update the guest's info
+        console.log("Updating existing guest:", guestData.id);
+        const { id, ...dataToUpdate } = guestData;
+        await updateGuest(id, dataToUpdate);
+        guestId = id; // Use the existing ID
+      } else {
+        // --- NEW GUEST ---
+        // No ID, so we create a new guest
+        console.log("Adding new guest...");
+        const newGuest = await addGuest(guestData);
+        if (!newGuest) {
+          alert('Failed to create guest');
+          setLoading(false);
+          return;
+        }
+        guestId = newGuest.id; // Use the newly created ID
       }
-
-      guestId = newGuest.id
+      // END OF FIX 3
 
       // Create reservations for each selected room
       const reservationPromises = selectedRooms.flatMap(roomType => {
@@ -118,6 +150,9 @@ export default function PaymentPage({ onNavigate }) {
       })
 
       await Promise.all(reservationPromises)
+      
+      // FIX 4: Update guest stats
+      await updateGuestStats(guestId, bill.total)
 
       // TODO: Create bill with payment if not "Do Not Collect"
       if (paymentInfo.paymentType !== 'none' && paymentInfo.amount > 0) {
