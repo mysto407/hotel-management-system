@@ -25,7 +25,8 @@ export function ReservationFlowProvider({ children }) {
 
   // Step 2: Guest Details
   const [guestDetails, setGuestDetails] = useState({
-    name: '',
+    firstName: '',
+    surname: '',
     email: '',
     phone: '',
     address: '',
@@ -195,7 +196,8 @@ export function ReservationFlowProvider({ children }) {
     setSelectedRooms([])
     setAddons([])
     setGuestDetails({
-      name: '',
+      firstName: '',
+      surname: '',
       email: '',
       phone: '',
       address: '',

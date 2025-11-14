@@ -57,11 +57,23 @@ export default function GuestDetailsPage({ onNavigate }) {
   }
 
   const handleSelectGuest = (guest) => {
+    // Prevent duplicate selection
+    if (selectedGuestId === guest.id && !showNewGuest) {
+      return
+    }
+
     setSelectedGuestId(guest.id)
     setShowNewGuest(false)
+
+    // Split name into firstName and surname
+    const nameParts = (guest.name || '').trim().split(' ')
+    const firstName = nameParts[0] || ''
+    const surname = nameParts.slice(1).join(' ') || ''
+
     setGuestDetails({
       ...guestDetails,
-      name: guest.name || '',
+      firstName,
+      surname,
       email: guest.email || '',
       phone: guest.phone || '',
       idType: guest.id_proof_type || 'N/A',
@@ -80,7 +92,8 @@ export default function GuestDetailsPage({ onNavigate }) {
     setSelectedGuestId(null)
     setShowNewGuest(true)
     setGuestDetails({
-      name: '',
+      firstName: '',
+      surname: '',
       email: '',
       phone: '',
       idType: 'N/A',
@@ -91,7 +104,10 @@ export default function GuestDetailsPage({ onNavigate }) {
       country: '',
       pincode: '',
       photo: null,
-      photoUrl: null
+      photoUrl: null,
+      adults: 1,
+      children: 0,
+      infants: 0
     })
   }
 
@@ -137,17 +153,16 @@ export default function GuestDetailsPage({ onNavigate }) {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!guestDetails.name.trim()) {
-      newErrors.name = 'Name is required'
+    if (!guestDetails.firstName.trim()) {
+      newErrors.firstName = 'First name is required'
     }
 
-    if (!guestDetails.phone.trim()) {
-      newErrors.phone = 'Phone is required'
+    if (!guestDetails.surname.trim()) {
+      newErrors.surname = 'Surname is required'
     }
 
-    if (!guestDetails.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(guestDetails.email)) {
+    // Optional: Validate email format only if provided
+    if (guestDetails.email && !/\S+@\S+\.\S+/.test(guestDetails.email)) {
       newErrors.email = 'Email is invalid'
     }
 
@@ -174,8 +189,8 @@ export default function GuestDetailsPage({ onNavigate }) {
       {/* Main Content - Two Column Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Guest Selection */}
-        <div className="w-80 bg-white border-r flex flex-col">
-          <div className="p-4 border-b">
+        <div className="w-80 bg-white border-r flex flex-col h-full">
+          <div className="p-4 border-b flex-shrink-0">
             <div className="flex items-center gap-2 mb-3">
               <Button
                 onClick={handleNewGuest}
@@ -199,8 +214,8 @@ export default function GuestDetailsPage({ onNavigate }) {
             </div>
           </div>
 
-          {/* Guest List */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Guest List - Scrollable with fixed height */}
+          <div className="flex-1 overflow-y-auto min-h-0">
             {filteredGuests.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">
                 {guestSearch ? 'No guests found' : 'No saved guests'}
@@ -212,7 +227,7 @@ export default function GuestDetailsPage({ onNavigate }) {
                     key={guest.id}
                     onClick={() => handleSelectGuest(guest)}
                     className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                      selectedGuestId === guest.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                      selectedGuestId === guest.id && !showNewGuest ? 'bg-blue-50 border-l-4 border-blue-500' : ''
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -249,7 +264,7 @@ export default function GuestDetailsPage({ onNavigate }) {
         </div>
 
         {/* Right Content - Guest Form */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="flex-1 overflow-y-auto bg-white h-full">
           <div className="p-6">
             {/* Single Unified Card with All Information */}
             <div className="bg-white border rounded-lg shadow-sm">
@@ -314,19 +329,31 @@ export default function GuestDetailsPage({ onNavigate }) {
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Personal Information</h3>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-sm">Full Name *</Label>
+                      <Label htmlFor="firstName" className="text-sm">First Name *</Label>
                       <Input
-                        id="name"
-                        value={guestDetails.name}
-                        onChange={(e) => setGuestDetails({ ...guestDetails, name: e.target.value })}
-                        placeholder="John Doe"
-                        className={errors.name ? 'border-red-500' : ''}
+                        id="firstName"
+                        value={guestDetails.firstName}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, firstName: e.target.value })}
+                        placeholder="John"
+                        className={errors.firstName ? 'border-red-500' : ''}
                       />
-                      {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                      {errors.firstName && <p className="text-xs text-red-500">{errors.firstName}</p>}
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-sm">Phone *</Label>
+                      <Label htmlFor="surname" className="text-sm">Surname *</Label>
+                      <Input
+                        id="surname"
+                        value={guestDetails.surname}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, surname: e.target.value })}
+                        placeholder="Doe"
+                        className={errors.surname ? 'border-red-500' : ''}
+                      />
+                      {errors.surname && <p className="text-xs text-red-500">{errors.surname}</p>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-sm">Phone</Label>
                       <Input
                         id="phone"
                         type="tel"
@@ -339,7 +366,7 @@ export default function GuestDetailsPage({ onNavigate }) {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-sm">Email *</Label>
+                      <Label htmlFor="email" className="text-sm">Email</Label>
                       <Input
                         id="email"
                         type="email"
@@ -349,6 +376,42 @@ export default function GuestDetailsPage({ onNavigate }) {
                         className={errors.email ? 'border-red-500' : ''}
                       />
                       {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="adults" className="text-sm">Adults</Label>
+                      <Input
+                        id="adults"
+                        type="number"
+                        min="1"
+                        value={guestDetails.adults}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, adults: parseInt(e.target.value) || 1 })}
+                        placeholder="1"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="children" className="text-sm">Children</Label>
+                      <Input
+                        id="children"
+                        type="number"
+                        min="0"
+                        value={guestDetails.children}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, children: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="infants" className="text-sm">Infants</Label>
+                      <Input
+                        id="infants"
+                        type="number"
+                        min="0"
+                        value={guestDetails.infants}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, infants: parseInt(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
                     </div>
                   </div>
                 </div>
