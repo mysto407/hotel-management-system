@@ -172,6 +172,58 @@ export const deleteGuest = async(id) => {
     return { error }
 }
 
+// Meal Plans
+export const getMealPlans = async() => {
+    const { data, error } = await supabase
+        .from('meal_plans')
+        .select('*')
+        .order('sort_order')
+    return { data, error }
+}
+
+export const getActiveMealPlans = async() => {
+    const { data, error } = await supabase
+        .from('meal_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order')
+    return { data, error }
+}
+
+export const getMealPlanByCode = async(code) => {
+    const { data, error } = await supabase
+        .from('meal_plans')
+        .select('*')
+        .eq('code', code)
+        .single()
+    return { data, error }
+}
+
+export const createMealPlan = async(mealPlan) => {
+    const { data, error } = await supabase
+        .from('meal_plans')
+        .insert([mealPlan])
+        .select()
+    return { data, error }
+}
+
+export const updateMealPlan = async(id, mealPlan) => {
+    const { data, error } = await supabase
+        .from('meal_plans')
+        .update(mealPlan)
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const deleteMealPlan = async(id) => {
+    const { error } = await supabase
+        .from('meal_plans')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
 // Reservations
 export const getReservations = async() => {
     const { data, error } = await supabase
