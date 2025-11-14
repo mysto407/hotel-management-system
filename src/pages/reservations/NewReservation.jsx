@@ -262,10 +262,28 @@ export default function NewReservation({ onNavigate }) {
                       : filters.checkIn
                       ? {
                           from: new Date(filters.checkIn),
-                          to: hoveredDate || undefined
+                          to: undefined
                         }
                       : undefined
                   }
+                  modifiers={{
+                    hoverRange: (date) => {
+                      if (!filters.checkIn || filters.checkOut || !hoveredDate) {
+                        return false
+                      }
+                      const checkInDate = new Date(filters.checkIn)
+                      checkInDate.setHours(0, 0, 0, 0)
+                      const hoverDate = new Date(hoveredDate)
+                      hoverDate.setHours(0, 0, 0, 0)
+                      const currentDate = new Date(date)
+                      currentDate.setHours(0, 0, 0, 0)
+
+                      return currentDate > checkInDate && currentDate <= hoverDate
+                    }
+                  }}
+                  modifiersClassNames={{
+                    hoverRange: 'bg-accent/50 text-accent-foreground'
+                  }}
                   onSelect={(range) => {
                     if (range?.from) {
                       const fromDate = format(range.from, 'yyyy-MM-dd')
