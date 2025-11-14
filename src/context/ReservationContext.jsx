@@ -6,7 +6,8 @@ import {
   updateReservation as updateReservationAPI,
   deleteReservation as deleteReservationAPI,
   updateRoomStatus,
-  createBill
+  createBill,
+  getMealPlanByCode
 } from '../lib/supabase';
 
 const ReservationContext = createContext();
@@ -96,12 +97,12 @@ export const ReservationProvider = ({ children }) => {
       // Auto-create Room Charge Bill
       const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
       const roomRate = reservation.rooms?.room_types?.base_price || 0;
-      const subtotal = nights * roomRate;
-      const tax = subtotal * 0.18; // 18% GST
-      const total = subtotal + tax;
 
       // Create bill items for each night
       const billItems = [];
+      let subtotal = 0;
+
+      // Add room charges
       for (let i = 0; i < nights; i++) {
         billItems.push({
           description: `Room ${reservation.rooms?.room_number || 'N/A'} - Night ${i + 1}`,
@@ -109,7 +110,38 @@ export const ReservationProvider = ({ children }) => {
           rate: roomRate,
           amount: roomRate
         });
+        subtotal += roomRate;
       }
+
+      // Add meal plan charges if available
+      if (reservation.meal_plan && reservation.meal_plan !== 'EP') {
+        try {
+          const { data: mealPlanData } = await getMealPlanByCode(reservation.meal_plan);
+          if (mealPlanData && mealPlanData.length > 0) {
+            const mealPlanPrice = parseFloat(mealPlanData[0].price_per_person) || 0;
+            if (mealPlanPrice > 0) {
+              const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
+              const mealPlanPerNight = mealPlanPrice * totalGuests;
+
+              for (let i = 0; i < nights; i++) {
+                billItems.push({
+                  description: `Meal Plan (${mealPlanData[0].name}) - Day ${i + 1} - ${totalGuests} guests`,
+                  quantity: 1,
+                  rate: mealPlanPerNight,
+                  amount: mealPlanPerNight
+                });
+                subtotal += mealPlanPerNight;
+              }
+            }
+          }
+        } catch (mealPlanError) {
+          console.error('Error fetching meal plan:', mealPlanError);
+          // Continue without meal plan if there's an error
+        }
+      }
+
+      const tax = subtotal * 0.18; // 18% GST
+      const total = subtotal + tax;
 
       // Create the room charge bill
       const billData = {
@@ -122,7 +154,8 @@ export const ReservationProvider = ({ children }) => {
         paid_amount: 0,
         balance: total,
         payment_status: 'Pending',
-        notes: `Auto-generated room charge for ${nights} night(s)`
+        notes: `Auto-generated room charge for ${nights} night(s)` +
+               (reservation.meal_plan && reservation.meal_plan !== 'EP' ? ` with ${reservation.meal_plan} meal plan` : '')
       };
 
       const { data: billResult, error: billError } = await createBill(billData, billItems);
