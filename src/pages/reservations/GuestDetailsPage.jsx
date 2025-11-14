@@ -175,7 +175,7 @@ const handleSelectGuest = (guest) => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
@@ -187,7 +187,7 @@ const handleSelectGuest = (guest) => {
       {/* Main Content - Two Column Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Guest Selection */}
-        <div className="w-80 bg-white border-r flex flex-col h-full">
+<div className="w-80 bg-white border-r flex flex-col">
           <div className="p-4 border-b flex-shrink-0">
             <div className="flex items-center gap-2 mb-3">
               <Button
