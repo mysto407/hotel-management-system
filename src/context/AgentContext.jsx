@@ -1,6 +1,7 @@
 // src/context/AgentContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getAgents, createAgent, updateAgent, deleteAgent } from '../lib/supabase';
+import { useAlert } from './AlertContext';
 
 const AgentContext = createContext();
 
@@ -11,6 +12,7 @@ export const useAgents = () => {
 };
 
 export const AgentProvider = ({ children }) => {
+  const { error: showError } = useAlert();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +35,7 @@ export const AgentProvider = ({ children }) => {
     const { data, error } = await createAgent(agent);
     if (error) {
       console.error('Error creating agent:', error);
-      alert('Failed to create agent: ' + error.message);
+      showError('Failed to create agent: ' + error.message);
       return null;
     }
     setAgents([data[0], ...agents]);
@@ -44,10 +46,10 @@ export const AgentProvider = ({ children }) => {
     const { error } = await updateAgent(id, updatedAgent);
     if (error) {
       console.error('Error updating agent:', error);
-      alert('Failed to update agent: ' + error.message);
+      showError('Failed to update agent: ' + error.message);
       return;
     }
-    setAgents(agents.map(agent => 
+    setAgents(agents.map(agent =>
       agent.id === id ? { ...agent, ...updatedAgent } : agent
     ));
   };
@@ -56,7 +58,7 @@ export const AgentProvider = ({ children }) => {
     const { error } = await deleteAgent(id);
     if (error) {
       console.error('Error deleting agent:', error);
-      alert('Cannot delete agent: ' + error.message);
+      showError('Cannot delete agent: ' + error.message);
       return;
     }
     setAgents(agents.filter(agent => agent.id !== id));

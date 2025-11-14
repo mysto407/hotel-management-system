@@ -8,6 +8,7 @@ import {
   updateMealPlan as updateMealPlanAPI,
   deleteMealPlan as deleteMealPlanAPI
 } from '../lib/supabase';
+import { useAlert } from './AlertContext';
 
 const MealPlanContext = createContext();
 
@@ -20,6 +21,7 @@ export const useMealPlans = () => {
 export const MealPlanProvider = ({ children }) => {
   const [mealPlans, setMealPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { error: showError } = useAlert();
 
   useEffect(() => {
     loadMealPlans();
@@ -43,9 +45,9 @@ export const MealPlanProvider = ({ children }) => {
 
       // Check for unique constraint violation on code
       if (error.code === '23505') {
-        alert('A meal plan with this code already exists. Please use a different code.');
+        showError('A meal plan with this code already exists. Please use a different code.');
       } else {
-        alert('Failed to create meal plan: ' + error.message);
+        showError('Failed to create meal plan: ' + error.message);
       }
       return null;
     }
@@ -60,9 +62,9 @@ export const MealPlanProvider = ({ children }) => {
 
       // Check for unique constraint violation on code
       if (error.code === '23505') {
-        alert('A meal plan with this code already exists. Please use a different code.');
+        showError('A meal plan with this code already exists. Please use a different code.');
       } else {
-        alert('Failed to update meal plan: ' + error.message);
+        showError('Failed to update meal plan: ' + error.message);
       }
       return null;
     }
@@ -79,9 +81,9 @@ export const MealPlanProvider = ({ children }) => {
 
       // Check for foreign key constraint
       if (error.code === '23503') {
-        alert('Cannot delete meal plan: It is being used in existing reservations. You can deactivate it instead.');
+        showError('Cannot delete meal plan: It is being used in existing reservations. You can deactivate it instead.');
       } else {
-        alert('Failed to delete meal plan: ' + error.message);
+        showError('Failed to delete meal plan: ' + error.message);
       }
       return false;
     }

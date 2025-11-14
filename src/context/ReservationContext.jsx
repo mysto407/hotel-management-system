@@ -9,6 +9,7 @@ import {
   createBill,
   getMealPlanByCode
 } from '../lib/supabase';
+import { useAlert } from './AlertContext';
 
 const ReservationContext = createContext();
 
@@ -21,6 +22,7 @@ export const useReservations = () => {
 export const ReservationProvider = ({ children }) => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { error: showError, success: showSuccess } = useAlert();
 
   useEffect(() => {
     loadReservations();
@@ -41,7 +43,7 @@ export const ReservationProvider = ({ children }) => {
     const { data, error } = await createReservationAPI(reservation);
     if (error) {
       console.error('Error creating reservation:', error);
-      alert('Failed to create reservation: ' + error.message);
+      showError('Failed to create reservation: ' + error.message);
       return null;
     }
     
@@ -58,7 +60,7 @@ export const ReservationProvider = ({ children }) => {
     const { error } = await updateReservationAPI(id, updatedReservation);
     if (error) {
       console.error('Error updating reservation:', error);
-      alert('Failed to update reservation: ' + error.message);
+      showError('Failed to update reservation: ' + error.message);
       return;
     }
     await loadReservations();
@@ -68,7 +70,7 @@ export const ReservationProvider = ({ children }) => {
     const { error } = await deleteReservationAPI(id);
     if (error) {
       console.error('Error deleting reservation:', error);
-      alert('Cannot delete reservation: ' + error.message);
+      showError('Cannot delete reservation: ' + error.message);
       return;
     }
     setReservations(reservations.filter(r => r.id !== id));
@@ -162,15 +164,15 @@ export const ReservationProvider = ({ children }) => {
       
       if (billError) {
         console.error('Error creating room charge bill:', billError);
-        alert('Guest checked in successfully, but failed to create room charge bill. Please create manually.');
+        showError('Guest checked in successfully, but failed to create room charge bill. Please create manually.');
       } else {
         console.log('Room charge bill created successfully:', billResult);
-        alert(`Guest checked in successfully! Room charge bill created for ${nights} night(s) - Total: â‚¹${total.toFixed(2)}`);
+        showSuccess(`Guest checked in successfully! Room charge bill created for ${nights} night(s) - Total: â‚¹${total.toFixed(2)}`);
       }
 
     } catch (error) {
       console.error('Error during check-in:', error);
-      alert('Failed to complete check-in: ' + error.message);
+      showError('Failed to complete check-in: ' + error.message);
     }
   };
 

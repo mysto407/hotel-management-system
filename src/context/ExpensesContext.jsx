@@ -1,5 +1,6 @@
 // src/context/ExpenseContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useAlert } from './AlertContext';
 import {
   getExpenseCategories,
   createExpenseCategory,
@@ -23,6 +24,7 @@ export const useExpense = () => {
 };
 
 export const ExpenseProvider = ({ children }) => {
+  const { error: showError } = useAlert();
   const [categories, setCategories] = useState([]);
   const [sheets, setSheets] = useState({});
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export const ExpenseProvider = ({ children }) => {
     const { data, error } = await createExpenseCategory(name);
     if (error) {
       console.error('Error creating category:', error);
-      alert('Failed to create category: ' + error.message);
+      showError('Failed to create category: ' + error.message);
       return null;
     }
     setCategories([...categories, data[0]]);
@@ -57,7 +59,7 @@ export const ExpenseProvider = ({ children }) => {
     const { error } = await deleteExpenseCategory(id);
     if (error) {
       console.error('Error deleting category:', error);
-      alert('Cannot delete category: ' + error.message);
+      showError('Cannot delete category: ' + error.message);
       return false;
     }
     setCategories(categories.filter(c => c.id !== id));
@@ -77,7 +79,7 @@ export const ExpenseProvider = ({ children }) => {
     const { data, error } = await createExpenseSheet(categoryId, name);
     if (error) {
       console.error('Error creating sheet:', error);
-      alert('Failed to create sheet: ' + error.message);
+      showError('Failed to create sheet: ' + error.message);
       return null;
     }
     return data[0];
@@ -123,18 +125,18 @@ export const ExpenseProvider = ({ children }) => {
     const { error: colError } = await updateExpenseColumns(sheetId, customColumns);
     if (colError) {
       console.error('Error saving columns:', colError);
-      alert('Failed to save columns: ' + colError.message);
+      showError('Failed to save columns: ' + colError.message);
       return false;
     }
-  
+
     // Save rows
     const { error: rowError } = await bulkUpdateExpenseRows(sheetId, rows);
     if (rowError) {
       console.error('Error saving rows:', rowError);
-      alert('Failed to save rows: ' + rowError.message);
+      showError('Failed to save rows: ' + rowError.message);
       return false;
     }
-  
+
     return true;
   };
 

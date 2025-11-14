@@ -11,6 +11,7 @@ import {
   deleteRoom as deleteRoomAPI,
   updateRoomStatus as updateRoomStatusAPI
 } from '../lib/supabase';
+import { useAlert } from './AlertContext';
 
 const RoomContext = createContext();
 
@@ -21,6 +22,7 @@ export const useRooms = () => {
 };
 
 export const RoomProvider = ({ children }) => {
+  const { error: showError } = useAlert();
   const [roomTypes, setRoomTypes] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export const RoomProvider = ({ children }) => {
       setRoomTypes(data || []);
     } catch (error) {
       console.error('Error loading room types:', error);
-      alert('Failed to load room types: ' + error.message);
+      showError('Failed to load room types: ' + error.message);
     }
   };
 
@@ -53,7 +55,7 @@ export const RoomProvider = ({ children }) => {
       setRooms(data || []);
     } catch (error) {
       console.error('Error loading rooms:', error);
-      alert('Failed to load rooms: ' + error.message);
+      showError('Failed to load rooms: ' + error.message);
     }
   };
 
@@ -79,7 +81,7 @@ export const RoomProvider = ({ children }) => {
       return null;
     } catch (error) {
       console.error('Error creating room type:', error);
-      alert('Failed to create room type: ' + error.message);
+      showError('Failed to create room type: ' + error.message);
       return null;
     }
   };
@@ -105,7 +107,7 @@ export const RoomProvider = ({ children }) => {
       return null;
     } catch (error) {
       console.error('Error updating room type:', error);
-      alert('Failed to update room type: ' + error.message);
+      showError('Failed to update room type: ' + error.message);
       return null;
     }
   };
@@ -116,18 +118,18 @@ export const RoomProvider = ({ children }) => {
       if (error) {
         // Check if it's a foreign key constraint error
         if (error.code === '23503' || error.message.includes('foreign key')) {
-          alert('Cannot delete room type. It is being used by existing rooms.');
+          showError('Cannot delete room type. It is being used by existing rooms.');
         } else {
           throw error;
         }
         return false;
       }
-      
+
       setRoomTypes(roomTypes.filter(rt => rt.id !== id));
       return true;
     } catch (error) {
       console.error('Error deleting room type:', error);
-      alert('Failed to delete room type: ' + error.message);
+      showError('Failed to delete room type: ' + error.message);
       return false;
     }
   };
@@ -156,12 +158,12 @@ export const RoomProvider = ({ children }) => {
       return null;
     } catch (error) {
       console.error('Error creating room:', error);
-      
+
       // Check for duplicate room number
       if (error.code === '23505' || error.message.includes('duplicate')) {
-        alert('Room number already exists. Please use a different number.');
+        showError('Room number already exists. Please use a different number.');
       } else {
-        alert('Failed to create room: ' + error.message);
+        showError('Failed to create room: ' + error.message);
       }
       return null;
     }
@@ -186,12 +188,12 @@ export const RoomProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('Error updating room:', error);
-      
+
       // Check for duplicate room number
       if (error.code === '23505' || error.message.includes('duplicate')) {
-        alert('Room number already exists. Please use a different number.');
+        showError('Room number already exists. Please use a different number.');
       } else {
-        alert('Failed to update room: ' + error.message);
+        showError('Failed to update room: ' + error.message);
       }
       return false;
     }
@@ -203,18 +205,18 @@ export const RoomProvider = ({ children }) => {
       if (error) {
         // Check if it's a foreign key constraint error
         if (error.code === '23503' || error.message.includes('foreign key')) {
-          alert('Cannot delete room. It has existing reservations.');
+          showError('Cannot delete room. It has existing reservations.');
         } else {
           throw error;
         }
         return false;
       }
-      
+
       setRooms(rooms.filter(r => r.id !== id));
       return true;
     } catch (error) {
       console.error('Error deleting room:', error);
-      alert('Failed to delete room: ' + error.message);
+      showError('Failed to delete room: ' + error.message);
       return false;
     }
   };
@@ -229,7 +231,7 @@ export const RoomProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('Error updating room status:', error);
-      alert('Failed to update room status: ' + error.message);
+      showError('Failed to update room status: ' + error.message);
       return false;
     }
   };

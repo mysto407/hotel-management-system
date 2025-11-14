@@ -8,6 +8,7 @@ import {
   getInventoryTransactions,
   createInventoryTransaction as createInventoryTransactionAPI
 } from '../lib/supabase';
+import { useAlert } from './AlertContext';
 
 const InventoryContext = createContext();
 
@@ -18,6 +19,7 @@ export const useInventory = () => {
 };
 
 export const InventoryProvider = ({ children }) => {
+  const { error: showError } = useAlert();
   const [items, setItems] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ export const InventoryProvider = ({ children }) => {
     const { data, error } = await createInventoryItemAPI(item);
     if (error) {
       console.error('Error creating item:', error);
-      alert('Failed to create item: ' + error.message);
+      showError('Failed to create item: ' + error.message);
       return null;
     }
     setItems([...items, data[0]]);
@@ -66,11 +68,11 @@ export const InventoryProvider = ({ children }) => {
     const { error } = await updateInventoryItemAPI(id, updatedItem);
     if (error) {
       console.error('Error updating item:', error);
-      alert('Failed to update item: ' + error.message);
+      showError('Failed to update item: ' + error.message);
       return;
     }
-    setItems(items.map(item => 
-      item.id === id 
+    setItems(items.map(item =>
+      item.id === id
         ? { ...item, ...updatedItem, updated_at: new Date().toISOString() }
         : item
     ));
@@ -80,7 +82,7 @@ export const InventoryProvider = ({ children }) => {
     const { error } = await deleteInventoryItemAPI(id);
     if (error) {
       console.error('Error deleting item:', error);
-      alert('Cannot delete item: ' + error.message);
+      showError('Cannot delete item: ' + error.message);
       return;
     }
     setItems(items.filter(item => item.id !== id));
@@ -100,7 +102,7 @@ export const InventoryProvider = ({ children }) => {
     const { data, error } = await createInventoryTransactionAPI(transactionData);
     if (error) {
       console.error('Error creating transaction:', error);
-      alert('Failed to record transaction: ' + error.message);
+      showError('Failed to record transaction: ' + error.message);
       return;
     }
 
