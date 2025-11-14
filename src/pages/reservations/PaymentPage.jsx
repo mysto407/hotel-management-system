@@ -192,130 +192,192 @@ export default function PaymentPage({ onNavigate }) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        <div className="p-6 space-y-4">
-          {/* Reservation Summary */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="space-y-2">
-              {/* First Line: Check-in, Check-out, Nights, Guests, Source, Promo */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Check-in:</span>
-                  <span className="font-medium">
-                    {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    }) : '-'}
-                  </span>
-                </div>
-                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Check-out:</span>
-                  <span className="font-medium">
-                    {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    }) : '-'}
-                  </span>
-                </div>
-                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Nights:</span>
-                  <span className="font-medium">{bill.nights}</span>
-                </div>
-                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Guests:</span>
-                  <span className="font-medium">
-                    {totalGuestCounts.adults + totalGuestCounts.children + totalGuestCounts.infants} ({totalGuestCounts.adults}A
-                    {totalGuestCounts.children > 0 && `, ${totalGuestCounts.children}C`}
-                    {totalGuestCounts.infants > 0 && `, ${totalGuestCounts.infants}I`})
-                  </span>
-                </div>
-                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Source:</span>
-                  <span className="font-medium capitalize">{filters.source}</span>
-                </div>
-                {filters.promoCode && (
-                  <>
-                    <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Promo:</span>
-                      <span className="font-medium">{filters.promoCode}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Second Line: Guest Details */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Guest:</span>
-                  <span className="font-medium">{guestDetails.firstName} {guestDetails.surname}</span>
-                </div>
-                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Email:</span>
-                  <span className="font-medium">{guestDetails.email}</span>
-                </div>
-                <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Phone:</span>
-                  <span className="font-medium">{guestDetails.phone}</span>
-                </div>
-                {guestDetails.address && (
-                  <>
-                    <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Address:</span>
-                      <span className="font-medium">{guestDetails.address}, {guestDetails.city}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
+        <div className="p-6">
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Side: Accommodation Summary Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold">Accommodation Summary</h2>
+            {/* Left Side: Reservation & Accommodation Summary */}
+            <div className="space-y-6">
+              {/* Reservation Summary */}
+              <div className="bg-white rounded-lg shadow">
+                <div className="px-6 py-4 border-b">
+                  <h2 className="text-lg font-semibold">Reservation Summary</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                  {/* Guest Information */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Guest Information</h3>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Name:</span>
+                        <span className="font-medium">{guestDetails.firstName} {guestDetails.surname}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Email:</span>
+                        <span className="font-medium">{guestDetails.email}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Phone:</span>
+                        <span className="font-medium">{guestDetails.phone}</span>
+                      </div>
+                      {guestDetails.idType && guestDetails.idNumber && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">ID Proof:</span>
+                          <span className="font-medium">{guestDetails.idType} - {guestDetails.idNumber}</span>
+                        </div>
+                      )}
+                      {guestDetails.address && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Address:</span>
+                          <span className="font-medium text-right">{guestDetails.address}, {guestDetails.city}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stay Details */}
+                  <div className="pt-4 border-t">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Stay Details</h3>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Check-in:</span>
+                        <span className="font-medium">
+                          {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          }) : '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Check-out:</span>
+                        <span className="font-medium">
+                          {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          }) : '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Total Nights:</span>
+                        <span className="font-medium">{bill.nights}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Total Guests:</span>
+                        <span className="font-medium">
+                          {totalGuestCounts.adults + totalGuestCounts.children + totalGuestCounts.infants}
+                          <span className="text-gray-500 ml-1">
+                            ({totalGuestCounts.adults}A
+                            {totalGuestCounts.children > 0 && `, ${totalGuestCounts.children}C`}
+                            {totalGuestCounts.infants > 0 && `, ${totalGuestCounts.infants}I`})
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Booking Details */}
+                  <div className="pt-4 border-t">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Booking Details</h3>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Source:</span>
+                        <span className="font-medium capitalize">{filters.source}</span>
+                      </div>
+                      {filters.promoCode && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Promo Code:</span>
+                          <span className="font-medium">{filters.promoCode}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Rooms Booked:</span>
+                        <span className="font-medium">
+                          {selectedRooms.reduce((sum, room) => sum + room.quantity, 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Room Breakdown */}
+                  <div className="pt-4 border-t">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Room Details</h3>
+                    <div className="space-y-3">
+                      {selectedRooms.flatMap(room =>
+                        Array.from({ length: room.quantity }, (_, index) => {
+                          const guestCount = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
+                          const mealPlan = room.mealPlans?.[index] || 'EP'
+
+                          return (
+                            <div key={`${room.id}-${index}`} className="bg-gray-50 rounded p-3 space-y-1.5">
+                              <div className="flex justify-between items-start">
+                                <span className="font-medium text-sm">{room.name}</span>
+                                <span className="text-sm font-semibold">₹{(room.base_price * bill.nights).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-600">
+                                <span>Guests:</span>
+                                <span>
+                                  {guestCount.adults}A
+                                  {guestCount.children > 0 && `, ${guestCount.children}C`}
+                                  {guestCount.infants > 0 && `, ${guestCount.infants}I`}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-600">
+                                <span>Meal Plan:</span>
+                                <span>{mealPlan}</span>
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-600">
+                                <span>Rate per night:</span>
+                                <span>₹{room.base_price.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-left p-3 text-sm font-semibold">Type</th>
-                      <th className="text-left p-3 text-sm font-semibold">Arrival</th>
-                      <th className="text-left p-3 text-sm font-semibold">Departure</th>
-                      <th className="text-center p-3 text-sm font-semibold">Nights</th>
-                      <th className="text-right p-3 text-sm font-semibold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedRooms.flatMap(room =>
-                      Array.from({ length: room.quantity }, (_, index) => (
-                        <tr key={`${room.id}-${index}`} className="border-b">
-                          <td className="p-3 text-sm">{room.name}</td>
-                          <td className="p-3 text-sm">
-                            {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
-                          </td>
-                          <td className="p-3 text-sm">
-                            {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
-                          </td>
-                          <td className="p-3 text-sm text-center">{bill.nights}</td>
-                          <td className="p-3 text-sm text-right font-medium">
-                            ₹{(room.base_price * bill.nights).toFixed(2)}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+
+              {/* Accommodation Summary Table */}
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="px-6 py-4 border-b">
+                  <h2 className="text-lg font-semibold">Accommodation Summary</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left p-3 text-sm font-semibold">Type</th>
+                        <th className="text-left p-3 text-sm font-semibold">Arrival</th>
+                        <th className="text-left p-3 text-sm font-semibold">Departure</th>
+                        <th className="text-center p-3 text-sm font-semibold">Nights</th>
+                        <th className="text-right p-3 text-sm font-semibold">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRooms.flatMap(room =>
+                        Array.from({ length: room.quantity }, (_, index) => (
+                          <tr key={`${room.id}-${index}`} className="border-b">
+                            <td className="p-3 text-sm">{room.name}</td>
+                            <td className="p-3 text-sm">
+                              {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
+                            </td>
+                            <td className="p-3 text-sm">
+                              {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
+                            </td>
+                            <td className="p-3 text-sm text-center">{bill.nights}</td>
+                            <td className="p-3 text-sm text-right font-medium">
+                              ₹{(room.base_price * bill.nights).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
