@@ -3,6 +3,7 @@ import { Search, Plus, Trash2, ChevronRight, Shuffle } from 'lucide-react'
 import { format } from 'date-fns'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useRooms } from '../../context/RoomContext'
+import { useMealPlans } from '../../context/MealPlanContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -34,16 +35,9 @@ const ADDON_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
-// Meal plan options
-const MEAL_PLANS = [
-  { value: 'EP', label: 'EP (Room Only)' },
-  { value: 'CP', label: 'CP (Breakfast)' },
-  { value: 'MAP', label: 'MAP (Breakfast + Dinner)' },
-  { value: 'AP', label: 'AP (All Meals)' },
-]
-
 export default function NewReservation({ onNavigate }) {
   const { roomTypes, rooms } = useRooms()
+  const { getActivePlans } = useMealPlans()
   const {
     filters,
     setFilters,
@@ -439,9 +433,9 @@ export default function NewReservation({ onNavigate }) {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {MEAL_PLANS.map(plan => (
-                              <SelectItem key={plan.value} value={plan.value}>
-                                {plan.label}
+                            {getActivePlans().map(plan => (
+                              <SelectItem key={plan.code} value={plan.code}>
+                                {plan.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -541,9 +535,9 @@ export default function NewReservation({ onNavigate }) {
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {MEAL_PLANS.map(plan => (
-                                          <SelectItem key={plan.value} value={plan.value}>
-                                            {plan.label}
+                                        {getActivePlans().map(plan => (
+                                          <SelectItem key={plan.code} value={plan.code}>
+                                            {plan.name}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>

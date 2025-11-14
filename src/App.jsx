@@ -1,6 +1,7 @@
 // src/App.jsx
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { RoomProvider } from './context/RoomContext';
+import { MealPlanProvider } from './context/MealPlanContext';
 import { ReservationProvider } from './context/ReservationContext';
 import { ReservationFlowProvider } from './context/ReservationFlowContext';
 import { BillingProvider } from './context/BillingContext';
@@ -37,21 +38,23 @@ function App() {
   return (
     <AuthProvider>
       <RoomProvider>
-        <ReservationProvider>
-          <ReservationFlowProvider>
-            <BillingProvider>
-              <InventoryProvider>
-                <GuestProvider>
-                  <AgentProvider>
-                    <ExpenseProvider>
-                      <AppContent />
-                    </ExpenseProvider>
-                  </AgentProvider>
-                </GuestProvider>
-              </InventoryProvider>
-            </BillingProvider>
-          </ReservationFlowProvider>
-        </ReservationProvider>
+        <MealPlanProvider>
+          <ReservationProvider>
+            <ReservationFlowProvider>
+              <BillingProvider>
+                <InventoryProvider>
+                  <GuestProvider>
+                    <AgentProvider>
+                      <ExpenseProvider>
+                        <AppContent />
+                      </ExpenseProvider>
+                    </AgentProvider>
+                  </GuestProvider>
+                </InventoryProvider>
+              </BillingProvider>
+            </ReservationFlowProvider>
+          </ReservationProvider>
+        </MealPlanProvider>
       </RoomProvider>
     </AuthProvider>
   );

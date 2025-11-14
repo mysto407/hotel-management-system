@@ -1,7 +1,8 @@
 // src/pages/settings/Settings.jsx
 import { useState, useEffect } from 'react';
-import { Save, Building2, DollarSign, Clock, Globe, Download, Calendar } from 'lucide-react';
+import { Save, Building2, DollarSign, Clock, Globe, Download, Calendar, Utensils, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useMealPlans } from '../../context/MealPlanContext';
 import { supabase, getHotelSettings, updateHotelSetting } from '../../lib/supabase';
 import { cn } from '@/lib/utils';
 
@@ -30,8 +31,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert"; // For showing 
 
 const Settings = () => {
   const { user } = useAuth();
+  const { mealPlans, addMealPlan, updateMealPlan, deleteMealPlan, toggleMealPlanStatus } = useMealPlans();
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Meal Plan Form State
+  const [editingMealPlan, setEditingMealPlan] = useState(null);
+  const [mealPlanForm, setMealPlanForm] = useState({
+    code: '',
+    name: '',
+    description: '',
+    price_per_person: '0.00',
+    is_active: true,
+    sort_order: 0
+  });
 
   // Hotel Settings State
   const [hotelSettings, setHotelSettings] = useState({
@@ -133,6 +146,82 @@ const Settings = () => {
   const handleSaveRoomSettings = () => saveSettings(roomSettings);
   const handleSaveBookingSettings = () => saveSettings(bookingSettings);
 
+  // Meal Plan Handlers
+  const resetMealPlanForm = () => {
+    setMealPlanForm({
+      code: '',
+      name: '',
+      description: '',
+      price_per_person: '0.00',
+      is_active: true,
+      sort_order: mealPlans.length
+    });
+    setEditingMealPlan(null);
+  };
+
+  const handleEditMealPlan = (plan) => {
+    setMealPlanForm({
+      code: plan.code,
+      name: plan.name,
+      description: plan.description || '',
+      price_per_person: plan.price_per_person.toString(),
+      is_active: plan.is_active,
+      sort_order: plan.sort_order
+    });
+    setEditingMealPlan(plan.id);
+  };
+
+  const handleSaveMealPlan = async () => {
+    if (!mealPlanForm.code || !mealPlanForm.name) {
+      alert('Please fill in Code and Name fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (editingMealPlan) {
+        await updateMealPlan(editingMealPlan, mealPlanForm);
+      } else {
+        await addMealPlan(mealPlanForm);
+      }
+      resetMealPlanForm();
+      showSuccessMessage();
+    } catch (error) {
+      console.error('Error saving meal plan:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteMealPlan = async (id) => {
+    if (!confirm('Are you sure you want to delete this meal plan? This action cannot be undone.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await deleteMealPlan(id);
+      showSuccessMessage();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleMealPlanStatus = async (id) => {
+    setLoading(true);
+    try {
+      await toggleMealPlanStatus(id);
+      showSuccessMessage();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMealPlanFormChange = (e) => {
+    const { id, value } = e.target;
+    setMealPlanForm(prev => ({ ...prev, [id]: value }));
+  };
+
   const handleBackup = async () => {
     try {
       const { data: rooms } = await supabase.from('rooms').select('*');
@@ -195,6 +284,9 @@ const Settings = () => {
           </TabsTrigger>
           <TabsTrigger value="booking" className="w-full justify-start gap-2">
             <Calendar size={18} /> Booking Settings
+          </TabsTrigger>
+          <TabsTrigger value="mealplans" className="w-full justify-start gap-2">
+            <Utensils size={18} /> Meal Plans
           </TabsTrigger>
           <TabsTrigger value="system" className="w-full justify-start gap-2">
             <Globe size={18} /> System
@@ -392,6 +484,167 @@ const Settings = () => {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Meal Plans Tab */}
+          <TabsContent value="mealplans">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{editingMealPlan ? 'Edit Meal Plan' : 'Add New Meal Plan'}</CardTitle>
+                  <CardDescription>Create and manage meal plan options with custom pricing</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Code *</Label>
+                      <Input
+                        id="code"
+                        placeholder="e.g., EP, CP, MAP, AP"
+                        value={mealPlanForm.code}
+                        onChange={handleMealPlanFormChange}
+                        maxLength={10}
+                      />
+                      <p className="text-xs text-muted-foreground">Short unique code (max 10 characters)</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        placeholder="e.g., Room Only, Breakfast Included"
+                        value={mealPlanForm.name}
+                        onChange={handleMealPlanFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="price_per_person">Price Per Person Per Night (₹)</Label>
+                      <Input
+                        id="price_per_person"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={mealPlanForm.price_per_person}
+                        onChange={handleMealPlanFormChange}
+                      />
+                      <p className="text-xs text-muted-foreground">Additional charge per guest per night</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sort_order">Display Order</Label>
+                      <Input
+                        id="sort_order"
+                        type="number"
+                        min="0"
+                        value={mealPlanForm.sort_order}
+                        onChange={handleMealPlanFormChange}
+                      />
+                      <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        placeholder="e.g., Includes breakfast, lunch, and dinner"
+                        value={mealPlanForm.description}
+                        onChange={handleMealPlanFormChange}
+                        rows="2"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2 col-span-2">
+                      <Checkbox
+                        id="is_active"
+                        checked={mealPlanForm.is_active}
+                        onCheckedChange={(checked) => setMealPlanForm(prev => ({ ...prev, is_active: checked }))}
+                      />
+                      <Label htmlFor="is_active" className="font-normal">Active (show in reservation forms)</Label>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveMealPlan} disabled={loading}>
+                      <Save size={18} className="mr-2" />
+                      {editingMealPlan ? 'Update Meal Plan' : 'Add Meal Plan'}
+                    </Button>
+                    {editingMealPlan && (
+                      <Button variant="outline" onClick={resetMealPlanForm} disabled={loading}>
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Existing Meal Plans</CardTitle>
+                  <CardDescription>Manage your meal plan options</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {mealPlans.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No meal plans created yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {mealPlans.map((plan) => (
+                        <div
+                          key={plan.id}
+                          className={cn(
+                            "flex items-center justify-between p-4 border rounded-lg",
+                            !plan.is_active && "bg-gray-50 opacity-60"
+                          )}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-semibold text-sm bg-gray-100 px-2 py-1 rounded">
+                                {plan.code}
+                              </span>
+                              <span className="font-medium">{plan.name}</span>
+                              {!plan.is_active && (
+                                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+                            {plan.description && (
+                              <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Price: ₹{parseFloat(plan.price_per_person).toFixed(2)} per person per night
+                              {parseFloat(plan.price_per_person) === 0 && ' (Free)'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleMealPlanStatus(plan.id)}
+                              disabled={loading}
+                              title={plan.is_active ? 'Deactivate' : 'Activate'}
+                            >
+                              {plan.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditMealPlan(plan)}
+                              disabled={loading}
+                            >
+                              <Edit2 size={16} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteMealPlan(plan.id)}
+                              disabled={loading}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* System Settings Tab */}
