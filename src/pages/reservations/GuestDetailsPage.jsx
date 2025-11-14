@@ -213,8 +213,8 @@ const handleSelectGuest = (guest) => {
             </div>
           </div>
 
-          {/* Guest List - Scrollable with fixed height */}
-          <div className="flex-1 overflow-y-auto min-h-0">
+          {/* Guest List - Scrollable with max height */}
+          <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(100vh-280px)]">
             {filteredGuests.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">
                 {guestSearch ? 'No guests found' : 'No saved guests'}
