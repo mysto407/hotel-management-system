@@ -188,7 +188,7 @@ const handleSelectGuest = (guest) => {
       {/* Main Content - Two Column Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Guest Selection */}
-        <div className="w-80 bg-white border-r flex flex-col h-full">
+        <div className="w-80 bg-white border-r flex flex-col">
           <div className="p-4 border-b flex-shrink-0">
             <div className="flex items-center gap-2 mb-3">
               <Button
@@ -263,7 +263,7 @@ const handleSelectGuest = (guest) => {
         </div>
 
         {/* Right Content - Guest Form */}
-        <div className="flex-1 overflow-y-auto bg-white h-full">
+        <div className="flex-1 overflow-y-auto bg-white">
           <div className="p-6">
             {/* Single Unified Card with All Information */}
             <div className="bg-white border rounded-lg shadow-sm">
