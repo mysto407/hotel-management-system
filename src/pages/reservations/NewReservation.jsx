@@ -263,16 +263,31 @@ export default function NewReservation({ onNavigate }) {
                   onSelect={(range) => {
                     if (range?.from) {
                       const fromDate = format(range.from, 'yyyy-MM-dd')
-                      const toDate = range.to ? format(range.to, 'yyyy-MM-dd') : fromDate
+
+                      if (range.to) {
+                        // Both dates selected - update and close
+                        const toDate = format(range.to, 'yyyy-MM-dd')
+                        setFilters({
+                          ...filters,
+                          checkIn: fromDate,
+                          checkOut: toDate
+                        })
+                        setDateRangeOpen(false)
+                      } else {
+                        // Only check-in selected - keep popover open
+                        setFilters({
+                          ...filters,
+                          checkIn: fromDate,
+                          checkOut: null
+                        })
+                      }
+                    } else {
+                      // Range was cleared
                       setFilters({
                         ...filters,
-                        checkIn: fromDate,
-                        checkOut: toDate
+                        checkIn: null,
+                        checkOut: null
                       })
-                      // Close popover only when both dates are selected
-                      if (range.to) {
-                        setDateRangeOpen(false)
-                      }
                     }
                   }}
                   numberOfMonths={2}
