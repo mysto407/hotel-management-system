@@ -104,10 +104,7 @@ export default function GuestDetailsPage({ onNavigate }) {
       country: '',
       pincode: '',
       photo: null,
-      photoUrl: null,
-      adults: 1,
-      children: 0,
-      infants: 0
+      photoUrl: null
     })
   }
 
@@ -376,42 +373,6 @@ export default function GuestDetailsPage({ onNavigate }) {
                         className={errors.email ? 'border-red-500' : ''}
                       />
                       {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="adults" className="text-sm">Adults</Label>
-                      <Input
-                        id="adults"
-                        type="number"
-                        min="1"
-                        value={guestDetails.adults}
-                        onChange={(e) => setGuestDetails({ ...guestDetails, adults: parseInt(e.target.value) || 1 })}
-                        placeholder="1"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="children" className="text-sm">Children</Label>
-                      <Input
-                        id="children"
-                        type="number"
-                        min="0"
-                        value={guestDetails.children}
-                        onChange={(e) => setGuestDetails({ ...guestDetails, children: parseInt(e.target.value) || 0 })}
-                        placeholder="0"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="infants" className="text-sm">Infants</Label>
-                      <Input
-                        id="infants"
-                        type="number"
-                        min="0"
-                        value={guestDetails.infants}
-                        onChange={(e) => setGuestDetails({ ...guestDetails, infants: parseInt(e.target.value) || 0 })}
-                        placeholder="0"
-                      />
                     </div>
                   </div>
                 </div>

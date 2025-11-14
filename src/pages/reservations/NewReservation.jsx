@@ -56,6 +56,8 @@ export default function NewReservation({ onNavigate }) {
     autoAssignRooms,
     setMealPlan,
     setMealPlanForAll,
+    setGuestCount,
+    setGuestCountForAll,
     addons,
     addAddon,
     removeAddon,
@@ -548,6 +550,58 @@ export default function NewReservation({ onNavigate }) {
                                     </Select>
                                   </div>
                                 )}
+
+                                {/* Guest Count */}
+                                <div className="grid grid-cols-3 gap-2 pl-14 mt-2">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-gray-600">Adults</Label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={room.guestCounts?.[index]?.adults || 1}
+                                      onChange={(e) => {
+                                        const currentCounts = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
+                                        setGuestCount(room.id, index, {
+                                          ...currentCounts,
+                                          adults: parseInt(e.target.value) || 1
+                                        })
+                                      }}
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-gray-600">Children</Label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={room.guestCounts?.[index]?.children || 0}
+                                      onChange={(e) => {
+                                        const currentCounts = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
+                                        setGuestCount(room.id, index, {
+                                          ...currentCounts,
+                                          children: parseInt(e.target.value) || 0
+                                        })
+                                      }}
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs text-gray-600">Infants</Label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={room.guestCounts?.[index]?.infants || 0}
+                                      onChange={(e) => {
+                                        const currentCounts = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
+                                        setGuestCount(room.id, index, {
+                                          ...currentCounts,
+                                          infants: parseInt(e.target.value) || 0
+                                        })
+                                      }}
+                                      className="h-7 text-xs"
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             ))}
                           </div>
