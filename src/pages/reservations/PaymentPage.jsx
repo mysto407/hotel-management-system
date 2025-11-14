@@ -42,14 +42,15 @@ export default function PaymentPage({ onNavigate }) {
       let guestId = null
 
       // Create guest (simplified - in production you'd check if guest exists first)
+      const fullName = `${guestDetails.firstName} ${guestDetails.surname}`.trim()
       const newGuest = await addGuest({
-        name: guestDetails.name,
-        email: guestDetails.email,
-        phone: guestDetails.phone,
-        address: guestDetails.address,
-        city: guestDetails.city,
-        state: guestDetails.state,
-        country: guestDetails.country,
+        name: fullName,
+        email: guestDetails.email || '',
+        phone: guestDetails.phone || '',
+        address: guestDetails.address || '',
+        city: guestDetails.city || '',
+        state: guestDetails.state || '',
+        country: guestDetails.country || '',
         id_proof_type: guestDetails.idType || 'N/A',
         id_proof_number: guestDetails.idNumber || '',
         guest_type: 'Regular'
@@ -196,7 +197,7 @@ export default function PaymentPage({ onNavigate }) {
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-600">Guest:</span>
-                  <span className="font-medium">{guestDetails.name}</span>
+                  <span className="font-medium">{guestDetails.firstName} {guestDetails.surname}</span>
                 </div>
                 <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
                 <div className="flex items-center gap-2">
