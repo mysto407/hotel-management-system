@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, XCircle, Save } from 'lucide-react';
 import { useRooms } from '../../context/RoomContext';
+import { useMealPlans } from '../../context/MealPlanContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { calculateDays } from '../../utils/helpers';
@@ -41,6 +42,7 @@ export const EditBookingModal = ({
   initialRoomDetails
 }) => {
   const { rooms, roomTypes } = useRooms();
+  const { getActivePlans } = useMealPlans();
   const { guests, getGuestByPhone } = useGuests();
   const { agents } = useAgents();
 
@@ -53,7 +55,7 @@ export const EditBookingModal = ({
     number_of_rooms: 1,
     check_in_date: '',
     check_out_date: '',
-    meal_plan: 'NM',
+    meal_plan: getActivePlans()[0]?.code || 'EP',
     total_amount: 0,
     advance_payment: 0,
     payment_status: 'Pending',
@@ -535,10 +537,11 @@ export const EditBookingModal = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NM">NM - No Meal</SelectItem>
-                  <SelectItem value="BO">BO - Breakfast Only</SelectItem>
-                  <SelectItem value="HB">HB - Half Board</SelectItem>
-                  <SelectItem value="FB">FB - Full Board</SelectItem>
+                  {getActivePlans().map(plan => (
+                    <SelectItem key={plan.code} value={plan.code}>
+                      {plan.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
