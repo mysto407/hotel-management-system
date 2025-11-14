@@ -7,6 +7,7 @@ import {
   updateGuest as updateGuestAPI,
   deleteGuest as deleteGuestAPI
 } from '../lib/supabase';
+import { useAlert } from './AlertContext';
 
 const GuestContext = createContext();
 
@@ -19,6 +20,7 @@ export const useGuests = () => {
 export const GuestProvider = ({ children }) => {
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { error: showError } = useAlert();
 
   const idProofTypes = ['AADHAR', 'PAN', 'Passport', 'Driving License', 'Voter ID'];
   const guestTypes = ['Regular', 'VIP', 'Corporate'];
@@ -42,7 +44,7 @@ export const GuestProvider = ({ children }) => {
     const { data, error } = await createGuestAPI(guest);
     if (error) {
       console.error('Error creating guest:', error);
-      alert('Failed to create guest: ' + error.message);
+      showError('Failed to create guest: ' + error.message);
       return null;
     }
     setGuests([data[0], ...guests]);
@@ -53,10 +55,10 @@ export const GuestProvider = ({ children }) => {
     const { error } = await updateGuestAPI(id, updatedGuest);
     if (error) {
       console.error('Error updating guest:', error);
-      alert('Failed to update guest: ' + error.message);
+      showError('Failed to update guest: ' + error.message);
       return;
     }
-    setGuests(guests.map(guest => 
+    setGuests(guests.map(guest =>
       guest.id === id ? { ...guest, ...updatedGuest } : guest
     ));
   };
@@ -65,7 +67,7 @@ export const GuestProvider = ({ children }) => {
     const { error } = await deleteGuestAPI(id);
     if (error) {
       console.error('Error deleting guest:', error);
-      alert('Cannot delete guest: ' + error.message);
+      showError('Cannot delete guest: ' + error.message);
       return;
     }
     setGuests(guests.filter(guest => guest.id !== id));

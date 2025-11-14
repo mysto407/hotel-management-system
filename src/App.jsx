@@ -1,5 +1,6 @@
 // src/App.jsx
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AlertProvider } from './context/AlertContext';
 import { RoomProvider } from './context/RoomContext';
 import { MealPlanProvider } from './context/MealPlanContext';
 import { ReservationProvider } from './context/ReservationContext';
@@ -36,27 +37,29 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <RoomProvider>
-        <MealPlanProvider>
-          <ReservationProvider>
-            <ReservationFlowProvider>
-              <BillingProvider>
-                <InventoryProvider>
-                  <GuestProvider>
-                    <AgentProvider>
-                      <ExpenseProvider>
-                        <AppContent />
-                      </ExpenseProvider>
-                    </AgentProvider>
-                  </GuestProvider>
-                </InventoryProvider>
-              </BillingProvider>
-            </ReservationFlowProvider>
-          </ReservationProvider>
-        </MealPlanProvider>
-      </RoomProvider>
-    </AuthProvider>
+    <AlertProvider>
+      <AuthProvider>
+        <RoomProvider>
+          <MealPlanProvider>
+            <ReservationProvider>
+              <ReservationFlowProvider>
+                <BillingProvider>
+                  <InventoryProvider>
+                    <GuestProvider>
+                      <AgentProvider>
+                        <ExpenseProvider>
+                          <AppContent />
+                        </ExpenseProvider>
+                      </AgentProvider>
+                    </GuestProvider>
+                  </InventoryProvider>
+                </BillingProvider>
+              </ReservationFlowProvider>
+            </ReservationProvider>
+          </MealPlanProvider>
+        </RoomProvider>
+      </AuthProvider>
+    </AlertProvider>
   );
 }
 export default App;

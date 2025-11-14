@@ -7,6 +7,7 @@ import {
   deleteBill as deleteBillAPI,
   createPayment
 } from '../lib/supabase';
+import { useAlert } from './AlertContext';
 
 const BillingContext = createContext();
 
@@ -19,6 +20,7 @@ export const useBilling = () => {
 export const BillingProvider = ({ children }) => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { error: showError } = useAlert();
 
   useEffect(() => {
     loadBills();
@@ -37,14 +39,14 @@ export const BillingProvider = ({ children }) => {
 
   const addBill = async (billData) => {
     const { items, ...bill } = billData;
-    
+
     const { data, error } = await createBillAPI(bill, items);
     if (error) {
       console.error('Error creating bill:', error);
-      alert('Failed to create bill: ' + error.message);
+      showError('Failed to create bill: ' + error.message);
       return null;
     }
-    
+
     await loadBills(); // Reload to get with relations
     return data;
   };
@@ -53,7 +55,7 @@ export const BillingProvider = ({ children }) => {
     const { error } = await updateBillAPI(id, updatedBill);
     if (error) {
       console.error('Error updating bill:', error);
-      alert('Failed to update bill: ' + error.message);
+      showError('Failed to update bill: ' + error.message);
       return;
     }
     await loadBills();
@@ -63,7 +65,7 @@ export const BillingProvider = ({ children }) => {
     const { error } = await deleteBillAPI(id);
     if (error) {
       console.error('Error deleting bill:', error);
-      alert('Cannot delete bill: ' + error.message);
+      showError('Cannot delete bill: ' + error.message);
       return;
     }
     setBills(bills.filter(b => b.id !== id));
@@ -84,7 +86,7 @@ export const BillingProvider = ({ children }) => {
     const { error: paymentError } = await createPayment(payment);
     if (paymentError) {
       console.error('Error recording payment:', paymentError);
-      alert('Failed to record payment: ' + paymentError.message);
+      showError('Failed to record payment: ' + paymentError.message);
       return;
     }
 
