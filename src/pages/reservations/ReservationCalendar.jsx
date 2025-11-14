@@ -1696,19 +1696,6 @@ const ReservationCalendar = () => {
         }}
         room={selectedRoomForStatus}
       />
-
-      {/* Confirm Modal */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        onClose={closeConfirmModal}
-        onConfirm={confirmModal.onConfirm}
-        type={confirmModal.type}
-        variant={confirmModal.variant}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        cancelText={confirmModal.cancelText}
-      />
     </div>
   );
 };
