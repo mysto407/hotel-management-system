@@ -81,6 +81,9 @@ export default function PaymentPage({ onNavigate }) {
             return null
           }
 
+          // Get meal plan for this room (default to EP if not set)
+          const mealPlan = roomType.mealPlans?.[index] || 'EP'
+
           return addReservation({
             guest_id: guestId,
             room_id: assignedRoomId,
@@ -92,7 +95,7 @@ export default function PaymentPage({ onNavigate }) {
             number_of_children: guestDetails.children,
             number_of_infants: guestDetails.infants,
             status: 'Confirmed',
-            meal_plan: 'NM',
+            meal_plan: mealPlan,
             special_requests: '',
             total_amount: roomTotal
           })

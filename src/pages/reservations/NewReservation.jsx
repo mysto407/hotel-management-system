@@ -86,6 +86,18 @@ export default function NewReservation({ onNavigate }) {
     }
   }
 
+  // Get available rooms for a specific room type (excluding already assigned rooms)
+  const getAvailableRoomsForType = (roomTypeId) => {
+    // Get all rooms of this type that are available
+    const typeRooms = rooms.filter(r => r.room_type_id === roomTypeId && r.status === 'Available')
+
+    // Get already assigned room IDs across all selected rooms
+    const assignedRoomIds = selectedRooms.flatMap(sr => sr.assignedRooms || []).filter(Boolean)
+
+    // Return rooms that haven't been assigned yet
+    return typeRooms.filter(r => !assignedRoomIds.includes(r.id))
+  }
+
   const handleAutoAssignAll = () => {
     selectedRooms.forEach(roomType => {
       const availableRooms = getAvailableRoomsForType(roomType.id)
@@ -99,18 +111,6 @@ export default function NewReservation({ onNavigate }) {
 
   // Check if filters are applied (dates are required)
   const hasFiltersApplied = filters.checkIn && filters.checkOut
-
-  // Get available rooms for a specific room type (excluding already assigned rooms)
-  const getAvailableRoomsForType = (roomTypeId) => {
-    // Get all rooms of this type that are available
-    const typeRooms = rooms.filter(r => r.room_type_id === roomTypeId && r.status === 'Available')
-
-    // Get already assigned room IDs across all selected rooms
-    const assignedRoomIds = selectedRooms.flatMap(sr => sr.assignedRooms || []).filter(Boolean)
-
-    // Return rooms that haven't been assigned yet
-    return typeRooms.filter(r => !assignedRoomIds.includes(r.id))
-  }
 
   // Filter available room types based on search and date availability
   const availableRoomTypes = useMemo(() => {
@@ -719,7 +719,14 @@ export default function NewReservation({ onNavigate }) {
 
       {/* Footer with Navigation */}
       <div className="bg-white border-t px-6 py-4">
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <div>
+            {selectedRooms.length > 0 && !allRoomsAssigned && (
+              <p className="text-sm text-red-600">
+                ⚠ Please assign room numbers to all selected rooms before proceeding
+              </p>
+            )}
+          </div>
           <Button
             onClick={() => onNavigate('guest-details')}
             disabled={!canProceed}
