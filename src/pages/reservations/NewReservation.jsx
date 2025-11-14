@@ -262,7 +262,7 @@ export default function NewReservation({ onNavigate }) {
                       : filters.checkIn
                       ? {
                           from: new Date(filters.checkIn),
-                          to: undefined
+                          to: hoveredDate || undefined
                         }
                       : undefined
                   }
@@ -289,6 +289,7 @@ export default function NewReservation({ onNavigate }) {
                             checkOut: toDate
                           })
                           setDateRangeOpen(false)
+                          setHoveredDate(null)
                         }
                       } else {
                         // Only check-in selected - keep popover open
@@ -305,6 +306,29 @@ export default function NewReservation({ onNavigate }) {
                         checkIn: null,
                         checkOut: null
                       })
+                      setHoveredDate(null)
+                    }
+                  }}
+                  onDayMouseEnter={(date) => {
+                    // Only show hover preview if check-in is selected but check-out is not
+                    if (filters.checkIn && !filters.checkOut) {
+                      const checkInDate = new Date(filters.checkIn)
+                      checkInDate.setHours(0, 0, 0, 0)
+                      const hoverDate = new Date(date)
+                      hoverDate.setHours(0, 0, 0, 0)
+
+                      // Only set hover if the date is after check-in
+                      if (hoverDate > checkInDate) {
+                        setHoveredDate(date)
+                      } else {
+                        setHoveredDate(null)
+                      }
+                    }
+                  }}
+                  onDayMouseLeave={() => {
+                    // Clear hover state when mouse leaves a day
+                    if (filters.checkIn && !filters.checkOut) {
+                      setHoveredDate(null)
                     }
                   }}
                   numberOfMonths={2}
