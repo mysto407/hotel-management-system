@@ -56,7 +56,7 @@ export default function GuestDetailsPage({ onNavigate }) {
     )
   }
 
-  const handleSelectGuest = (guest) => {
+const handleSelectGuest = (guest) => {
     // Prevent duplicate selection
     if (selectedGuestId === guest.id && !showNewGuest) {
       return
@@ -71,7 +71,9 @@ export default function GuestDetailsPage({ onNavigate }) {
     const surname = nameParts.slice(1).join(' ') || ''
 
     setGuestDetails({
-      ...guestDetails,
+      // ...guestDetails, // <-- BUG: Remove this line
+      
+      id: guest.id, // <-- FIX: Add the guest's ID
       firstName,
       surname,
       email: guest.email || '',
@@ -83,7 +85,7 @@ export default function GuestDetailsPage({ onNavigate }) {
       state: guest.state || '',
       country: guest.country || '',
       pincode: guest.pincode || '',
-      photo: null,
+      photo: null, // Clear any pending photo file
       photoUrl: guest.photo_url || null
     })
   }
@@ -92,6 +94,7 @@ export default function GuestDetailsPage({ onNavigate }) {
     setSelectedGuestId(null)
     setShowNewGuest(true)
     setGuestDetails({
+      id: null, // <-- FIX: Explicitly set ID to null
       firstName: '',
       surname: '',
       email: '',
