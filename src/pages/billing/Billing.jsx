@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, DollarSign, FileTex
 import { useBilling } from '../../context/BillingContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
-import { useConfirm } from '@/context/AlertContext';
+import { useConfirm, useAlert } from '@/context/AlertContext';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -45,6 +45,7 @@ const Billing = () => {
   const { reservations } = useReservations();
   const { rooms } = useRooms();
   const confirm = useConfirm();
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isMasterBillModalOpen, setIsMasterBillModalOpen] = useState(false);
@@ -208,7 +209,7 @@ const Billing = () => {
       setSelectedBill(null);
       setPaymentAmount(0);
     } else {
-      alert('Invalid payment amount. Must be greater than 0 and less than or equal to the balance.');
+      showError('Invalid payment amount. Must be greater than 0 and less than or equal to the balance.');
     }
   };
 
@@ -220,7 +221,7 @@ const Billing = () => {
 
   const printBill = (bill) => {
     // This is a simple print, replace with a dedicated print component for formatted output
-    alert("Printing is not fully implemented. This would open a print dialog.");
+    showInfo("Printing is not fully implemented. This would open a print dialog.");
     // window.print(); // <-- This would print the whole page
   };
 

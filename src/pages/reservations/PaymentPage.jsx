@@ -4,6 +4,7 @@ import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useReservations } from '../../context/ReservationContext'
 import { useGuests } from '../../context/GuestContext'
 import { useMealPlans } from '../../context/MealPlanContext'
+import { useAlert } from '@/context/AlertContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -33,6 +34,7 @@ export default function PaymentPage({ onNavigate }) {
   const { addReservation } = useReservations()
   const { addGuest, updateGuest, updateGuestStats } = useGuests()
   const { getMealPlanPrice, getMealPlanName } = useMealPlans()
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
 
   const [loading, setLoading] = useState(false)
 
@@ -171,14 +173,14 @@ export default function PaymentPage({ onNavigate }) {
         })
       }
 
-      alert('Reservation created successfully!')
+      showSuccess('Reservation created successfully!')
 
       // Reset the flow and navigate back
       resetFlow()
       onNavigate('reservations')
     } catch (error) {
       console.error('Error creating reservation:', error)
-      alert('Failed to create reservation: ' + error.message)
+      showError('Failed to create reservation: ' + error.message)
     } finally {
       setLoading(false)
     }

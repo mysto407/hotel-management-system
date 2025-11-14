@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Download, Edit2, X, Check, Plus, Trash2, FileText, FilePlus, Sheet } from 'lucide-react';
 import { useExpense } from '../../context/ExpensesContext';
-import { useConfirm } from '@/context/AlertContext';
+import { useConfirm, useAlert } from '@/context/AlertContext';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -44,6 +44,7 @@ const Expenses = () => {
     saveSheetData
   } = useExpense();
   const confirm = useConfirm();
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sheets, setSheets] = useState([]);
@@ -170,7 +171,7 @@ const Expenses = () => {
     if (newCategoryName.trim()) {
       const existingCategory = categories.find(c => c.name === newCategoryName.trim());
       if (existingCategory) {
-        alert('Category already exists!');
+        showError('Category already exists!');
         return;
       }
       
@@ -188,7 +189,7 @@ const Expenses = () => {
       if (categoryObj) {
         const existingSheet = sheets.find(s => s.name === newSheetName.trim());
         if (existingSheet) {
-          alert('Sheet name already exists in this category!');
+          showError('Sheet name already exists in this category!');
           return;
         }
 
@@ -390,7 +391,7 @@ const Expenses = () => {
 
   const exportToCSV = () => {
     if (!selectedCategory || !selectedSheet) {
-      alert('Please select a category and sheet first!');
+      showError('Please select a category and sheet first!');
       return;
     }
     

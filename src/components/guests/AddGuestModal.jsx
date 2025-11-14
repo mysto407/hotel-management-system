@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Save, X } from 'lucide-react';
 import { useGuests } from '../../context/GuestContext';
+import { useAlert } from '@/context/AlertContext';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ import {
 
 export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
   const { addGuest, idProofTypes, guestTypes } = useGuests();
+  const { error: showError, warning: showWarning } = useAlert();
   const [guestFormData, setGuestFormData] = useState({
     name: '',
     email: '',
@@ -48,7 +50,7 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
 
   const handleCreateGuest = async () => {
     if (!guestFormData.name) {
-      alert('Please enter guest name');
+      showWarning('Please enter guest name');
       return;
     }
     try {
@@ -61,7 +63,7 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
       }
     } catch (error) {
       console.error('Error adding guest:', error);
-      alert('Failed to add guest: ' + error.message);
+      showError('Failed to add guest: ' + error.message);
     }
   };
 

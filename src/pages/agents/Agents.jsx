@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, Save, XCircle, Phone, Mail, Percent, MapPin, Trend
 import { Modal } from '../../components/common/Modal'; // This is now our shadcn wrapper
 import { useAgents } from '../../context/AgentContext';
 import { useReservations } from '../../context/ReservationContext';
-import { useConfirm } from '@/context/AlertContext';
+import { useConfirm, useAlert } from '@/context/AlertContext';
 
 // Import shadcn-ui components
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ const Agents = () => {
   const { agents, addAgent, updateAgent, deleteAgent } = useAgents();
   const { reservations } = useReservations();
   const confirm = useConfirm();
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState(null);
   const [formData, setFormData] = useState({
@@ -47,7 +48,7 @@ const Agents = () => {
 
   const handleSubmit = async () => {
     if (!formData.name) {
-      alert('Please enter agent name');
+      showError('Please enter agent name');
       return;
     }
 

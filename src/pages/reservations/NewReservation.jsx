@@ -5,6 +5,7 @@ import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useRooms } from '../../context/RoomContext'
 import { useMealPlans } from '../../context/MealPlanContext'
 import { useAgents } from '../../context/AgentContext'
+import { useAlert } from '@/context/AlertContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { AddAgentModal } from '../../components/agents/AddAgentModal'
 import { Button } from '../../components/ui/button'
@@ -41,6 +42,7 @@ export default function NewReservation({ onNavigate }) {
   const { roomTypes, rooms } = useRooms()
   const { getActivePlans } = useMealPlans()
   const { agents } = useAgents()
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
   const {
     filters,
     setFilters,
@@ -169,7 +171,7 @@ export default function NewReservation({ onNavigate }) {
         : ADDON_TYPES.find(t => t.value === addonForm.addonType)?.label
 
       if (!addonName) {
-        alert('Please enter a name for the custom add-on')
+        showError('Please enter a name for the custom add-on')
         return
       }
 

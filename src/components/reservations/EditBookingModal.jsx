@@ -5,10 +5,10 @@ import { useRooms } from '../../context/RoomContext';
 import { useMealPlans } from '../../context/MealPlanContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
+import { useAlert } from '@/context/AlertContext';
 import { calculateDays } from '../../utils/helpers';
 import { AddGuestModal } from '../guests/AddGuestModal';
 import { AddAgentModal } from '../agents/AddAgentModal';
-import { cn } from '@/lib/utils';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ export const EditBookingModal = ({
   const { getActivePlans } = useMealPlans();
   const { guests, getGuestByPhone } = useGuests();
   const { agents } = useAgents();
+  const { warning: showWarning } = useAlert();
 
   const [formData, setFormData] = useState({
     booking_source: 'direct',
@@ -186,23 +187,23 @@ export const EditBookingModal = ({
 
   const handleSubmit = () => {
     if (!formData.guest_id || !formData.check_in_date || !formData.check_out_date) {
-      alert('Please fill all required fields');
+      showWarning('Please fill all required fields');
       return;
     }
     const unselectedRoomTypes = roomDetails.filter(rd => !rd.room_type_id);
     if (unselectedRoomTypes.length > 0) {
-      alert(`Please select room type for all ${formData.number_of_rooms} room(s)`);
+      showWarning(`Please select room type for all ${formData.number_of_rooms} room(s)`);
       return;
     }
     const unassignedRooms = roomDetails.filter(rd => !rd.room_id);
     if (unassignedRooms.length > 0) {
-      alert(`Please assign room numbers for all ${formData.number_of_rooms} room(s)`);
+      showWarning(`Please assign room numbers for all ${formData.number_of_rooms} room(s)`);
       return;
     }
     const roomIds = roomDetails.map(rd => rd.room_id);
     const uniqueRoomIds = new Set(roomIds);
     if (roomIds.length !== uniqueRoomIds.size) {
-      alert('Cannot assign the same room multiple times');
+      showWarning('Cannot assign the same room multiple times');
       return;
     }
     onSubmit(formData, roomDetails);

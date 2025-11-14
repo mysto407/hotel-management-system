@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useAlert } from '@/context/AlertContext';
 import {
   Table,
   TableBody,
@@ -26,6 +27,7 @@ const Dashboard = () => {
   const { rooms, roomTypes } = useRooms();
   const { getMealPlanName, getActivePlans } = useMealPlans();
   const { reservations, updateReservation, checkIn, checkOut } = useReservations();
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
   const [activeType, setActiveType] = useState('arrival');
   const [activeDay, setActiveDay] = useState('today');
   const [searchQuery, setSearchQuery] = useState('');
@@ -237,7 +239,7 @@ const Dashboard = () => {
       closeModal();
     } catch (error) {
       console.error('Error updating reservation:', error);
-      alert('Failed to save booking: ' + error.message);
+      showError('Failed to save booking: ' + error.message);
     }
   };
 

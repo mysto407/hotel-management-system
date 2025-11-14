@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Save, Building2, DollarSign, Clock, Globe, Download, Calendar, Utensils, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useMealPlans } from '../../context/MealPlanContext';
-import { useConfirm } from '@/context/AlertContext';
+import { useConfirm, useAlert } from '@/context/AlertContext';
 import { supabase, getHotelSettings, updateHotelSetting } from '../../lib/supabase';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,7 @@ const Settings = () => {
   const { user } = useAuth();
   const { mealPlans, addMealPlan, updateMealPlan, deleteMealPlan, toggleMealPlanStatus } = useMealPlans();
   const confirmDialog = useConfirm();
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -137,7 +138,7 @@ const Settings = () => {
       showSuccessMessage();
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Failed to save settings: ' + error.message);
+      showError('Failed to save settings: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -175,7 +176,7 @@ const Settings = () => {
 
   const handleSaveMealPlan = async () => {
     if (!mealPlanForm.code || !mealPlanForm.name) {
-      alert('Please fill in Code and Name fields');
+      showError('Please fill in Code and Name fields');
       return;
     }
 
@@ -257,10 +258,10 @@ const Settings = () => {
       a.href = url;
       a.download = `hotel-backup-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
-      alert('Backup created successfully!');
+      showSuccess('Backup created successfully!');
     } catch (error) {
       console.error('Backup error:', error);
-      alert('Failed to create backup: ' + error.message);
+      showError('Failed to create backup: ' + error.message);
     }
   };
   

@@ -2,6 +2,7 @@
 import { Home, RefreshCw, Lock, X } from 'lucide-react';
 import { useRooms } from '../../context/RoomContext';
 import { updateRoomStatus } from '../../lib/supabase';
+import { useAlert } from '@/context/AlertContext';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { cn } from '@/lib/utils';
 
 export const RoomStatusModal = ({ isOpen, onClose, room }) => {
   const { fetchRooms } = useRooms();
+  const { error: showError } = useAlert();
 
   const handleSubmitRoomStatus = async (newStatus) => {
     if (!room) return;
@@ -28,7 +30,7 @@ export const RoomStatusModal = ({ isOpen, onClose, room }) => {
       onClose();
     } catch (error) {
       console.error('Error updating room status:', error);
-      alert('Failed to update room status: ' + error.message);
+      showError('Failed to update room status: ' + error.message);
     }
   };
 

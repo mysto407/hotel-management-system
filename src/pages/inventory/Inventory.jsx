@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, AlertTriangle, Package, TrendingDown, TrendingUp, RefreshCw } from 'lucide-react';
 import { useInventory } from '../../context/InventoryContext';
 import { useAuth } from '../../context/AuthContext';
-import { useConfirm } from '@/context/AlertContext';
+import { useConfirm, useAlert } from '@/context/AlertContext';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -63,6 +63,7 @@ const Inventory = () => {
 
   const { user } = useAuth();
   const confirm = useConfirm();
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
 
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
@@ -167,7 +168,7 @@ const Inventory = () => {
       await addTransaction(transactionFormData, user.id);
       resetTransactionForm();
     } else {
-      alert('Please select an item and enter a valid quantity');
+      showError('Please select an item and enter a valid quantity');
     }
   };
 

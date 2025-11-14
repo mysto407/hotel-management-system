@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Save, XCircle } from 'lucide-react';
 import { useAgents } from '../../context/AgentContext';
+import { useAlert } from '@/context/AlertContext';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label";
 
 export const AddAgentModal = ({ isOpen, onClose, onAgentAdded }) => {
   const { addAgent } = useAgents();
+  const { error: showError, warning: showWarning } = useAlert();
   const [agentFormData, setAgentFormData] = useState({
     name: '',
     email: '',
@@ -34,7 +36,7 @@ export const AddAgentModal = ({ isOpen, onClose, onAgentAdded }) => {
 
   const handleCreateAgent = async () => {
     if (!agentFormData.name) {
-      alert('Please enter agent name');
+      showWarning('Please enter agent name');
       return;
     }
 
@@ -58,7 +60,7 @@ export const AddAgentModal = ({ isOpen, onClose, onAgentAdded }) => {
       }
     } catch (error) {
       console.error('Error adding agent:', error);
-      alert('Failed to add agent: ' + error.message);
+      showError('Failed to add agent: ' + error.message);
     }
   };
 

@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
+import { useAlert } from '@/context/AlertContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -17,6 +18,7 @@ import {
 export default function GuestDetailsPage({ onNavigate }) {
   const flowContext = useReservationFlow()
   const guestContext = useGuests()
+  const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
   const fileInputRef = useRef(null)
   const [errors, setErrors] = useState({})
   const [guestSearch, setGuestSearch] = useState('')
@@ -115,13 +117,13 @@ const handleSelectGuest = (guest) => {
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file')
+        showError('Please select an image file')
         return
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size should not exceed 5MB')
+        showError('File size should not exceed 5MB')
         return
       }
 
