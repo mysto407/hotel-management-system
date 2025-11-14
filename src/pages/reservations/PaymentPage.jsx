@@ -35,6 +35,18 @@ export default function PaymentPage({ onNavigate }) {
 
   const bill = calculateBill()
 
+  // Calculate total guest counts across all rooms
+  const totalGuestCounts = selectedRooms.reduce((totals, roomType) => {
+    // Sum up guest counts for all instances of this room type
+    for (let i = 0; i < roomType.quantity; i++) {
+      const guestCount = roomType.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
+      totals.adults += guestCount.adults || 1
+      totals.children += guestCount.children || 0
+      totals.infants += guestCount.infants || 0
+    }
+    return totals
+  }, { adults: 0, children: 0, infants: 0 })
+
   const handleConfirmReservation = async () => {
     setLoading(true)
     try {
@@ -84,6 +96,9 @@ export default function PaymentPage({ onNavigate }) {
           // Get meal plan for this room (default to EP if not set)
           const mealPlan = roomType.mealPlans?.[index] || 'EP'
 
+          // Get guest counts for this room (default to 1 adult if not set)
+          const guestCount = roomType.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
+
           return addReservation({
             guest_id: guestId,
             room_id: assignedRoomId,
@@ -91,9 +106,9 @@ export default function PaymentPage({ onNavigate }) {
             check_out_date: filters.checkOut,
             booking_source: filters.source === 'walk-in' ? 'direct' : filters.source,
             direct_source: filters.source === 'walk-in' ? 'Walk-in' : filters.source,
-            number_of_adults: guestDetails.adults,
-            number_of_children: guestDetails.children,
-            number_of_infants: guestDetails.infants,
+            number_of_adults: guestCount.adults || 1,
+            number_of_children: guestCount.children || 0,
+            number_of_infants: guestCount.infants || 0,
             status: 'Confirmed',
             meal_plan: mealPlan,
             special_requests: '',
@@ -175,9 +190,9 @@ export default function PaymentPage({ onNavigate }) {
                 <div className="flex items-center gap-2">
                   <span className="text-gray-600">Guests:</span>
                   <span className="font-medium">
-                    {guestDetails.adults + guestDetails.children + guestDetails.infants} ({guestDetails.adults}A
-                    {guestDetails.children > 0 && `, ${guestDetails.children}C`}
-                    {guestDetails.infants > 0 && `, ${guestDetails.infants}I`})
+                    {totalGuestCounts.adults + totalGuestCounts.children + totalGuestCounts.infants} ({totalGuestCounts.adults}A
+                    {totalGuestCounts.children > 0 && `, ${totalGuestCounts.children}C`}
+                    {totalGuestCounts.infants > 0 && `, ${totalGuestCounts.infants}I`})
                   </span>
                 </div>
                 <div className="h-4 w-px bg-gray-300 hidden sm:block"></div>
