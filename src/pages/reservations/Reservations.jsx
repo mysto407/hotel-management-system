@@ -6,6 +6,7 @@ import { ConfirmModal } from '../../components/common/ConfirmModal';
 import ReservationSummary from '../../components/reservations/ReservationSummary';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
+import { useMealPlans } from '../../context/MealPlanContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { calculateDays } from '../../utils/helpers';
@@ -34,6 +35,7 @@ import { Card, CardContent } from "@/components/ui/card";
 const Reservations = ({ onNavigate }) => {
   const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation, deleteReservation } = useReservations();
   const { rooms, roomTypes } = useRooms();
+  const { getMealPlanName, getActivePlans } = useMealPlans();
   const { guests } = useGuests();
   const { agents } = useAgents();
   
@@ -427,14 +429,8 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const getMealPlanLabel = (mealPlan) => {
-    // ... (logic from original file remains the same)
-    const mealPlans = {
-      'NM': 'No Meal',
-      'BO': 'Breakfast Only',
-      'HB': 'Half Board',
-      'FB': 'Full Board'
-    };
-    return mealPlans[mealPlan] || mealPlan;
+    // Use the MealPlanContext to get the meal plan name
+    return getMealPlanName(mealPlan);
   };
 
   const getRoomInfo = (room) => {
@@ -628,10 +624,15 @@ const Reservations = ({ onNavigate }) => {
                 <Label className="font-semibold">Meal Plan</Label>
                 <div className="flex gap-2 flex-wrap">
                   <FilterButton onClick={() => setFilterMealPlan('all')} isActive={filterMealPlan === 'all'}>All</FilterButton>
-                  <FilterButton onClick={() => setFilterMealPlan('NM')} isActive={filterMealPlan === 'NM'}>No Meal</FilterButton>
-                  <FilterButton onClick={() => setFilterMealPlan('BO')} isActive={filterMealPlan === 'BO'} variant="purple">Breakfast</FilterButton>
-                  <FilterButton onClick={() => setFilterMealPlan('HB')} isActive={filterMealPlan === 'HB'} variant="info">Half Board</FilterButton>
-                  <FilterButton onClick={() => setFilterMealPlan('FB')} isActive={filterMealPlan === 'FB'} variant="success">Full Board</FilterButton>
+                  {getActivePlans().map((plan) => (
+                    <FilterButton
+                      key={plan.code}
+                      onClick={() => setFilterMealPlan(plan.code)}
+                      isActive={filterMealPlan === plan.code}
+                    >
+                      {plan.name}
+                    </FilterButton>
+                  ))}
                 </div>
               </div>
               <div className="space-y-3">
