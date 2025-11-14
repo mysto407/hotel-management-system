@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle } from 'lucide-react';
 import { useRooms } from '../../context/RoomContext';
+import { useConfirm } from '@/context/AlertContext';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 
 const Rooms = () => {
   const { rooms, roomTypes, addRoom, updateRoom, deleteRoom } = useRooms();
+  const confirm = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [formData, setFormData] = useState({
@@ -90,7 +92,15 @@ const Rooms = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this room?')) {
+    const confirmed = await confirm({
+      title: 'Delete Room',
+      message: 'Are you sure you want to delete this room?',
+      variant: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
       await deleteRoom(id);
     }
   };

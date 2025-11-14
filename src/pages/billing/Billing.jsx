@@ -4,6 +4,8 @@ import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, DollarSign, FileTex
 import { useBilling } from '../../context/BillingContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
+import { useConfirm } from '@/context/AlertContext';
+import { cn } from '@/lib/utils';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
@@ -42,6 +44,7 @@ const Billing = () => {
   const { bills, addBill, updateBill, deleteBill, recordPayment, getBillsByReservation, getMasterBill } = useBilling();
   const { reservations } = useReservations();
   const { rooms } = useRooms();
+  const confirm = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isMasterBillModalOpen, setIsMasterBillModalOpen] = useState(false);
@@ -177,9 +180,17 @@ const Billing = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (billId) => {
-    if (window.confirm('Are you sure you want to delete this bill?')) {
-      deleteBill(billId);
+  const handleDelete = async (billId) => {
+    const confirmed = await confirm({
+      title: 'Delete Bill',
+      message: 'Are you sure you want to delete this bill?',
+      variant: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
+      await deleteBill(billId);
     }
   };
 

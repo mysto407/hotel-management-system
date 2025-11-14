@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Save, XCircle, Phone, Mail, Percent, MapPin, Trend
 import { Modal } from '../../components/common/Modal'; // This is now our shadcn wrapper
 import { useAgents } from '../../context/AgentContext';
 import { useReservations } from '../../context/ReservationContext';
+import { useConfirm } from '@/context/AlertContext';
 
 // Import shadcn-ui components
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 const Agents = () => {
   const { agents, addAgent, updateAgent, deleteAgent } = useAgents();
   const { reservations } = useReservations();
+  const confirm = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState(null);
   const [formData, setFormData] = useState({
@@ -90,7 +92,15 @@ const Agents = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this agent?')) {
+    const confirmed = await confirm({
+      title: 'Delete Agent',
+      message: 'Are you sure you want to delete this agent?',
+      variant: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
       await deleteAgent(id);
     }
   };

@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, Eye, Star, Award, B
 import { useGuests } from '../../context/GuestContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
+import { useConfirm } from '@/context/AlertContext';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
@@ -42,12 +43,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
 const Guests = () => {
-  const { 
-    guests, 
-    idProofTypes, 
+  const {
+    guests,
+    idProofTypes,
     guestTypes,
-    addGuest, 
-    updateGuest, 
+    addGuest,
+    updateGuest,
     deleteGuest,
     getGuestsByType,
     getReturningGuests,
@@ -56,6 +57,7 @@ const Guests = () => {
 
   const { reservations } = useReservations();
   const { rooms } = useRooms();
+  const confirm = useConfirm();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -141,9 +143,17 @@ const Guests = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (guestId) => {
-    if (window.confirm('Are you sure you want to delete this guest? This action cannot be undone.')) {
-      deleteGuest(guestId);
+  const handleDelete = async (guestId) => {
+    const confirmed = await confirm({
+      title: 'Delete Guest',
+      message: 'Are you sure you want to delete this guest? This action cannot be undone.',
+      variant: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
+      await deleteGuest(guestId);
     }
   };
 

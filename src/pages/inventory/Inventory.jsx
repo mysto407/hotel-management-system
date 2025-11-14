@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, AlertTriangle, Package, TrendingDown, TrendingUp, RefreshCw } from 'lucide-react';
 import { useInventory } from '../../context/InventoryContext';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '@/context/AlertContext';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -43,14 +44,14 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Inventory = () => {
-  const { 
-    items, 
-    transactions, 
-    departments, 
-    categories, 
+  const {
+    items,
+    transactions,
+    departments,
+    categories,
     units,
-    addItem, 
-    updateItem, 
+    addItem,
+    updateItem,
     deleteItem,
     addTransaction,
     getLowStockItems,
@@ -61,6 +62,7 @@ const Inventory = () => {
   } = useInventory();
 
   const { user } = useAuth();
+  const confirm = useConfirm();
 
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
@@ -146,9 +148,17 @@ const Inventory = () => {
     setIsItemModalOpen(true);
   };
 
-  const handleDeleteItem = (itemId) => {
-    if (window.confirm('Are you sure you want to delete this item? This will also delete its transaction history.')) {
-      deleteItem(itemId);
+  const handleDeleteItem = async (itemId) => {
+    const confirmed = await confirm({
+      title: 'Delete Item',
+      message: 'Are you sure you want to delete this item? This will also delete its transaction history.',
+      variant: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
+      await deleteItem(itemId);
     }
   };
 

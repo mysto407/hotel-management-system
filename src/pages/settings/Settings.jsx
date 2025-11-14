@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Save, Building2, DollarSign, Clock, Globe, Download, Calendar, Utensils, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useMealPlans } from '../../context/MealPlanContext';
+import { useConfirm } from '@/context/AlertContext';
 import { supabase, getHotelSettings, updateHotelSetting } from '../../lib/supabase';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"; // For showing 
 const Settings = () => {
   const { user } = useAuth();
   const { mealPlans, addMealPlan, updateMealPlan, deleteMealPlan, toggleMealPlanStatus } = useMealPlans();
+  const confirmDialog = useConfirm();
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -194,7 +196,15 @@ const Settings = () => {
   };
 
   const handleDeleteMealPlan = async (id) => {
-    if (!confirm('Are you sure you want to delete this meal plan? This action cannot be undone.')) {
+    const confirmed = await confirmDialog({
+      title: 'Delete Meal Plan',
+      message: 'Are you sure you want to delete this meal plan? This action cannot be undone.',
+      variant: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) {
       return;
     }
 

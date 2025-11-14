@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Download, Edit2, X, Check, Plus, Trash2, FileText, FilePlus, Sheet } from 'lucide-react';
 import { useExpense } from '../../context/ExpensesContext';
+import { useConfirm } from '@/context/AlertContext';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -42,6 +43,7 @@ const Expenses = () => {
     loadSheetData,
     saveSheetData
   } = useExpense();
+  const confirm = useConfirm();
 
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sheets, setSheets] = useState([]);
@@ -202,7 +204,15 @@ const Expenses = () => {
   };
 
   const handleDeleteCategory = async (categoryName) => {
-    if (window.confirm(`Delete category "${categoryName}" and all its sheets?`)) {
+    const confirmed = await confirm({
+      title: 'Delete Category',
+      message: `Delete category "${categoryName}" and all its sheets?`,
+      variant: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
       const categoryObj = categories.find(c => c.name === categoryName);
       if (categoryObj) {
         const success = await removeCategory(categoryObj.id);
@@ -250,18 +260,26 @@ const Expenses = () => {
     }
   };
 
-  const removeColumn = (columnId) => {
-    if (window.confirm('Are you sure you want to remove this column?')) {
+  const removeColumn = async (columnId) => {
+    const confirmed = await confirm({
+      title: 'Remove Column',
+      message: 'Are you sure you want to remove this column?',
+      variant: 'warning',
+      confirmText: 'Remove',
+      cancelText: 'Cancel'
+    });
+
+    if (confirmed) {
       const updatedColumns = customColumns.filter(col => col.id !== columnId);
       setCustomColumns(updatedColumns);
-      
+
       const updatedRows = rows.map(row => {
         const newCustomData = { ...row.customData };
         delete newCustomData[columnId];
         return { ...row, customData: newCustomData };
       });
       setRows(updatedRows);
-      
+
       if (selectedSheet) {
         saveSheetData(selectedSheet.id, updatedColumns, updatedRows);
       }
