@@ -75,7 +75,6 @@ export default function NewReservation({ onNavigate }) {
   const [sameMealPlanForAll, setSameMealPlanForAll] = useState(true)
   const [globalMealPlan, setGlobalMealPlan] = useState('EP')
   const [dateRangeOpen, setDateRangeOpen] = useState(false)
-  const [hoveredDate, setHoveredDate] = useState(null)
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
@@ -266,24 +265,6 @@ export default function NewReservation({ onNavigate }) {
                         }
                       : undefined
                   }
-                  modifiers={{
-                    hoverRange: (date) => {
-                      if (!filters.checkIn || filters.checkOut || !hoveredDate) {
-                        return false
-                      }
-                      const checkInDate = new Date(filters.checkIn)
-                      checkInDate.setHours(0, 0, 0, 0)
-                      const hoverDate = new Date(hoveredDate)
-                      hoverDate.setHours(0, 0, 0, 0)
-                      const currentDate = new Date(date)
-                      currentDate.setHours(0, 0, 0, 0)
-
-                      return currentDate > checkInDate && currentDate <= hoverDate
-                    }
-                  }}
-                  modifiersClassNames={{
-                    hoverRange: 'bg-accent/50 text-accent-foreground'
-                  }}
                   onSelect={(range) => {
                     if (range?.from) {
                       const fromDate = format(range.from, 'yyyy-MM-dd')
@@ -307,7 +288,6 @@ export default function NewReservation({ onNavigate }) {
                             checkOut: toDate
                           })
                           setDateRangeOpen(false)
-                          setHoveredDate(null)
                         }
                       } else {
                         // Only check-in selected - keep popover open
@@ -324,29 +304,6 @@ export default function NewReservation({ onNavigate }) {
                         checkIn: null,
                         checkOut: null
                       })
-                      setHoveredDate(null)
-                    }
-                  }}
-                  onDayMouseEnter={(date) => {
-                    // Only show hover preview if check-in is selected but check-out is not
-                    if (filters.checkIn && !filters.checkOut) {
-                      const checkInDate = new Date(filters.checkIn)
-                      checkInDate.setHours(0, 0, 0, 0)
-                      const hoverDate = new Date(date)
-                      hoverDate.setHours(0, 0, 0, 0)
-
-                      // Only set hover if the date is after check-in
-                      if (hoverDate > checkInDate) {
-                        setHoveredDate(date)
-                      } else {
-                        setHoveredDate(null)
-                      }
-                    }
-                  }}
-                  onDayMouseLeave={() => {
-                    // Clear hover state when mouse leaves a day
-                    if (filters.checkIn && !filters.checkOut) {
-                      setHoveredDate(null)
                     }
                   }}
                   numberOfMonths={2}
