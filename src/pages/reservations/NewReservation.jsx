@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, Trash2, ChevronRight, Shuffle } from 'lucide-react'
+import { Search, Plus, Trash2, ChevronRight, Shuffle, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useRooms } from '../../context/RoomContext'
 import { useMealPlans } from '../../context/MealPlanContext'
+import { useAgents } from '../../context/AgentContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
+import { AddAgentModal } from '../../components/agents/AddAgentModal'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -38,9 +40,12 @@ const ADDON_TYPES = [
 export default function NewReservation({ onNavigate }) {
   const { roomTypes, rooms } = useRooms()
   const { getActivePlans } = useMealPlans()
+  const { agents } = useAgents()
   const {
     filters,
     setFilters,
+    selectedAgent,
+    setSelectedAgent,
     selectedRooms,
     addRoom,
     removeRoom,
@@ -71,6 +76,7 @@ export default function NewReservation({ onNavigate }) {
   const [sameMealPlanForAll, setSameMealPlanForAll] = useState(true)
   const [globalMealPlan, setGlobalMealPlan] = useState('EP')
   const [dateRangeOpen, setDateRangeOpen] = useState(false)
+  const [showAddAgentModal, setShowAddAgentModal] = useState(false)
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
@@ -194,7 +200,16 @@ export default function NewReservation({ onNavigate }) {
     return assignedCount === roomType.quantity
   })
 
-  const canProceed = filters.checkIn && filters.checkOut && selectedRooms.length > 0 && allRoomsAssigned
+  // Validate that an agent is selected when source is 'agent'
+  const agentValid = filters.source !== 'agent' || selectedAgent !== null
+
+  const canProceed = filters.checkIn && filters.checkOut && selectedRooms.length > 0 && allRoomsAssigned && agentValid
+
+  // Handle agent added from modal
+  const handleAgentAdded = (newAgent) => {
+    setSelectedAgent(newAgent)
+    setShowAddAgentModal(false)
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -213,7 +228,13 @@ export default function NewReservation({ onNavigate }) {
             <Label>Booking Source</Label>
             <Select
               value={filters.source}
-              onValueChange={(value) => setFilters({ ...filters, source: value })}
+              onValueChange={(value) => {
+                setFilters({ ...filters, source: value })
+                // Clear agent selection if source is changed from agent
+                if (value !== 'agent') {
+                  setSelectedAgent(null)
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -228,7 +249,43 @@ export default function NewReservation({ onNavigate }) {
             </Select>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
+          {/* Agent Selection - Only show when source is 'agent' */}
+          {filters.source === 'agent' && (
+            <div className="space-y-2">
+              <Label>Select Agent *</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={selectedAgent?.id || ''}
+                  onValueChange={(value) => {
+                    const agent = agents.find(a => a.id === value)
+                    setSelectedAgent(agent)
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select agent..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agents.map(agent => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowAddAgentModal(true)}
+                  title="Add new agent"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className={`space-y-2 ${filters.source === 'agent' ? 'md:col-span-2' : 'md:col-span-2'}`}>
             <Label>Check-in / Check-out Date *</Label>
             <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
               <PopoverTrigger asChild>
@@ -881,6 +938,11 @@ export default function NewReservation({ onNavigate }) {
                 ⚠ Please assign room numbers to all selected rooms before proceeding
               </p>
             )}
+            {filters.source === 'agent' && !selectedAgent && (
+              <p className="text-sm text-red-600">
+                ⚠ Please select an agent before proceeding
+              </p>
+            )}
           </div>
           <Button
             onClick={() => onNavigate('guest-details')}
@@ -892,6 +954,13 @@ export default function NewReservation({ onNavigate }) {
           </Button>
         </div>
       </div>
+
+      {/* Add Agent Modal */}
+      <AddAgentModal
+        isOpen={showAddAgentModal}
+        onClose={() => setShowAddAgentModal(false)}
+        onAgentAdded={handleAgentAdded}
+      />
     </div>
   )
 }

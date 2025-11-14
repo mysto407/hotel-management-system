@@ -23,6 +23,7 @@ export function ReservationFlowProvider({ children }) {
     searchQuery: ''
   })
 
+  const [selectedAgent, setSelectedAgent] = useState(null)
   const [selectedRooms, setSelectedRooms] = useState([])
   const [addons, setAddons] = useState([])
 
@@ -265,6 +266,7 @@ export function ReservationFlowProvider({ children }) {
       promoCode: '',
       searchQuery: ''
     })
+    setSelectedAgent(null)
     setSelectedRooms([])
     setAddons([])
     setGuestDetails({
@@ -292,6 +294,7 @@ export function ReservationFlowProvider({ children }) {
   const value = {
     // State
     filters,
+    selectedAgent,
     selectedRooms,
     addons,
     guestDetails,
@@ -299,6 +302,7 @@ export function ReservationFlowProvider({ children }) {
 
     // Setters
     setFilters,
+    setSelectedAgent,
     setGuestDetails,
     setPaymentInfo,
 

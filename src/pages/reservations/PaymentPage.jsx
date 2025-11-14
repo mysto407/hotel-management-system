@@ -20,6 +20,7 @@ import {
 export default function PaymentPage({ onNavigate }) {
   const {
     filters,
+    selectedAgent,
     selectedRooms,
     addons,
     guestDetails,
