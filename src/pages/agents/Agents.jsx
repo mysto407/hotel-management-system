@@ -1,7 +1,6 @@
 // src/pages/agents/Agents.jsx
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Phone, Mail, Percent, MapPin, TrendingUp } from 'lucide-react';
-import { Modal } from '../../components/common/Modal'; // This is now our shadcn wrapper
 import { useAgents } from '../../context/AgentContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useConfirm, useAlert } from '@/context/AlertContext';
