@@ -960,21 +960,21 @@ const ReservationCalendar = () => {
       confirmMessage = `Ã¢Å¡Â Ã¯Â¸Â WARNING: Permanent Deletion\n\nThis is part of a ${relatedReservations.length}-room booking.\n\nAre you absolutely sure you want to PERMANENTLY DELETE ALL ${relatedReservations.length} reservations for ${guestName}?\n\nThis action CANNOT be undone!`;
     }
     
-    const firstConfirm = await showConfirm({
+    const firstConfirm = await confirm({
       variant: 'danger',
       title: 'Permanent Deletion Warning',
       message: confirmMessage,
       confirmText: 'Yes, Delete',
       cancelText: 'Cancel'
     });
-    
+
     if (!firstConfirm) return;
-    
+
     const finalConfirmMessage = relatedReservations.length > 1
       ? `Final confirmation: Delete ALL ${relatedReservations.length} reservations permanently?`
       : 'Final confirmation: Delete this reservation permanently?';
-    
-    const finalConfirm = await showConfirm({
+
+    const finalConfirm = await confirm({
       variant: 'danger',
       title: 'Final Confirmation',
       message: finalConfirmMessage,
@@ -992,11 +992,11 @@ const ReservationCalendar = () => {
       await fetchReservations();
       await fetchRooms();
       
-      const message = relatedReservations.length > 1 
+      const message = relatedReservations.length > 1
         ? `Successfully deleted ${relatedReservations.length} reservations!`
         : 'Reservation deleted successfully!';
-      
-      await showAlert({
+
+      await alert({
         variant: 'success',
         title: 'Deleted',
         message: message,
@@ -1004,7 +1004,7 @@ const ReservationCalendar = () => {
       });
     } catch (error) {
       console.error('Error deleting reservation:', error);
-      await showAlert({
+      await alert({
         variant: 'danger',
         title: 'Error',
         message: 'Failed to delete reservation: ' + error.message,
@@ -1016,7 +1016,7 @@ const ReservationCalendar = () => {
   // Submit quick booking
   const handleQuickBooking = async () => {
     if (!bookingData.guest_id) {
-      await showAlert({
+      await alert({
         variant: 'warning',
         title: 'Missing Information',
         message: 'Please select a guest',
@@ -1024,9 +1024,9 @@ const ReservationCalendar = () => {
       });
       return;
     }
-    
+
     if (!bookingData.check_out_date) {
-      await showAlert({
+      await alert({
         variant: 'warning',
         title: 'Missing Information',
         message: 'Please select check-out date',
@@ -1036,7 +1036,7 @@ const ReservationCalendar = () => {
     }
 
     if (bookingData.booking_source === 'agent' && !bookingData.agent_id) {
-      await showAlert({
+      await alert({
         variant: 'warning',
         title: 'Missing Information',
         message: 'Please select an agent',
@@ -1121,16 +1121,16 @@ const ReservationCalendar = () => {
         setPendingBookings([]);
         
         await fetchReservations();
-        
+
         if (failCount > 0) {
-          await showAlert({
+          await alert({
             variant: 'warning',
             title: 'Partial Success',
             message: `Created ${successCount} of ${pendingBookings.length} bookings successfully. ${failCount} booking(s) failed.`,
             confirmText: 'OK'
           });
         } else {
-          await showAlert({
+          await alert({
             variant: 'success',
             title: 'Success',
             message: `All ${successCount} bookings created successfully!`,
@@ -1139,7 +1139,7 @@ const ReservationCalendar = () => {
         }
       } else {
         await fetchReservations();
-        await showAlert({
+        await alert({
           variant: 'success',
           title: 'Success',
           message: 'Booking created successfully!',
@@ -1166,7 +1166,7 @@ const ReservationCalendar = () => {
       });
     } catch (error) {
       console.error('Error creating booking:', error);
-      await showAlert({
+      await alert({
         variant: 'danger',
         title: 'Error',
         message: 'Failed to create booking: ' + error.message,
