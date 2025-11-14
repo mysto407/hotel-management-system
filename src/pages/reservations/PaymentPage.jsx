@@ -144,6 +144,7 @@ export default function PaymentPage({ onNavigate }) {
             check_out_date: filters.checkOut,
             booking_source: filters.source === 'walk-in' ? 'direct' : filters.source,
             direct_source: filters.source === 'walk-in' ? 'Walk-in' : filters.source,
+            agent_id: selectedAgent?.id || null,
             number_of_adults: guestCount.adults || 1,
             number_of_children: guestCount.children || 0,
             number_of_infants: guestCount.infants || 0,
@@ -289,6 +290,12 @@ export default function PaymentPage({ onNavigate }) {
                         <span className="text-gray-600">Source:</span>
                         <span className="font-medium capitalize">{filters.source}</span>
                       </div>
+                      {selectedAgent && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Agent:</span>
+                          <span className="font-medium">{selectedAgent.name}</span>
+                        </div>
+                      )}
                       {filters.promoCode && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Promo Code:</span>
