@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useAlert } from '@/context/AlertContext';
+import { useAlert, useConfirm } from '@/context/AlertContext';
 import {
   Table,
   TableBody,
@@ -16,7 +16,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
-import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { useRooms } from '../../context/RoomContext';
 import { useMealPlans } from '../../context/MealPlanContext';
 import { useReservations } from '../../context/ReservationContext';
@@ -28,26 +27,16 @@ const Dashboard = () => {
   const { getMealPlanName, getActivePlans } = useMealPlans();
   const { reservations, updateReservation, checkIn, checkOut } = useReservations();
   const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
+  const confirm = useConfirm();
   const [activeType, setActiveType] = useState('arrival');
   const [activeDay, setActiveDay] = useState('today');
   const [searchQuery, setSearchQuery] = useState('');
   const [activitiesTab, setActivitiesTab] = useState('bookings');
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [initialFormData, setInitialFormData] = useState(null);
   const [initialRoomDetails, setInitialRoomDetails] = useState(null);
-
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    type: 'confirm',
-    variant: 'info',
-    title: '',
-    message: '',
-    confirmText: 'Confirm',
-    cancelText: 'Cancel',
-    onConfirm: null
-  });
   
   // ... (All logic functions from the original file remain exactly the same) ...
   // getDateString, handleNewBooking, getTodaysDate, todayArrivals,
@@ -68,7 +57,6 @@ const Dashboard = () => {
     // This should ideally navigate to the reservations page with a "new" state
     // For now, we'll just open the modal with empty data
     setEditingReservation(null);
-    setEditingGroup(null);
     setInitialFormData(null);
     setInitialRoomDetails(null);
     setIsModalOpen(true);
@@ -185,25 +173,6 @@ const Dashboard = () => {
   const filteredCheckIns = getFilteredReservations();
 
   // Modal handlers
-  const showConfirm = (options) => {
-    return new Promise((resolve) => {
-      setConfirmModal({
-        isOpen: true,
-        type: 'confirm',
-        variant: options.variant || 'info',
-        title: options.title || 'Confirm',
-        message: options.message || '',
-        confirmText: options.confirmText || 'Confirm',
-        cancelText: options.cancelText || 'Cancel',
-        onConfirm: () => resolve(true)
-      });
-    });
-  };
-
-  const closeConfirmModal = () => {
-    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-  };
-
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingReservation(null);
@@ -277,11 +246,10 @@ const Dashboard = () => {
   };
 
   const handleCheckIn = async (reservation) => {
-    // ... (copy logic from original)
-    const confirmed = await showConfirm({
-      variant: 'info',
+    const confirmed = await confirm({
       title: 'Check In',
       message: `Check in ${reservation.guests?.name}?`,
+      variant: 'info',
       confirmText: 'Check In',
       cancelText: 'Cancel'
     });
@@ -291,11 +259,10 @@ const Dashboard = () => {
   };
 
   const handleCheckOut = async (reservation) => {
-    // ... (copy logic from original)
-     const confirmed = await showConfirm({
-      variant: 'info',
+    const confirmed = await confirm({
       title: 'Check Out',
       message: `Check out ${reservation.guests?.name}?`,
+      variant: 'info',
       confirmText: 'Check Out',
       cancelText: 'Cancel'
     });
@@ -740,19 +707,6 @@ const Dashboard = () => {
         editingGroup={null}
         initialFormData={initialFormData}
         initialRoomDetails={initialRoomDetails}
-      />
-
-      {/* Confirm Modal */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        onClose={closeConfirmModal}
-        onConfirm={confirmModal.onConfirm}
-        type={confirmModal.type}
-        variant={confirmModal.variant}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        cancelText={confirmModal.cancelText}
       />
     </div>
   );

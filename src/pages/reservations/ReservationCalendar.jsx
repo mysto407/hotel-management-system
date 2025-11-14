@@ -6,7 +6,7 @@ import { useRooms } from '../../context/RoomContext';
 import { useMealPlans } from '../../context/MealPlanContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
-import { ConfirmModal } from '../../components/common/ConfirmModal';
+import { useConfirm, useAlert } from '@/context/AlertContext';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import { updateRoomStatus } from '../../lib/supabase';
 import { calculateDays } from '../../utils/helpers';
@@ -30,6 +30,8 @@ const ReservationCalendar = () => {
   const { getActivePlans } = useMealPlans();
   const { guests } = useGuests();
   const { agents } = useAgents();
+  const confirm = useConfirm();
+  const { alert } = useAlert();
   
 // Set initial start date to 2 days before today
   const [startDate, setStartDate] = useState(() => {
@@ -41,18 +43,6 @@ const ReservationCalendar = () => {
   const [daysToShow, setDaysToShow] = useState(14);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState({});
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // Confirm modal state
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    type: 'confirm',
-    variant: 'info',
-    title: '',
-    message: '',
-    confirmText: 'Confirm',
-    cancelText: 'Cancel',
-    onConfirm: null
-  });
   
   // Action menu state for reservations
   const [selectedReservation, setSelectedReservation] = useState(null);
@@ -273,40 +263,6 @@ const ReservationCalendar = () => {
     setStartDate(selectedDate);
   };
 
-  // Helper functions for confirm modal
-  const showConfirm = (options) => {
-    return new Promise((resolve) => {
-      setConfirmModal({
-        isOpen: true,
-        type: 'confirm',
-        variant: options.variant || 'info',
-        title: options.title || 'Confirm',
-        message: options.message || '',
-        confirmText: options.confirmText || 'Confirm',
-        cancelText: options.cancelText || 'Cancel',
-        onConfirm: () => resolve(true)
-      });
-    });
-  };
-
-  const showAlert = (options) => {
-    return new Promise((resolve) => {
-      setConfirmModal({
-        isOpen: true,
-        type: 'alert',
-        variant: options.variant || 'info',
-        title: options.title || 'Notice',
-        message: options.message || '',
-        confirmText: options.confirmText || 'OK',
-        onConfirm: () => resolve(true)
-      });
-    });
-  };
-
-  const closeConfirmModal = () => {
-    setConfirmModal(prev => ({ ...prev, isOpen: false }));
-  };
-
   // Refresh calendar data
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -513,7 +469,7 @@ const ReservationCalendar = () => {
 
     const uniqueRoomIds = [...new Set(selectedCells.map(c => c.roomId))];
 
-    const confirmed = await showConfirm({
+    const confirmed = await confirm({
       variant: 'warning',
       title: 'Block Rooms',
       message: `Are you sure you want to block ${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''}?`,
@@ -530,8 +486,8 @@ const ReservationCalendar = () => {
       
       await Promise.all(blockPromises);
       await fetchRooms();
-      
-      await showAlert({
+
+      await alert({
         variant: 'success',
         title: 'Success',
         message: `${uniqueRoomIds.length} room${uniqueRoomIds.length !== 1 ? 's' : ''} blocked successfully`,
@@ -539,7 +495,7 @@ const ReservationCalendar = () => {
       });
     } catch (error) {
       console.error('Error blocking rooms:', error);
-      await showAlert({
+      await alert({
         variant: 'danger',
         title: 'Error',
         message: 'Failed to block rooms: ' + error.message,
@@ -674,10 +630,10 @@ const ReservationCalendar = () => {
     const bookingCount = bookings.length;
     
     const confirmMessage = `Create ${bookingCount} ${status.toLowerCase()} booking${bookingCount !== 1 ? 's' : ''}?\n\n` +
-      `${roomCount} room${roomCount !== 1 ? 's' : ''} Ãƒâ€” ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
+      `${roomCount} room${roomCount !== 1 ? 's' : ''} Ãƒâ€" ${totalNights} total night${totalNights !== 1 ? 's' : ''}\n\n` +
       `You'll enter guest details once, and all bookings will be created with the same guest.`;
-    
-    const confirmed = await showConfirm({
+
+    const confirmed = await confirm({
       variant: 'info',
       title: 'Create Multiple Bookings',
       message: confirmMessage,
@@ -740,9 +696,9 @@ const ReservationCalendar = () => {
     setSelectedReservation(null);
 
     const relatedReservations = findRelatedReservations(reservationToEdit);
-    
+
     if (relatedReservations.length > 1) {
-      const editAsGroup = await showConfirm({
+      const editAsGroup = await confirm({
         variant: 'info',
         title: 'Edit Reservation',
         message: `This reservation is part of a ${relatedReservations.length}-room booking.\n\nClick "Edit All" to edit all rooms together, or "Edit Single" to edit only this room.`,
@@ -860,10 +816,11 @@ const ReservationCalendar = () => {
           status: formData.status,
           special_requests: formData.special_requests
         };
-        
+
+
         await updateReservation(editingReservation.id, reservationData);
-        
-        await showAlert({
+
+        await alert({
           variant: 'success',
           title: 'Success',
           message: 'Reservation updated successfully!',
@@ -902,8 +859,8 @@ const ReservationCalendar = () => {
           
           await updateReservation(reservation.id, reservationData);
         }
-        
-        await showAlert({
+
+        await alert({
           variant: 'success',
           title: 'Success',
           message: `Successfully updated ${editingGroup.length} reservations!`,
@@ -921,7 +878,7 @@ const ReservationCalendar = () => {
       setEditModalRoomDetails(null);
     } catch (error) {
       console.error('Error updating reservation:', error);
-      await showAlert({
+      await alert({
         variant: 'danger',
         title: 'Error',
         message: 'Failed to update reservation: ' + error.message,
@@ -946,8 +903,8 @@ const ReservationCalendar = () => {
     if (relatedReservations.length > 1) {
       confirmMessage = `This reservation is part of a ${relatedReservations.length}-room booking.\n\nAre you sure you want to cancel ALL ${relatedReservations.length} rooms for ${guestName}?`;
     }
-    
-    const confirmed = await showConfirm({
+
+    const confirmed = await confirm({
       variant: 'warning',
       title: 'Cancel Reservation',
       message: confirmMessage,
@@ -965,11 +922,11 @@ const ReservationCalendar = () => {
       await fetchReservations();
       await fetchRooms();
       
-      const message = relatedReservations.length > 1 
+      const message = relatedReservations.length > 1
         ? `Successfully cancelled ${relatedReservations.length} reservations!`
         : 'Reservation cancelled successfully!';
-      
-      await showAlert({
+
+      await alert({
         variant: 'success',
         title: 'Success',
         message: message,
@@ -977,7 +934,7 @@ const ReservationCalendar = () => {
       });
     } catch (error) {
       console.error('Error cancelling reservation:', error);
-      await showAlert({
+      await alert({
         variant: 'danger',
         title: 'Error',
         message: 'Failed to cancel reservation: ' + error.message,

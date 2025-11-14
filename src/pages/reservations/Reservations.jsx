@@ -2,13 +2,13 @@
 import { useState } from 'react';
 import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar, Trash2 } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
-import { ConfirmModal } from '../../components/common/ConfirmModal';
 import ReservationSummary from '../../components/reservations/ReservationSummary';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useMealPlans } from '../../context/MealPlanContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
+import { useConfirm, useAlert } from '@/context/AlertContext';
 import { calculateDays } from '../../utils/helpers';
 import { cn } from '@/lib/utils';
 
@@ -38,24 +38,15 @@ const Reservations = ({ onNavigate }) => {
   const { getMealPlanName, getActivePlans } = useMealPlans();
   const { guests } = useGuests();
   const { agents } = useAgents();
-  
+  const confirm = useConfirm();
+  const { alert: showAlert } = useAlert();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null);
-  
+
   const [initialFormData, setInitialFormData] = useState(null);
   const [initialRoomDetails, setInitialRoomDetails] = useState(null);
-
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    type: 'confirm',
-    variant: 'info',
-    title: '',
-    message: '',
-    confirmText: 'Confirm',
-    cancelText: 'Cancel',
-    onConfirm: null
-  });
 
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,46 +101,13 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const hasActiveFilters = () => {
-    return filterStatus !== 'all' || 
-           searchTerm !== '' || 
-           filterMealPlan !== 'all' || 
-           filterGuestCount !== 'all' || 
-           dateFilterType !== 'all' || 
-           startDate !== '' || 
+    return filterStatus !== 'all' ||
+           searchTerm !== '' ||
+           filterMealPlan !== 'all' ||
+           filterGuestCount !== 'all' ||
+           dateFilterType !== 'all' ||
+           startDate !== '' ||
            endDate !== '';
-  };
-
-  const showConfirm = (options) => {
-    return new Promise((resolve) => {
-      setConfirmModal({
-        isOpen: true,
-        type: 'confirm',
-        variant: options.variant || 'info',
-        title: options.title || 'Confirm',
-        message: options.message || '',
-        confirmText: options.confirmText || 'Confirm',
-        cancelText: options.cancelText || 'Cancel',
-        onConfirm: () => resolve(true)
-      });
-    });
-  };
-
-  const showAlert = (options) => {
-    return new Promise((resolve) => {
-      setConfirmModal({
-        isOpen: true,
-        type: 'alert',
-        variant: options.variant || 'info',
-        title: options.title || 'Notice',
-        message: options.message || '',
-        confirmText: options.confirmText || 'OK',
-        onConfirm: () => resolve(true)
-      });
-    });
-  };
-
-  const closeConfirmModal = () => {
-    setConfirmModal(prev => ({ ...prev, isOpen: false }));
   };
 
   const handleSubmit = async (formData, roomDetails) => {
@@ -210,8 +168,7 @@ const Reservations = ({ onNavigate }) => {
         await showAlert({
           variant: 'success',
           title: 'Success',
-          message: `Successfully updated ${editingGroup.length} reservations!`,
-          confirmText: 'OK'
+          message: `Successfully updated ${editingGroup.length} reservations!`
         });
       } else {
         // ... (logic from original file remains the same)
@@ -250,8 +207,7 @@ const Reservations = ({ onNavigate }) => {
       await showAlert({
         variant: 'danger',
         title: 'Error',
-        message: 'Failed to save booking: ' + error.message,
-        confirmText: 'OK'
+        message: 'Failed to save booking: ' + error.message
       });
     }
   };
@@ -337,8 +293,7 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const handleCheckIn = async (reservation) => {
-    // ... (logic from original file remains the same)
-    const confirmed = await showConfirm({
+    const confirmed = await confirm({
       variant: 'info',
       title: 'Check In',
       message: `Check in ${reservation.guests?.name}?`,
@@ -351,8 +306,7 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const handleCheckOut = async (reservation) => {
-    // ... (logic from original file remains the same)
-    const confirmed = await showConfirm({
+    const confirmed = await confirm({
       variant: 'info',
       title: 'Check Out',
       message: `Check out ${reservation.guests?.name}?`,
@@ -365,8 +319,7 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const handleCancel = async (reservation) => {
-    // ... (logic from original file remains the same)
-     const confirmed = await showConfirm({
+    const confirmed = await confirm({
       variant: 'warning',
       title: 'Cancel Reservation',
       message: 'Are you sure you want to cancel this reservation?',
@@ -379,10 +332,9 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const handleDelete = async (reservation) => {
-    // ... (logic from original file remains the same)
     const guestName = reservation.guests?.name || 'Unknown';
     const confirmMessage = `⚠️ WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE this reservation?\n\nGuest: ${guestName}\nRoom: ${getRoomInfo(reservation.rooms)}\nCheck-in: ${reservation.check_in_date}\n\nThis action CANNOT be undone!`;
-    const firstConfirm = await showConfirm({
+    const firstConfirm = await confirm({
       variant: 'danger',
       title: '⚠️ Permanent Deletion Warning',
       message: confirmMessage,
@@ -390,7 +342,7 @@ const Reservations = ({ onNavigate }) => {
       cancelText: 'Cancel'
     });
     if (firstConfirm) {
-      const finalConfirm = await showConfirm({
+      const finalConfirm = await confirm({
         variant: 'danger',
         title: 'Final Confirmation',
         message: 'Final confirmation: Delete this reservation permanently?',
@@ -404,10 +356,9 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const handleDeleteGroup = async (group) => {
-    // ... (logic from original file remains the same)
     const guestName = group[0].guests?.name || 'Unknown';
     const confirmMessage = `⚠️ WARNING: Permanent Deletion\n\nAre you absolutely sure you want to PERMANENTLY DELETE all ${group.length} reservations?\n\nGuest: ${guestName}\nRooms: ${group.length}\n\nThis action CANNOT be undone!`;
-    const firstConfirm = await showConfirm({
+    const firstConfirm = await confirm({
       variant: 'danger',
       title: '⚠️ Permanent Deletion Warning',
       message: confirmMessage,
@@ -415,7 +366,7 @@ const Reservations = ({ onNavigate }) => {
       cancelText: 'Cancel'
     });
     if (firstConfirm) {
-      const finalConfirm = await showConfirm({
+      const finalConfirm = await confirm({
         variant: 'danger',
         title: 'Final Confirmation',
         message: `Final confirmation: Delete ALL ${group.length} reservations permanently?`,
@@ -791,7 +742,7 @@ const Reservations = ({ onNavigate }) => {
                               variant="ghost" size="icon"
                               onClick={async () => {
                                 if (isMultiRoom) {
-                                  const confirmed = await showConfirm({ variant: 'info', title: 'Check In Multiple Rooms', message: `Check in all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check In All'});
+                                  const confirmed = await confirm({ variant: 'info', title: 'Check In Multiple Rooms', message: `Check in all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check In All'});
                                   if (confirmed) group.forEach(r => checkIn(r.id));
                                 } else handleCheckIn(primaryReservation);
                               }}
@@ -805,7 +756,7 @@ const Reservations = ({ onNavigate }) => {
                               variant="ghost" size="icon"
                               onClick={async () => {
                                 if (isMultiRoom) {
-                                  const confirmed = await showConfirm({ variant: 'info', title: 'Check Out Multiple Rooms', message: `Check out all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check Out All'});
+                                  const confirmed = await confirm({ variant: 'info', title: 'Check Out Multiple Rooms', message: `Check out all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check Out All'});
                                   if (confirmed) group.forEach(r => checkOut(r.id));
                                 } else handleCheckOut(primaryReservation);
                               }}
@@ -823,14 +774,14 @@ const Reservations = ({ onNavigate }) => {
                               >
                                 <Edit2 size={16} className="text-blue-600" />
                               </Button>
-                              <Button 
+                              <Button
                                 variant="ghost" size="icon"
                                 onClick={async () => {
                                   if (isMultiRoom) {
-                                    const confirmed = await showConfirm({ variant: 'warning', title: 'Cancel Multiple Reservations', message: `Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Cancel All'});
+                                    const confirmed = await confirm({ variant: 'warning', title: 'Cancel Multiple Reservations', message: `Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Cancel All'});
                                     if (confirmed) group.forEach(r => handleCancel(r));
                                   } else handleCancel(primaryReservation);
-                                }} 
+                                }}
                                 title="Cancel Reservation"
                               >
                                 <XOctagon size={16} className="text-red-600" />
@@ -896,19 +847,6 @@ const Reservations = ({ onNavigate }) => {
         editingGroup={editingGroup}
         initialFormData={initialFormData}
         initialRoomDetails={initialRoomDetails}
-      />
-
-      {/* Confirm Modal */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        onClose={closeConfirmModal}
-        onConfirm={confirmModal.onConfirm}
-        type={confirmModal.type}
-        variant={confirmModal.variant}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        confirmText={confirmModal.confirmText}
-        cancelText={confirmModal.cancelText}
       />
     </div>
   );
