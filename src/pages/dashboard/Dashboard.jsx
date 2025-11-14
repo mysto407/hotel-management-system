@@ -17,12 +17,14 @@ import {
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { useRooms } from '../../context/RoomContext';
+import { useMealPlans } from '../../context/MealPlanContext';
 import { useReservations } from '../../context/ReservationContext';
 import { calculateDays } from '../../utils/helpers';
 import { cn } from '@/lib/utils'; // Import cn
 
 const Dashboard = () => {
   const { rooms, roomTypes } = useRooms();
+  const { getMealPlanName, getActivePlans } = useMealPlans();
   const { reservations, updateReservation, checkIn, checkOut } = useReservations();
   const [activeType, setActiveType] = useState('arrival');
   const [activeDay, setActiveDay] = useState('today');
@@ -253,7 +255,7 @@ const Dashboard = () => {
       number_of_rooms: 1,
       check_in_date: reservation.check_in_date,
       check_out_date: reservation.check_out_date,
-      meal_plan: reservation.meal_plan || 'NM',
+      meal_plan: reservation.meal_plan || getActivePlans()[0]?.code || 'EP',
       total_amount: reservation.total_amount,
       advance_payment: reservation.advance_payment,
       payment_status: reservation.payment_status,
@@ -305,7 +307,8 @@ const Dashboard = () => {
         const room = rooms.find(r => r.id === reservation.room_id);
     const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
     const days = calculateDays(reservation.check_in_date, reservation.check_out_date);
-    
+    const mealPlanName = getMealPlanName(reservation.meal_plan);
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -339,7 +342,7 @@ const Dashboard = () => {
             <div class="info-row"><span class="label">Check-out:</span><span class="value">${reservation.check_out_date}</span></div>
             <div class="info-row"><span class="label">Number of Nights:</span><span class="value">${days}</span></div>
             <div class="info-row"><span class="label">Guests:</span><span class="value">${reservation.number_of_adults || 0} Adults, ${reservation.number_of_children || 0} Children, ${reservation.number_of_infants || 0} Infants</span></div>
-            <div class="info-row"><span class="label">Meal Plan:</span><span class="value">${reservation.meal_plan || 'N/A'}</span></div>
+            <div class="info-row"><span class="label">Meal Plan:</span><span class="value">${mealPlanName || 'N/A'}</span></div>
             <div class="info-row"><span class="label">Status:</span><span class="value">${reservation.status}</span></div>
           </div>
           <div class="info-section">

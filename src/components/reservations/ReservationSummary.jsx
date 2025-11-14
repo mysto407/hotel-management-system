@@ -1,6 +1,7 @@
 // src/components/reservations/ReservationSummary.jsx
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useMealPlans } from '../../context/MealPlanContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,9 +13,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Progress } from "@/components/ui/progress";
 
-const ReservationSummary = ({ 
-  reservations, 
-  filteredReservations, 
+const ReservationSummary = ({
+  reservations,
+  filteredReservations,
   dateFilterType = 'all',
   startDate = '',
   endDate = '',
@@ -22,6 +23,7 @@ const ReservationSummary = ({
   defaultExpanded = true
 }) => {
   const [showSummary, setShowSummary] = useState(defaultExpanded);
+  const { mealPlans } = useMealPlans();
 
   // Helper function to group reservations (remains the same)
   const groupReservations = (reservations) => {
@@ -158,23 +160,18 @@ const ReservationSummary = ({
               <div className="pt-4 border-t border-blue-200">
                 <h4 className="text-xs font-semibold text-blue-700 mb-2">Meal Plans (Active Guests)</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { code: 'NM', label: 'No Meal', color: 'text-gray-700' },
-                    { code: 'BO', label: 'Breakfast', color: 'text-yellow-700' },
-                    { code: 'HB', label: 'Half Board', color: 'text-purple-700' },
-                    { code: 'FB', label: 'Full Board', color: 'text-pink-700' }
-                  ].map(({ code, label, color }) => {
+                  {mealPlans.map((plan) => {
                     const guestCount = filteredReservations
-                      .filter(r => r.meal_plan === code && r.status !== 'Checked-out')
-                      .reduce((sum, r) => 
+                      .filter(r => r.meal_plan === plan.code && r.status !== 'Checked-out')
+                      .reduce((sum, r) =>
                         sum + ((r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0)), 0
                       );
                     if (guestCount === 0) return null;
                     return (
-                      <Card key={code}>
+                      <Card key={plan.code}>
                         <CardContent className="p-3 flex justify-between items-center">
-                          <span className={cn("text-xl font-bold", color)}>{guestCount}</span>
-                          <span className="text-xs text-muted-foreground">{label}</span>
+                          <span className="text-xl font-bold text-gray-700">{guestCount}</span>
+                          <span className="text-xs text-muted-foreground">{plan.name}</span>
                         </CardContent>
                       </Card>
                     );
