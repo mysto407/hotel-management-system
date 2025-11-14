@@ -258,6 +258,11 @@ export default function NewReservation({ onNavigate }) {
                           from: new Date(filters.checkIn),
                           to: new Date(filters.checkOut)
                         }
+                      : filters.checkIn
+                      ? {
+                          from: new Date(filters.checkIn),
+                          to: undefined
+                        }
                       : undefined
                   }
                   onSelect={(range) => {
@@ -265,14 +270,25 @@ export default function NewReservation({ onNavigate }) {
                       const fromDate = format(range.from, 'yyyy-MM-dd')
 
                       if (range.to) {
-                        // Both dates selected - update and close
                         const toDate = format(range.to, 'yyyy-MM-dd')
-                        setFilters({
-                          ...filters,
-                          checkIn: fromDate,
-                          checkOut: toDate
-                        })
-                        setDateRangeOpen(false)
+
+                        // Check if check-out is different from check-in
+                        if (fromDate === toDate) {
+                          // Don't update if same date - keep calendar open
+                          setFilters({
+                            ...filters,
+                            checkIn: fromDate,
+                            checkOut: null
+                          })
+                        } else {
+                          // Both dates selected and valid - update and close
+                          setFilters({
+                            ...filters,
+                            checkIn: fromDate,
+                            checkOut: toDate
+                          })
+                          setDateRangeOpen(false)
+                        }
                       } else {
                         // Only check-in selected - keep popover open
                         setFilters({
@@ -291,7 +307,24 @@ export default function NewReservation({ onNavigate }) {
                     }
                   }}
                   numberOfMonths={2}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  disabled={(date) => {
+                    const today = new Date(new Date().setHours(0, 0, 0, 0))
+                    // Disable past dates
+                    if (date < today) return true
+
+                    // If check-in is selected, disable the same date for check-out
+                    if (filters.checkIn) {
+                      const checkInDate = new Date(filters.checkIn)
+                      checkInDate.setHours(0, 0, 0, 0)
+
+                      // Disable the check-in date to prevent same-day check-out
+                      if (date.getTime() === checkInDate.getTime()) {
+                        return true
+                      }
+                    }
+
+                    return false
+                  }}
                 />
               </PopoverContent>
             </Popover>
