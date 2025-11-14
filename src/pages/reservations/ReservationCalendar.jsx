@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronRight, ChevronLeft, Calendar, RefreshCw, X, Lock, Edit2, XOctagon, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
+import { useMealPlans } from '../../context/MealPlanContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
@@ -26,6 +27,7 @@ import { Badge } from '../../components/ui/badge';
 const ReservationCalendar = () => {
   const { reservations, fetchReservations, addReservation, updateReservation, cancelReservation, deleteReservation } = useReservations();
   const { rooms, roomTypes, fetchRooms } = useRooms();
+  const { getActivePlans } = useMealPlans();
   const { guests } = useGuests();
   const { agents } = useAgents();
   
@@ -77,6 +79,10 @@ const ReservationCalendar = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+
+  // Use first active meal plan as default
+  const defaultMealPlan = getActivePlans()[0]?.code || 'EP';
+
   const [bookingData, setBookingData] = useState({
     booking_source: 'direct',
     agent_id: '',
@@ -88,7 +94,7 @@ const ReservationCalendar = () => {
     number_of_adults: 1,
     number_of_children: 0,
     number_of_infants: 0,
-    meal_plan: 'NM',
+    meal_plan: defaultMealPlan,
     status: 'Confirmed',
     special_requests: ''
   });
@@ -567,7 +573,7 @@ const ReservationCalendar = () => {
         number_of_adults: 1,
         number_of_children: 0,
         number_of_infants: 0,
-        meal_plan: 'NM',
+        meal_plan: defaultMealPlan,
         status: 'Hold',
         special_requests: ''
       });
@@ -603,7 +609,7 @@ const ReservationCalendar = () => {
         number_of_adults: 1,
         number_of_children: 0,
         number_of_infants: 0,
-        meal_plan: 'NM',
+        meal_plan: defaultMealPlan,
         status: 'Confirmed',
         special_requests: ''
       });
@@ -696,7 +702,7 @@ const ReservationCalendar = () => {
       number_of_adults: 1,
       number_of_children: 0,
       number_of_infants: 0,
-      meal_plan: 'NM',
+      meal_plan: defaultMealPlan,
       status: status,
       special_requests: bookingCount > 1 ? `Multi-room booking (1 of ${bookingCount})` : ''
     });
@@ -770,7 +776,7 @@ const ReservationCalendar = () => {
       number_of_rooms: 1,
       check_in_date: reservation.check_in_date,
       check_out_date: reservation.check_out_date,
-      meal_plan: reservation.meal_plan || 'NM',
+      meal_plan: reservation.meal_plan || defaultMealPlan,
       total_amount: reservation.total_amount,
       advance_payment: reservation.advance_payment,
       payment_status: reservation.payment_status,
@@ -808,7 +814,7 @@ const ReservationCalendar = () => {
       number_of_rooms: group.length,
       check_in_date: primaryReservation.check_in_date,
       check_out_date: primaryReservation.check_out_date,
-      meal_plan: primaryReservation.meal_plan || 'NM',
+      meal_plan: primaryReservation.meal_plan || defaultMealPlan,
       total_amount: totalAmount,
       advance_payment: totalAdvance,
       payment_status: primaryReservation.payment_status,
@@ -1197,7 +1203,7 @@ const ReservationCalendar = () => {
         number_of_adults: 1,
         number_of_children: 0,
         number_of_infants: 0,
-        meal_plan: 'NM',
+        meal_plan: defaultMealPlan,
         status: 'Confirmed',
         special_requests: ''
       });

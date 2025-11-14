@@ -1,5 +1,6 @@
 // src/components/reservations/QuickBookingModal.jsx
 import { Save, X, UserPlus } from 'lucide-react';
+import { useMealPlans } from '../../context/MealPlanContext';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,7 +37,8 @@ export const QuickBookingModal = ({
   onAddGuestClick,
   onAddAgentClick
 }) => {
-  
+  const { getActivePlans } = useMealPlans();
+
   const room = rooms.find(r => r.id === bookingData.room_id);
   const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
   const nights = (bookingData.check_in_date && bookingData.check_out_date)
@@ -246,10 +248,11 @@ export const QuickBookingModal = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NM">No Meal</SelectItem>
-                <SelectItem value="BO">Breakfast Only</SelectItem>
-                <SelectItem value="HB">Half Board</SelectItem>
-                <SelectItem value="FB">Full Board</SelectItem>
+                {getActivePlans().map(plan => (
+                  <SelectItem key={plan.code} value={plan.code}>
+                    {plan.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
