@@ -84,7 +84,6 @@ const handleSelectGuest = (guest) => {
       city: guest.city || '',
       state: guest.state || '',
       country: guest.country || '',
-      pincode: guest.pincode || '',
       photo: null, // Clear any pending photo file
       photoUrl: guest.photo_url || null
     })
@@ -105,7 +104,6 @@ const handleSelectGuest = (guest) => {
       city: '',
       state: '',
       country: '',
-      pincode: '',
       photo: null,
       photoUrl: null
     })
@@ -458,15 +456,7 @@ const handleSelectGuest = (guest) => {
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="pincode" className="text-sm">Pincode</Label>
-                      <Input
-                        id="pincode"
-                        value={guestDetails.pincode}
-                        onChange={(e) => setGuestDetails({ ...guestDetails, pincode: e.target.value })}
-                        placeholder="400001"
-                      />
-                    </div>
+                    
                   </div>
                 </div>
               </div>
