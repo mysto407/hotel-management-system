@@ -76,7 +76,7 @@ export default function NewReservation({ onNavigate }) {
   // State to track quantity for each room type
   const [roomQuantities, setRoomQuantities] = useState({})
   const [sameMealPlanForAll, setSameMealPlanForAll] = useState(true)
-  const [globalMealPlan, setGlobalMealPlan] = useState('EP')
+  const [globalMealPlan, setGlobalMealPlan] = useState('')
   const [dateRangeOpen, setDateRangeOpen] = useState(false)
   const [showAddAgentModal, setShowAddAgentModal] = useState(false)
 
@@ -489,9 +489,10 @@ export default function NewReservation({ onNavigate }) {
                           onValueChange={handleGlobalMealPlanChange}
                         >
                           <SelectTrigger className="h-8 w-[180px]">
-                            <SelectValue />
+                            <SelectValue placeholder="No meal plan" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="">No Meal Plan</SelectItem>
                             {getActivePlans().map(plan => (
                               <SelectItem key={plan.code} value={plan.code}>
                                 {plan.name}
@@ -587,13 +588,14 @@ export default function NewReservation({ onNavigate }) {
                                   <div className="flex items-center gap-2 pl-14">
                                     <Label className="text-xs text-gray-600 w-20">Meal Plan:</Label>
                                     <Select
-                                      value={room.mealPlans?.[index] || 'EP'}
+                                      value={room.mealPlans?.[index] || ''}
                                       onValueChange={(value) => setMealPlan(room.id, index, value)}
                                     >
                                       <SelectTrigger className="h-7 text-xs flex-1">
-                                        <SelectValue />
+                                        <SelectValue placeholder="No meal plan" />
                                       </SelectTrigger>
                                       <SelectContent>
+                                        <SelectItem value="">No Meal Plan</SelectItem>
                                         {getActivePlans().map(plan => (
                                           <SelectItem key={plan.code} value={plan.code}>
                                             {plan.name}

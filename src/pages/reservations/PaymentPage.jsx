@@ -133,8 +133,8 @@ export default function PaymentPage({ onNavigate }) {
             return null
           }
 
-          // Get meal plan for this room (default to EP if not set)
-          const mealPlan = roomType.mealPlans?.[index] || 'EP'
+          // Get meal plan for this room (default to empty string if not set)
+          const mealPlan = roomType.mealPlans?.[index] || ''
 
           // Get guest counts for this room (default to 1 adult if not set)
           const guestCount = roomType.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
@@ -151,7 +151,7 @@ export default function PaymentPage({ onNavigate }) {
             number_of_children: guestCount.children || 0,
             number_of_infants: guestCount.infants || 0,
             status: 'Confirmed',
-            meal_plan: mealPlan,
+            meal_plan: mealPlan || null,
             special_requests: '',
             total_amount: roomTotal
           })
@@ -320,9 +320,9 @@ export default function PaymentPage({ onNavigate }) {
                       {selectedRooms.flatMap(room =>
                         Array.from({ length: room.quantity }, (_, index) => {
                           const guestCount = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
-                          const mealPlanCode = room.mealPlans?.[index] || 'EP'
-                          const mealPlanName = getMealPlanName(mealPlanCode)
-                          const mealPlanPrice = getMealPlanPrice(mealPlanCode)
+                          const mealPlanCode = room.mealPlans?.[index] || ''
+                          const mealPlanName = mealPlanCode ? getMealPlanName(mealPlanCode) : 'No Meal Plan'
+                          const mealPlanPrice = mealPlanCode ? getMealPlanPrice(mealPlanCode) : 0
                           const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
                           const mealPlanCost = mealPlanPrice * totalGuests * bill.nights
 
@@ -469,9 +469,9 @@ export default function PaymentPage({ onNavigate }) {
                       <div className="space-y-3">
                         {selectedRooms.flatMap(room =>
                           Array.from({ length: room.quantity }, (_, index) => {
-                            const mealPlanCode = room.mealPlans?.[index] || 'EP'
-                            const mealPlanName = getMealPlanName(mealPlanCode)
-                            const pricePerPerson = getMealPlanPrice(mealPlanCode)
+                            const mealPlanCode = room.mealPlans?.[index] || ''
+                            const mealPlanName = mealPlanCode ? getMealPlanName(mealPlanCode) : 'No Meal Plan'
+                            const pricePerPerson = mealPlanCode ? getMealPlanPrice(mealPlanCode) : 0
                             const guestCount = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
                             const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
 
@@ -528,8 +528,8 @@ export default function PaymentPage({ onNavigate }) {
                           <span>₹{selectedRooms.reduce((sum, room) => {
                             let roomMealPlanTotal = 0
                             for (let i = 0; i < room.quantity; i++) {
-                              const mealPlanCode = room.mealPlans?.[i] || 'EP'
-                              const pricePerPerson = getMealPlanPrice(mealPlanCode)
+                              const mealPlanCode = room.mealPlans?.[i] || ''
+                              const pricePerPerson = mealPlanCode ? getMealPlanPrice(mealPlanCode) : 0
                               const guestCount = room.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
                               const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
                               const mealPlanSubtotal = pricePerPerson * totalGuests * bill.nights
