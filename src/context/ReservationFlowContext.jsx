@@ -70,6 +70,10 @@ export function ReservationFlowProvider({ children }) {
     setSelectedRooms(prev => prev.filter(r => r.id !== roomId))
   }, [])
 
+  const clearSelectedRooms = useCallback(() => {
+    setSelectedRooms([])
+  }, [])
+
   const updateRoomQuantity = useCallback((roomId, quantity) => {
     if (quantity <= 0) {
       removeRoom(roomId)
@@ -309,6 +313,7 @@ export function ReservationFlowProvider({ children }) {
     // Room handlers
     addRoom,
     removeRoom,
+    clearSelectedRooms,
     updateRoomQuantity,
     assignRoom,
     unassignRoom,

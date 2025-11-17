@@ -52,6 +52,7 @@ export default function NewReservation({ onNavigate }) {
     selectedRooms,
     addRoom,
     removeRoom,
+    clearSelectedRooms,
     updateRoomQuantity,
     assignRoom,
     unassignRoom,
@@ -100,12 +101,14 @@ export default function NewReservation({ onNavigate }) {
         }
         setLoadingRooms(false)
       } else {
+        // Clear available rooms and selected rooms when dates are cleared
         setAvailableRooms([])
+        clearSelectedRooms()
       }
     }
 
     fetchAvailableRooms()
-  }, [filters.checkIn, filters.checkOut, showError])
+  }, [filters.checkIn, filters.checkOut, showError, clearSelectedRooms])
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
