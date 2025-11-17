@@ -195,7 +195,7 @@ const RateTypesManager = ({ roomType }) => {
                     <TableCell className="py-2">{rateType.min_nights}</TableCell>
                     <TableCell className="py-2">
                       {rateType.is_active ? (
-                        <Badge variant="success" className="text-xs bg-green-100 text-green-800">Active</Badge>
+                        <Badge variant="success" className="text-xs bg-emerald-100 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300">Active</Badge>
                       ) : (
                         <Badge variant="secondary" className="text-xs">Inactive</Badge>
                       )}
@@ -210,7 +210,7 @@ const RateTypesManager = ({ roomType }) => {
                             onClick={() => handleSetDefault(rateType.id)}
                             title="Set as default"
                           >
-                            <Star size={14} className="text-yellow-600" />
+                            <Star size={14} className="text-yellow-600 dark:text-yellow-500" />
                           </Button>
                         )}
                         <Button
@@ -219,7 +219,7 @@ const RateTypesManager = ({ roomType }) => {
                           className="h-7 w-7 p-0"
                           onClick={() => handleEdit(rateType)}
                         >
-                          <Edit2 size={14} className="text-blue-600" />
+                          <Edit2 size={14} className="text-blue-600 dark:text-blue-400" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -229,7 +229,7 @@ const RateTypesManager = ({ roomType }) => {
                           disabled={rateType.is_default}
                           title={rateType.is_default ? "Cannot delete default rate type" : "Delete rate type"}
                         >
-                          <Trash2 size={14} className={rateType.is_default ? "text-gray-400" : "text-red-600"} />
+                          <Trash2 size={14} className={rateType.is_default ? "text-muted-foreground" : "text-red-600 dark:text-red-400"} />
                         </Button>
                       </div>
                     </TableCell>
