@@ -196,7 +196,7 @@ export default function PaymentPage({ onNavigate }) {
       if (failedReservations.length > 0) {
         throw new Error(`Failed to create ${failedReservations.length} reservation(s). Please check the details and try again.`)
       }
-      
+
       // Update the guest's stats (total spent, total bookings, etc.)
       await updateGuestStats(guestId, bill.total)
 
@@ -212,9 +212,15 @@ export default function PaymentPage({ onNavigate }) {
 
       showSuccess('Reservation created successfully!')
 
-      // Reset the flow and navigate back
+      // Extract reservation IDs from successful results
+      const createdReservationIds = reservationResults.filter(r => r && r.id).map(r => r.id)
+
+      // Store reservation IDs in sessionStorage for the details page
+      sessionStorage.setItem('reservationDetailsIds', JSON.stringify(createdReservationIds))
+
+      // Reset the flow and navigate to reservation details
       resetFlow()
-      onNavigate('reservations')
+      onNavigate('reservation-details')
     } catch (error) {
       console.error('Error creating reservation:', error)
       showError('Failed to create reservation: ' + error.message)

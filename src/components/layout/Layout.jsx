@@ -6,6 +6,7 @@ import RoomTypes from '../../pages/rooms/RoomTypes';
 import Rooms from '../../pages/rooms/Rooms';
 import Reservations from '../../pages/reservations/Reservations';
 import ReservationCalendar from '../../pages/reservations/ReservationCalendar';
+import ReservationDetails from '../../pages/reservations/ReservationDetails';
 import NewReservation from '../../pages/reservations/NewReservation';
 import GuestDetailsPage from '../../pages/reservations/GuestDetailsPage';
 import PaymentPage from '../../pages/reservations/PaymentPage';
@@ -27,6 +28,7 @@ export const Layout = () => {
     rooms: <Rooms />,
     reservations: <Reservations onNavigate={setCurrentPage} />,
     'reservation-calendar': <ReservationCalendar />,
+    'reservation-details': <ReservationDetails onNavigate={setCurrentPage} />,
     'new-reservation': <NewReservation onNavigate={setCurrentPage} />,
     'guest-details': <GuestDetailsPage onNavigate={setCurrentPage} />,
     'payment': <PaymentPage onNavigate={setCurrentPage} />,
@@ -46,7 +48,7 @@ export const Layout = () => {
         currentPage={currentPage}
         onNavigate={setCurrentPage}
       />
-      <main className={`flex-1 ${['reservation-calendar', 'new-reservation', 'guest-details', 'payment'].includes(currentPage) ? '' : 'p-4 md:p-6'}`}>
+      <main className={`flex-1 ${['reservation-calendar', 'reservation-details', 'new-reservation', 'guest-details', 'payment'].includes(currentPage) ? '' : 'p-4 md:p-6'}`}>
         {pages[currentPage]}
       </main>
     </div>
