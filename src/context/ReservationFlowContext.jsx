@@ -57,17 +57,33 @@ export function ReservationFlowProvider({ children }) {
   })
 
   // Room selection handlers
-  const addRoom = useCallback((room, quantity = 1) => {
+  const addRoom = useCallback((room, quantity = 1, rateTypeId = null) => {
     setSelectedRooms(prev => {
       const existing = prev.find(r => r.id === room.id)
       if (existing) {
         return prev.map(r =>
           r.id === room.id
-            ? { ...r, quantity: r.quantity + quantity, assignedRooms: r.assignedRooms || [], mealPlans: r.mealPlans || [], guestCounts: r.guestCounts || [] }
+            ? {
+                ...r,
+                quantity: r.quantity + quantity,
+                assignedRooms: r.assignedRooms || [],
+                mealPlans: r.mealPlans || [],
+                guestCounts: r.guestCounts || [],
+                rateTypeId: rateTypeId || r.rateTypeId || null,
+                ratePrice: room.ratePrice || r.ratePrice || room.base_price
+              }
             : r
         )
       }
-      return [...prev, { ...room, quantity, assignedRooms: [], mealPlans: [], guestCounts: [] }]
+      return [...prev, {
+        ...room,
+        quantity,
+        assignedRooms: [],
+        mealPlans: [],
+        guestCounts: [],
+        rateTypeId: rateTypeId || null,
+        ratePrice: room.ratePrice || room.base_price
+      }]
     })
   }, [])
 
