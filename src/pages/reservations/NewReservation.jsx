@@ -475,7 +475,102 @@ export default function NewReservation({ onNavigate }) {
         <div className="p-6 space-y-6">
           {/* Room Selection Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Side: Selected Rooms */}
+            {/* Left Side: Available Rooms Table */}
+            <div className="lg:col-span-2">
+              {!hasFiltersApplied ? (
+                <div className="bg-white rounded-lg shadow p-8">
+                  <div className="text-center text-gray-500">
+                    <Search className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p className="text-lg font-medium">Apply Filters to View Available Rooms</p>
+                    <p className="text-sm mt-2">Please select check-in and check-out dates to see available room types.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="text-left p-3 text-sm font-semibold">Type</th>
+                          <th className="text-center p-3 text-sm font-semibold">Capacity</th>
+                          <th className="text-right p-3 text-sm font-semibold">Starting From</th>
+                          <th className="text-center p-3 text-sm font-semibold">Available</th>
+                          <th className="text-center p-3 text-sm font-semibold">Quantity</th>
+                          <th className="text-center p-3 text-sm font-semibold">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {availableRoomTypes.length === 0 ? (
+                          <tr>
+                            <td colSpan="6" className="text-center p-8 text-gray-500">
+                              No rooms available matching your criteria
+                            </td>
+                          </tr>
+                        ) : (
+                        availableRoomTypes.map(roomType => {
+                          const isSelected = selectedRooms.some(sr => sr.id === roomType.id)
+                          const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
+
+                          return (
+                            <tr key={roomType.id} className="border-b hover:bg-gray-50">
+                              <td className="p-3">
+                                <div>
+                                  <div className="font-medium">{roomType.name}</div>
+                                  {roomType.description && (
+                                    <div className="text-sm text-gray-500">{roomType.description}</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="text-gray-600">
+                                  {roomType.capacity} {roomType.capacity === 1 ? 'person' : 'people'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right font-semibold">
+                                ₹{roomType.base_price}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`
+                                  px-2 py-1 rounded text-sm font-medium
+                                  ${roomType.availableCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
+                                `}>
+                                  {roomType.availableCount}
+                                  {isSelected && ` (${selectedQty} selected)`}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max={roomType.availableCount}
+                                  value={getRoomQuantity(roomType.id)}
+                                  onChange={(e) => updateRoomTypeQuantity(roomType.id, e.target.value)}
+                                  className="w-16 text-center"
+                                  placeholder="1"
+                                />
+                              </td>
+                              <td className="p-3 text-center">
+                                <Button
+                                  onClick={() => handleAddRoom(roomType, getRoomQuantity(roomType.id))}
+                                  disabled={roomType.availableCount === 0}
+                                  size="sm"
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Side: Selected Rooms Cart */}
             <div className="space-y-6">
               <div className="bg-white rounded-lg shadow p-4">
                 {/* Header with Auto Assign All and Meal Plan */}
@@ -696,101 +791,6 @@ export default function NewReservation({ onNavigate }) {
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Right Side: Available Rooms Table */}
-            <div className="lg:col-span-2">
-              {!hasFiltersApplied ? (
-                <div className="bg-white rounded-lg shadow p-8">
-                  <div className="text-center text-gray-500">
-                    <Search className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                    <p className="text-lg font-medium">Apply Filters to View Available Rooms</p>
-                    <p className="text-sm mt-2">Please select check-in and check-out dates to see available room types.</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
-                        <tr>
-                          <th className="text-left p-3 text-sm font-semibold">Type</th>
-                          <th className="text-center p-3 text-sm font-semibold">Capacity</th>
-                          <th className="text-right p-3 text-sm font-semibold">Starting From</th>
-                          <th className="text-center p-3 text-sm font-semibold">Available</th>
-                          <th className="text-center p-3 text-sm font-semibold">Quantity</th>
-                          <th className="text-center p-3 text-sm font-semibold">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {availableRoomTypes.length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="text-center p-8 text-gray-500">
-                              No rooms available matching your criteria
-                            </td>
-                          </tr>
-                        ) : (
-                        availableRoomTypes.map(roomType => {
-                          const isSelected = selectedRooms.some(sr => sr.id === roomType.id)
-                          const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
-
-                          return (
-                            <tr key={roomType.id} className="border-b hover:bg-gray-50">
-                              <td className="p-3">
-                                <div>
-                                  <div className="font-medium">{roomType.name}</div>
-                                  {roomType.description && (
-                                    <div className="text-sm text-gray-500">{roomType.description}</div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className="text-gray-600">
-                                  {roomType.capacity} {roomType.capacity === 1 ? 'person' : 'people'}
-                                </span>
-                              </td>
-                              <td className="p-3 text-right font-semibold">
-                                ₹{roomType.base_price}
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className={`
-                                  px-2 py-1 rounded text-sm font-medium
-                                  ${roomType.availableCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
-                                `}>
-                                  {roomType.availableCount}
-                                  {isSelected && ` (${selectedQty} selected)`}
-                                </span>
-                              </td>
-                              <td className="p-3 text-center">
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max={roomType.availableCount}
-                                  value={getRoomQuantity(roomType.id)}
-                                  onChange={(e) => updateRoomTypeQuantity(roomType.id, e.target.value)}
-                                  className="w-16 text-center"
-                                  placeholder="1"
-                                />
-                              </td>
-                              <td className="p-3 text-center">
-                                <Button
-                                  onClick={() => handleAddRoom(roomType, getRoomQuantity(roomType.id))}
-                                  disabled={roomType.availableCount === 0}
-                                  size="sm"
-                                >
-                                  <Plus className="h-4 w-4 mr-1" />
-                                  Add
-                                </Button>
-                              </td>
-                            </tr>
-                          )
-                        })
-                      )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
