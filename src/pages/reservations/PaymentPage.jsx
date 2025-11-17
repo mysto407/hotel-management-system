@@ -640,11 +640,11 @@ export default function PaymentPage({ onNavigate }) {
                             </div>
                             {appliedPromoCode.discount_type === 'percentage' ? (
                               <div className="text-xs text-green-600 mt-0.5">
-                                {appliedPromoCode.discount_value}% off
+                                {appliedPromoCode.value}% off
                               </div>
                             ) : (
                               <div className="text-xs text-green-600 mt-0.5">
-                                ₹{appliedPromoCode.discount_value} off
+                                ₹{appliedPromoCode.value} off
                               </div>
                             )}
                           </div>
