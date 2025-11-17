@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Search, Plus, Trash2, ChevronRight, Shuffle, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
@@ -6,6 +6,7 @@ import { useRooms } from '../../context/RoomContext'
 import { useMealPlans } from '../../context/MealPlanContext'
 import { useAgents } from '../../context/AgentContext'
 import { useAlert } from '@/context/AlertContext'
+import { getAvailableRooms } from '../../lib/supabase'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { AddAgentModal } from '../../components/agents/AddAgentModal'
 import { Button } from '../../components/ui/button'
@@ -39,7 +40,7 @@ const ADDON_TYPES = [
 ]
 
 export default function NewReservation({ onNavigate }) {
-  const { roomTypes, rooms } = useRooms()
+  const { roomTypes } = useRooms()
   const { getActivePlans } = useMealPlans()
   const { agents } = useAgents()
   const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
@@ -65,6 +66,10 @@ export default function NewReservation({ onNavigate }) {
     calculateBill
   } = useReservationFlow()
 
+  // State for available rooms based on date range
+  const [availableRooms, setAvailableRooms] = useState([])
+  const [loadingRooms, setLoadingRooms] = useState(false)
+
   const [addonForm, setAddonForm] = useState({
     roomId: '',
     addonType: 'breakfast',
@@ -79,6 +84,28 @@ export default function NewReservation({ onNavigate }) {
   const [globalMealPlan, setGlobalMealPlan] = useState('none')
   const [dateRangeOpen, setDateRangeOpen] = useState(false)
   const [showAddAgentModal, setShowAddAgentModal] = useState(false)
+
+  // Fetch available rooms when dates change
+  useEffect(() => {
+    const fetchAvailableRooms = async () => {
+      if (filters.checkIn && filters.checkOut) {
+        setLoadingRooms(true)
+        const { data, error } = await getAvailableRooms(filters.checkIn, filters.checkOut)
+        if (error) {
+          console.error('Error fetching available rooms:', error)
+          showError('Failed to load available rooms')
+          setAvailableRooms([])
+        } else {
+          setAvailableRooms(data || [])
+        }
+        setLoadingRooms(false)
+      } else {
+        setAvailableRooms([])
+      }
+    }
+
+    fetchAvailableRooms()
+  }, [filters.checkIn, filters.checkOut, showError])
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
@@ -100,20 +127,20 @@ export default function NewReservation({ onNavigate }) {
 
   // Get available rooms for a specific room type (excluding already assigned rooms)
   const getAvailableRoomsForType = (roomTypeId) => {
-    // Get all rooms of this type that are available
-    const typeRooms = rooms.filter(r => r.room_type_id === roomTypeId && r.status === 'Available')
+    // Get all rooms of this type that are available for the selected date range
+    const typeRooms = availableRooms.filter(r => r.room_type_id === roomTypeId)
 
     // Get already assigned room IDs across all selected rooms
     const assignedRoomIds = selectedRooms.flatMap(sr => sr.assignedRooms || []).filter(Boolean)
 
-    // Return rooms that haven't been assigned yet
+    // Return rooms that haven't been assigned yet in this booking
     return typeRooms.filter(r => !assignedRoomIds.includes(r.id))
   }
 
   const handleAutoAssignAll = () => {
     selectedRooms.forEach(roomType => {
-      const availableRooms = getAvailableRoomsForType(roomType.id)
-      const availableRoomIds = availableRooms.map(r => r.id)
+      const typeAvailableRooms = getAvailableRoomsForType(roomType.id)
+      const availableRoomIds = typeAvailableRooms.map(r => r.id)
       autoAssignRooms(roomType.id, availableRoomIds)
     })
   }
@@ -131,8 +158,8 @@ export default function NewReservation({ onNavigate }) {
     }
 
     return roomTypes.map(roomType => {
-      // Get all rooms of this type
-      const typeRooms = rooms.filter(r => r.room_type_id === roomType.id && r.status === 'Available')
+      // Get all rooms of this type that are available for the selected date range
+      const typeRooms = availableRooms.filter(r => r.room_type_id === roomType.id)
 
       // Calculate how many are already selected
       const selected = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
@@ -150,7 +177,7 @@ export default function NewReservation({ onNavigate }) {
       }
       return true
     })
-  }, [roomTypes, rooms, selectedRooms, filters.searchQuery, hasFiltersApplied])
+  }, [roomTypes, availableRooms, selectedRooms, filters.searchQuery, hasFiltersApplied])
 
   const handleAddRoom = (roomType, quantity = 1) => {
     if (roomType.availableCount > 0) {
@@ -159,8 +186,8 @@ export default function NewReservation({ onNavigate }) {
   }
 
   const handleAutoAssign = (roomTypeId) => {
-    const availableRooms = getAvailableRoomsForType(roomTypeId)
-    const availableRoomIds = availableRooms.map(r => r.id)
+    const typeAvailableRooms = getAvailableRoomsForType(roomTypeId)
+    const availableRoomIds = typeAvailableRooms.map(r => r.id)
     autoAssignRooms(roomTypeId, availableRoomIds)
   }
 
@@ -510,7 +537,7 @@ export default function NewReservation({ onNavigate }) {
                 ) : (
                   <div className="space-y-4">
                     {selectedRooms.map(room => {
-                      const availableRooms = getAvailableRoomsForType(room.id)
+                      const typeAvailableRooms = getAvailableRoomsForType(room.id)
                       return (
                         <div key={room.id} className="border rounded-lg p-3 space-y-3">
                           <div className="flex items-start justify-between">
@@ -562,7 +589,7 @@ export default function NewReservation({ onNavigate }) {
                                       <SelectItem value="unassign">
                                         <span className="text-gray-500">Not assigned</span>
                                       </SelectItem>
-                                      {availableRooms.map(r => (
+                                      {typeAvailableRooms.map(r => (
                                         <SelectItem
                                           key={r.id}
                                           value={r.id}
@@ -576,7 +603,7 @@ export default function NewReservation({ onNavigate }) {
                                       ))}
                                       {room.assignedRooms?.[index] && (
                                         <SelectItem value={room.assignedRooms[index]}>
-                                          Room {rooms.find(r => r.id === room.assignedRooms[index])?.room_number}
+                                          Room {availableRooms.find(r => r.id === room.assignedRooms[index])?.room_number}
                                         </SelectItem>
                                       )}
                                     </SelectContent>

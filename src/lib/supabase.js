@@ -238,6 +238,44 @@ export const getReservations = async() => {
     return { data, error }
 }
 
+// Get available rooms for a specific date range
+export const getAvailableRooms = async(checkInDate, checkOutDate) => {
+    // First, get all rooms with their types
+    const { data: allRooms, error: roomsError } = await supabase
+        .from('rooms')
+        .select(`
+            *,
+            room_types (*)
+        `)
+        .order('room_number')
+
+    if (roomsError) return { data: null, error: roomsError }
+
+    // Get all reservations that overlap with the requested date range
+    // A reservation overlaps if:
+    // - Its check-in is before our check-out AND
+    // - Its check-out is after our check-in
+    // AND the reservation is not cancelled or checked-out
+    const { data: overlappingReservations, error: reservationsError } = await supabase
+        .from('reservations')
+        .select('room_id')
+        .lt('check_in_date', checkOutDate)
+        .gt('check_out_date', checkInDate)
+        .not('status', 'in', '("Cancelled","Checked-out")')
+
+    if (reservationsError) return { data: null, error: reservationsError }
+
+    // Extract room IDs that are already booked
+    const bookedRoomIds = overlappingReservations.map(r => r.room_id)
+
+    // Filter out booked rooms and rooms not in 'Available' status
+    const availableRooms = allRooms.filter(room =>
+        room.status === 'Available' && !bookedRoomIds.includes(room.id)
+    )
+
+    return { data: availableRooms, error: null }
+}
+
 export const createReservation = async(reservation) => {
     const { data, error } = await supabase
         .from('reservations')
