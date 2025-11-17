@@ -15,13 +15,13 @@ export default function StepIndicator({ currentStep }) {
           <div className="flex items-center gap-2">
             <div
               className={`
-                w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
                 ${
                   currentStep > step.number
-                    ? 'bg-green-500 text-white'
+                    ? 'bg-emerald-500 dark:bg-emerald-600 text-white'
                     : currentStep === step.number
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-500'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
                 }
               `}
             >
@@ -32,8 +32,8 @@ export default function StepIndicator({ currentStep }) {
               )}
             </div>
             <span
-              className={`text-sm font-medium ${
-                currentStep >= step.number ? 'text-gray-900' : 'text-gray-400'
+              className={`text-sm font-medium transition-colors ${
+                currentStep >= step.number ? 'text-foreground' : 'text-muted-foreground'
               }`}
             >
               {step.label}
@@ -43,7 +43,7 @@ export default function StepIndicator({ currentStep }) {
           {/* Arrow */}
           {index < STEPS.length - 1 && (
             <svg
-              className="w-4 h-4 mx-3 text-gray-300"
+              className="w-4 h-4 mx-3 text-muted-foreground/40"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

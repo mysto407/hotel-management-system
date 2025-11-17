@@ -62,11 +62,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-900 dark:to-purple-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="flex justify-center items-center gap-3 mb-4">
-            <Hotel className="h-12 w-12 text-blue-600" />
+            <Hotel className="h-12 w-12 text-primary" />
             <CardTitle className="text-3xl font-bold">Hotel Manager</CardTitle>
           </div>
         </CardHeader>
@@ -112,7 +112,7 @@ const Login = () => {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 bg-gray-50 p-6 rounded-b-lg">
+        <CardFooter className="flex flex-col gap-4 bg-muted/30 p-6 rounded-b-lg">
            <div>
             <p className="text-sm font-semibold text-center">Demo Accounts:</p>
             <p className="text-xs text-muted-foreground text-center">
