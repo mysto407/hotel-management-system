@@ -1,5 +1,5 @@
 // src/components/layout/Layout.jsx
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Header } from './Header';
 import Dashboard from '../../pages/dashboard/Dashboard';
 import RoomTypes from '../../pages/rooms/RoomTypes';
@@ -19,19 +19,87 @@ import Agents from '../../pages/agents/Agents';
 import Expenses from '../../pages/expenses/Expenses';
 import SettingsPage from '../../pages/settings/Settings';
 
+// Helper function to get page from URL hash
+const getPageFromHash = () => {
+  const hash = window.location.hash.slice(1); // Remove the '#'
+  return hash || 'dashboard';
+};
+
+// Helper function to save scroll position
+const saveScrollPosition = (page) => {
+  const scrollPos = {
+    x: window.scrollX,
+    y: window.scrollY
+  };
+  sessionStorage.setItem(`scroll_${page}`, JSON.stringify(scrollPos));
+};
+
+// Helper function to restore scroll position
+const restoreScrollPosition = (page) => {
+  const saved = sessionStorage.getItem(`scroll_${page}`);
+  if (saved) {
+    try {
+      const { x, y } = JSON.parse(saved);
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        window.scrollTo(x, y);
+      });
+    } catch (e) {
+      console.error('Error restoring scroll position:', e);
+    }
+  } else {
+    // Scroll to top if no saved position
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+  }
+};
+
 export const Layout = () => {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState(getPageFromHash());
+  const previousPageRef = useRef(currentPage);
+
+  // Custom navigation handler that updates hash and saves scroll position
+  const handleNavigate = (page) => {
+    // Save scroll position of current page before navigating
+    saveScrollPosition(previousPageRef.current);
+
+    // Update hash (this will trigger the hashchange event)
+    window.location.hash = page;
+
+    // Update state
+    setCurrentPage(page);
+    previousPageRef.current = page;
+  };
+
+  // Listen for hash changes (browser back/forward buttons)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const newPage = getPageFromHash();
+      saveScrollPosition(previousPageRef.current);
+      setCurrentPage(newPage);
+      previousPageRef.current = newPage;
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Restore scroll position when page changes
+  useEffect(() => {
+    restoreScrollPosition(currentPage);
+  }, [currentPage]);
 
   const pages = {
     dashboard: <Dashboard />,
     'room-types': <RoomTypes />,
     rooms: <Rooms />,
-    reservations: <Reservations onNavigate={setCurrentPage} />,
+    reservations: <Reservations onNavigate={handleNavigate} />,
     'reservation-calendar': <ReservationCalendar />,
-    'reservation-details': <ReservationDetails onNavigate={setCurrentPage} />,
-    'new-reservation': <NewReservation onNavigate={setCurrentPage} />,
-    'guest-details': <GuestDetailsPage onNavigate={setCurrentPage} />,
-    'payment': <PaymentPage onNavigate={setCurrentPage} />,
+    'reservation-details': <ReservationDetails onNavigate={handleNavigate} />,
+    'new-reservation': <NewReservation onNavigate={handleNavigate} />,
+    'guest-details': <GuestDetailsPage onNavigate={handleNavigate} />,
+    'payment': <PaymentPage onNavigate={handleNavigate} />,
     billing: <Billing />,
     discounts: <Discounts />,
     reports: <Reports />,
@@ -46,7 +114,7 @@ export const Layout = () => {
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <Header
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
+        onNavigate={handleNavigate}
       />
       <main className={`flex-1 ${['reservation-calendar', 'reservation-details', 'new-reservation', 'guest-details', 'payment'].includes(currentPage) ? '' : 'p-4 md:p-6'}`}>
         {pages[currentPage]}
