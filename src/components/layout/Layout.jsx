@@ -40,9 +40,24 @@ const restoreScrollPosition = (page) => {
   if (saved) {
     try {
       const { x, y } = JSON.parse(saved);
-      // Use requestAnimationFrame to ensure DOM is ready
+      // Use setTimeout with a delay to ensure async content is loaded
+      // Try multiple times to handle dynamic content loading
+      const attemptScroll = (attempt = 0) => {
+        if (attempt > 10) return; // Max 10 attempts (500ms total)
+
+        setTimeout(() => {
+          window.scrollTo(x, y);
+
+          // Check if we've reached the desired position
+          // If not, try again (content might still be loading)
+          if (Math.abs(window.scrollY - y) > 10 && attempt < 10) {
+            attemptScroll(attempt + 1);
+          }
+        }, attempt === 0 ? 0 : 50);
+      };
+
       requestAnimationFrame(() => {
-        window.scrollTo(x, y);
+        attemptScroll();
       });
     } catch (e) {
       console.error('Error restoring scroll position:', e);
