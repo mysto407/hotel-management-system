@@ -114,6 +114,16 @@ export function ReservationFlowProvider({ children }) {
     )
   }, [removeRoom])
 
+  const updateRoomRate = useCallback((roomId, rateTypeId, ratePrice) => {
+    setSelectedRooms(prev =>
+      prev.map(r =>
+        r.id === roomId
+          ? { ...r, rateTypeId, ratePrice }
+          : r
+      )
+    )
+  }, [])
+
   // Room assignment handlers
   const assignRoom = useCallback((roomTypeId, roomId, index) => {
     setSelectedRooms(prev =>
@@ -267,9 +277,9 @@ export function ReservationFlowProvider({ children }) {
 
     const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
 
-    // Calculate room charges
+    // Calculate room charges using selected rate price
     const roomSubtotal = selectedRooms.reduce((sum, room) => {
-      const roomTotal = (room.base_price || 0) * nights * room.quantity
+      const roomTotal = (room.ratePrice || room.base_price || 0) * nights * room.quantity
       return sum + roomTotal
     }, 0)
 
@@ -410,6 +420,7 @@ export function ReservationFlowProvider({ children }) {
     removeRoom,
     clearSelectedRooms,
     updateRoomQuantity,
+    updateRoomRate,
     assignRoom,
     unassignRoom,
     autoAssignRooms,
