@@ -168,8 +168,8 @@ const Guests = () => {
 
   const getGuestTypeIcon = (type) => {
     switch(type) {
-      case 'VIP': return <Star size={16} className="text-yellow-500" />;
-      case 'Corporate': return <Briefcase size={16} className="text-blue-600" />;
+      case 'VIP': return <Star size={16} className="text-yellow-500 dark:text-yellow-400" />;
+      case 'Corporate': return <Briefcase size={16} className="text-blue-600 dark:text-blue-400" />;
       default: return null;
     }
   };
@@ -205,7 +205,7 @@ const Guests = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">VIP Guests</CardTitle>
-            <Star className="h-4 w-4 text-yellow-500" />
+            <Star className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{getGuestsByType('VIP').length}</div>
@@ -214,7 +214,7 @@ const Guests = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Corporate Guests</CardTitle>
-            <Briefcase className="h-4 w-4 text-blue-600" />
+            <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{getGuestsByType('Corporate').length}</div>
@@ -223,7 +223,7 @@ const Guests = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Returning Guests</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{returningGuests.length}</div>
@@ -247,7 +247,7 @@ const Guests = () => {
           />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-full md:w-[180px] bg-white">
+          <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="All Guests" />
           </SelectTrigger>
           <SelectContent>
@@ -297,7 +297,7 @@ const Guests = () => {
                   <TableCell className="font-medium">{guest.total_bookings || 0}</TableCell>
                   <TableCell>₹{(guest.total_spent || 0).toLocaleString()}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 font-medium text-amber-600">
+                    <div className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
                       <Award size={16} />
                       {guest.loyalty_points || 0}
                     </div>
@@ -306,13 +306,13 @@ const Guests = () => {
                   <TableCell>
                     <div className="flex gap-1">
                       <Button onClick={() => viewDetails(guest)} variant="ghost" size="icon" title="View Details">
-                        <Eye size={16} className="text-blue-600" />
+                        <Eye size={16} className="text-blue-600 dark:text-blue-400" />
                       </Button>
                       <Button onClick={() => handleEdit(guest)} variant="ghost" size="icon" title="Edit">
-                        <Edit2 size={16} className="text-blue-600" />
+                        <Edit2 size={16} className="text-blue-600 dark:text-blue-400" />
                       </Button>
                       <Button onClick={() => handleDelete(guest.id)} variant="ghost" size="icon" title="Delete">
-                        <Trash2 size={16} className="text-red-600" />
+                        <Trash2 size={16} className="text-red-600 dark:text-red-400" />
                       </Button>
                     </div>
                   </TableCell>
@@ -330,15 +330,15 @@ const Guests = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {topGuests.map((guest, index) => (
-            <div key={guest.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-md">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+            <div key={guest.id} className="flex items-center gap-4 p-3 bg-accent rounded-md">
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
                 #{index + 1}
               </div>
               <div className="flex-1">
                 <div className="font-semibold">{guest.name}</div>
                 <div className="text-sm text-muted-foreground">{guest.total_bookings || 0} bookings</div>
               </div>
-              <div className="text-lg font-bold text-emerald-600">
+              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                 ₹{(guest.total_spent || 0).toLocaleString()}
               </div>
             </div>
@@ -510,7 +510,7 @@ const Guests = () => {
           </DialogHeader>
           {selectedGuest && (
             <div className="space-y-4 py-4">
-              <div className="flex justify-between items-start p-4 bg-gray-50 rounded-lg">
+              <div className="flex justify-between items-start p-4 bg-accent rounded-lg">
                 <div>
                   <h2 className="text-xl font-bold">{selectedGuest.name}</h2>
                   <Badge variant={getGuestTypeVariant(selectedGuest.guest_type)}>

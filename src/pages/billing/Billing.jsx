@@ -265,7 +265,7 @@ const Billing = () => {
         <div className="flex items-center gap-2">
           <Filter size={18} className="text-muted-foreground" />
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[180px] bg-white">
+            <SelectTrigger className="w-[180px] bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -320,20 +320,20 @@ const Billing = () => {
                           onClick={() => handlePayment(bill)}
                           variant="ghost" size="icon" title="Record Payment"
                         >
-                          <DollarSign size={16} className="text-green-600" />
+                          <DollarSign size={16} className="text-emerald-600 dark:text-emerald-400" />
                         </Button>
                       )}
                       <Button
                         onClick={() => printBill(bill)}
                         variant="ghost" size="icon" title="Print"
                       >
-                        <Printer size={16} className="text-gray-600" />
+                        <Printer size={16} className="text-muted-foreground" />
                       </Button>
                       <Button onClick={() => handleEdit(bill)} variant="ghost" size="icon" title="Edit">
-                        <Edit2 size={16} className="text-blue-600" />
+                        <Edit2 size={16} className="text-primary" />
                       </Button>
                       <Button onClick={() => handleDelete(bill.id)} variant="ghost" size="icon" title="Delete">
-                        <Trash2 size={16} className="text-red-600" />
+                        <Trash2 size={16} className="text-destructive" />
                       </Button>
                     </div>
                   </TableCell>
@@ -360,7 +360,7 @@ const Billing = () => {
                 <CardContent className="space-y-2">
                   <p className="text-3xl font-bold">₹{masterBill.grandTotal.toFixed(2)}</p>
                   <p className="text-sm font-medium">
-                    Balance: <span className="text-red-600 font-bold">₹{masterBill.balance.toFixed(2)}</span>
+                    Balance: <span className="text-destructive font-bold">₹{masterBill.balance.toFixed(2)}</span>
                   </p>
                   <Button
                     onClick={() => viewMasterBill(reservation.id)}
@@ -457,14 +457,14 @@ const Billing = () => {
                       placeholder="Amount"
                       value={item.amount.toFixed(2)}
                       readOnly
-                      className="w-28 bg-gray-100"
+                      className="w-28 bg-muted/30"
                     />
                     {formData.items.length > 1 && (
                       <Button
                         onClick={() => removeItem(index)}
                         variant="ghost" size="icon"
                       >
-                        <Trash2 size={16} className="text-red-600" />
+                        <Trash2 size={16} className="text-destructive" />
                       </Button>
                     )}
                   </div>
@@ -472,7 +472,7 @@ const Billing = () => {
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-2">
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Subtotal:</span>
                 <span>₹{formData.subtotal.toFixed(2)}</span>
@@ -576,7 +576,7 @@ const Billing = () => {
           </DialogHeader>
           {selectedReservation && (
             <div className="py-4">
-              <div className="text-center mb-4 p-4 bg-gray-50 rounded-lg">
+              <div className="text-center mb-4 p-4 bg-muted/30 rounded-lg">
                 <h2 className="text-xl font-bold">{selectedReservation.guestName}</h2>
                 <p className="text-muted-foreground">Room: {selectedReservation.roomNumber}</p>
               </div>
@@ -602,7 +602,7 @@ const Billing = () => {
                 </TableBody>
               </Table>
 
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-2">
+              <div className="mt-6 p-4 bg-muted/30 rounded-lg space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal:</span>
                   <span className="font-medium">₹{selectedReservation.subtotal.toFixed(2)}</span>
@@ -619,13 +619,13 @@ const Billing = () => {
                   <span>Grand Total:</span>
                   <span>₹{selectedReservation.grandTotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm font-medium text-green-600">
+                <div className="flex justify-between text-sm font-medium text-emerald-600 dark:text-emerald-400">
                   <span>Total Paid:</span>
                   <span>₹{selectedReservation.totalPaid.toFixed(2)}</span>
                 </div>
                 <div className={cn(
                   "flex justify-between text-lg font-bold",
-                  selectedReservation.balance > 0 ? "text-red-600" : "text-green-600"
+                  selectedReservation.balance > 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
                 )}>
                   <span>Balance Due:</span>
                   <span>₹{selectedReservation.balance.toFixed(2)}</span>

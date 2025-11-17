@@ -374,7 +374,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       {/* Action Bar */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">{getTodaysDate()}</h1>
+        <h1 className="text-3xl font-bold text-foreground">{getTodaysDate()}</h1>
         <Button onClick={handleNewBooking} className="gap-2">
           <Plus size={20} /> New Booking
         </Button>
@@ -385,7 +385,7 @@ const Dashboard = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Arrivals</CardTitle>
-            <LogIn className="h-5 w-5 text-blue-600" />
+            <LogIn className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{todayArrivals}</div>
@@ -395,7 +395,7 @@ const Dashboard = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Departures</CardTitle>
-            <LogOut className="h-5 w-5 text-rose-600" />
+            <LogOut className="h-5 w-5 text-rose-600 dark:text-rose-400" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{todayDepartures}</div>
@@ -405,7 +405,7 @@ const Dashboard = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Accommodations Booked</CardTitle>
-            <Calendar className="h-5 w-5 text-purple-600" />
+            <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalAccommodations}</div>
@@ -453,7 +453,7 @@ const Dashboard = () => {
                   </Button>
                 </div>
                 <div className="relative w-full sm:w-auto sm:min-w-[250px]">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="text"
                     placeholder="Search guest name..."
@@ -468,8 +468,8 @@ const Dashboard = () => {
                 <div className="px-6 pb-6">
                   {filteredCheckIns.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <Calendar className="h-12 w-12 text-gray-300 mb-3" />
-                      <p className="text-sm text-gray-500">
+                      <Calendar className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                      <p className="text-sm text-muted-foreground">
                         No {activeType === 'arrival' ? 'arrivals' : 'departures'} for {activeDay}
                       </p>
                     </div>
@@ -506,7 +506,7 @@ const Dashboard = () => {
                                         variant="ghost"
                                         onClick={() => handleCheckIn(r)}
                                         title="Check In"
-                                        className="text-green-600 hover:text-green-700"
+                                        className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-accent"
                                       >
                                         <LogIn size={16} />
                                       </Button>
@@ -517,7 +517,7 @@ const Dashboard = () => {
                                         variant="ghost"
                                         onClick={() => handleCheckOut(r)}
                                         title="Check Out"
-                                        className="text-red-600 hover:text-red-700"
+                                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-accent"
                                       >
                                         <LogOut size={16} />
                                       </Button>
@@ -527,7 +527,7 @@ const Dashboard = () => {
                                       variant="ghost"
                                       onClick={() => handleEdit(r)}
                                       title="Edit"
-                                      className="text-blue-600 hover:text-blue-700"
+                                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-accent"
                                     >
                                       <Edit size={16} />
                                     </Button>
@@ -536,7 +536,7 @@ const Dashboard = () => {
                                       variant="ghost"
                                       onClick={() => handlePrint(r)}
                                       title="Print"
-                                      className="text-gray-600 hover:text-gray-700"
+                                      className="text-muted-foreground hover:text-foreground hover:bg-accent"
                                     >
                                       <Printer size={16} />
                                     </Button>
@@ -562,13 +562,13 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="p-0">
             {/* Mini Stats */}
-            <div className="grid grid-cols-2 gap-4 px-6 py-4 bg-gray-50 border-b">
+            <div className="grid grid-cols-2 gap-4 px-6 py-4 bg-muted/30 border-b">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-gray-500 uppercase">Bookings Made Today</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase">Bookings Made Today</p>
                 <p className="text-2xl font-bold">{bookingsMadeToday.length}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-medium text-gray-500 uppercase">Room Nights Booked</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase">Room Nights Booked</p>
                 <p className="text-2xl font-bold">{totalRoomNightsToday}</p>
               </div>
             </div>
@@ -584,8 +584,8 @@ const Dashboard = () => {
               <TabsContent value="bookings" className="m-0 px-6 pb-6">
                 {bookingsMadeToday.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <CalendarDays className="h-12 w-12 text-gray-300 mb-3" />
-                    <p className="text-sm text-gray-500">No bookings made today</p>
+                    <CalendarDays className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">No bookings made today</p>
                   </div>
                 ) : (
                   <div className="rounded-md border mt-4">
@@ -623,8 +623,8 @@ const Dashboard = () => {
               <TabsContent value="activities" className="m-0 px-6 pb-6">
                 {recentActivities.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <CalendarDays className="h-12 w-12 text-gray-300 mb-3" />
-                    <p className="text-sm text-gray-500">No recent activities</p>
+                    <CalendarDays className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                    <p className="text-sm text-muted-foreground">No recent activities</p>
                   </div>
                 ) : (
                   <div className="space-y-3 mt-4 max-h-96 overflow-y-auto pr-2">
@@ -644,17 +644,17 @@ const Dashboard = () => {
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-gray-900 truncate">{activity.guestName}</span>
+                                    <span className="font-semibold text-card-foreground truncate">{activity.guestName}</span>
                                     <Badge variant={getActivityBadgeVariant(activity.action)} className="text-xs">
                                       {getActivityLabel(activity.action)}
                                     </Badge>
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                                     <span>Room {room?.room_number || 'N/A'}</span>
-                                    <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                    <span className="w-1 h-1 rounded-full bg-border" />
                                     <Clock size={12} />
                                     <span>{timeAgo}</span>
-                                    <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                    <span className="w-1 h-1 rounded-full bg-border" />
                                     <Calendar size={12} />
                                     <span>{activity.checkInDate}</span>
                                   </div>
@@ -672,14 +672,14 @@ const Dashboard = () => {
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-gray-900">Room {activity.roomNumber}</span>
+                                    <span className="font-semibold text-card-foreground">Room {activity.roomNumber}</span>
                                     <Badge variant={getActivityBadgeVariant(activity.action)} className="text-xs">
                                       {getActivityLabel(activity.action)}
                                     </Badge>
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                                     <span>{roomType?.name || 'Unknown Type'}</span>
-                                    <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                    <span className="w-1 h-1 rounded-full bg-border" />
                                     <Clock size={12} />
                                     <span>{timeAgo}</span>
                                   </div>
