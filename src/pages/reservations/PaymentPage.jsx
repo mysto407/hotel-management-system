@@ -158,7 +158,13 @@ export default function PaymentPage({ onNavigate }) {
         }).filter(Boolean) // Remove null entries
       })
 
-      await Promise.all(reservationPromises)
+      const reservationResults = await Promise.all(reservationPromises)
+
+      // Check if any reservations failed (returned null)
+      const failedReservations = reservationResults.filter(r => r === null)
+      if (failedReservations.length > 0) {
+        throw new Error(`Failed to create ${failedReservations.length} reservation(s). Please check the details and try again.`)
+      }
       
       // Update the guest's stats (total spent, total bookings, etc.)
       await updateGuestStats(guestId, bill.total)
