@@ -25,8 +25,7 @@ export const Header = ({ currentPage, onNavigate }) => {
       category: 'Room Management',
       items: [
         { id: 'room-types', label: 'Room Types', icon: Building2, roles: ['Admin'] },
-        { id: 'rooms', label: 'Rooms', icon: DoorOpen, roles: ['Admin', 'Front Desk'] },
-        { id: 'room-status', label: 'Room Status', icon: Hotel, roles: ['Admin', 'Front Desk'] }
+        { id: 'rooms', label: 'Rooms', icon: DoorOpen, roles: ['Admin', 'Front Desk'] }
       ]
     },
     {

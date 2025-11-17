@@ -4,7 +4,6 @@ import { Header } from './Header';
 import Dashboard from '../../pages/dashboard/Dashboard';
 import RoomTypes from '../../pages/rooms/RoomTypes';
 import Rooms from '../../pages/rooms/Rooms';
-import RoomStatus from '../../pages/rooms/RoomStatus';
 import Reservations from '../../pages/reservations/Reservations';
 import ReservationCalendar from '../../pages/reservations/ReservationCalendar';
 import NewReservation from '../../pages/reservations/NewReservation';
@@ -26,7 +25,6 @@ export const Layout = () => {
     dashboard: <Dashboard />,
     'room-types': <RoomTypes />,
     rooms: <Rooms />,
-    'room-status': <RoomStatus />,
     reservations: <Reservations onNavigate={setCurrentPage} />,
     'reservation-calendar': <ReservationCalendar />,
     'new-reservation': <NewReservation onNavigate={setCurrentPage} />,

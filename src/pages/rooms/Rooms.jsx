@@ -38,10 +38,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const Rooms = () => {
-  const { rooms, roomTypes, addRoom, updateRoom, deleteRoom } = useRooms();
+  const { rooms, roomTypes, addRoom, updateRoom, deleteRoom, updateRoomStatus } = useRooms();
   const confirm = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
   const [formData, setFormData] = useState({
     room_number: '',
     floor: '',
@@ -105,6 +107,19 @@ const Rooms = () => {
     }
   };
 
+  const handleStatusClick = (room) => {
+    setSelectedRoom(room);
+    setIsStatusDialogOpen(true);
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    if (selectedRoom) {
+      await updateRoomStatus(selectedRoom.id, newStatus);
+      setIsStatusDialogOpen(false);
+      setSelectedRoom(null);
+    }
+  };
+
   const getRoomTypeName = (typeId) => {
     const type = roomTypes.find(t => t.id === typeId);
     return type ? type.name : 'Unknown';
@@ -150,7 +165,11 @@ const Rooms = () => {
                   <TableCell className="capitalize">{room.category || 'main building'}</TableCell>
                   <TableCell>{getRoomTypeName(room.room_type_id)}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusVariant(room.status)}>
+                    <Badge
+                      variant={getStatusVariant(room.status)}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => handleStatusClick(room)}
+                    >
                       {room.status}
                     </Badge>
                   </TableCell>
@@ -259,6 +278,48 @@ const Rooms = () => {
             <Button type="button" onClick={handleSubmit}>
               <Save size={18} className="mr-2" /> Save
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Change Dialog */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Room Status</DialogTitle>
+          </DialogHeader>
+          {selectedRoom && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Room {selectedRoom.room_number}</span>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-sm text-muted-foreground">{getRoomTypeName(selectedRoom.room_type_id)}</span>
+              </div>
+              <div className="space-y-2">
+                <Label>Select New Status</Label>
+                <Select
+                  value={selectedRoom.status}
+                  onValueChange={handleStatusChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Available">Available</SelectItem>
+                    <SelectItem value="Occupied">Occupied</SelectItem>
+                    <SelectItem value="Maintenance">Maintenance</SelectItem>
+                    <SelectItem value="Blocked">Blocked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
