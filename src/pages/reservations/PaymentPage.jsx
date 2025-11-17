@@ -638,7 +638,7 @@ export default function PaymentPage({ onNavigate }) {
                             <div className="text-xs text-green-600 mt-0.5">
                               {appliedPromoCode.name}
                             </div>
-                            {appliedPromoCode.discount_type === 'percentage' ? (
+                            {(appliedPromoCode.value_type || appliedPromoCode.discount_type) === 'percentage' ? (
                               <div className="text-xs text-green-600 mt-0.5">
                                 {appliedPromoCode.value}% off
                               </div>

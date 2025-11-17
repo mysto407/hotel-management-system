@@ -12,25 +12,41 @@ export const calculateDiscountAmount = (discount, originalAmount) => {
 
     let discountAmount = 0
 
-    switch (discount.discount_type) {
-        case 'percentage':
-            discountAmount = (originalAmount * discount.value) / 100
-            break
-        case 'fixed_amount':
-        case 'promo_code':
-        case 'seasonal':
-        case 'long_stay':
-            // For fixed amount, check if discount value is percentage or fixed
-            if (discount.value <= 100 && discount.discount_type !== 'fixed_amount') {
-                // Treat as percentage
+    // Use value_type if available (new format), otherwise fall back to discount_type (backward compatibility)
+    const valueType = discount.value_type || discount.discount_type
+
+    if (valueType === 'percentage') {
+        // Percentage discount
+        discountAmount = (originalAmount * discount.value) / 100
+    } else if (valueType === 'fixed_amount') {
+        // Fixed amount discount
+        discountAmount = Math.min(discount.value, originalAmount)
+    } else {
+        // Backward compatibility: old format without value_type
+        switch (discount.discount_type) {
+            case 'percentage':
                 discountAmount = (originalAmount * discount.value) / 100
-            } else {
-                // Treat as fixed amount
+                break
+            case 'fixed_amount':
                 discountAmount = Math.min(discount.value, originalAmount)
-            }
-            break
-        default:
-            discountAmount = 0
+                break
+            case 'promo_code':
+            case 'seasonal':
+            case 'long_stay':
+            case 'manual':
+            case 'early_bird':
+            case 'last_minute':
+                // For old discounts without value_type, infer from value
+                // Values <= 100 were treated as percentage, values > 100 as fixed
+                if (discount.value <= 100) {
+                    discountAmount = (originalAmount * discount.value) / 100
+                } else {
+                    discountAmount = Math.min(discount.value, originalAmount)
+                }
+                break
+            default:
+                discountAmount = 0
+        }
     }
 
     // Ensure discount doesn't exceed original amount
@@ -228,10 +244,20 @@ export const calculateRoomRateWithDiscount = (baseRate, nights, discounts, appli
 export const formatDiscount = (discount) => {
     if (!discount) return ''
 
-    if (discount.discount_type === 'percentage') {
+    // Use value_type if available, otherwise fall back to discount_type
+    const valueType = discount.value_type || discount.discount_type
+
+    if (valueType === 'percentage') {
         return `${discount.value}% off`
-    } else {
+    } else if (valueType === 'fixed_amount') {
         return `₹${discount.value} off`
+    } else {
+        // Backward compatibility
+        if (discount.discount_type === 'percentage') {
+            return `${discount.value}% off`
+        } else {
+            return `₹${discount.value} off`
+        }
     }
 }
 

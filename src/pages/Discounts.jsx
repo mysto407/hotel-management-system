@@ -65,7 +65,8 @@ const Discounts = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    discount_type: 'percentage',
+    discount_type: 'manual',
+    value_type: 'percentage',
     value: '0',
     applies_to: 'room_rates',
     enabled: true,
@@ -84,10 +85,30 @@ const Discounts = () => {
   const handleOpenModal = (discount = null) => {
     if (discount) {
       setEditingDiscount(discount);
+
+      // Parse discount_type and value_type from existing discount
+      let discountCategory = discount.discount_type || 'manual';
+      let valueType = discount.value_type || 'percentage';
+
+      // For backward compatibility: if no value_type, infer from old discount_type
+      if (!discount.value_type) {
+        if (discount.discount_type === 'percentage') {
+          discountCategory = 'manual';
+          valueType = 'percentage';
+        } else if (discount.discount_type === 'fixed_amount') {
+          discountCategory = 'manual';
+          valueType = 'fixed_amount';
+        } else {
+          // promo_code, seasonal, long_stay - default to percentage
+          valueType = 'percentage';
+        }
+      }
+
       setFormData({
         name: discount.name || '',
         description: discount.description || '',
-        discount_type: discount.discount_type || 'percentage',
+        discount_type: discountCategory,
+        value_type: valueType,
         value: discount.value?.toString() || '0',
         applies_to: discount.applies_to || 'room_rates',
         enabled: discount.enabled !== undefined ? discount.enabled : true,
@@ -105,7 +126,8 @@ const Discounts = () => {
       setFormData({
         name: '',
         description: '',
-        discount_type: 'percentage',
+        discount_type: 'manual',
+        value_type: 'percentage',
         value: '0',
         applies_to: 'room_rates',
         enabled: true,
@@ -155,7 +177,7 @@ const Discounts = () => {
       return;
     }
 
-    if (formData.discount_type === 'percentage' && parseFloat(formData.value) > 100) {
+    if (formData.value_type === 'percentage' && parseFloat(formData.value) > 100) {
       showError('Percentage discount cannot exceed 100%');
       return;
     }
@@ -449,7 +471,7 @@ const Discounts = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="discount_type">Discount Type *</Label>
+                  <Label htmlFor="discount_type">Discount Category *</Label>
                   <Select
                     value={formData.discount_type}
                     onValueChange={(value) => handleInputChange('discount_type', value)}
@@ -458,30 +480,47 @@ const Discounts = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                      <SelectItem value="fixed_amount">Fixed Amount</SelectItem>
+                      <SelectItem value="manual">Manual Discount</SelectItem>
                       <SelectItem value="promo_code">Promo Code</SelectItem>
-                      <SelectItem value="seasonal">Seasonal</SelectItem>
-                      <SelectItem value="long_stay">Long Stay</SelectItem>
+                      <SelectItem value="seasonal">Seasonal Offer</SelectItem>
+                      <SelectItem value="long_stay">Long Stay Discount</SelectItem>
+                      <SelectItem value="early_bird">Early Bird</SelectItem>
+                      <SelectItem value="last_minute">Last Minute</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="value">
-                    Value * {formData.discount_type === 'percentage' ? '(%)' : '(₹)'}
-                  </Label>
-                  <Input
-                    id="value"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max={formData.discount_type === 'percentage' ? '100' : undefined}
-                    value={formData.value}
-                    onChange={(e) => handleInputChange('value', e.target.value)}
-                    required
-                  />
+                  <Label htmlFor="value_type">Value Type *</Label>
+                  <Select
+                    value={formData.value_type}
+                    onValueChange={(value) => handleInputChange('value_type', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed_amount">Fixed Amount (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="value">
+                  Discount Value * {formData.value_type === 'percentage' ? '(%)' : '(₹)'}
+                </Label>
+                <Input
+                  id="value"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={formData.value_type === 'percentage' ? '100' : undefined}
+                  value={formData.value}
+                  onChange={(e) => handleInputChange('value', e.target.value)}
+                  required
+                />
               </div>
 
               {formData.discount_type === 'promo_code' && (
