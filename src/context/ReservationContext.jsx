@@ -95,13 +95,15 @@ export const ReservationProvider = ({ children }) => {
     try {
       // Update reservation status to Checked-in
       await updateReservation(id, { status: 'Checked-in' });
-      
+
       // Update room status to Occupied
       await updateRoomStatus(reservation.room_id, 'Occupied');
 
       // Auto-create Room Charge Bill
       const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
-      const roomRate = reservation.rooms?.room_types?.base_price || 0;
+
+      // Use rate type price if available, otherwise fall back to room type base price
+      const roomRate = reservation.room_rate_types?.base_price || reservation.rooms?.room_types?.base_price || 0;
 
       // Create bill items for each night
       const billItems = [];
@@ -149,6 +151,7 @@ export const ReservationProvider = ({ children }) => {
       const total = subtotal + tax;
 
       // Create the room charge bill
+      const rateTypeName = reservation.room_rate_types?.rate_name || 'Standard Rate';
       const billData = {
         reservation_id: reservation.id,
         bill_type: 'Room',
@@ -159,7 +162,7 @@ export const ReservationProvider = ({ children }) => {
         paid_amount: 0,
         balance: total,
         payment_status: 'Pending',
-        notes: `Auto-generated room charge for ${nights} night(s)` +
+        notes: `Auto-generated room charge for ${nights} night(s) - ${rateTypeName}` +
                (reservation.meal_plan && reservation.meal_plan !== 'EP' ? ` with ${reservation.meal_plan} meal plan` : '')
       };
 

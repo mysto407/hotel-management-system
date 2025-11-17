@@ -1,7 +1,8 @@
 // src/pages/rooms/RoomTypes.jsx
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useRooms } from '../../context/RoomContext';
+import RateTypesManager from '../../components/rooms/RateTypesManager';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const RoomTypes = () => {
   const { roomTypes, addRoomType, updateRoomType, deleteRoomType } = useRooms();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingType, setEditingType] = useState(null);
+  const [expandedRoomType, setExpandedRoomType] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     base_price: '',
@@ -100,6 +102,7 @@ const RoomTypes = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Base Price</TableHead>
                 <TableHead>Capacity</TableHead>
@@ -109,22 +112,45 @@ const RoomTypes = () => {
             </TableHeader>
             <TableBody>
               {roomTypes.map(type => (
-                <TableRow key={type.id}>
-                  <TableCell className="font-medium py-2">{type.name}</TableCell>
-                  <TableCell className="py-2">₹{type.base_price}</TableCell>
-                  <TableCell className="py-2">{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</TableCell>
-                  <TableCell className="max-w-xs truncate py-2">{type.amenities}</TableCell>
-                  <TableCell className="py-2">
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEdit(type)}>
-                        <Edit2 size={14} className="text-blue-600" />
+                <>
+                  <TableRow key={type.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableCell className="py-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setExpandedRoomType(expandedRoomType === type.id ? null : type.id)}
+                      >
+                        {expandedRoomType === type.id ? (
+                          <ChevronDown size={16} />
+                        ) : (
+                          <ChevronRight size={16} />
+                        )}
                       </Button>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => deleteRoomType(type.id)}>
-                        <Trash2 size={14} className="text-red-600" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell className="font-medium py-2">{type.name}</TableCell>
+                    <TableCell className="py-2">₹{type.base_price}</TableCell>
+                    <TableCell className="py-2">{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</TableCell>
+                    <TableCell className="max-w-xs truncate py-2">{type.amenities}</TableCell>
+                    <TableCell className="py-2">
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEdit(type)}>
+                          <Edit2 size={14} className="text-blue-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => deleteRoomType(type.id)}>
+                          <Trash2 size={14} className="text-red-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {expandedRoomType === type.id && (
+                    <TableRow key={`${type.id}-expanded`}>
+                      <TableCell colSpan={6} className="bg-muted/30 p-6">
+                        <RateTypesManager roomType={type} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
               ))}
             </TableBody>
           </Table>

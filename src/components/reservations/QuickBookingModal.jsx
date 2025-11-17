@@ -1,6 +1,7 @@
 // src/components/reservations/QuickBookingModal.jsx
 import { Save, X, UserPlus } from 'lucide-react';
 import { useMealPlans } from '../../context/MealPlanContext';
+import { useRooms } from '../../context/RoomContext';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,12 +39,29 @@ export const QuickBookingModal = ({
   onAddAgentClick
 }) => {
   const { getActivePlans } = useMealPlans();
+  const { getActiveRateTypesByRoomType, getDefaultRateTypeByRoomType } = useRooms();
 
   const room = rooms.find(r => r.id === bookingData.room_id);
   const roomType = roomTypes.find(rt => rt.id === room?.room_type_id);
   const nights = (bookingData.check_in_date && bookingData.check_out_date)
     ? calculateDays(bookingData.check_in_date, bookingData.check_out_date)
     : 0;
+
+  // Get available rate types for the selected room type
+  const availableRateTypes = roomType ? getActiveRateTypesByRoomType(roomType.id) : [];
+
+  // Auto-select default rate type if not already set
+  if (roomType && !bookingData.rate_type_id && availableRateTypes.length > 0) {
+    const defaultRate = getDefaultRateTypeByRoomType(roomType.id);
+    if (defaultRate) {
+      setBookingData({ ...bookingData, rate_type_id: defaultRate.id });
+    } else if (availableRateTypes.length > 0) {
+      setBookingData({ ...bookingData, rate_type_id: availableRateTypes[0].id });
+    }
+  }
+
+  // Get selected rate type details
+  const selectedRateType = availableRateTypes.find(rt => rt.id === bookingData.rate_type_id);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -87,9 +105,52 @@ export const QuickBookingModal = ({
                 {nights > 0 && (
                   <strong className="block mt-1">{nights} night{nights !== 1 ? 's' : ''}</strong>
                 )}
+                {selectedRateType && (
+                  <>
+                    <br />
+                    <span className="text-sm">
+                      Rate: {selectedRateType.rate_name} - ₹{selectedRateType.base_price}/night
+                      {nights > 0 && ` (Total: ₹${(selectedRateType.base_price * nights).toFixed(2)})`}
+                    </span>
+                  </>
+                )}
               </AlertDescription>
             </Alert>
           </div>
+
+          {/* Rate Type Selection */}
+          {availableRateTypes.length > 0 && (
+            <div className="space-y-2 md:col-span-2">
+              <Label>Rate Plan *</Label>
+              <Select
+                value={bookingData.rate_type_id || ''}
+                onValueChange={(value) => setBookingData({ ...bookingData, rate_type_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Rate Plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRateTypes.map(rateType => (
+                    <SelectItem key={rateType.id} value={rateType.id}>
+                      {rateType.rate_name} - ₹{rateType.base_price}
+                      {rateType.is_default && ' (Default)'}
+                      {rateType.description && ` - ${rateType.description}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedRateType?.inclusions && (
+                <p className="text-xs text-muted-foreground">
+                  Includes: {selectedRateType.inclusions}
+                </p>
+              )}
+              {selectedRateType?.cancellation_policy && (
+                <p className="text-xs text-muted-foreground">
+                  Cancellation: {selectedRateType.cancellation_policy}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Booking Source */}
           <div className="space-y-2">
