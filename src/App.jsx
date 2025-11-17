@@ -2,6 +2,7 @@
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AlertProvider } from './context/AlertContext';
 import { RoomProvider } from './context/RoomContext';
+import { DiscountProvider } from './context/DiscountContext';
 import { MealPlanProvider } from './context/MealPlanContext';
 import { ReservationProvider } from './context/ReservationContext';
 import { ReservationFlowProvider } from './context/ReservationFlowContext';
@@ -40,23 +41,25 @@ function App() {
     <AlertProvider>
       <AuthProvider>
         <RoomProvider>
-          <MealPlanProvider>
-            <ReservationProvider>
-              <ReservationFlowProvider>
-                <BillingProvider>
-                  <InventoryProvider>
-                    <GuestProvider>
-                      <AgentProvider>
-                        <ExpenseProvider>
-                          <AppContent />
-                        </ExpenseProvider>
-                      </AgentProvider>
-                    </GuestProvider>
-                  </InventoryProvider>
-                </BillingProvider>
-              </ReservationFlowProvider>
-            </ReservationProvider>
-          </MealPlanProvider>
+          <DiscountProvider>
+            <MealPlanProvider>
+              <ReservationProvider>
+                <ReservationFlowProvider>
+                  <BillingProvider>
+                    <InventoryProvider>
+                      <GuestProvider>
+                        <AgentProvider>
+                          <ExpenseProvider>
+                            <AppContent />
+                          </ExpenseProvider>
+                        </AgentProvider>
+                      </GuestProvider>
+                    </InventoryProvider>
+                  </BillingProvider>
+                </ReservationFlowProvider>
+              </ReservationProvider>
+            </MealPlanProvider>
+          </DiscountProvider>
         </RoomProvider>
       </AuthProvider>
     </AlertProvider>
