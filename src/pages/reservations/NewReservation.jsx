@@ -54,6 +54,7 @@ export default function NewReservation({ onNavigate }) {
     removeRoom,
     clearSelectedRooms,
     updateRoomQuantity,
+    updateRoomRate,
     assignRoom,
     unassignRoom,
     autoAssignRooms,
@@ -185,7 +186,16 @@ export default function NewReservation({ onNavigate }) {
 
   const handleAddRoom = (roomType, quantity = 1) => {
     if (roomType.availableCount > 0) {
-      addRoom(roomType, quantity)
+      // Get the selected rate for this room type
+      const selectedRate = getSelectedRateForRoomType(roomType.id)
+
+      // Add the room with rate information
+      const roomWithRate = {
+        ...roomType,
+        ratePrice: selectedRate?.base_price || roomType.base_price
+      }
+
+      addRoom(roomWithRate, quantity, selectedRate?.id)
     }
   }
 
@@ -268,6 +278,16 @@ export default function NewReservation({ onNavigate }) {
       ...prev,
       [roomTypeId]: rateTypeId
     }))
+
+    // If this room is already selected, update its rate in the cart
+    const isRoomSelected = selectedRooms.some(sr => sr.id === roomTypeId)
+    if (isRoomSelected) {
+      const rateTypes = getRateTypesByRoomType(roomTypeId)
+      const selectedRate = rateTypes.find(rt => rt.id === rateTypeId)
+      if (selectedRate) {
+        updateRoomRate(roomTypeId, rateTypeId, selectedRate.base_price)
+      }
+    }
   }
 
   return (
@@ -691,7 +711,7 @@ export default function NewReservation({ onNavigate }) {
                             <div className="flex-1">
                               <div className="font-medium">{room.name}</div>
                               <div className="text-sm text-gray-500">
-                                ₹{room.base_price} × {bill.nights} nights
+                                ₹{room.ratePrice || room.base_price} × {bill.nights} nights
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
