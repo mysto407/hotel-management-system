@@ -934,7 +934,7 @@ export default function NewReservation({ onNavigate }) {
       </div>
 
       {/* Footer with Navigation */}
-      <div className="bg-white border-t px-6 py-4">
+      <div className="sticky bottom-0 z-10 bg-white border-t px-6 py-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
             {selectedRooms.length > 0 && !allRoomsAssigned && (
