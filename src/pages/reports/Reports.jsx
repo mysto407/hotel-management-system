@@ -235,7 +235,7 @@ const Reports = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Amount Collected</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totals.paid.toFixed(2)}</div>
@@ -259,7 +259,7 @@ const Reports = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
-            <Calendar className="h-4 w-4 text-amber-600" />
+            <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{occupancyStats.occupancyRate}%</div>
@@ -293,7 +293,7 @@ const Reports = () => {
                   <TableCell className="font-medium">{type}</TableCell>
                   <TableCell>{data.count}</TableCell>
                   <TableCell>₹{data.total.toFixed(2)}</TableCell>
-                  <TableCell className="text-emerald-600">₹{data.paid.toFixed(2)}</TableCell>
+                  <TableCell className="text-emerald-600 dark:text-emerald-400">₹{data.paid.toFixed(2)}</TableCell>
                   <TableCell className="text-destructive">₹{data.outstanding.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -306,11 +306,11 @@ const Reports = () => {
                 </TableRow>
               ))}
             </TableBody>
-            <TableRow className="font-bold bg-gray-50 hover:bg-gray-50">
+            <TableRow className="font-bold bg-accent hover:bg-accent">
               <TableCell>TOTAL</TableCell>
               <TableCell>{filteredBills.length}</TableCell>
               <TableCell>₹{totals.total.toFixed(2)}</TableCell>
-              <TableCell className="text-emerald-700">₹{totals.paid.toFixed(2)}</TableCell>
+              <TableCell className="text-emerald-600 dark:text-emerald-400">₹{totals.paid.toFixed(2)}</TableCell>
               <TableCell className="text-destructive">₹{totals.outstanding.toFixed(2)}</TableCell>
               <TableCell>{((totals.paid / totals.total * 100) || 0).toFixed(1)}%</TableCell>
             </TableRow>
@@ -339,7 +339,7 @@ const Reports = () => {
             </div>
             <div className="flex justify-between text-lg font-bold pt-3 border-t">
               <span>Net Revenue:</span>
-              <span className="text-emerald-600">₹{totals.total.toFixed(2)}</span>
+              <span className="text-emerald-600 dark:text-emerald-400">₹{totals.total.toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -354,11 +354,11 @@ const Reports = () => {
               <Badge variant="destructive">Pending</Badge>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-500">{paymentStatusBreakdown.partial}</div>
+              <div className="text-3xl font-bold text-yellow-500 dark:text-yellow-400">{paymentStatusBreakdown.partial}</div>
               <Badge variant="warning">Partial</Badge>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-emerald-600">{paymentStatusBreakdown.paid}</div>
+              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{paymentStatusBreakdown.paid}</div>
               <Badge variant="success">Paid</Badge>
             </div>
           </CardContent>

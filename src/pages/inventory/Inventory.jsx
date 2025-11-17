@@ -246,7 +246,7 @@ const Inventory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Inventory Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{getTotalInventoryValue().toFixed(2)}</div>
@@ -296,7 +296,7 @@ const Inventory = () => {
         </div>
         <div className="flex gap-4">
           <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-            <SelectTrigger className="w-full md:w-[180px] bg-white">
+            <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="All Departments" />
             </SelectTrigger>
             <SelectContent>
@@ -307,7 +307,7 @@ const Inventory = () => {
             </SelectContent>
           </Select>
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-full md:w-[180px] bg-white">
+            <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
@@ -374,10 +374,10 @@ const Inventory = () => {
                           <RefreshCw size={16} className="text-muted-foreground" />
                         </Button>
                         <Button onClick={() => handleEditItem(item)} variant="ghost" size="icon" title="Edit">
-                          <Edit2 size={16} className="text-blue-600" />
+                          <Edit2 size={16} className="text-blue-600 dark:text-blue-400" />
                         </Button>
                         <Button onClick={() => handleDeleteItem(item.id)} variant="ghost" size="icon" title="Delete">
-                          <Trash2 size={16} className="text-red-600" />
+                          <Trash2 size={16} className="text-red-600 dark:text-red-400" />
                         </Button>
                       </div>
                     </TableCell>
@@ -403,12 +403,12 @@ const Inventory = () => {
               if (deptItems.length === 0) return null;
               
               return (
-                <div key={dept} className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                <div key={dept} className="flex justify-between items-center p-3 bg-accent rounded-md">
                   <div>
                     <h4 className="font-semibold">{dept}</h4>
                     <p className="text-sm text-muted-foreground">{deptItems.length} items</p>
                   </div>
-                  <div className="text-lg font-bold text-blue-600">
+                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                     ₹{deptValue.toFixed(2)}
                   </div>
                 </div>
@@ -682,7 +682,7 @@ const Inventory = () => {
           </DialogHeader>
           {selectedItem && (
             <div className="py-4">
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-accent rounded-lg mb-4">
                 <p><strong>Category:</strong> {selectedItem.category}</p>
                 <p><strong>Department:</strong> {selectedItem.department}</p>
                 <p><strong>Current Stock:</strong> {selectedItem.current_stock} {selectedItem.unit}</p>

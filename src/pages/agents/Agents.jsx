@@ -253,7 +253,7 @@ const Agents = () => {
                     </TableCell>
                     <TableCell>
                       {agent.commission ? (
-                        <div className="flex items-center gap-1 font-semibold text-violet-600">
+                        <div className="flex items-center gap-1 font-semibold text-violet-600 dark:text-violet-400">
                           <Percent size={14} />
                           {agent.commission}%
                         </div>
@@ -267,12 +267,12 @@ const Agents = () => {
                         {stats.activeBookings} Active
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-semibold text-green-700">
+                    <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">
                       ₹{stats.totalRevenue.toLocaleString()}
                     </TableCell>
                     <TableCell>
                       {commissionEarned !== null ? (
-                        <div className="flex items-center gap-1 font-bold text-violet-700 text-base">
+                        <div className="flex items-center gap-1 font-bold text-violet-600 dark:text-violet-400 text-base">
                           <TrendingUp size={16} />
                           ₹{commissionEarned.toLocaleString()}
                         </div>
@@ -283,10 +283,10 @@ const Agents = () => {
                     <TableCell>
                       <div className="flex gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(agent)}>
-                          <Edit2 size={16} className="text-blue-600" />
+                          <Edit2 size={16} className="text-blue-600 dark:text-blue-400" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(agent.id)}>
-                          <Trash2 size={16} className="text-red-600" />
+                          <Trash2 size={16} className="text-red-600 dark:text-red-400" />
                         </Button>
                       </div>
                     </TableCell>

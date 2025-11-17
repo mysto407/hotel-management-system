@@ -520,10 +520,10 @@ const Expenses = () => {
                     className="h-9 text-lg font-semibold"
                     autoFocus
                   />
-                  <Button onClick={saveName} size="icon" variant="ghost" className="text-green-600">
+                  <Button onClick={saveName} size="icon" variant="ghost" className="text-emerald-600 dark:text-emerald-400">
                     <Check size={16} />
                   </Button>
-                  <Button onClick={cancelEditName} size="icon" variant="ghost" className="text-red-600">
+                  <Button onClick={cancelEditName} size="icon" variant="ghost" className="text-red-600 dark:text-red-400">
                     <X size={16} />
                   </Button>
                 </>
@@ -543,7 +543,7 @@ const Expenses = () => {
             <Table className="relative border-collapse border border-border">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="sticky left-0 z-10 bg-gray-100 w-12 min-w-12 border-r border-b"></TableHead>
+                  <TableHead className="sticky left-0 z-10 bg-muted/30 w-12 min-w-12 border-r border-b"></TableHead>
                   {allColumns.map((col, colIndex) => (
                     <TableHead 
                       key={col.id}
@@ -558,7 +558,7 @@ const Expenses = () => {
                             <Button
                               onClick={() => removeColumn(col.id)}
                               variant="ghost" size="icon"
-                              className="h-6 w-6 text-red-600"
+                              className="h-6 w-6 text-red-600 dark:text-red-400"
                               title="Delete column"
                             >
                               <Trash2 size={14} />
@@ -583,7 +583,7 @@ const Expenses = () => {
                   if (item.type === 'header') {
                     return (
                       <TableRow key={`header-${item.monthYear}-${idx}`}>
-                        <TableCell colSpan={allColumns.length + 1} className="p-2 bg-blue-600 text-white font-semibold sticky left-0 z-10">
+                        <TableCell colSpan={allColumns.length + 1} className="p-2 bg-primary text-primary-foreground font-semibold sticky left-0 z-10">
                           {item.displayText}
                         </TableCell>
                       </TableRow>
@@ -593,10 +593,10 @@ const Expenses = () => {
                     const rowIndex = item.originalIndex;
                     return (
                       <TableRow key={row.id}>
-                        <TableCell 
+                        <TableCell
                           onMouseEnter={() => setHoveredRow(rowIndex)}
                           onMouseLeave={() => setHoveredRow(null)}
-                          className="sticky left-0 z-10 bg-gray-100 p-0 w-12 min-w-12 border-r group"
+                          className="sticky left-0 z-10 bg-muted/30 p-0 w-12 min-w-12 border-r group"
                         >
                           <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground font-mono relative py-2">
                             <span>{rowIndex + 1}</span>
@@ -613,7 +613,7 @@ const Expenses = () => {
                                 <Button
                                   onClick={() => removeRow(row.id)}
                                   variant="ghost" size="icon"
-                                  className="h-5 w-5 text-red-600"
+                                  className="h-5 w-5 text-red-600 dark:text-red-400"
                                   title="Delete row"
                                 >
                                   <Trash2 size={10} />
@@ -642,9 +642,9 @@ const Expenses = () => {
 
           {/* Total Row */}
           <CardContent>
-            <div className="flex justify-end items-center mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
-              <span className="text-lg font-semibold text-yellow-800">Total:</span>
-              <span className="text-xl font-bold text-yellow-900 ml-4">
+            <div className="flex justify-end items-center mt-4 p-4 bg-amber-100 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-lg">
+              <span className="text-lg font-semibold text-amber-800 dark:text-amber-300">Total:</span>
+              <span className="text-xl font-bold text-amber-900 dark:text-amber-200 ml-4">
                 ₹{calculateTotal().toFixed(2)}
               </span>
             </div>
