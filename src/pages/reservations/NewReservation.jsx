@@ -40,7 +40,7 @@ const ADDON_TYPES = [
 ]
 
 export default function NewReservation({ onNavigate }) {
-  const { roomTypes } = useRooms()
+  const { roomTypes, getRateTypesByRoomType, getDefaultRateTypeByRoomType } = useRooms()
   const { getActivePlans } = useMealPlans()
   const { agents } = useAgents()
   const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
@@ -70,6 +70,7 @@ export default function NewReservation({ onNavigate }) {
   // State for available rooms based on date range
   const [availableRooms, setAvailableRooms] = useState([])
   const [loadingRooms, setLoadingRooms] = useState(false)
+  const [selectedRates, setSelectedRates] = useState({})
 
   const [addonForm, setAddonForm] = useState({
     roomId: '',
@@ -241,6 +242,32 @@ export default function NewReservation({ onNavigate }) {
   const handleAgentAdded = (newAgent) => {
     setSelectedAgent(newAgent)
     setShowAddAgentModal(false)
+  }
+
+  // Get the selected rate type for a room type, or default to the default rate
+  const getSelectedRateForRoomType = (roomTypeId) => {
+    const rateTypes = getRateTypesByRoomType(roomTypeId)
+    if (rateTypes.length === 0) return null
+
+    // If a rate is selected in state, use that
+    if (selectedRates[roomTypeId]) {
+      const selected = rateTypes.find(rt => rt.id === selectedRates[roomTypeId])
+      if (selected) return selected
+    }
+
+    // Otherwise, use the default rate
+    const defaultRate = getDefaultRateTypeByRoomType(roomTypeId)
+    if (defaultRate) return defaultRate
+
+    // Fallback to the first rate
+    return rateTypes[0]
+  }
+
+  const handleRateChange = (roomTypeId, rateTypeId) => {
+    setSelectedRates(prev => ({
+      ...prev,
+      [roomTypeId]: rateTypeId
+    }))
   }
 
   return (
@@ -483,7 +510,7 @@ export default function NewReservation({ onNavigate }) {
                         <tr>
                           <th className="text-left p-3 text-sm font-semibold">Type</th>
                           <th className="text-center p-3 text-sm font-semibold">Capacity</th>
-                          <th className="text-right p-3 text-sm font-semibold">Starting From</th>
+                          <th className="text-right p-3 text-sm font-semibold">Rates</th>
                           <th className="text-center p-3 text-sm font-semibold">Available</th>
                           <th className="text-center p-3 text-sm font-semibold">Quantity</th>
                           <th className="text-center p-3 text-sm font-semibold">Action</th>
@@ -516,8 +543,40 @@ export default function NewReservation({ onNavigate }) {
                                   {roomType.capacity} {roomType.capacity === 1 ? 'person' : 'people'}
                                 </span>
                               </td>
-                              <td className="p-3 text-right font-semibold">
-                                ₹{roomType.base_price}
+                              <td className="p-3 text-right">
+                                {(() => {
+                                  const availableRates = getRateTypesByRoomType(roomType.id)
+                                  const selectedRate = getSelectedRateForRoomType(roomType.id)
+
+                                  if (availableRates.length === 0) {
+                                    return <span className="text-muted-foreground text-sm">No rates defined</span>
+                                  }
+
+                                  if (availableRates.length === 1) {
+                                    return <span className="font-semibold">₹{selectedRate?.base_price || roomType.base_price}</span>
+                                  }
+
+                                  return (
+                                    <Select
+                                      value={selectedRate?.id || ''}
+                                      onValueChange={(value) => handleRateChange(roomType.id, value)}
+                                    >
+                                      <SelectTrigger className="h-8 w-[200px] ml-auto">
+                                        <SelectValue>
+                                          {selectedRate ? `₹${selectedRate.base_price} - ${selectedRate.rate_name}` : 'Select rate'}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableRates.map(rate => (
+                                          <SelectItem key={rate.id} value={rate.id}>
+                                            ₹{rate.base_price} - {rate.rate_name}
+                                            {rate.is_default && ' (Default)'}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )
+                                })()}
                               </td>
                               <td className="p-3 text-center">
                                 <span className={`
