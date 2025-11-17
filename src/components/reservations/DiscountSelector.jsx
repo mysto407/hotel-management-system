@@ -121,12 +121,12 @@ export function DiscountSelector({
             </Button>
           </div>
           {appliedPromoCode && (
-            <div className="flex items-center gap-2 rounded-md bg-green-50 p-2 text-sm">
-              <Check className="h-4 w-4 text-green-600" />
-              <span className="font-medium text-green-900">
+            <div className="flex items-center gap-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 p-2 text-sm">
+              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="font-medium text-emerald-900 dark:text-emerald-200">
                 Promo code "{appliedPromoCode.promo_code}" applied
               </span>
-              <Badge className="ml-auto bg-green-100 text-green-800">
+              <Badge className="ml-auto bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300">
                 {formatDiscount(appliedPromoCode)}
               </Badge>
             </div>
@@ -145,7 +145,7 @@ export function DiscountSelector({
                     key={discount.id}
                     className={cn(
                       "flex items-center justify-between rounded-lg border p-3 transition-colors",
-                      isSelected ? "border-primary bg-primary/5" : "border-gray-200 hover:border-primary/50"
+                      isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                     )}
                   >
                     <div className="flex-1">

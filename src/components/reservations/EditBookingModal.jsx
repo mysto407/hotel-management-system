@@ -332,9 +332,9 @@ export const EditBookingModal = ({
 
             {/* Selected Guest Info */}
             {selectedGuest && (
-              <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="font-semibold text-blue-800">{selectedGuest.name}</p>
-                <p className="text-sm text-blue-600">
+              <div className="col-span-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-md">
+                <p className="font-semibold text-blue-800 dark:text-blue-300">{selectedGuest.name}</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">
                   {selectedGuest.phone} • {selectedGuest.email || 'No email'}
                 </p>
               </div>
@@ -385,9 +385,9 @@ export const EditBookingModal = ({
               </div>
 
               {roomDetails.map((roomDetail, index) => (
-                <Card key={index} className="bg-gray-50">
+                <Card key={index} className="bg-muted/30">
                   <CardContent className="p-4 space-y-4">
-                    <p className="font-semibold text-gray-700">Room {index + 1}</p>
+                    <p className="font-semibold text-foreground">Room {index + 1}</p>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Room Type Selection */}
@@ -489,19 +489,19 @@ export const EditBookingModal = ({
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="text-sm text-gray-700 pt-2">
-                      Total: {parseInt(roomDetail.number_of_adults || 0) + 
-                               parseInt(roomDetail.number_of_children || 0) + 
+
+                    <div className="text-sm text-muted-foreground pt-2">
+                      Total: {parseInt(roomDetail.number_of_adults || 0) +
+                               parseInt(roomDetail.number_of_children || 0) +
                                parseInt(roomDetail.number_of_infants || 0)} guests
                       {roomDetail.room_type_id && formData.check_in_date && formData.check_out_date && (
-                        <span className="ml-3 font-semibold text-gray-800">
+                        <span className="ml-3 font-semibold text-foreground">
                           • ₹{(() => {
                             const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
                             const days = calculateDays(formData.check_in_date, formData.check_out_date);
                             return roomType ? (roomType.base_price * days).toLocaleString() : 0;
-                          })()} 
-                          {formData.check_in_date && formData.check_out_date && 
+                          })()}
+                          {formData.check_in_date && formData.check_out_date &&
                             ` (${calculateDays(formData.check_in_date, formData.check_out_date)} nights)`
                           }
                         </span>
@@ -514,14 +514,14 @@ export const EditBookingModal = ({
 
             {/* Total Summary */}
             {roomDetails.length > 0 && (
-              <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-md grid grid-cols-2 gap-2 text-sm text-blue-800">
+              <div className="col-span-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-md grid grid-cols-2 gap-2 text-sm text-blue-800 dark:text-blue-300">
                 <div>
                   <strong>Total Rooms:</strong> {roomDetails.length}
                 </div>
                 <div>
-                  <strong>Total Guests:</strong> {roomDetails.reduce((sum, rd) => 
-                    sum + parseInt(rd.number_of_adults || 0) + 
-                    parseInt(rd.number_of_children || 0) + 
+                  <strong>Total Guests:</strong> {roomDetails.reduce((sum, rd) =>
+                    sum + parseInt(rd.number_of_adults || 0) +
+                    parseInt(rd.number_of_children || 0) +
                     parseInt(rd.number_of_infants || 0), 0
                   )}
                 </div>

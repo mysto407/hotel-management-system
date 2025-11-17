@@ -85,7 +85,7 @@ const ReservationSummary = ({
     >
       <CollapsibleTrigger asChild>
         <div className={cn(
-          "flex justify-between items-center p-4 bg-gray-50",
+          "flex justify-between items-center p-4 bg-muted/30",
           showToggle && "cursor-pointer",
           !showSummary && "rounded-lg",
           showSummary && "border-b rounded-t-lg"
@@ -94,8 +94,8 @@ const ReservationSummary = ({
             <h3 className="text-base font-semibold">Summary</h3>
             <div className="text-sm text-muted-foreground flex items-center flex-wrap gap-x-2">
               <span>
-                Showing <strong className="text-foreground">{filteredBookings}</strong> {filteredBookings === 1 ? 'booking' : 'bookings'} 
-                (<strong className="text-foreground">{filteredRooms}</strong> {filteredRooms === 1 ? 'room' : 'rooms'}) of 
+                Showing <strong className="text-foreground">{filteredBookings}</strong> {filteredBookings === 1 ? 'booking' : 'bookings'}
+                (<strong className="text-foreground">{filteredRooms}</strong> {filteredRooms === 1 ? 'room' : 'rooms'}) of
                 <strong className="text-foreground"> {totalBookings}</strong> total
               </span>
               {(dateFilterType !== 'all' && (startDate || endDate)) && (
@@ -115,7 +115,7 @@ const ReservationSummary = ({
             </div>
           </div>
           {showToggle && (
-            <ChevronDown 
+            <ChevronDown
               size={16}
               className={cn("transition-transform", showSummary && "rotate-180")}
             />
@@ -127,38 +127,38 @@ const ReservationSummary = ({
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* Guests & Meals Summary */}
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-blue-800">Guest Overview</CardTitle>
+              <CardTitle className="text-sm font-semibold text-blue-800 dark:text-blue-300">Guest Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 bg-white rounded-lg flex justify-between items-center">
-                <span className="font-medium text-blue-700">Active Guests</span>
-                <span className="text-3xl font-bold text-blue-900">{activeGuests}</span>
+              <div className="p-3 bg-white dark:bg-blue-950/50 rounded-lg flex justify-between items-center">
+                <span className="font-medium text-blue-700 dark:text-blue-400">Active Guests</span>
+                <span className="text-3xl font-bold text-blue-900 dark:text-blue-200">{activeGuests}</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <Card className="text-center">
                   <CardContent className="p-3">
-                    <div className="text-xl font-bold text-blue-800">{activeAdults}</div>
-                    <div className="text-xs text-blue-600">Adults</div>
+                    <div className="text-xl font-bold text-blue-800 dark:text-blue-300">{activeAdults}</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">Adults</div>
                   </CardContent>
                 </Card>
                 <Card className="text-center">
                   <CardContent className="p-3">
-                    <div className="text-xl font-bold text-blue-800">{activeChildren}</div>
-                    <div className="text-xs text-blue-600">Children</div>
+                    <div className="text-xl font-bold text-blue-800 dark:text-blue-300">{activeChildren}</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">Children</div>
                   </CardContent>
                 </Card>
                 <Card className="text-center">
                   <CardContent className="p-3">
-                    <div className="text-xl font-bold text-blue-800">{activeInfants}</div>
-                    <div className="text-xs text-blue-600">Infants</div>
+                    <div className="text-xl font-bold text-blue-800 dark:text-blue-300">{activeInfants}</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">Infants</div>
                   </CardContent>
                 </Card>
               </div>
-              
-              <div className="pt-4 border-t border-blue-200">
-                <h4 className="text-xs font-semibold text-blue-700 mb-2">Meal Plans (Active Guests)</h4>
+
+              <div className="pt-4 border-t border-blue-200 dark:border-blue-900">
+                <h4 className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">Meal Plans (Active Guests)</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {mealPlans.map((plan) => {
                     const guestCount = filteredReservations
@@ -170,7 +170,7 @@ const ReservationSummary = ({
                     return (
                       <Card key={plan.code}>
                         <CardContent className="p-3 flex justify-between items-center">
-                          <span className="text-xl font-bold text-gray-700">{guestCount}</span>
+                          <span className="text-xl font-bold text-foreground">{guestCount}</span>
                           <span className="text-xs text-muted-foreground">{plan.name}</span>
                         </CardContent>
                       </Card>
@@ -182,33 +182,33 @@ const ReservationSummary = ({
           </Card>
           
           {/* Financial Summary */}
-          <Card className="bg-green-50 border-green-200">
+          <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-green-800">Financial Overview</CardTitle>
+              <CardTitle className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Financial Overview</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 bg-white rounded-lg flex justify-between items-center">
-                <span className="font-medium text-green-700">Total Revenue</span>
-                <span className="text-3xl font-bold text-green-900">₹{totalRevenue.toLocaleString()}</span>
+              <div className="p-3 bg-white dark:bg-emerald-950/50 rounded-lg flex justify-between items-center">
+                <span className="font-medium text-emerald-700 dark:text-emerald-400">Total Revenue</span>
+                <span className="text-3xl font-bold text-emerald-900 dark:text-emerald-200">₹{totalRevenue.toLocaleString()}</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Card className="text-center">
                   <CardContent className="p-3">
-                    <div className="text-xl font-bold text-green-800">₹{totalAdvance.toLocaleString()}</div>
-                    <div className="text-xs text-green-600">Advance</div>
+                    <div className="text-xl font-bold text-emerald-800 dark:text-emerald-300">₹{totalAdvance.toLocaleString()}</div>
+                    <div className="text-xs text-emerald-600 dark:text-emerald-400">Advance</div>
                   </CardContent>
                 </Card>
                 <Card className="text-center">
                   <CardContent className="p-3">
-                    <div className="text-xl font-bold text-red-800">₹{totalBalance.toLocaleString()}</div>
-                    <div className="text-xs text-red-600">Balance Due</div>
+                    <div className="text-xl font-bold text-red-800 dark:text-red-300">₹{totalBalance.toLocaleString()}</div>
+                    <div className="text-xs text-red-600 dark:text-red-400">Balance Due</div>
                   </CardContent>
                 </Card>
               </div>
-              
-              <div className="pt-4 border-t border-green-200">
+
+              <div className="pt-4 border-t border-emerald-200 dark:border-emerald-900">
                 <Progress value={paymentProgress} className="h-2" />
-                <p className="text-xs text-green-700 text-center mt-2">
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 text-center mt-2">
                   {paymentProgress.toFixed(0)}% Payment Collected
                 </p>
               </div>
@@ -216,9 +216,9 @@ const ReservationSummary = ({
           </Card>
 
           {/* Booking Status */}
-          <Card className="bg-yellow-50 border-yellow-200">
+          <Card className="bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-900">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-yellow-800">Booking Status</CardTitle>
+              <CardTitle className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Booking Status</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -245,9 +245,9 @@ const ReservationSummary = ({
           </Card>
 
           {/* Payment Status */}
-          <Card className="bg-purple-50 border-purple-200">
+          <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900">
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-purple-800">Payment Status</CardTitle>
+              <CardTitle className="text-sm font-semibold text-purple-800 dark:text-purple-300">Payment Status</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-2">
