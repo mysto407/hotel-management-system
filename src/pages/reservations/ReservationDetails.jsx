@@ -7,6 +7,7 @@ import { useAgents } from '../../context/AgentContext'
 import { useMealPlans } from '../../context/MealPlanContext'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import {
   Select,
   SelectContent,
@@ -79,7 +80,7 @@ export default function ReservationDetails({ onNavigate }) {
 
   if (!primaryReservation || !guestInfo) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Loading reservation details...</p>
           <Button onClick={() => onNavigate('reservations')} variant="outline">
@@ -141,142 +142,128 @@ export default function ReservationDetails({ onNavigate }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <Button
-              onClick={() => onNavigate('reservations')}
-              variant="ghost"
-              size="icon"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
+    <div className="space-y-6">
+      {/* Header Card */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => onNavigate('reservations')}
+                variant="ghost"
+                size="icon"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold">{guestInfo.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  Reservation ID: {primaryReservation.id.substring(0, 13)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Status Dropdown */}
+              <Select
+                value={primaryReservation.status}
+                onValueChange={handleStatusChange}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Inquiry">Inquiry</SelectItem>
+                  <SelectItem value="Tentative">Tentative</SelectItem>
+                  <SelectItem value="Hold">Hold</SelectItem>
+                  <SelectItem value="Confirmed">Confirmed</SelectItem>
+                  <SelectItem value="Checked-in">Checked-in</SelectItem>
+                  <SelectItem value="Checked-out">Checked-out</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Quick Info Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 pb-4 border-b">
             <div>
-              <h1 className="text-2xl font-bold">{guestInfo.name}</h1>
-              <p className="text-sm text-gray-500">
-                Reservation ID: {primaryReservation.id.substring(0, 13)}
+              <p className="text-xs text-muted-foreground mb-1">Check-In</p>
+              <p className="font-medium text-sm">{new Date(primaryReservation.check_in_date).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Check-Out</p>
+              <p className="font-medium text-sm">{new Date(primaryReservation.check_out_date).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Nights</p>
+              <p className="font-medium text-sm">{nights}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Reservation Date</p>
+              <p className="font-medium text-sm">
+                {new Date(primaryReservation.created_at || primaryReservation.check_in_date).toLocaleDateString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Guests</p>
+              <p className="font-medium text-sm">{totalGuests}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Source</p>
+              <p className="font-medium text-sm capitalize">
+                {primaryReservation.booking_source === 'agent' && agentInfo
+                  ? agentInfo.name
+                  : primaryReservation.direct_source || primaryReservation.booking_source || 'Walk-in'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Rate Plan</p>
+              <p className="font-medium text-sm">{getMealPlanName(primaryReservation.meal_plan) || 'Base Rate'}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
+              <p className={`font-bold text-lg ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                ₹{balanceDue.toFixed(2)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Status Dropdown */}
-            <Select
-              value={primaryReservation.status}
-              onValueChange={handleStatusChange}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Inquiry">Inquiry</SelectItem>
-                <SelectItem value="Tentative">Tentative</SelectItem>
-                <SelectItem value="Hold">Hold</SelectItem>
-                <SelectItem value="Confirmed">Confirmed</SelectItem>
-                <SelectItem value="Checked-in">Checked-in</SelectItem>
-                <SelectItem value="Checked-out">Checked-out</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Actions Button */}
-            <Button variant="default">
-              ACTIONS
-            </Button>
+          {/* Status Badge */}
+          <div className="mt-4">
+            <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-sm">
+              {primaryReservation.status}
+            </Badge>
           </div>
-        </div>
-
-        {/* Quick Info Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 text-sm">
-          <div>
-            <p className="text-gray-500 text-xs mb-1">Check-In</p>
-            <p className="font-medium">{new Date(primaryReservation.check_in_date).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs mb-1">Check-Out</p>
-            <p className="font-medium">{new Date(primaryReservation.check_out_date).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs mb-1">Nights</p>
-            <p className="font-medium">{nights}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs mb-1">Reservation Date</p>
-            <p className="font-medium">
-              {new Date(primaryReservation.created_at || primaryReservation.check_in_date).toLocaleDateString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs mb-1">Guests</p>
-            <p className="font-medium">{totalGuests}</p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs mb-1">Source</p>
-            <p className="font-medium capitalize">
-              {primaryReservation.booking_source === 'agent' && agentInfo
-                ? agentInfo.name
-                : primaryReservation.direct_source || primaryReservation.booking_source || 'Walk-in'}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500 text-xs mb-1">Rate Plan(s)</p>
-            <p className="font-medium">{getMealPlanName(primaryReservation.meal_plan) || 'Base Rate'}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-gray-500 text-xs mb-1">Balance Due</p>
-            <p className={`font-bold text-lg ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              ₹{balanceDue.toFixed(2)}
-            </p>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs Section */}
-      <div className="flex-1 bg-white">
-        <Tabs defaultValue="accommodations" className="w-full">
-          <TabsList className="w-full justify-start border-b rounded-none h-12 px-6">
-            <TabsTrigger value="accommodations" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none">
-              Accommodations
-            </TabsTrigger>
-            <TabsTrigger value="folio" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none">
-              Folio
-            </TabsTrigger>
-            <TabsTrigger value="guest-details" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none">
-              Guest Details
-            </TabsTrigger>
-            <TabsTrigger value="notes" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none">
-              Notes ({primaryReservation.special_requests ? '1' : '0'})
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none">
-              Reservation Activity
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="accommodations" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="accommodations">Accommodations</TabsTrigger>
+          <TabsTrigger value="folio">Folio</TabsTrigger>
+          <TabsTrigger value="guest-details">Guest Details</TabsTrigger>
+          <TabsTrigger value="notes">Notes ({primaryReservation.special_requests ? '1' : '0'})</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="accommodations" className="p-6">
-            <div className="mb-4">
-              <Button variant="default" className="bg-teal-500 hover:bg-teal-600">
-                <Edit className="h-4 w-4 mr-2" />
-                EDIT RESERVATION
-              </Button>
-            </div>
-
-            {/* Accommodations Table */}
-            <div className="border rounded-lg overflow-hidden">
+        <TabsContent value="accommodations" className="space-y-4">
+          {/* Accommodations Table */}
+          <Card>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-100">
-                    <TableHead className="font-semibold">RES ID</TableHead>
-                    <TableHead className="font-semibold">TYPE</TableHead>
-                    <TableHead className="font-semibold">ASSIGNMENT</TableHead>
-                    <TableHead className="font-semibold">GUEST</TableHead>
-                    <TableHead className="font-semibold">ARRIVAL/DEPARTURE</TableHead>
-                    <TableHead className="font-semibold text-center">GUESTS</TableHead>
-                    <TableHead className="font-semibold text-center">NIGHTS</TableHead>
-                    <TableHead className="font-semibold text-right">TOTAL</TableHead>
-                    <TableHead className="font-semibold text-center">OCCUPIED</TableHead>
-                    <TableHead className="font-semibold text-center">EDIT</TableHead>
+                  <TableRow>
+                    <TableHead>RES ID</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Room</TableHead>
+                    <TableHead>Guest</TableHead>
+                    <TableHead>Arrival/Departure</TableHead>
+                    <TableHead className="text-center">Guests</TableHead>
+                    <TableHead className="text-center">Nights</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-center">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -297,29 +284,24 @@ export default function ReservationDetails({ onNavigate }) {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
+                            <User className="h-4 w-4 text-muted-foreground" />
                             <span>{guestInfo.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm">
                           {new Date(reservation.check_in_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                           {' - '}
                           {new Date(reservation.check_out_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <Users className="h-4 w-4 text-gray-400" />
+                            <Users className="h-4 w-4 text-muted-foreground" />
                             <span>{guestCount}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">{nights}</TableCell>
                         <TableCell className="text-right font-semibold">
                           ₹{reservation.total_amount?.toFixed(2) || '0.00'}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={reservation.status === 'Checked-in' ? 'success' : 'secondary'}>
-                            {reservation.status === 'Checked-in' ? '✓' : '✗'}
-                          </Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button variant="ghost" size="icon">
@@ -331,115 +313,163 @@ export default function ReservationDetails({ onNavigate }) {
                   })}
                 </TableBody>
               </Table>
-            </div>
-          </TabsContent>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="folio" className="p-6">
-            <div className="text-center py-12 text-gray-500">
-              <DollarSign className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p className="text-lg font-medium">Folio Information</p>
-              <p className="text-sm mt-2">Billing and payment details will appear here</p>
-            </div>
-          </TabsContent>
+          {/* Summary Card */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                  <DollarSign className="h-8 w-8 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Amount</p>
+                    <p className="text-xl font-bold">₹{totalAmount.toFixed(2)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                  <DollarSign className="h-8 w-8 text-green-600" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Paid</p>
+                    <p className="text-xl font-bold text-green-600">₹{totalPaid.toFixed(2)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                  <DollarSign className="h-8 w-8 text-red-600" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Balance Due</p>
+                    <p className={`text-xl font-bold ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      ₹{balanceDue.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="guest-details" className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Personal Information */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <TabsContent value="folio">
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center text-muted-foreground">
+                <DollarSign className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-lg font-medium">Folio Information</p>
+                <p className="text-sm mt-2">Billing and payment details will appear here</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="guest-details">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Personal Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
                   Personal Information
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Name:</span>
-                    <span className="font-medium">{guestInfo.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-medium">{guestInfo.email || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Phone:</span>
-                    <span className="font-medium">{guestInfo.phone || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">ID Proof:</span>
-                    <span className="font-medium">
-                      {guestInfo.id_proof_type && guestInfo.id_proof_type !== 'N/A'
-                        ? `${guestInfo.id_proof_type} - ${guestInfo.id_proof_number}`
-                        : 'N/A'}
-                    </span>
-                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">Name:</span>
+                  <span className="font-medium">{guestInfo.name}</span>
                 </div>
-              </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">Email:</span>
+                  <span className="font-medium">{guestInfo.email || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">Phone:</span>
+                  <span className="font-medium">{guestInfo.phone || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-muted-foreground">ID Proof:</span>
+                  <span className="font-medium">
+                    {guestInfo.id_proof_type && guestInfo.id_proof_type !== 'N/A'
+                      ? `${guestInfo.id_proof_type} - ${guestInfo.id_proof_number}`
+                      : 'N/A'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Address Information */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            {/* Address Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
                   Address Information
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Address:</span>
-                    <span className="font-medium">{guestInfo.address || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">City:</span>
-                    <span className="font-medium">{guestInfo.city || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">State:</span>
-                    <span className="font-medium">{guestInfo.state || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Country:</span>
-                    <span className="font-medium">{guestInfo.country || 'N/A'}</span>
-                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">Address:</span>
+                  <span className="font-medium">{guestInfo.address || 'N/A'}</span>
                 </div>
-              </div>
-            </div>
-          </TabsContent>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">City:</span>
+                  <span className="font-medium">{guestInfo.city || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">State:</span>
+                  <span className="font-medium">{guestInfo.state || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-muted-foreground">Country:</span>
+                  <span className="font-medium">{guestInfo.country || 'N/A'}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-          <TabsContent value="notes" className="p-6">
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">Special Requests</h3>
+        <TabsContent value="notes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Special Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
               {primaryReservation.special_requests ? (
                 <p className="text-gray-700">{primaryReservation.special_requests}</p>
               ) : (
-                <p className="text-gray-500 italic">No special requests</p>
+                <p className="text-muted-foreground italic">No special requests</p>
               )}
-            </div>
-          </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="activity" className="p-6">
-            <div className="space-y-4">
-              <div className="bg-gray-50 rounded-lg p-4 flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
+        <TabsContent value="activity">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reservation Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
+                <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="font-medium">Reservation Created</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     {new Date(primaryReservation.created_at || primaryReservation.check_in_date).toLocaleString()}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 flex items-start gap-3">
+              <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
                 <Badge variant={getStatusBadgeVariant(primaryReservation.status)}>
                   {primaryReservation.status}
                 </Badge>
                 <div>
                   <p className="font-medium">Current Status</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     {groupedReservations.length} room{groupedReservations.length > 1 ? 's' : ''} booked
                   </p>
                 </div>
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
