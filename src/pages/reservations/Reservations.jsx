@@ -387,6 +387,13 @@ const Reservations = ({ onNavigate }) => {
     }
   };
 
+  const handleViewDetails = (group) => {
+    // Store reservation IDs in sessionStorage
+    const reservationIds = group.map(r => r.id);
+    sessionStorage.setItem('reservationDetailsIds', JSON.stringify(reservationIds));
+    onNavigate('reservation-details');
+  };
+
   const getMealPlanLabel = (mealPlan) => {
     // Use the MealPlanContext to get the meal plan name
     return getMealPlanName(mealPlan);
@@ -744,7 +751,7 @@ const Reservations = ({ onNavigate }) => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
                           {(primaryReservation.status === 'Confirmed' || primaryReservation.status === 'Hold') && (
                             <Button
                               variant="ghost" size="icon"
@@ -773,44 +780,57 @@ const Reservations = ({ onNavigate }) => {
                               <LogOut size={16} className="text-blue-600" />
                             </Button>
                           )}
-                          {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
-                            <>
-                              <Button 
-                                variant="ghost" size="icon"
-                                onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)} 
-                                title={isMultiRoom ? "Edit All Rooms" : "Edit"}
-                              >
-                                <Edit2 size={16} className="text-blue-600" />
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" title="More actions">
+                                <MoreVertical size={16} />
                               </Button>
-                              <Button
-                                variant="ghost" size="icon"
-                                onClick={async () => {
-                                  if (isMultiRoom) {
-                                    const confirmed = await confirm({ variant: 'warning', title: 'Cancel Multiple Reservations', message: `Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Cancel All'});
-                                    if (confirmed) group.forEach(r => handleCancel(r));
-                                  } else handleCancel(primaryReservation);
-                                }}
-                                title="Cancel Reservation"
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleViewDetails(group)}>
+                                <Eye size={16} className="mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)}>
+                                    <Edit2 size={16} className="mr-2 text-blue-600" />
+                                    {isMultiRoom ? 'Edit All Rooms' : 'Edit'}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      if (isMultiRoom) {
+                                        const confirmed = await confirm({ variant: 'warning', title: 'Cancel Multiple Reservations', message: `Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Cancel All'});
+                                        if (confirmed) group.forEach(r => handleCancel(r));
+                                      } else handleCancel(primaryReservation);
+                                    }}
+                                  >
+                                    <XOctagon size={16} className="mr-2 text-orange-600" />
+                                    Cancel Reservation
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => isMultiRoom ? handleDeleteGroup(group) : handleDelete(primaryReservation)}
+                                className="text-red-600 focus:text-red-600"
                               >
-                                <XOctagon size={16} className="text-red-600" />
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            variant="ghost" size="icon"
-                            onClick={() => isMultiRoom ? handleDeleteGroup(group) : handleDelete(primaryReservation)}
-                            title="Delete Permanently"
-                          >
-                            <Trash2 size={16} className="text-red-800" />
-                          </Button>
+                                <Trash2 size={16} className="mr-2" />
+                                Delete Permanently
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
                     
                     {/* Expanded Room Details */}
                     {isMultiRoom && isExpanded && group.map((reservation, roomIndex) => (
-                      <TableRow 
-                        key={reservation.id} 
+                      <TableRow
+                        key={reservation.id}
                         className="bg-white hover:bg-white"
                       >
                         <TableCell className="pl-12">
@@ -832,9 +852,23 @@ const Reservations = ({ onNavigate }) => {
                         <TableCell>-</TableCell>
                         <TableCell>-</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(reservation)} title="Edit This Room">
-                            <Edit2 size={16} className="text-blue-600" />
-                          </Button>
+                          <div className="flex justify-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" title="More actions">
+                                  <MoreVertical size={16} />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleEdit(reservation)}>
+                                  <Edit2 size={16} className="mr-2 text-blue-600" />
+                                  Edit This Room
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
