@@ -2,11 +2,11 @@
 -- Description: Separates discount category from value type (percentage vs fixed amount)
 -- This allows all discount categories to support both percentage and fixed amount discounts
 
--- Add value_type column
+-- Step 1: Add value_type column
 ALTER TABLE discounts
 ADD COLUMN IF NOT EXISTS value_type VARCHAR(50);
 
--- Migrate existing data: Set value_type based on current discount_type
+-- Step 2: Migrate existing data - Set value_type based on current discount_type
 UPDATE discounts
 SET value_type = CASE
     WHEN discount_type = 'percentage' THEN 'percentage'
@@ -17,25 +17,25 @@ SET value_type = CASE
 END
 WHERE value_type IS NULL;
 
--- Update discount_type for old 'percentage' and 'fixed_amount' types to 'manual'
-UPDATE discounts
-SET discount_type = 'manual'
-WHERE discount_type IN ('percentage', 'fixed_amount');
-
--- Set default value for value_type
-ALTER TABLE discounts
-ALTER COLUMN value_type SET DEFAULT 'percentage';
-
--- Make value_type NOT NULL after data migration
-ALTER TABLE discounts
-ALTER COLUMN value_type SET NOT NULL;
-
--- Drop old constraints
+-- Step 3: Drop old constraints BEFORE updating discount_type
 ALTER TABLE discounts DROP CONSTRAINT IF EXISTS valid_discount_type;
 ALTER TABLE discounts DROP CONSTRAINT IF EXISTS valid_percentage;
 ALTER TABLE discounts DROP CONSTRAINT IF EXISTS valid_fixed_amount;
 
--- Add new constraints
+-- Step 4: Update discount_type for old 'percentage' and 'fixed_amount' types to 'manual'
+UPDATE discounts
+SET discount_type = 'manual'
+WHERE discount_type IN ('percentage', 'fixed_amount');
+
+-- Step 5: Set default value for value_type
+ALTER TABLE discounts
+ALTER COLUMN value_type SET DEFAULT 'percentage';
+
+-- Step 6: Make value_type NOT NULL after data migration
+ALTER TABLE discounts
+ALTER COLUMN value_type SET NOT NULL;
+
+-- Step 7: Add new constraints AFTER data is cleaned up
 ALTER TABLE discounts
 ADD CONSTRAINT valid_discount_type CHECK (
     discount_type IN ('manual', 'promo_code', 'seasonal', 'long_stay', 'early_bird', 'last_minute')
