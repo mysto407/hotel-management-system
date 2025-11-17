@@ -276,7 +276,7 @@ const Settings = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Settings</h1>
         {successMessage && (
-          <Alert className="w-auto py-2 px-4 border-green-300 bg-green-50 text-green-700">
+          <Alert className="w-auto py-2 px-4 border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400">
             <AlertDescription>{successMessage}</AlertDescription>
           </Alert>
         )}
@@ -598,17 +598,17 @@ const Settings = () => {
                           key={plan.id}
                           className={cn(
                             "flex items-center justify-between p-4 border rounded-lg",
-                            !plan.is_active && "bg-gray-50 opacity-60"
+                            !plan.is_active && "bg-muted/30 opacity-60"
                           )}
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-sm bg-gray-100 px-2 py-1 rounded">
+                              <span className="font-mono font-semibold text-sm bg-accent px-2 py-1 rounded">
                                 {plan.code}
                               </span>
                               <span className="font-medium">{plan.name}</span>
                               {!plan.is_active && (
-                                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
                                   Inactive
                                 </span>
                               )}
@@ -644,7 +644,7 @@ const Settings = () => {
                               size="sm"
                               onClick={() => handleDeleteMealPlan(plan.id)}
                               disabled={loading}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-accent"
                             >
                               <Trash2 size={16} />
                             </Button>
@@ -666,7 +666,7 @@ const Settings = () => {
                   <CardTitle>Data Management</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center justify-between p-4 bg-accent rounded-lg border">
                     <div>
                       <h4 className="font-semibold">Backup Database</h4>
                       <p className="text-sm text-muted-foreground">Create a complete backup of all system data as JSON</p>

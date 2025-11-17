@@ -1257,7 +1257,7 @@ const ReservationCalendar = () => {
                         variant="secondary"
                         size="sm"
                         title="Go to today"
-                        className="flex-1 bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200"
+                        className="flex-1 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-950/50 border-blue-200 dark:border-blue-900"
                       >
                         <Calendar size={16} />
                       </Button>
@@ -1523,12 +1523,12 @@ const ReservationCalendar = () => {
                 <Badge
                   className={
                     selectedReservation.status === 'Confirmed'
-                      ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/30'
                       : selectedReservation.status === 'Checked-in'
-                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                      ? 'bg-blue-100 dark:bg-blue-950/30 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/30'
                       : selectedReservation.status === 'Hold'
-                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-100'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-orange-100 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/30'
+                      : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'
                   }
                 >
                   {selectedReservation.status}
@@ -1539,7 +1539,7 @@ const ReservationCalendar = () => {
             <Button
               onClick={handleEditReservation}
               variant="ghost"
-              className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              className="w-full justify-start text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
             >
               <Edit2 size={16} />
               Edit Reservation
@@ -1548,7 +1548,7 @@ const ReservationCalendar = () => {
             <Button
               onClick={handleCancelReservation}
               variant="ghost"
-              className="w-full justify-start text-rose-700 hover:text-rose-800 hover:bg-rose-50"
+              className="w-full justify-start text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30"
             >
               <XOctagon size={16} />
               Cancel Reservation
@@ -1557,7 +1557,7 @@ const ReservationCalendar = () => {
             <Button
               onClick={handleDeleteReservation}
               variant="ghost"
-              className="w-full justify-start bg-red-900 text-red-50 hover:bg-red-950 hover:text-red-50"
+              className="w-full justify-start bg-red-900 dark:bg-red-950 text-red-50 dark:text-red-100 hover:bg-red-950 dark:hover:bg-red-900 hover:text-red-50 dark:hover:text-red-50"
             >
               <Trash2 size={16} />
               Delete Permanently
@@ -1610,7 +1610,7 @@ const ReservationCalendar = () => {
             <Button
               onClick={handleBookRoom}
               variant="ghost"
-              className="w-full justify-start text-green-700 hover:text-green-800 hover:bg-green-50"
+              className="w-full justify-start text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
             >
               <CalendarIcon size={16} />
               Book
@@ -1619,7 +1619,7 @@ const ReservationCalendar = () => {
             <Button
               onClick={handleHoldRoom}
               variant="ghost"
-              className="w-full justify-start text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+              className="w-full justify-start text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30"
             >
               <Lock size={16} />
               Hold
@@ -1628,7 +1628,7 @@ const ReservationCalendar = () => {
             <Button
               onClick={handleBlockRoom}
               variant="ghost"
-              className="w-full justify-start text-rose-700 hover:text-rose-800 hover:bg-rose-50"
+              className="w-full justify-start text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30"
             >
               <X size={16} />
               Block

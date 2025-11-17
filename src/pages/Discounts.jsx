@@ -285,7 +285,7 @@ const Discounts = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <Power className="h-4 w-4 text-green-600" />
+            <Power className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
@@ -402,7 +402,7 @@ const Discounts = () => {
                           >
                             <Power className={cn(
                               "h-4 w-4",
-                              discount.enabled ? "text-green-600" : "text-muted-foreground"
+                              discount.enabled ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
                             )} />
                           </Button>
                           <Button
