@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { useMealPlans } from './MealPlanContext'
+import { useDiscounts } from './DiscountContext'
+import { applyMultipleDiscounts } from '../utils/discountCalculations'
 
 const ReservationFlowContext = createContext()
 
@@ -13,6 +15,7 @@ export function useReservationFlow() {
 
 export function ReservationFlowProvider({ children }) {
   const { getMealPlanPrice } = useMealPlans()
+  const { validatePromoCode } = useDiscounts()
 
   // Step 1: Availability & Room Selection
   const [filters, setFilters] = useState({
@@ -26,6 +29,8 @@ export function ReservationFlowProvider({ children }) {
   const [selectedAgent, setSelectedAgent] = useState(null)
   const [selectedRooms, setSelectedRooms] = useState([])
   const [addons, setAddons] = useState([])
+  const [selectedDiscounts, setSelectedDiscounts] = useState([])
+  const [appliedPromoCode, setAppliedPromoCode] = useState(null)
 
   // Step 2: Guest Details
   const [guestDetails, setGuestDetails] = useState({
@@ -192,6 +197,41 @@ export function ReservationFlowProvider({ children }) {
     setAddons(prev => prev.filter(a => a.id !== addonId))
   }, [])
 
+  // Discount handlers
+  const addDiscount = useCallback((discount) => {
+    setSelectedDiscounts(prev => {
+      // Check if discount already exists
+      if (prev.some(d => d.id === discount.id)) {
+        return prev
+      }
+      return [...prev, discount]
+    })
+  }, [])
+
+  const removeDiscount = useCallback((discountId) => {
+    setSelectedDiscounts(prev => prev.filter(d => d.id !== discountId))
+    // If removing promo code, clear it
+    if (appliedPromoCode?.id === discountId) {
+      setAppliedPromoCode(null)
+    }
+  }, [appliedPromoCode])
+
+  const applyPromoCode = useCallback(async (promoCode) => {
+    const result = await validatePromoCode(promoCode)
+    if (result.valid) {
+      setAppliedPromoCode(result.discount)
+      addDiscount(result.discount)
+      return { success: true, discount: result.discount }
+    } else {
+      return { success: false, error: result.error }
+    }
+  }, [validatePromoCode, addDiscount])
+
+  const clearDiscounts = useCallback(() => {
+    setSelectedDiscounts([])
+    setAppliedPromoCode(null)
+  }, [])
+
   // Bill calculation
   const calculateBill = useCallback(() => {
     const checkIn = filters.checkIn ? new Date(filters.checkIn) : null
@@ -244,14 +284,49 @@ export function ReservationFlowProvider({ children }) {
       return sum + (addon.price || 0) * (addon.quantity || 1)
     }, 0)
 
-    const subtotal = roomSubtotal + mealPlanSubtotal + addonSubtotal
+    const subtotalBeforeDiscount = roomSubtotal + mealPlanSubtotal + addonSubtotal
+
+    // Apply discounts
+    const roomRateDiscounts = selectedDiscounts.filter(d => d.applies_to === 'room_rates')
+    const addonDiscounts = selectedDiscounts.filter(d => d.applies_to === 'addons')
+    const totalBillDiscounts = selectedDiscounts.filter(d => d.applies_to === 'total_bill')
+
+    // Calculate discounts for each category
+    const roomDiscountResult = applyMultipleDiscounts(roomSubtotal, roomRateDiscounts)
+    const addonDiscountResult = applyMultipleDiscounts(addonSubtotal, addonDiscounts)
+
+    // Calculate subtotal after room and addon discounts
+    const subtotalAfterCategoryDiscounts =
+      roomDiscountResult.finalAmount +
+      mealPlanSubtotal +
+      addonDiscountResult.finalAmount
+
+    // Apply total bill discounts on the final subtotal
+    const totalBillDiscountResult = applyMultipleDiscounts(
+      subtotalAfterCategoryDiscounts,
+      totalBillDiscounts
+    )
+
+    const subtotal = totalBillDiscountResult.finalAmount
+    const totalDiscount =
+      roomDiscountResult.totalDiscount +
+      addonDiscountResult.totalDiscount +
+      totalBillDiscountResult.totalDiscount
+
     const tax = subtotal * 0.18 // 18% GST
     const total = subtotal + tax
     const suggestedDeposit = total * 0.3 // 30% suggested deposit
     const balanceDue = total - (paymentInfo.amount || 0)
 
     return {
+      subtotalBeforeDiscount,
       subtotal,
+      totalDiscount,
+      discountBreakdown: {
+        roomDiscounts: roomDiscountResult.appliedDiscounts,
+        addonDiscounts: addonDiscountResult.appliedDiscounts,
+        totalBillDiscounts: totalBillDiscountResult.appliedDiscounts
+      },
       tax,
       total,
       nights,
@@ -259,7 +334,7 @@ export function ReservationFlowProvider({ children }) {
       balanceDue,
       mealPlanSubtotal
     }
-  }, [filters, selectedRooms, addons, paymentInfo.amount, getMealPlanPrice])
+  }, [filters, selectedRooms, addons, selectedDiscounts, paymentInfo.amount, getMealPlanPrice])
 
   // Reset flow
   const resetFlow = useCallback(() => {
@@ -273,6 +348,8 @@ export function ReservationFlowProvider({ children }) {
     setSelectedAgent(null)
     setSelectedRooms([])
     setAddons([])
+    setSelectedDiscounts([])
+    setAppliedPromoCode(null)
     setGuestDetails({
       firstName: '',
       surname: '',
@@ -301,6 +378,8 @@ export function ReservationFlowProvider({ children }) {
     selectedAgent,
     selectedRooms,
     addons,
+    selectedDiscounts,
+    appliedPromoCode,
     guestDetails,
     paymentInfo,
 
@@ -327,6 +406,12 @@ export function ReservationFlowProvider({ children }) {
     addAddon,
     updateAddon,
     removeAddon,
+
+    // Discount handlers
+    addDiscount,
+    removeDiscount,
+    applyPromoCode,
+    clearDiscounts,
 
     // Utilities
     calculateBill,
