@@ -219,14 +219,14 @@ export function ReservationFlowProvider({ children }) {
 
       // Calculate for each room instance
       for (let i = 0; i < room.quantity; i++) {
-        const mealPlanCode = room.mealPlans?.[i] || ''
+        const mealPlanCode = room.mealPlans?.[i] || 'none'
         const guestCount = room.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
 
         // Calculate total guests (adults + children, excluding infants)
         const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
 
         // Get price per person per day for this meal plan (0 if no meal plan)
-        const pricePerPerson = mealPlanCode ? getMealPlanPrice(mealPlanCode) : 0
+        const pricePerPerson = (mealPlanCode && mealPlanCode !== 'none') ? getMealPlanPrice(mealPlanCode) : 0
 
         // Calculate total meal plan cost for this room
         roomMealPlanTotal += pricePerPerson * totalGuests * nights
