@@ -42,13 +42,13 @@ export default function GuestDetailsPage({ onNavigate }) {
   // Redirect if no rooms selected
   if (!selectedRooms || selectedRooms.length === 0) {
     return (
-      <div className="h-full flex flex-col bg-gray-50">
-        <div className="bg-white border-b px-6 py-4">
+      <div className="h-full flex flex-col bg-accent">
+        <div className="bg-card border-b px-6 py-4">
           <h1 className="text-2xl font-bold">Guest Details</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center p-8 bg-white rounded-lg shadow">
-            <p className="text-gray-600 mb-4 text-lg">No rooms selected. Please start from the beginning.</p>
+          <div className="text-center p-8 bg-card rounded-lg shadow">
+            <p className="text-muted-foreground mb-4 text-lg">No rooms selected. Please start from the beginning.</p>
             <Button onClick={() => onNavigate('new-reservation')} size="lg">
               Go to Room Selection
             </Button>
@@ -178,9 +178,9 @@ const handleSelectGuest = (guest) => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-accent">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-card border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Guest Details</h1>
           <StepIndicator currentStep={2} />
@@ -190,7 +190,7 @@ const handleSelectGuest = (guest) => {
       {/* Main Content - Two Column Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Guest Selection */}
-        <div className="w-80 bg-white border-r flex flex-col">
+        <div className="w-80 bg-card border-r flex flex-col">
           <div className="p-4 border-b flex-shrink-0">
             <div className="flex items-center gap-2 mb-3">
               <Button
@@ -204,7 +204,7 @@ const handleSelectGuest = (guest) => {
               </Button>
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Search guests..."
@@ -218,7 +218,7 @@ const handleSelectGuest = (guest) => {
           {/* Guest List - Scrollable with max height */}
           <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(83vh)]">
             {filteredGuests.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 text-sm">
+              <div className="p-4 text-center text-muted-foreground text-sm">
                 {guestSearch ? 'No guests found' : 'No saved guests'}
               </div>
             ) : (
@@ -227,12 +227,12 @@ const handleSelectGuest = (guest) => {
                   <button
                     key={guest.id}
                     onClick={() => handleSelectGuest(guest)}
-                    className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                      selectedGuestId === guest.id && !showNewGuest ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                    className={`w-full text-left p-4 hover:bg-muted/30 transition-colors ${
+                      selectedGuestId === guest.id && !showNewGuest ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-400' : ''
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                         {guest.photo_url ? (
                           <img
                             src={guest.photo_url}
@@ -240,17 +240,17 @@ const handleSelectGuest = (guest) => {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <User className="w-5 h-5 text-gray-500" />
+                          <User className="w-5 h-5 text-muted-foreground" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">{guest.name}</div>
-                        <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                           <Phone className="w-3 h-3" />
                           <span className="truncate">{guest.phone}</span>
                         </div>
                         {guest.email && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                             <Mail className="w-3 h-3" />
                             <span className="truncate">{guest.email}</span>
                           </div>
@@ -265,12 +265,12 @@ const handleSelectGuest = (guest) => {
         </div>
 
         {/* Right Content - Guest Form */}
-        <div className="flex-1 overflow-y-auto bg-white">
+        <div className="flex-1 overflow-y-auto bg-card">
           <div className="p-6">
             {/* Single Unified Card with All Information */}
-            <div className="bg-white border rounded-lg shadow-sm">
+            <div className="bg-card border rounded-lg shadow-sm">
               {/* Photo Section - Compact Header */}
-              <div className="border-b bg-gray-50 px-6 py-4">
+              <div className="border-b bg-muted/30 px-6 py-4">
                 <div className="flex items-center gap-6">
                   {/* Compact Photo Preview */}
                   <div className="relative flex-shrink-0">
@@ -278,11 +278,11 @@ const handleSelectGuest = (guest) => {
                       <img
                         src={guestDetails.photoUrl}
                         alt="Guest"
-                        className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200"
+                        className="w-24 h-24 object-cover rounded-lg border-2 border-border"
                       />
                     ) : (
-                      <div className="w-24 h-24 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                        <User className="w-10 h-10 text-gray-400" />
+                      <div className="w-24 h-24 bg-muted rounded-lg border-2 border-dashed border-border flex items-center justify-center">
+                        <User className="w-10 h-10 text-muted-foreground" />
                       </div>
                     )}
                   </div>
@@ -317,7 +317,7 @@ const handleSelectGuest = (guest) => {
                           Remove
                         </Button>
                       )}
-                      <span className="text-xs text-gray-500 ml-2">JPG, PNG. Max 5MB</span>
+                      <span className="text-xs text-muted-foreground ml-2">JPG, PNG. Max 5MB</span>
                     </div>
                   </div>
                 </div>
@@ -327,7 +327,7 @@ const handleSelectGuest = (guest) => {
               <div className="p-6">
                 {/* Personal Information Section */}
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Personal Information</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Personal Information</h3>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="firstName" className="text-sm">First Name *</Label>
@@ -336,9 +336,9 @@ const handleSelectGuest = (guest) => {
                         value={guestDetails.firstName}
                         onChange={(e) => setGuestDetails({ ...guestDetails, firstName: e.target.value })}
                         placeholder="John"
-                        className={errors.firstName ? 'border-red-500' : ''}
+                        className={errors.firstName ? 'border-red-500 dark:border-red-400' : ''}
                       />
-                      {errors.firstName && <p className="text-xs text-red-500">{errors.firstName}</p>}
+                      {errors.firstName && <p className="text-xs text-red-500 dark:text-red-400">{errors.firstName}</p>}
                     </div>
 
                     <div className="space-y-1.5">
@@ -348,9 +348,9 @@ const handleSelectGuest = (guest) => {
                         value={guestDetails.surname}
                         onChange={(e) => setGuestDetails({ ...guestDetails, surname: e.target.value })}
                         placeholder="Doe"
-                        className={errors.surname ? 'border-red-500' : ''}
+                        className={errors.surname ? 'border-red-500 dark:border-red-400' : ''}
                       />
-                      {errors.surname && <p className="text-xs text-red-500">{errors.surname}</p>}
+                      {errors.surname && <p className="text-xs text-red-500 dark:text-red-400">{errors.surname}</p>}
                     </div>
 
                     <div className="space-y-1.5">
@@ -361,9 +361,9 @@ const handleSelectGuest = (guest) => {
                         value={guestDetails.phone}
                         onChange={(e) => setGuestDetails({ ...guestDetails, phone: e.target.value })}
                         placeholder="9876543210"
-                        className={errors.phone ? 'border-red-500' : ''}
+                        className={errors.phone ? 'border-red-500 dark:border-red-400' : ''}
                       />
-                      {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
+                      {errors.phone && <p className="text-xs text-red-500 dark:text-red-400">{errors.phone}</p>}
                     </div>
 
                     <div className="space-y-1.5">
@@ -374,16 +374,16 @@ const handleSelectGuest = (guest) => {
                         value={guestDetails.email}
                         onChange={(e) => setGuestDetails({ ...guestDetails, email: e.target.value })}
                         placeholder="john@example.com"
-                        className={errors.email ? 'border-red-500' : ''}
+                        className={errors.email ? 'border-red-500 dark:border-red-400' : ''}
                       />
-                      {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+                      {errors.email && <p className="text-xs text-red-500 dark:text-red-400">{errors.email}</p>}
                     </div>
                   </div>
                 </div>
 
                 {/* ID Proof Section */}
                 <div className="mb-6 pt-6 border-t">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">ID Proof</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">ID Proof</h3>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="idType" className="text-sm">ID Proof Type</Label>
@@ -417,7 +417,7 @@ const handleSelectGuest = (guest) => {
 
                 {/* Address Section */}
                 <div className="pt-6 border-t">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Address</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Address</h3>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="space-y-1.5 lg:col-span-3">
                       <Label htmlFor="address" className="text-sm">Street Address</Label>
@@ -469,7 +469,7 @@ const handleSelectGuest = (guest) => {
       </div>
 
       {/* Footer with Navigation */}
-      <div className="sticky bottom-0 z-10 bg-white border-t px-6 py-4 shadow-lg">
+      <div className="sticky bottom-0 z-10 bg-card border-t px-6 py-4 shadow-lg">
         <div className="flex justify-between">
           <Button
             onClick={() => onNavigate('new-reservation')}

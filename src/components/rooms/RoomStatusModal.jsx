@@ -78,7 +78,7 @@ export const RoomStatusModal = ({ isOpen, onClose, room }) => {
                 variant={room.status === 'Blocked' ? 'destructive' : 'outline'}
                 className={cn(
                   "w-full justify-start",
-                  room.status === 'Blocked' && "bg-gray-700 hover:bg-gray-800 text-white"
+                  room.status === 'Blocked' && "bg-slate-700 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-900 text-white dark:text-slate-100"
                 )}
               >
                 <Lock size={18} className="mr-2" />

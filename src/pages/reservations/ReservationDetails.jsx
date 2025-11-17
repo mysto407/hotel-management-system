@@ -224,7 +224,7 @@ export default function ReservationDetails({ onNavigate }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
-              <p className={`font-bold text-lg ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <p className={`font-bold text-lg ${balanceDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 ₹{balanceDue.toFixed(2)}
               </p>
             </div>
@@ -329,17 +329,17 @@ export default function ReservationDetails({ onNavigate }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                  <DollarSign className="h-8 w-8 text-green-600" />
+                  <DollarSign className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                   <div>
                     <p className="text-sm text-muted-foreground">Paid</p>
-                    <p className="text-xl font-bold text-green-600">₹{totalPaid.toFixed(2)}</p>
+                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">₹{totalPaid.toFixed(2)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                  <DollarSign className="h-8 w-8 text-red-600" />
+                  <DollarSign className="h-8 w-8 text-red-600 dark:text-red-400" />
                   <div>
                     <p className="text-sm text-muted-foreground">Balance Due</p>
-                    <p className={`text-xl font-bold ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    <p className={`text-xl font-bold ${balanceDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       ₹{balanceDue.toFixed(2)}
                     </p>
                   </div>
@@ -432,7 +432,7 @@ export default function ReservationDetails({ onNavigate }) {
             </CardHeader>
             <CardContent>
               {primaryReservation.special_requests ? (
-                <p className="text-gray-700">{primaryReservation.special_requests}</p>
+                <p className="text-foreground">{primaryReservation.special_requests}</p>
               ) : (
                 <p className="text-muted-foreground italic">No special requests</p>
               )}

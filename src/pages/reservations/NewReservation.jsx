@@ -291,9 +291,9 @@ export default function NewReservation({ onNavigate }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-accent">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-card border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">New Reservation</h1>
           <StepIndicator currentStep={1} />
@@ -301,7 +301,7 @@ export default function NewReservation({ onNavigate }) {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-card border-b px-6 py-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="space-y-2">
             <Label>Booking Source</Label>
@@ -485,7 +485,7 @@ export default function NewReservation({ onNavigate }) {
           <div className="space-y-2">
             <Label>Search Rooms</Label>
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 value={filters.searchQuery}
@@ -498,7 +498,7 @@ export default function NewReservation({ onNavigate }) {
         </div>
 
         {bill.nights > 0 && (
-          <div className="mt-3 text-sm text-gray-600">
+          <div className="mt-3 text-sm text-muted-foreground">
             <strong>{bill.nights}</strong> night{bill.nights !== 1 ? 's' : ''}
             {filters.checkIn && filters.checkOut &&
               ` (${new Date(filters.checkIn).toLocaleDateString()} - ${new Date(filters.checkOut).toLocaleDateString()})`
@@ -515,18 +515,18 @@ export default function NewReservation({ onNavigate }) {
             {/* Left Side: Available Rooms Table */}
             <div className="lg:col-span-2">
               {!hasFiltersApplied ? (
-                <div className="bg-white rounded-lg shadow p-8">
-                  <div className="text-center text-gray-500">
-                    <Search className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                <div className="bg-card rounded-lg shadow p-8">
+                  <div className="text-center text-muted-foreground">
+                    <Search className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                     <p className="text-lg font-medium">Apply Filters to View Available Rooms</p>
                     <p className="text-sm mt-2">Please select check-in and check-out dates to see available room types.</p>
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="bg-card rounded-lg shadow overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-muted/30 border-b">
                         <tr>
                           <th className="text-left p-3 text-sm font-semibold">Type</th>
                           <th className="text-center p-3 text-sm font-semibold">Capacity</th>
@@ -539,7 +539,7 @@ export default function NewReservation({ onNavigate }) {
                       <tbody>
                         {availableRoomTypes.length === 0 ? (
                           <tr>
-                            <td colSpan="6" className="text-center p-8 text-gray-500">
+                            <td colSpan="6" className="text-center p-8 text-muted-foreground">
                               No rooms available matching your criteria
                             </td>
                           </tr>
@@ -549,17 +549,17 @@ export default function NewReservation({ onNavigate }) {
                           const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
 
                           return (
-                            <tr key={roomType.id} className="border-b hover:bg-gray-50">
+                            <tr key={roomType.id} className="border-b hover:bg-muted/30">
                               <td className="p-3">
                                 <div>
                                   <div className="font-medium">{roomType.name}</div>
                                   {roomType.description && (
-                                    <div className="text-sm text-gray-500">{roomType.description}</div>
+                                    <div className="text-sm text-muted-foreground">{roomType.description}</div>
                                   )}
                                 </div>
                               </td>
                               <td className="p-3 text-center">
-                                <span className="text-gray-600">
+                                <span className="text-muted-foreground">
                                   {roomType.capacity} {roomType.capacity === 1 ? 'person' : 'people'}
                                 </span>
                               </td>
@@ -601,7 +601,7 @@ export default function NewReservation({ onNavigate }) {
                               <td className="p-3 text-center">
                                 <span className={`
                                   px-2 py-1 rounded text-sm font-medium
-                                  ${roomType.availableCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
+                                  ${roomType.availableCount > 0 ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400'}
                                 `}>
                                   {roomType.availableCount}
                                   {isSelected && ` (${selectedQty} selected)`}
@@ -641,7 +641,7 @@ export default function NewReservation({ onNavigate }) {
 
             {/* Right Side: Selected Rooms Cart */}
             <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow p-4">
+              <div className="bg-card rounded-lg shadow p-4">
                 {/* Header with Auto Assign All and Meal Plan */}
                 <div className="mb-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -700,7 +700,7 @@ export default function NewReservation({ onNavigate }) {
                 </div>
 
                 {selectedRooms.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No rooms selected</p>
+                  <p className="text-muted-foreground text-sm">No rooms selected</p>
                 ) : (
                   <div className="space-y-4">
                     {selectedRooms.map(room => {
@@ -710,7 +710,7 @@ export default function NewReservation({ onNavigate }) {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="font-medium">{room.name}</div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-muted-foreground">
                                 ₹{room.ratePrice || room.base_price} × {bill.nights} nights
                               </div>
                             </div>
@@ -727,7 +727,7 @@ export default function NewReservation({ onNavigate }) {
                                 size="icon"
                                 onClick={() => removeRoom(room.id)}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
                               </Button>
                             </div>
                           </div>
@@ -738,7 +738,7 @@ export default function NewReservation({ onNavigate }) {
                             {Array.from({ length: room.quantity }).map((_, index) => (
                               <div key={index} className="space-y-1.5">
                                 <div className="flex items-center gap-2">
-                                  <Label className="text-xs text-gray-600 w-12">#{index + 1}</Label>
+                                  <Label className="text-xs text-muted-foreground w-12">#{index + 1}</Label>
                                   <Select
                                     value={room.assignedRooms?.[index] || ''}
                                     onValueChange={(value) => {
@@ -749,12 +749,12 @@ export default function NewReservation({ onNavigate }) {
                                       }
                                     }}
                                   >
-                                    <SelectTrigger className={`h-8 text-sm flex-1 ${!room.assignedRooms?.[index] ? 'border-red-300' : ''}`}>
+                                    <SelectTrigger className={`h-8 text-sm flex-1 ${!room.assignedRooms?.[index] ? 'border-red-500 dark:border-red-400' : ''}`}>
                                       <SelectValue placeholder="Select room *" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       <SelectItem value="unassign">
-                                        <span className="text-gray-500">Not assigned</span>
+                                        <span className="text-muted-foreground">Not assigned</span>
                                       </SelectItem>
                                       {typeAvailableRooms.map(r => (
                                         <SelectItem
@@ -780,7 +780,7 @@ export default function NewReservation({ onNavigate }) {
                                 {/* Individual Meal Plan if not using same for all */}
                                 {!sameMealPlanForAll && (
                                   <div className="flex items-center gap-2 pl-14">
-                                    <Label className="text-xs text-gray-600 w-20">Meal Plan:</Label>
+                                    <Label className="text-xs text-muted-foreground w-20">Meal Plan:</Label>
                                     <Select
                                       value={room.mealPlans?.[index] || 'none'}
                                       onValueChange={(value) => setMealPlan(room.id, index, value)}
@@ -803,7 +803,7 @@ export default function NewReservation({ onNavigate }) {
                                 {/* Guest Count */}
                                 <div className="grid grid-cols-3 gap-2 pl-14 mt-2">
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-gray-600">Adults</Label>
+                                    <Label className="text-xs text-muted-foreground">Adults</Label>
                                     <Input
                                       type="number"
                                       min="1"
@@ -819,7 +819,7 @@ export default function NewReservation({ onNavigate }) {
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-gray-600">Children</Label>
+                                    <Label className="text-xs text-muted-foreground">Children</Label>
                                     <Input
                                       type="number"
                                       min="0"
@@ -835,7 +835,7 @@ export default function NewReservation({ onNavigate }) {
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-xs text-gray-600">Infants</Label>
+                                    <Label className="text-xs text-muted-foreground">Infants</Label>
                                     <Input
                                       type="number"
                                       min="0"
@@ -864,11 +864,11 @@ export default function NewReservation({ onNavigate }) {
           </div>
 
           {/* Add-ons Section */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Add-ons</h2>
 
             {selectedRooms.length === 0 ? (
-              <p className="text-gray-500 text-sm">Please select rooms first to add add-ons</p>
+              <p className="text-muted-foreground text-sm">Please select rooms first to add add-ons</p>
             ) : (
               <>
                 {/* Add-on Form */}
@@ -959,11 +959,11 @@ export default function NewReservation({ onNavigate }) {
 
                 {/* Added Add-ons Table */}
                 {addons.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No add-ons added yet</p>
+                  <p className="text-muted-foreground text-sm">No add-ons added yet</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-muted/30 border-b">
                         <tr>
                           <th className="text-left p-3 text-sm font-semibold">Room</th>
                           <th className="text-left p-3 text-sm font-semibold">Add-on Type</th>
@@ -976,7 +976,7 @@ export default function NewReservation({ onNavigate }) {
                       </thead>
                       <tbody>
                         {addons.map(addon => (
-                          <tr key={addon.id} className="border-b hover:bg-gray-50">
+                          <tr key={addon.id} className="border-b hover:bg-muted/30">
                             <td className="p-3 text-sm">{addon.roomName}</td>
                             <td className="p-3 text-sm capitalize">{addon.addonType}</td>
                             <td className="p-3 text-sm font-medium">{addon.name}</td>
@@ -991,7 +991,7 @@ export default function NewReservation({ onNavigate }) {
                                 size="icon"
                                 onClick={() => removeAddon(addon.id)}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
                               </Button>
                             </td>
                           </tr>
@@ -1007,54 +1007,54 @@ export default function NewReservation({ onNavigate }) {
       </div>
 
       {/* Bill Summary Row */}
-      <div className="bg-gray-100 border-t px-6 py-3">
+      <div className="bg-muted/30 border-t px-6 py-3">
         <div className="flex items-center justify-end gap-8 text-sm">
           {bill.totalDiscount > 0 && (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-gray-600">Original Amount:</span>
-                <span className="text-gray-500 line-through">₹{bill.subtotalBeforeDiscount.toFixed(2)}</span>
+                <span className="text-muted-foreground">Original Amount:</span>
+                <span className="text-muted-foreground line-through">₹{bill.subtotalBeforeDiscount.toFixed(2)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-green-600">Discount:</span>
-                <span className="font-semibold text-green-600">-₹{bill.totalDiscount.toFixed(2)}</span>
+                <span className="text-emerald-600 dark:text-emerald-400">Discount:</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">-₹{bill.totalDiscount.toFixed(2)}</span>
               </div>
             </>
           )}
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Subtotal:</span>
+            <span className="text-muted-foreground">Subtotal:</span>
             <span className="font-semibold">₹{bill.subtotal.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Taxes (18%):</span>
+            <span className="text-muted-foreground">Taxes (18%):</span>
             <span className="font-semibold">₹{bill.tax.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Grand Total:</span>
-            <span className="font-bold text-lg text-blue-600">₹{bill.total.toFixed(2)}</span>
+            <span className="text-muted-foreground">Grand Total:</span>
+            <span className="font-bold text-lg text-blue-600 dark:text-blue-400">₹{bill.total.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Suggested Deposit:</span>
-            <span className="font-semibold text-green-600">₹{bill.suggestedDeposit.toFixed(2)}</span>
+            <span className="text-muted-foreground">Suggested Deposit:</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">₹{bill.suggestedDeposit.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Balance Due:</span>
+            <span className="text-muted-foreground">Balance Due:</span>
             <span className="font-semibold">₹{(bill.total - bill.suggestedDeposit).toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* Footer with Navigation */}
-      <div className="sticky bottom-0 z-10 bg-white border-t px-6 py-4 shadow-lg">
+      <div className="sticky bottom-0 z-10 bg-card border-t px-6 py-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
             {selectedRooms.length > 0 && !allRoomsAssigned && (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-600 dark:text-red-400">
                 ⚠ Please assign room numbers to all selected rooms before proceeding
               </p>
             )}
             {filters.source === 'agent' && !selectedAgent && (
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-600 dark:text-red-400">
                 ⚠ Please select an agent before proceeding
               </p>
             )}

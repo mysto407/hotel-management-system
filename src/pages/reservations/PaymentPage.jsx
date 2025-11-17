@@ -230,9 +230,9 @@ export default function PaymentPage({ onNavigate }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-accent">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-card border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Payment & Confirmation</h1>
           <StepIndicator currentStep={3} />
@@ -247,36 +247,36 @@ export default function PaymentPage({ onNavigate }) {
             {/* Left Side: Reservation & Accommodation Summary */}
             <div className="space-y-6">
               {/* Reservation Summary */}
-              <div className="bg-white rounded-lg shadow">
+              <div className="bg-card rounded-lg shadow">
                 <div className="px-6 py-4 border-b">
                   <h2 className="text-lg font-semibold">Reservation Summary</h2>
                 </div>
                 <div className="p-6 space-y-4">
                   {/* Guest Information */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Guest Information</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Guest Information</h3>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Name:</span>
+                        <span className="text-muted-foreground">Name:</span>
                         <span className="font-medium">{guestDetails.firstName} {guestDetails.surname}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Email:</span>
+                        <span className="text-muted-foreground">Email:</span>
                         <span className="font-medium">{guestDetails.email}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Phone:</span>
+                        <span className="text-muted-foreground">Phone:</span>
                         <span className="font-medium">{guestDetails.phone}</span>
                       </div>
                       {guestDetails.idType && guestDetails.idNumber && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">ID Proof:</span>
+                          <span className="text-muted-foreground">ID Proof:</span>
                           <span className="font-medium">{guestDetails.idType} - {guestDetails.idNumber}</span>
                         </div>
                       )}
                       {guestDetails.address && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Address:</span>
+                          <span className="text-muted-foreground">Address:</span>
                           <span className="font-medium text-right">{guestDetails.address}, {guestDetails.city}</span>
                         </div>
                       )}
@@ -285,10 +285,10 @@ export default function PaymentPage({ onNavigate }) {
 
                   {/* Stay Details */}
                   <div className="pt-4 border-t">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Stay Details</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Stay Details</h3>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Check-in:</span>
+                        <span className="text-muted-foreground">Check-in:</span>
                         <span className="font-medium">
                           {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
                             weekday: 'short',
@@ -299,7 +299,7 @@ export default function PaymentPage({ onNavigate }) {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Check-out:</span>
+                        <span className="text-muted-foreground">Check-out:</span>
                         <span className="font-medium">
                           {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
                             weekday: 'short',
@@ -310,14 +310,14 @@ export default function PaymentPage({ onNavigate }) {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Total Nights:</span>
+                        <span className="text-muted-foreground">Total Nights:</span>
                         <span className="font-medium">{bill.nights}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Total Guests:</span>
+                        <span className="text-muted-foreground">Total Guests:</span>
                         <span className="font-medium">
                           {totalGuestCounts.adults + totalGuestCounts.children + totalGuestCounts.infants}
-                          <span className="text-gray-500 ml-1">
+                          <span className="text-muted-foreground ml-1">
                             ({totalGuestCounts.adults}A
                             {totalGuestCounts.children > 0 && `, ${totalGuestCounts.children}C`}
                             {totalGuestCounts.infants > 0 && `, ${totalGuestCounts.infants}I`})
@@ -329,20 +329,20 @@ export default function PaymentPage({ onNavigate }) {
 
                   {/* Booking Details */}
                   <div className="pt-4 border-t">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Booking Details</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Booking Details</h3>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Source:</span>
+                        <span className="text-muted-foreground">Source:</span>
                         <span className="font-medium capitalize">{filters.source}</span>
                       </div>
                       {selectedAgent && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Agent:</span>
+                          <span className="text-muted-foreground">Agent:</span>
                           <span className="font-medium">{selectedAgent.name}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Rooms Booked:</span>
+                        <span className="text-muted-foreground">Rooms Booked:</span>
                         <span className="font-medium">
                           {selectedRooms.reduce((sum, room) => sum + room.quantity, 0)}
                         </span>
@@ -352,7 +352,7 @@ export default function PaymentPage({ onNavigate }) {
 
                   {/* Room Breakdown */}
                   <div className="pt-4 border-t">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Room Details</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Room Details</h3>
                     <div className="space-y-3">
                       {selectedRooms.flatMap(room =>
                         Array.from({ length: room.quantity }, (_, index) => {
@@ -364,12 +364,12 @@ export default function PaymentPage({ onNavigate }) {
                           const mealPlanCost = mealPlanPrice * totalGuests * bill.nights
 
                           return (
-                            <div key={`${room.id}-${index}`} className="bg-gray-50 rounded p-3 space-y-1.5">
+                            <div key={`${room.id}-${index}`} className="bg-muted/30 rounded p-3 space-y-1.5">
                               <div className="flex justify-between items-start">
                                 <span className="font-medium text-sm">{room.name}</span>
                                 <span className="text-sm font-semibold">₹{(room.base_price * bill.nights).toFixed(2)}</span>
                               </div>
-                              <div className="flex justify-between text-xs text-gray-600">
+                              <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Guests:</span>
                                 <span>
                                   {guestCount.adults}A
@@ -377,11 +377,11 @@ export default function PaymentPage({ onNavigate }) {
                                   {guestCount.infants > 0 && `, ${guestCount.infants}I`}
                                 </span>
                               </div>
-                              <div className="flex justify-between text-xs text-gray-600">
+                              <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Meal Plan:</span>
                                 <span>{mealPlanName} {mealPlanCost > 0 && `(+₹${mealPlanCost.toFixed(2)})`}</span>
                               </div>
-                              <div className="flex justify-between text-xs text-gray-600">
+                              <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Rate per night:</span>
                                 <span>₹{room.base_price.toFixed(2)}</span>
                               </div>
@@ -395,13 +395,13 @@ export default function PaymentPage({ onNavigate }) {
               </div>
 
               {/* Accommodation Summary Table */}
-              <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="bg-card rounded-lg shadow overflow-hidden">
                 <div className="px-6 py-4 border-b">
                   <h2 className="text-lg font-semibold">Accommodation Summary</h2>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-muted/30">
                       <tr>
                         <th className="text-left p-3 text-sm font-semibold">Type</th>
                         <th className="text-left p-3 text-sm font-semibold">Arrival</th>
@@ -435,7 +435,7 @@ export default function PaymentPage({ onNavigate }) {
             </div>
 
             {/* Right Side: Bill Breakdown with Payment Information */}
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-card rounded-lg shadow">
               {/* Bill Breakdown */}
               <div className="p-6 pb-4 border-b">
                 <h2 className="text-lg font-semibold mb-4">Bill Breakdown</h2>
@@ -443,7 +443,7 @@ export default function PaymentPage({ onNavigate }) {
                 <div className="space-y-4">
                   {/* Room Charges - Detailed */}
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Room Charges</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Room Charges</h3>
                     <div className="space-y-3">
                       {selectedRooms.flatMap(room =>
                         Array.from({ length: room.quantity }, (_, index) => {
@@ -452,30 +452,30 @@ export default function PaymentPage({ onNavigate }) {
                           const roomTotal = roomSubtotal + roomTax
 
                           return (
-                            <div key={`bill-${room.id}-${index}`} className="bg-gray-50 rounded p-3 space-y-2">
+                            <div key={`bill-${room.id}-${index}`} className="bg-muted/30 rounded p-3 space-y-2">
                               <div className="flex justify-between items-start">
                                 <div>
                                   <div className="font-medium text-sm">{room.name}</div>
-                                  <div className="text-xs text-gray-500 mt-0.5">
+                                  <div className="text-xs text-muted-foreground mt-0.5">
                                     Room {index + 1} of {room.quantity}
                                   </div>
                                 </div>
                                 <span className="text-sm font-semibold">₹{roomTotal.toFixed(2)}</span>
                               </div>
-                              <div className="space-y-1 pt-2 border-t border-gray-200">
+                              <div className="space-y-1 pt-2 border-t border-border">
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-gray-600">Base Rate</span>
+                                  <span className="text-muted-foreground">Base Rate</span>
                                   <span>₹{room.base_price.toFixed(2)} × {bill.nights} nights</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-gray-600">Subtotal</span>
+                                  <span className="text-muted-foreground">Subtotal</span>
                                   <span>₹{roomSubtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-gray-600">GST (18%)</span>
+                                  <span className="text-muted-foreground">GST (18%)</span>
                                   <span>₹{roomTax.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-xs font-medium pt-1 border-t border-gray-200">
+                                <div className="flex justify-between text-xs font-medium pt-1 border-t border-border">
                                   <span>Room Total</span>
                                   <span>₹{roomTotal.toFixed(2)}</span>
                                 </div>
@@ -502,7 +502,7 @@ export default function PaymentPage({ onNavigate }) {
                   {/* Meal Plan Charges - Detailed */}
                   {bill.mealPlanSubtotal > 0 && (
                     <div className="pt-3 border-t">
-                      <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Meal Plan Charges</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Meal Plan Charges</h3>
                       <div className="space-y-3">
                         {selectedRooms.flatMap(room =>
                           Array.from({ length: room.quantity }, (_, index) => {
@@ -520,34 +520,34 @@ export default function PaymentPage({ onNavigate }) {
                             if (mealPlanSubtotal === 0) return null
 
                             return (
-                              <div key={`meal-${room.id}-${index}`} className="bg-gray-50 rounded p-3 space-y-2">
+                              <div key={`meal-${room.id}-${index}`} className="bg-muted/30 rounded p-3 space-y-2">
                                 <div className="flex justify-between items-start">
                                   <div>
                                     <div className="font-medium text-sm">{room.name} - {mealPlanName}</div>
-                                    <div className="text-xs text-gray-500 mt-0.5">
+                                    <div className="text-xs text-muted-foreground mt-0.5">
                                       Room {index + 1} of {room.quantity}
                                     </div>
                                   </div>
                                   <span className="text-sm font-semibold">₹{mealPlanTotal.toFixed(2)}</span>
                                 </div>
-                                <div className="space-y-1 pt-2 border-t border-gray-200">
+                                <div className="space-y-1 pt-2 border-t border-border">
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600">Rate per person per day</span>
+                                    <span className="text-muted-foreground">Rate per person per day</span>
                                     <span>₹{pricePerPerson.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600">Guests × Nights</span>
+                                    <span className="text-muted-foreground">Guests × Nights</span>
                                     <span>{totalGuests} × {bill.nights}</span>
                                   </div>
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600">Subtotal</span>
+                                    <span className="text-muted-foreground">Subtotal</span>
                                     <span>₹{mealPlanSubtotal.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600">GST (18%)</span>
+                                    <span className="text-muted-foreground">GST (18%)</span>
                                     <span>₹{mealPlanTax.toFixed(2)}</span>
                                   </div>
-                                  <div className="flex justify-between text-xs font-medium pt-1 border-t border-gray-200">
+                                  <div className="flex justify-between text-xs font-medium pt-1 border-t border-border">
                                     <span>Meal Plan Total</span>
                                     <span>₹{mealPlanTotal.toFixed(2)}</span>
                                   </div>
@@ -583,7 +583,7 @@ export default function PaymentPage({ onNavigate }) {
                   {/* Add-ons - Detailed */}
                   {addons && addons.length > 0 && (
                     <div className="pt-3 border-t">
-                      <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Add-ons & Services</h3>
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Add-ons & Services</h3>
                       <div className="space-y-2">
                         {addons.map(addon => {
                           const addonSubtotal = addon.price * addon.quantity
@@ -591,22 +591,22 @@ export default function PaymentPage({ onNavigate }) {
                           const addonTotal = addonSubtotal + addonTax
 
                           return (
-                            <div key={addon.id} className="bg-gray-50 rounded p-3 space-y-2">
+                            <div key={addon.id} className="bg-muted/30 rounded p-3 space-y-2">
                               <div className="flex justify-between items-start">
                                 <div className="font-medium text-sm">{addon.name}</div>
                                 <span className="text-sm font-semibold">₹{addonTotal.toFixed(2)}</span>
                               </div>
-                              <div className="space-y-1 pt-2 border-t border-gray-200">
+                              <div className="space-y-1 pt-2 border-t border-border">
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-gray-600">Unit Price</span>
+                                  <span className="text-muted-foreground">Unit Price</span>
                                   <span>₹{addon.price.toFixed(2)} × {addon.quantity}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-gray-600">Subtotal</span>
+                                  <span className="text-muted-foreground">Subtotal</span>
                                   <span>₹{addonSubtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-gray-600">GST (18%)</span>
+                                  <span className="text-muted-foreground">GST (18%)</span>
                                   <span>₹{addonTax.toFixed(2)}</span>
                                 </div>
                               </div>
@@ -631,25 +631,25 @@ export default function PaymentPage({ onNavigate }) {
 
                   {/* Promo Code Section */}
                   <div className="pt-4 border-t">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Promo Code & Discounts</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Promo Code & Discounts</h3>
 
                     {/* Applied Promo Code Display */}
                     {appliedPromoCode ? (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-medium text-sm text-green-800">
+                            <div className="font-medium text-sm text-emerald-800 dark:text-emerald-300">
                               {appliedPromoCode.code}
                             </div>
-                            <div className="text-xs text-green-600 mt-0.5">
+                            <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
                               {appliedPromoCode.name}
                             </div>
                             {(appliedPromoCode.value_type || appliedPromoCode.discount_type) === 'percentage' ? (
-                              <div className="text-xs text-green-600 mt-0.5">
+                              <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
                                 {appliedPromoCode.value}% off
                               </div>
                             ) : (
-                              <div className="text-xs text-green-600 mt-0.5">
+                              <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
                                 ₹{appliedPromoCode.value} off
                               </div>
                             )}
@@ -658,7 +658,7 @@ export default function PaymentPage({ onNavigate }) {
                             variant="ghost"
                             size="sm"
                             onClick={handleRemovePromoCode}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
                           >
                             Remove
                           </Button>
@@ -692,7 +692,7 @@ export default function PaymentPage({ onNavigate }) {
 
                     {/* Show total discount if applied */}
                     {bill.totalDiscount > 0 && (
-                      <div className="mt-3 pt-3 border-t flex justify-between text-sm font-medium text-green-600">
+                      <div className="mt-3 pt-3 border-t flex justify-between text-sm font-medium text-emerald-600 dark:text-emerald-400">
                         <span>Total Discount Applied</span>
                         <span>-₹{bill.totalDiscount.toFixed(2)}</span>
                       </div>
@@ -701,25 +701,25 @@ export default function PaymentPage({ onNavigate }) {
 
                   {/* Grand Totals */}
                   <div className="pt-4 border-t-2 space-y-2">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Summary</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Summary</h3>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal (Before Tax)</span>
+                      <span className="text-muted-foreground">Subtotal (Before Tax)</span>
                       <span className="font-medium">₹{bill.subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Total GST (18%)</span>
+                      <span className="text-muted-foreground">Total GST (18%)</span>
                       <span className="font-medium">₹{bill.tax.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-3 border-t-2">
                       <span>Grand Total</span>
-                      <span className="text-blue-600">₹{bill.total.toFixed(2)}</span>
+                      <span className="text-blue-600 dark:text-blue-400">₹{bill.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Payment Information */}
-              <div className="p-6 pt-4 bg-gray-50">
+              <div className="p-6 pt-4 bg-muted/30">
                 <h3 className="text-base font-semibold mb-4">Payment Information</h3>
 
                 <div className="grid grid-cols-1 gap-4">
@@ -755,14 +755,14 @@ export default function PaymentPage({ onNavigate }) {
                             onChange={(e) => setPaymentInfo({ ...paymentInfo, amount: parseFloat(e.target.value) || 0 })}
                             placeholder="0.00"
                           />
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             Suggested: ₹{bill.suggestedDeposit.toFixed(2)}
                           </p>
                         </div>
 
                         <div className="space-y-2">
                           <Label>Balance Due</Label>
-                          <div className="h-10 flex items-center px-3 bg-white rounded border text-gray-700 font-medium">
+                          <div className="h-10 flex items-center px-3 bg-card rounded border text-foreground font-medium">
                             ₹{(bill.total - (paymentInfo.amount || 0)).toFixed(2)}
                           </div>
                         </div>
@@ -775,7 +775,7 @@ export default function PaymentPage({ onNavigate }) {
                           onChange={(e) => setPaymentInfo({ ...paymentInfo, notes: e.target.value })}
                           placeholder="Transaction ID, reference number, etc."
                           rows={2}
-                          className="bg-white"
+                          className="bg-card"
                         />
                       </div>
                     </>
@@ -788,7 +788,7 @@ export default function PaymentPage({ onNavigate }) {
       </div>
 
       {/* Footer with Navigation */}
-      <div className="sticky bottom-0 z-10 bg-white border-t px-6 py-4 shadow-lg">
+      <div className="sticky bottom-0 z-10 bg-card border-t px-6 py-4 shadow-lg">
         <div className="flex justify-between">
           <Button
             onClick={() => onNavigate('guest-details')}
