@@ -32,13 +32,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 const RoomTypes = () => {
-  const { roomTypes, addRoomType, updateRoomType, deleteRoomType } = useRooms();
+  const { roomTypes, addRoomType, updateRoomType, deleteRoomType, getRateTypesByRoomType, getDefaultRateTypeByRoomType } = useRooms();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingType, setEditingType] = useState(null);
   const [expandedRoomType, setExpandedRoomType] = useState(null);
+  const [selectedRates, setSelectedRates] = useState({});
   const [formData, setFormData] = useState({
     name: '',
     base_price: '',
@@ -88,6 +96,32 @@ const RoomTypes = () => {
     setIsModalOpen(true);
   };
 
+  // Get the selected rate type for a room type, or default to the default rate
+  const getSelectedRateForRoomType = (roomTypeId) => {
+    const rateTypes = getRateTypesByRoomType(roomTypeId);
+    if (rateTypes.length === 0) return null;
+
+    // If a rate is selected in state, use that
+    if (selectedRates[roomTypeId]) {
+      const selected = rateTypes.find(rt => rt.id === selectedRates[roomTypeId]);
+      if (selected) return selected;
+    }
+
+    // Otherwise, use the default rate
+    const defaultRate = getDefaultRateTypeByRoomType(roomTypeId);
+    if (defaultRate) return defaultRate;
+
+    // Fallback to the first rate
+    return rateTypes[0];
+  };
+
+  const handleRateChange = (roomTypeId, rateTypeId) => {
+    setSelectedRates(prev => ({
+      ...prev,
+      [roomTypeId]: rateTypeId
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -104,7 +138,7 @@ const RoomTypes = () => {
               <TableRow>
                 <TableHead className="w-[40px]"></TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Base Price</TableHead>
+                <TableHead>Rates</TableHead>
                 <TableHead>Capacity</TableHead>
                 <TableHead>Amenities</TableHead>
                 <TableHead>Actions</TableHead>
@@ -113,7 +147,7 @@ const RoomTypes = () => {
             <TableBody>
               {roomTypes.map(type => (
                 <>
-                  <TableRow key={type.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableRow key={type.id} className="hover:bg-muted/50">
                     <TableCell className="py-2">
                       <Button
                         variant="ghost"
@@ -129,7 +163,41 @@ const RoomTypes = () => {
                       </Button>
                     </TableCell>
                     <TableCell className="font-medium py-2">{type.name}</TableCell>
-                    <TableCell className="py-2">₹{type.base_price}</TableCell>
+                    <TableCell className="py-2">
+                      {(() => {
+                        const availableRates = getRateTypesByRoomType(type.id);
+                        const selectedRate = getSelectedRateForRoomType(type.id);
+
+                        if (availableRates.length === 0) {
+                          return <span className="text-muted-foreground text-sm">No rates defined</span>;
+                        }
+
+                        if (availableRates.length === 1) {
+                          return <span>₹{selectedRate?.base_price || type.base_price}</span>;
+                        }
+
+                        return (
+                          <Select
+                            value={selectedRate?.id || ''}
+                            onValueChange={(value) => handleRateChange(type.id, value)}
+                          >
+                            <SelectTrigger className="h-8 w-[180px]">
+                              <SelectValue>
+                                {selectedRate ? `₹${selectedRate.base_price} - ${selectedRate.rate_name}` : 'Select rate'}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableRates.map(rate => (
+                                <SelectItem key={rate.id} value={rate.id}>
+                                  ₹{rate.base_price} - {rate.rate_name}
+                                  {rate.is_default && ' (Default)'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="py-2">{type.capacity} {type.capacity === 1 ? 'person' : 'people'}</TableCell>
                     <TableCell className="max-w-xs truncate py-2">{type.amenities}</TableCell>
                     <TableCell className="py-2">
