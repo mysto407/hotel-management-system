@@ -526,14 +526,14 @@ export default function NewReservation({ onNavigate }) {
                 <div className="bg-white rounded-lg shadow overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
+                      <thead className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                         <tr>
-                          <th className="text-left p-3 text-sm font-semibold">Type</th>
-                          <th className="text-center p-3 text-sm font-semibold">Capacity</th>
-                          <th className="text-right p-3 text-sm font-semibold">Rates</th>
-                          <th className="text-center p-3 text-sm font-semibold">Available</th>
-                          <th className="text-center p-3 text-sm font-semibold">Quantity</th>
-                          <th className="text-center p-3 text-sm font-semibold">Action</th>
+                          <th className="text-left p-4 text-sm font-bold text-gray-700 uppercase tracking-wide">Room Type</th>
+                          <th className="text-center p-4 text-sm font-bold text-gray-700 uppercase tracking-wide">Capacity</th>
+                          <th className="text-right p-4 text-sm font-bold text-gray-700 uppercase tracking-wide">Rates</th>
+                          <th className="text-center p-4 text-sm font-bold text-gray-700 uppercase tracking-wide">Available</th>
+                          <th className="text-center p-4 text-sm font-bold text-gray-700 uppercase tracking-wide">Quantity</th>
+                          <th className="text-center p-4 text-sm font-bold text-gray-700 uppercase tracking-wide">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -549,83 +549,105 @@ export default function NewReservation({ onNavigate }) {
                           const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
 
                           return (
-                            <tr key={roomType.id} className="border-b hover:bg-gray-50">
-                              <td className="p-3">
+                            <tr key={roomType.id} className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors">
+                              <td className="p-4">
                                 <div>
-                                  <div className="font-medium">{roomType.name}</div>
+                                  <div className="font-semibold text-gray-900">{roomType.name}</div>
                                   {roomType.description && (
-                                    <div className="text-sm text-gray-500">{roomType.description}</div>
+                                    <div className="text-sm text-gray-600 mt-0.5">{roomType.description}</div>
                                   )}
                                 </div>
                               </td>
-                              <td className="p-3 text-center">
+                              <td className="p-4 text-center">
                                 <span className="text-gray-600">
                                   {roomType.capacity} {roomType.capacity === 1 ? 'person' : 'people'}
                                 </span>
                               </td>
-                              <td className="p-3 text-right">
+                              <td className="p-4 text-right">
                                 {(() => {
                                   const availableRates = getRateTypesByRoomType(roomType.id)
                                   const selectedRate = getSelectedRateForRoomType(roomType.id)
 
                                   if (availableRates.length === 0) {
-                                    return <span className="text-muted-foreground text-sm">No rates defined</span>
+                                    return (
+                                      <div className="text-right">
+                                        <span className="text-muted-foreground text-sm italic">No rates defined</span>
+                                      </div>
+                                    )
                                   }
 
                                   if (availableRates.length === 1) {
-                                    return <span className="font-semibold">₹{selectedRate?.base_price || roomType.base_price}</span>
+                                    return (
+                                      <div className="text-right space-y-0.5">
+                                        <div className="font-bold text-lg text-blue-600">₹{selectedRate?.base_price || roomType.base_price}</div>
+                                        <div className="text-xs text-gray-500">{selectedRate?.rate_name}</div>
+                                      </div>
+                                    )
                                   }
 
                                   return (
-                                    <Select
-                                      value={selectedRate?.id || ''}
-                                      onValueChange={(value) => handleRateChange(roomType.id, value)}
-                                    >
-                                      <SelectTrigger className="h-8 w-[200px] ml-auto">
-                                        <SelectValue>
-                                          {selectedRate ? `₹${selectedRate.base_price} - ${selectedRate.rate_name}` : 'Select rate'}
-                                        </SelectValue>
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {availableRates.map(rate => (
-                                          <SelectItem key={rate.id} value={rate.id}>
-                                            ₹{rate.base_price} - {rate.rate_name}
-                                            {rate.is_default && ' (Default)'}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <div className="flex flex-col items-end gap-1">
+                                      <div className="font-bold text-lg text-blue-600">
+                                        ₹{selectedRate?.base_price || roomType.base_price}
+                                      </div>
+                                      <Select
+                                        value={selectedRate?.id || ''}
+                                        onValueChange={(value) => handleRateChange(roomType.id, value)}
+                                      >
+                                        <SelectTrigger className="h-8 w-[180px] border-blue-200 hover:border-blue-300 focus:ring-blue-500">
+                                          <SelectValue>
+                                            <span className="text-sm font-medium text-gray-700">
+                                              {selectedRate?.rate_name || 'Select rate'}
+                                            </span>
+                                          </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {availableRates.map(rate => (
+                                            <SelectItem key={rate.id} value={rate.id}>
+                                              <div className="flex items-center justify-between gap-3">
+                                                <span className="font-medium">₹{rate.base_price}</span>
+                                                <span className="text-gray-600">{rate.rate_name}</span>
+                                                {rate.is_default && (
+                                                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Default</span>
+                                                )}
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                   )
                                 })()}
                               </td>
-                              <td className="p-3 text-center">
+                              <td className="p-4 text-center">
                                 <span className={`
-                                  px-2 py-1 rounded text-sm font-medium
-                                  ${roomType.availableCount > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}
+                                  px-3 py-1.5 rounded-full text-sm font-semibold inline-flex items-center gap-1.5
+                                  ${roomType.availableCount > 0 ? 'bg-green-100 text-green-700 ring-1 ring-green-200' : 'bg-red-100 text-red-700 ring-1 ring-red-200'}
                                 `}>
-                                  {roomType.availableCount}
-                                  {isSelected && ` (${selectedQty} selected)`}
+                                  <span className="text-base">{roomType.availableCount}</span>
+                                  {isSelected && <span className="text-xs font-normal">({selectedQty} selected)</span>}
                                 </span>
                               </td>
-                              <td className="p-3 text-center">
+                              <td className="p-4 text-center">
                                 <Input
                                   type="number"
                                   min="1"
                                   max={roomType.availableCount}
                                   value={getRoomQuantity(roomType.id)}
                                   onChange={(e) => updateRoomTypeQuantity(roomType.id, e.target.value)}
-                                  className="w-16 text-center"
+                                  className="w-20 text-center font-semibold border-gray-300 focus:border-blue-400 focus:ring-blue-400"
                                   placeholder="1"
                                 />
                               </td>
-                              <td className="p-3 text-center">
+                              <td className="p-4 text-center">
                                 <Button
                                   onClick={() => handleAddRoom(roomType, getRoomQuantity(roomType.id))}
                                   disabled={roomType.availableCount === 0}
                                   size="sm"
+                                  className="font-semibold shadow-sm"
                                 >
-                                  <Plus className="h-4 w-4 mr-1" />
-                                  Add
+                                  <Plus className="h-4 w-4 mr-1.5" />
+                                  Add Room
                                 </Button>
                               </td>
                             </tr>
@@ -706,12 +728,15 @@ export default function NewReservation({ onNavigate }) {
                     {selectedRooms.map(room => {
                       const typeAvailableRooms = getAvailableRoomsForType(room.id)
                       return (
-                        <div key={room.id} className="border rounded-lg p-3 space-y-3">
+                        <div key={room.id} className="border border-gray-200 rounded-lg p-4 space-y-3 hover:border-blue-200 transition-colors bg-gradient-to-br from-white to-gray-50">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="font-medium">{room.name}</div>
-                              <div className="text-sm text-gray-500">
-                                ₹{room.ratePrice || room.base_price} × {bill.nights} nights
+                              <div className="font-semibold text-gray-900">{room.name}</div>
+                              <div className="flex items-baseline gap-2 mt-1">
+                                <span className="text-lg font-bold text-blue-600">₹{room.ratePrice || room.base_price}</span>
+                                <span className="text-xs text-gray-500">× {bill.nights} night{bill.nights !== 1 ? 's' : ''}</span>
+                                <span className="text-xs text-gray-400">•</span>
+                                <span className="text-sm font-semibold text-gray-700">₹{((room.ratePrice || room.base_price) * bill.nights).toLocaleString()}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
