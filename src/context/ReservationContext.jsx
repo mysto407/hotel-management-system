@@ -46,12 +46,15 @@ export const ReservationProvider = ({ children }) => {
       showError('Failed to create reservation: ' + error.message);
       return null;
     }
-    
-    // Update room status to Occupied if checking in
+
+    // Update room status based on reservation status
     if (reservation.status === 'Checked-in') {
       await updateRoomStatus(reservation.room_id, 'Occupied');
+    } else if (reservation.status === 'Confirmed') {
+      // Set room to Reserved when a confirmed booking is created
+      await updateRoomStatus(reservation.room_id, 'Reserved');
     }
-    
+
     await loadReservations(); // Reload to get with relations
     return data[0];
   };
@@ -189,9 +192,9 @@ export const ReservationProvider = ({ children }) => {
     if (!reservation) return;
 
     await updateReservation(id, { status: 'Cancelled' });
-    
-    // If was checked in, make room available
-    if (reservation.status === 'Checked-in') {
+
+    // If was checked in or reserved, make room available
+    if (reservation.status === 'Checked-in' || reservation.status === 'Confirmed') {
       await updateRoomStatus(reservation.room_id, 'Available');
     }
   };

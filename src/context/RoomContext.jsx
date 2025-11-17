@@ -269,6 +269,7 @@ export const RoomProvider = ({ children }) => {
     return {
       total: rooms.length,
       available: rooms.filter(r => r.status === 'Available').length,
+      reserved: rooms.filter(r => r.status === 'Reserved').length,
       occupied: rooms.filter(r => r.status === 'Occupied').length,
       maintenance: rooms.filter(r => r.status === 'Maintenance').length,
       blocked: rooms.filter(r => r.status === 'Blocked').length

@@ -1,7 +1,8 @@
 // src/pages/rooms/Rooms.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle } from 'lucide-react';
 import { useRooms } from '../../context/RoomContext';
+import { useReservations } from '../../context/ReservationContext';
 import { useConfirm } from '@/context/AlertContext';
 
 // Import shadcn components
@@ -38,7 +39,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const Rooms = () => {
-  const { rooms, roomTypes, addRoom, updateRoom, deleteRoom, updateRoomStatus } = useRooms();
+  const { rooms, roomTypes, addRoom, updateRoom, deleteRoom, updateRoomStatus, fetchRooms } = useRooms();
+  const { reservations } = useReservations();
   const confirm = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -51,6 +53,11 @@ const Rooms = () => {
     category: 'main building',
     status: 'Available'
   });
+
+  // Refresh rooms when reservations change to reflect real-time status updates
+  useEffect(() => {
+    fetchRooms();
+  }, [reservations]);
 
   const handleSubmit = async () => {
     const roomData = {
@@ -128,6 +135,7 @@ const Rooms = () => {
   const getStatusVariant = (status) => {
     switch (status.toLowerCase()) {
       case 'available': return 'success';
+      case 'reserved': return 'default';
       case 'occupied': return 'destructive';
       case 'maintenance': return 'warning';
       case 'blocked': return 'secondary';
@@ -262,6 +270,7 @@ const Rooms = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="Reserved">Reserved</SelectItem>
                   <SelectItem value="Occupied">Occupied</SelectItem>
                   <SelectItem value="Maintenance">Maintenance</SelectItem>
                   <SelectItem value="Blocked">Blocked</SelectItem>
@@ -306,6 +315,7 @@ const Rooms = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Available">Available</SelectItem>
+                    <SelectItem value="Reserved">Reserved</SelectItem>
                     <SelectItem value="Occupied">Occupied</SelectItem>
                     <SelectItem value="Maintenance">Maintenance</SelectItem>
                     <SelectItem value="Blocked">Blocked</SelectItem>
