@@ -530,7 +530,7 @@ export default function NewReservation({ onNavigate }) {
                         <tr>
                           <th className="text-left p-3 text-sm font-semibold">Type</th>
                           <th className="text-center p-3 text-sm font-semibold">Capacity</th>
-                          <th className="text-right p-3 text-sm font-semibold">Rates</th>
+                          <th className="text-center p-3 text-sm font-semibold">Rates</th>
                           <th className="text-center p-3 text-sm font-semibold">Available</th>
                           <th className="text-center p-3 text-sm font-semibold">Quantity</th>
                           <th className="text-center p-3 text-sm font-semibold">Action</th>
