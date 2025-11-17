@@ -632,3 +632,153 @@ export const bulkUpdateExpenseRows = async(sheetId, rows) => {
 
     return { data, error };
 }
+
+// Discounts
+export const getDiscounts = async() => {
+    const { data, error } = await supabase
+        .from('discounts')
+        .select('*')
+        .order('priority', { ascending: false })
+    return { data, error }
+}
+
+export const getActiveDiscounts = async() => {
+    const { data, error } = await supabase
+        .from('discounts')
+        .select('*')
+        .eq('enabled', true)
+        .order('priority', { ascending: false })
+    return { data, error }
+}
+
+export const getDiscountByPromoCode = async(promoCode) => {
+    const { data, error } = await supabase
+        .from('discounts')
+        .select('*')
+        .eq('promo_code', promoCode)
+        .eq('enabled', true)
+        .single()
+    return { data, error }
+}
+
+export const getApplicableDiscounts = async(checkInDate, checkOutDate, roomTypeId, nights) => {
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data, error } = await supabase
+        .from('discounts')
+        .select('*')
+        .eq('enabled', true)
+        .lte('minimum_nights', nights)
+        .or(`valid_from.is.null,valid_from.lte.${checkInDate}`)
+        .or(`valid_to.is.null,valid_to.gte.${today}`)
+        .order('priority', { ascending: false })
+
+    if (error) return { data: null, error }
+
+    // Filter by room type if applicable
+    const filtered = data.filter(discount => {
+        // Check if discount has reached max uses
+        if (discount.maximum_uses && discount.current_uses >= discount.maximum_uses) {
+            return false
+        }
+
+        // Check if discount applies to this room type
+        const applicableRoomTypes = discount.applicable_room_types || []
+        if (applicableRoomTypes.length === 0) {
+            return true // Applies to all room types
+        }
+        return applicableRoomTypes.includes(roomTypeId)
+    })
+
+    return { data: filtered, error: null }
+}
+
+export const createDiscount = async(discount) => {
+    const { data, error } = await supabase
+        .from('discounts')
+        .insert([discount])
+        .select()
+    return { data, error }
+}
+
+export const updateDiscount = async(id, discount) => {
+    const { data, error } = await supabase
+        .from('discounts')
+        .update(discount)
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const deleteDiscount = async(id) => {
+    const { error } = await supabase
+        .from('discounts')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
+export const toggleDiscountStatus = async(id, enabled) => {
+    const { data, error } = await supabase
+        .from('discounts')
+        .update({ enabled })
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+// Discount Applications
+export const getDiscountApplications = async() => {
+    const { data, error } = await supabase
+        .from('discount_applications')
+        .select(`
+            *,
+            discounts (*),
+            reservations (
+                *,
+                guests (*),
+                rooms (*)
+            ),
+            bills (*)
+        `)
+        .order('applied_at', { ascending: false })
+    return { data, error }
+}
+
+export const getDiscountApplicationsByReservation = async(reservationId) => {
+    const { data, error } = await supabase
+        .from('discount_applications')
+        .select(`
+            *,
+            discounts (*)
+        `)
+        .eq('reservation_id', reservationId)
+    return { data, error }
+}
+
+export const getDiscountApplicationsByBill = async(billId) => {
+    const { data, error } = await supabase
+        .from('discount_applications')
+        .select(`
+            *,
+            discounts (*)
+        `)
+        .eq('bill_id', billId)
+    return { data, error }
+}
+
+export const createDiscountApplication = async(application) => {
+    const { data, error } = await supabase
+        .from('discount_applications')
+        .insert([application])
+        .select()
+    return { data, error }
+}
+
+export const deleteDiscountApplication = async(id) => {
+    const { error } = await supabase
+        .from('discount_applications')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
