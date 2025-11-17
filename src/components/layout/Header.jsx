@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   Menu, LogOut, Hotel, Search, Home, Calendar, CalendarDays,
-  Building2, DoorOpen, Users, UserCog, CreditCard, FileText, BarChart3, Package, Settings
+  Building2, DoorOpen, Users, UserCog, CreditCard, FileText, BarChart3, Package, Settings, Tag
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,7 @@ export const Header = ({ currentPage, onNavigate }) => {
       category: 'Financial',
       items: [
         { id: 'billing', label: 'Billing', icon: CreditCard, roles: ['Admin', 'Front Desk', 'Accounts'] },
+        { id: 'discounts', label: 'Discounts', icon: Tag, roles: ['Admin', 'Front Desk'] },
         { id: 'expenses', label: 'Expenses', icon: FileText, roles: ['Admin', 'Accounts'] },
         { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'Accounts'] }
       ]

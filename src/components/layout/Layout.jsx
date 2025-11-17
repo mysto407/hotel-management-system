@@ -11,6 +11,7 @@ import NewReservation from '../../pages/reservations/NewReservation';
 import GuestDetailsPage from '../../pages/reservations/GuestDetailsPage';
 import PaymentPage from '../../pages/reservations/PaymentPage';
 import Billing from '../../pages/billing/Billing';
+import Discounts from '../../pages/Discounts';
 import Reports from '../../pages/reports/Reports';
 import Inventory from '../../pages/inventory/Inventory';
 import Guests from '../../pages/guests/Guests';
@@ -32,6 +33,7 @@ export const Layout = () => {
     'guest-details': <GuestDetailsPage onNavigate={setCurrentPage} />,
     'payment': <PaymentPage onNavigate={setCurrentPage} />,
     billing: <Billing />,
+    discounts: <Discounts />,
     reports: <Reports />,
     inventory: <Inventory />,
     guests: <Guests />,
