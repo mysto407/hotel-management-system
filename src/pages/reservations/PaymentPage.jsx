@@ -28,7 +28,10 @@ export default function PaymentPage({ onNavigate }) {
     paymentInfo,
     setPaymentInfo,
     calculateBill,
-    resetFlow
+    resetFlow,
+    applyPromoCode,
+    appliedPromoCode,
+    removeDiscount
   } = useReservationFlow()
 
   const { addReservation } = useReservations()
@@ -37,8 +40,36 @@ export default function PaymentPage({ onNavigate }) {
   const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
 
   const [loading, setLoading] = useState(false)
+  const [promoCodeInput, setPromoCodeInput] = useState('')
+  const [applyingPromo, setApplyingPromo] = useState(false)
 
   const bill = calculateBill()
+
+  // Handle promo code application
+  const handleApplyPromoCode = async () => {
+    if (!promoCodeInput.trim()) {
+      showWarning('Please enter a promo code')
+      return
+    }
+
+    setApplyingPromo(true)
+    const result = await applyPromoCode(promoCodeInput.trim())
+    setApplyingPromo(false)
+
+    if (result.success) {
+      showSuccess(`Promo code "${promoCodeInput}" applied successfully!`)
+      setPromoCodeInput('')
+    } else {
+      showError(result.error || 'Invalid promo code')
+    }
+  }
+
+  const handleRemovePromoCode = () => {
+    if (appliedPromoCode) {
+      removeDiscount(appliedPromoCode.id)
+      showInfo('Promo code removed')
+    }
+  }
 
   // Calculate total guest counts across all rooms
   const totalGuestCounts = selectedRooms.reduce((totals, roomType) => {
@@ -302,12 +333,6 @@ export default function PaymentPage({ onNavigate }) {
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Agent:</span>
                           <span className="font-medium">{selectedAgent.name}</span>
-                        </div>
-                      )}
-                      {filters.promoCode && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Promo Code:</span>
-                          <span className="font-medium">{filters.promoCode}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
@@ -597,6 +622,76 @@ export default function PaymentPage({ onNavigate }) {
                       </div>
                     </div>
                   )}
+
+                  {/* Promo Code Section */}
+                  <div className="pt-4 border-t">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">Promo Code & Discounts</h3>
+
+                    {/* Applied Promo Code Display */}
+                    {appliedPromoCode ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-sm text-green-800">
+                              {appliedPromoCode.code}
+                            </div>
+                            <div className="text-xs text-green-600 mt-0.5">
+                              {appliedPromoCode.name}
+                            </div>
+                            {appliedPromoCode.discount_type === 'percentage' ? (
+                              <div className="text-xs text-green-600 mt-0.5">
+                                {appliedPromoCode.discount_value}% off
+                              </div>
+                            ) : (
+                              <div className="text-xs text-green-600 mt-0.5">
+                                ₹{appliedPromoCode.discount_value} off
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemovePromoCode}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Promo Code Input */
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Enter promo code"
+                          value={promoCodeInput}
+                          onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleApplyPromoCode()
+                            }
+                          }}
+                          className="flex-1"
+                          disabled={applyingPromo}
+                        />
+                        <Button
+                          onClick={handleApplyPromoCode}
+                          disabled={!promoCodeInput.trim() || applyingPromo}
+                          className="whitespace-nowrap"
+                        >
+                          {applyingPromo ? 'Applying...' : 'Apply Code'}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Show total discount if applied */}
+                    {bill.totalDiscount > 0 && (
+                      <div className="mt-3 pt-3 border-t flex justify-between text-sm font-medium text-green-600">
+                        <span>Total Discount Applied</span>
+                        <span>-₹{bill.totalDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Grand Totals */}
                   <div className="pt-4 border-t-2 space-y-2">

@@ -436,16 +436,6 @@ export default function NewReservation({ onNavigate }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Promo Code</Label>
-            <Input
-              type="text"
-              value={filters.promoCode}
-              onChange={(e) => setFilters({ ...filters, promoCode: e.target.value })}
-              placeholder="Enter promo code"
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label>Search Rooms</Label>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
