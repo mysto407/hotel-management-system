@@ -74,6 +74,95 @@ export const deleteRoomType = async(id) => {
     return { error }
 }
 
+// Room Rate Types
+export const getRoomRateTypes = async(roomTypeId = null) => {
+    let query = supabase
+        .from('room_rate_types')
+        .select('*, room_types(*)')
+        .order('is_default', { ascending: false })
+        .order('rate_name')
+
+    if (roomTypeId) {
+        query = query.eq('room_type_id', roomTypeId)
+    }
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+export const getActiveRoomRateTypes = async(roomTypeId, checkInDate = null) => {
+    let query = supabase
+        .from('room_rate_types')
+        .select('*, room_types(*)')
+        .eq('room_type_id', roomTypeId)
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .order('rate_name')
+
+    // Filter by date availability if check-in date is provided
+    if (checkInDate) {
+        query = query
+            .or(`valid_from.is.null,valid_from.lte.${checkInDate}`)
+            .or(`valid_to.is.null,valid_to.gte.${checkInDate}`)
+    }
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+export const getDefaultRateType = async(roomTypeId) => {
+    const { data, error } = await supabase
+        .from('room_rate_types')
+        .select('*')
+        .eq('room_type_id', roomTypeId)
+        .eq('is_default', true)
+        .eq('is_active', true)
+        .single()
+    return { data, error }
+}
+
+export const createRoomRateType = async(rateType) => {
+    const { data, error } = await supabase
+        .from('room_rate_types')
+        .insert([rateType])
+        .select()
+    return { data, error }
+}
+
+export const updateRoomRateType = async(id, rateType) => {
+    const { data, error } = await supabase
+        .from('room_rate_types')
+        .update(rateType)
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const deleteRoomRateType = async(id) => {
+    const { error } = await supabase
+        .from('room_rate_types')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
+export const setDefaultRateType = async(roomTypeId, rateTypeId) => {
+    // First, unset all defaults for this room type
+    await supabase
+        .from('room_rate_types')
+        .update({ is_default: false })
+        .eq('room_type_id', roomTypeId)
+
+    // Then set the new default
+    const { data, error } = await supabase
+        .from('room_rate_types')
+        .update({ is_default: true })
+        .eq('id', rateTypeId)
+        .select()
+
+    return { data, error }
+}
+
 // Rooms
 export const getRooms = async() => {
     const { data, error } = await supabase
