@@ -940,6 +940,18 @@ export default function NewReservation({ onNavigate }) {
       {/* Bill Summary Row */}
       <div className="bg-gray-100 border-t px-6 py-3">
         <div className="flex items-center justify-end gap-8 text-sm">
+          {bill.totalDiscount > 0 && (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Original Amount:</span>
+                <span className="text-gray-500 line-through">₹{bill.subtotalBeforeDiscount.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-600">Discount:</span>
+                <span className="font-semibold text-green-600">-₹{bill.totalDiscount.toFixed(2)}</span>
+              </div>
+            </>
+          )}
           <div className="flex items-center gap-2">
             <span className="text-gray-600">Subtotal:</span>
             <span className="font-semibold">₹{bill.subtotal.toFixed(2)}</span>
