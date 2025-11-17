@@ -1,6 +1,7 @@
 // src/App.jsx
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AlertProvider } from './context/AlertContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { RoomProvider } from './context/RoomContext';
 import { DiscountProvider } from './context/DiscountContext';
 import { MealPlanProvider } from './context/MealPlanContext';
@@ -38,31 +39,33 @@ function AppContent() {
 
 function App() {
   return (
-    <AlertProvider>
-      <AuthProvider>
-        <RoomProvider>
-          <DiscountProvider>
-            <MealPlanProvider>
-              <ReservationProvider>
-                <ReservationFlowProvider>
-                  <BillingProvider>
-                    <InventoryProvider>
-                      <GuestProvider>
-                        <AgentProvider>
-                          <ExpenseProvider>
-                            <AppContent />
-                          </ExpenseProvider>
-                        </AgentProvider>
-                      </GuestProvider>
-                    </InventoryProvider>
-                  </BillingProvider>
-                </ReservationFlowProvider>
-              </ReservationProvider>
-            </MealPlanProvider>
-          </DiscountProvider>
-        </RoomProvider>
-      </AuthProvider>
-    </AlertProvider>
+    <ThemeProvider>
+      <AlertProvider>
+        <AuthProvider>
+          <RoomProvider>
+            <DiscountProvider>
+              <MealPlanProvider>
+                <ReservationProvider>
+                  <ReservationFlowProvider>
+                    <BillingProvider>
+                      <InventoryProvider>
+                        <GuestProvider>
+                          <AgentProvider>
+                            <ExpenseProvider>
+                              <AppContent />
+                            </ExpenseProvider>
+                          </AgentProvider>
+                        </GuestProvider>
+                      </InventoryProvider>
+                    </BillingProvider>
+                  </ReservationFlowProvider>
+                </ReservationProvider>
+              </MealPlanProvider>
+            </DiscountProvider>
+          </RoomProvider>
+        </AuthProvider>
+      </AlertProvider>
+    </ThemeProvider>
   );
 }
 export default App;

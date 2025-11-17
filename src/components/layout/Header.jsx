@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '../common/ThemeToggle';
 
 export const Header = ({ currentPage, onNavigate }) => {
   const { user, logout } = useAuth();
@@ -128,6 +129,7 @@ export const Header = ({ currentPage, onNavigate }) => {
 
         {/* User Info + Logout */}
         <div className="ml-auto lg:ml-4 flex items-center gap-2">
+          <ThemeToggle />
           <div className="hidden xl:flex flex-col items-end">
             <span className="font-medium text-sm">{user?.name}</span>
             <span className="text-xs text-muted-foreground">{user?.role}</span>
