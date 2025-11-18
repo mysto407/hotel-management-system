@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, Check } from 'lucide-react'
+import { ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useReservations } from '../../context/ReservationContext'
 import { useGuests } from '../../context/GuestContext'
@@ -25,6 +25,7 @@ export default function PaymentPage({ onNavigate }) {
     selectedRooms,
     addons,
     guestDetails,
+    allGuestsDetails,
     paymentInfo,
     setPaymentInfo,
     calculateBill,
@@ -42,6 +43,12 @@ export default function PaymentPage({ onNavigate }) {
   const [loading, setLoading] = useState(false)
   const [promoCodeInput, setPromoCodeInput] = useState('')
   const [applyingPromo, setApplyingPromo] = useState(false)
+  const [showAllGuests, setShowAllGuests] = useState(false)
+
+  // Get primary guest (first guest or fallback to guestDetails)
+  const primaryGuest = allGuestsDetails.length > 0 ? allGuestsDetails[0] : guestDetails
+  const additionalGuests = allGuestsDetails.slice(1)
+  const hasAdditionalGuests = additionalGuests.length > 0
 
   const bill = calculateBill()
 
@@ -258,33 +265,101 @@ export default function PaymentPage({ onNavigate }) {
                 <div className="p-6 space-y-4">
                   {/* Guest Information */}
                   <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Guest Information</h3>
-                    <div className="space-y-1.5">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase">
+                        Guest Information {hasAdditionalGuests && `(${allGuestsDetails.length} Guests)`}
+                      </h3>
+                      {hasAdditionalGuests && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowAllGuests(!showAllGuests)}
+                          className="h-7 text-xs"
+                        >
+                          {showAllGuests ? (
+                            <>
+                              <ChevronUp className="w-3.5 h-3.5 mr-1" />
+                              Hide
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-3.5 h-3.5 mr-1" />
+                              +{additionalGuests.length} other{additionalGuests.length > 1 ? 's' : ''}
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Primary Guest */}
+                    <div className="space-y-1.5 bg-muted/20 rounded p-3">
+                      <div className="text-xs font-semibold text-muted-foreground mb-1.5">
+                        Primary Guest
+                      </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Name:</span>
-                        <span className="font-medium">{guestDetails.firstName} {guestDetails.surname}</span>
+                        <span className="font-medium">{primaryGuest.firstName} {primaryGuest.surname}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Email:</span>
-                        <span className="font-medium">{guestDetails.email}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Phone:</span>
-                        <span className="font-medium">{guestDetails.phone}</span>
-                      </div>
-                      {guestDetails.idType && guestDetails.idNumber && (
+                      {primaryGuest.email && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">ID Proof:</span>
-                          <span className="font-medium">{guestDetails.idType} - {guestDetails.idNumber}</span>
+                          <span className="text-muted-foreground">Email:</span>
+                          <span className="font-medium">{primaryGuest.email}</span>
                         </div>
                       )}
-                      {guestDetails.address && (
+                      {primaryGuest.phone && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Phone:</span>
+                          <span className="font-medium">{primaryGuest.phone}</span>
+                        </div>
+                      )}
+                      {primaryGuest.idType && primaryGuest.idNumber && primaryGuest.idType !== 'N/A' && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">ID Proof:</span>
+                          <span className="font-medium">{primaryGuest.idType} - {primaryGuest.idNumber}</span>
+                        </div>
+                      )}
+                      {primaryGuest.address && (
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Address:</span>
-                          <span className="font-medium text-right">{guestDetails.address}, {guestDetails.city}</span>
+                          <span className="font-medium text-right">{primaryGuest.address}, {primaryGuest.city}</span>
                         </div>
                       )}
                     </div>
+
+                    {/* Additional Guests (Collapsible) */}
+                    {showAllGuests && hasAdditionalGuests && (
+                      <div className="mt-3 space-y-2">
+                        {additionalGuests.map((guest, index) => (
+                          <div key={index} className="space-y-1.5 bg-muted/10 rounded p-3 border-l-2 border-muted">
+                            <div className="text-xs font-semibold text-muted-foreground mb-1.5">
+                              Guest {index + 2}
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Name:</span>
+                              <span className="font-medium">{guest.firstName} {guest.surname}</span>
+                            </div>
+                            {guest.email && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Email:</span>
+                                <span className="font-medium">{guest.email}</span>
+                              </div>
+                            )}
+                            {guest.phone && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Phone:</span>
+                                <span className="font-medium">{guest.phone}</span>
+                              </div>
+                            )}
+                            {guest.idType && guest.idNumber && guest.idType !== 'N/A' && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">ID Proof:</span>
+                                <span className="font-medium">{guest.idType} - {guest.idNumber}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Stay Details */}

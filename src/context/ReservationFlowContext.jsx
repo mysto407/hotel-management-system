@@ -49,6 +49,9 @@ export function ReservationFlowProvider({ children }) {
     photoUrl: null
   })
 
+  // Multiple guests support (allGuestsDetails[0] is always the primary guest)
+  const [allGuestsDetails, setAllGuestsDetails] = useState([])
+
   // Step 3: Payment
   const [paymentInfo, setPaymentInfo] = useState({
     paymentType: 'cash',
@@ -407,12 +410,14 @@ export function ReservationFlowProvider({ children }) {
     selectedDiscounts,
     appliedPromoCode,
     guestDetails,
+    allGuestsDetails,
     paymentInfo,
 
     // Setters
     setFilters,
     setSelectedAgent,
     setGuestDetails,
+    setAllGuestsDetails,
     setPaymentInfo,
 
     // Room handlers

@@ -26,9 +26,14 @@ export default function GuestDetailsPage({ onNavigate }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null)
   const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false)
   const [currentGuestIndex, setCurrentGuestIndex] = useState(0)
-  const [allGuestsDetails, setAllGuestsDetails] = useState([])
 
-  const { guestDetails, setGuestDetails, selectedRooms } = flowContext
+  const {
+    guestDetails,
+    setGuestDetails,
+    allGuestsDetails,
+    setAllGuestsDetails,
+    selectedRooms
+  } = flowContext
   const { idProofTypes, guests } = guestContext
 
   // Calculate total number of guests from selected rooms
@@ -234,6 +239,12 @@ const handleSelectGuest = (guest) => {
 
   const handleProceed = () => {
     if (validateForm()) {
+      // Save current guest details before proceeding
+      const updatedGuests = [...allGuestsDetails]
+      updatedGuests[currentGuestIndex] = { ...guestDetails }
+      setAllGuestsDetails(updatedGuests)
+
+      // Navigate to payment
       onNavigate('payment')
     }
   }
