@@ -275,7 +275,11 @@ const handleSelectGuest = (guest) => {
 
                   {/* Upload Controls - Inline Compact */}
                   <div className="flex-1">
-                    <Label className="text-sm font-semibold mb-1 block">Photo</Label>
+                    <Label className="text-sm font-semibold mb-1 block">
+                      {guestDetails.firstName || guestDetails.surname
+                        ? `${guestDetails.firstName} ${guestDetails.surname}`.trim()
+                        : 'Guest Photo'}
+                    </Label>
                     <input
                       ref={fileInputRef}
                       type="file"
