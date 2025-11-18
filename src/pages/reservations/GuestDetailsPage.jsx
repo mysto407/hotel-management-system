@@ -335,56 +335,56 @@ const handleSelectGuest = (guest) => {
         {/* Right Content - Guest Form */}
         <div className="flex-1 overflow-y-auto bg-card">
           <div className="p-4">
-            {/* Form Header with Guest Navigation and Clear Button */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                {totalGuestsCount > 1 && (
-                  <>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="w-4 h-4" />
-                      <span className="font-medium">
-                        Guest {currentGuestIndex + 1} of {totalGuestsCount}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        onClick={handlePreviousGuest}
-                        disabled={currentGuestIndex === 0}
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        title="Previous Guest"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        onClick={handleNextGuest}
-                        disabled={currentGuestIndex === totalGuestsCount - 1}
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        title="Next Guest"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-              <Button
-                onClick={handleClearForm}
-                variant="ghost"
-                size="sm"
-                className="h-8 text-muted-foreground hover:text-foreground"
-                title="Clear Form"
-              >
-                <X className="w-4 h-4 mr-1.5" />
-                Clear
-              </Button>
-            </div>
-
             {/* Single Unified Card with All Information */}
             <div className="bg-card border rounded-lg shadow-sm">
+              {/* Form Header with Guest Navigation and Clear Button */}
+              <div className="flex items-center justify-between border-b bg-muted/10 px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  {totalGuestsCount > 1 && (
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="w-4 h-4" />
+                        <span className="font-medium">
+                          Guest {currentGuestIndex + 1} of {totalGuestsCount}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          onClick={handlePreviousGuest}
+                          disabled={currentGuestIndex === 0}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          title="Previous Guest"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          onClick={handleNextGuest}
+                          disabled={currentGuestIndex === totalGuestsCount - 1}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          title="Next Guest"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <Button
+                  onClick={handleClearForm}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-muted-foreground hover:text-foreground"
+                  title="Clear Form"
+                >
+                  <X className="w-4 h-4 mr-1.5" />
+                  Clear
+                </Button>
+              </div>
+
               {/* Photo Section - Ultra Compact */}
               <div className="border-b bg-muted/30 px-4 py-3">
                 <div className="flex items-center gap-4">
