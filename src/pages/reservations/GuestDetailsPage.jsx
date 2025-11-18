@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone, X, Users } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
 import { useAlert } from '@/context/AlertContext'
@@ -25,9 +25,26 @@ export default function GuestDetailsPage({ onNavigate }) {
   const [guestSearch, setGuestSearch] = useState('')
   const [selectedGuestId, setSelectedGuestId] = useState(null)
   const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false)
+  const [currentGuestIndex, setCurrentGuestIndex] = useState(0)
+  const [allGuestsDetails, setAllGuestsDetails] = useState([])
 
   const { guestDetails, setGuestDetails, selectedRooms } = flowContext
   const { idProofTypes, guests } = guestContext
+
+  // Calculate total number of guests from selected rooms
+  const totalGuestsCount = useMemo(() => {
+    if (!selectedRooms || selectedRooms.length === 0) return 1
+
+    let total = 0
+    selectedRooms.forEach(room => {
+      room.guestCounts?.forEach(guestCount => {
+        total += (guestCount.adults || 0) + (guestCount.children || 0)
+      })
+    })
+
+    // Default to at least 1 guest if no counts are set
+    return total > 0 ? total : 1
+  }, [selectedRooms])
 
   // Filter guests based on search
   const filteredGuests = useMemo(() => {
@@ -96,6 +113,64 @@ const handleSelectGuest = (guest) => {
   const handleGuestAdded = (newGuest) => {
     // When a guest is added via the modal, select them automatically
     handleSelectGuest(newGuest)
+  }
+
+  const handleClearForm = () => {
+    setSelectedGuestId(null)
+    setGuestDetails({
+      id: null,
+      firstName: '',
+      surname: '',
+      email: '',
+      phone: '',
+      idType: 'N/A',
+      idNumber: '',
+      address: '',
+      city: '',
+      state: '',
+      country: '',
+      photo: null,
+      photoUrl: null
+    })
+    setErrors({})
+  }
+
+  const handleNextGuest = () => {
+    if (currentGuestIndex < totalGuestsCount - 1) {
+      // Save current guest details
+      const updatedGuests = [...allGuestsDetails]
+      updatedGuests[currentGuestIndex] = { ...guestDetails }
+      setAllGuestsDetails(updatedGuests)
+
+      // Move to next guest
+      const nextIndex = currentGuestIndex + 1
+      setCurrentGuestIndex(nextIndex)
+
+      // Load next guest details or clear form
+      if (updatedGuests[nextIndex]) {
+        setGuestDetails(updatedGuests[nextIndex])
+      } else {
+        handleClearForm()
+      }
+    }
+  }
+
+  const handlePreviousGuest = () => {
+    if (currentGuestIndex > 0) {
+      // Save current guest details
+      const updatedGuests = [...allGuestsDetails]
+      updatedGuests[currentGuestIndex] = { ...guestDetails }
+      setAllGuestsDetails(updatedGuests)
+
+      // Move to previous guest
+      const prevIndex = currentGuestIndex - 1
+      setCurrentGuestIndex(prevIndex)
+
+      // Load previous guest details
+      if (updatedGuests[prevIndex]) {
+        setGuestDetails(updatedGuests[prevIndex])
+      }
+    }
   }
 
   const handlePhotoUpload = (e) => {
@@ -201,8 +276,15 @@ const handleSelectGuest = (guest) => {
             </div>
           </div>
 
+          {/* Saved Guests Label */}
+          <div className="px-4 pt-3 pb-2">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Saved Guests
+            </h3>
+          </div>
+
           {/* Guest List - Scrollable with max height */}
-          <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(65vh)]">
+          <div className="flex-1 overflow-y-auto min-h-0 max-h-[calc(60vh)]">
             {filteredGuests.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
                 {guestSearch ? 'No guests found' : 'No saved guests'}
@@ -253,6 +335,54 @@ const handleSelectGuest = (guest) => {
         {/* Right Content - Guest Form */}
         <div className="flex-1 overflow-y-auto bg-card">
           <div className="p-4">
+            {/* Form Header with Guest Navigation and Clear Button */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                {totalGuestsCount > 1 && (
+                  <>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">
+                        Guest {currentGuestIndex + 1} of {totalGuestsCount}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        onClick={handlePreviousGuest}
+                        disabled={currentGuestIndex === 0}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="Previous Guest"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        onClick={handleNextGuest}
+                        disabled={currentGuestIndex === totalGuestsCount - 1}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="Next Guest"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+              <Button
+                onClick={handleClearForm}
+                variant="ghost"
+                size="sm"
+                className="h-8 text-muted-foreground hover:text-foreground"
+                title="Clear Form"
+              >
+                <X className="w-4 h-4 mr-1.5" />
+                Clear
+              </Button>
+            </div>
+
             {/* Single Unified Card with All Information */}
             <div className="bg-card border rounded-lg shadow-sm">
               {/* Photo Section - Ultra Compact */}
