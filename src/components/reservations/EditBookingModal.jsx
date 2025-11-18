@@ -7,6 +7,7 @@ import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { useAlert } from '@/context/AlertContext';
 import { calculateDays } from '../../utils/helpers';
+import { getAvailableRooms } from '../../lib/supabase';
 import { AddGuestModal } from '../guests/AddGuestModal';
 import { AddAgentModal } from '../agents/AddAgentModal';
 
@@ -75,6 +76,8 @@ export const EditBookingModal = ({
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
 
   // Update form data when props change
   useEffect(() => {
@@ -84,18 +87,39 @@ export const EditBookingModal = ({
     if (initialRoomDetails) {
       setRoomDetails(initialRoomDetails);
     }
-    
+
     if (initialFormData?.guest_id) {
       const guest = guests.find(g => g.id === initialFormData.guest_id);
       setSelectedGuest(guest);
     }
   }, [initialFormData, initialRoomDetails, guests]);
 
-  const availableRooms = rooms.filter(r => r.status === 'Available');
+  // Fetch available rooms based on selected dates
+  useEffect(() => {
+    const fetchAvailableRooms = async () => {
+      if (formData.check_in_date && formData.check_out_date) {
+        setLoadingRooms(true);
+        const { data, error } = await getAvailableRooms(formData.check_in_date, formData.check_out_date);
+        if (error) {
+          console.error('Error fetching available rooms:', error);
+          // Fallback to showing all non-maintenance/non-blocked rooms
+          setAvailableRooms(rooms.filter(r => r.status !== 'Maintenance' && r.status !== 'Blocked'));
+        } else {
+          setAvailableRooms(data || []);
+        }
+        setLoadingRooms(false);
+      } else {
+        // If no dates selected, show all non-maintenance/non-blocked rooms
+        setAvailableRooms(rooms.filter(r => r.status !== 'Maintenance' && r.status !== 'Blocked'));
+      }
+    };
+
+    fetchAvailableRooms();
+  }, [formData.check_in_date, formData.check_out_date, rooms]);
 
   const getAvailableRoomsByType = (roomTypeId) => {
     if (!roomTypeId) return [];
-    return rooms.filter(r => r.room_type_id === roomTypeId && r.status === 'Available');
+    return availableRooms.filter(r => r.room_type_id === roomTypeId);
   };
 
   const handleNumberOfRoomsChange = (count) => {

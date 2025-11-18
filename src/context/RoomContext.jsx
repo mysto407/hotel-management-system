@@ -392,6 +392,9 @@ export const RoomProvider = ({ children }) => {
     return rooms.filter(r => r.category === category);
   };
 
+  // DEPRECATED: Use getAvailableRooms from supabase.js with date parameters instead
+  // This function only checks status and does NOT consider reservations
+  // Only use this for simple UI display, never for booking logic
   const getAvailableRooms = () => {
     return rooms.filter(r => r.status === 'Available');
   };

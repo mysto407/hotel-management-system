@@ -47,7 +47,8 @@ export const ReservationProvider = ({ children }) => {
       return null;
     }
 
-    // Update room status based on reservation status
+    // Update room status for display purposes only
+    // Note: Actual availability is determined by date-based queries, not status
     if (reservation.status === 'Checked-in') {
       await updateRoomStatus(reservation.room_id, 'Occupied');
     } else if (reservation.status === 'Confirmed') {
@@ -96,7 +97,8 @@ export const ReservationProvider = ({ children }) => {
       // Update reservation status to Checked-in
       await updateReservation(id, { status: 'Checked-in' });
 
-      // Update room status to Occupied
+      // Update room status to Occupied (for display purposes only)
+      // Note: Actual availability is determined by date-based queries
       await updateRoomStatus(reservation.room_id, 'Occupied');
 
       // Auto-create Room Charge Bill
@@ -187,6 +189,8 @@ export const ReservationProvider = ({ children }) => {
     if (!reservation) return;
 
     await updateReservation(id, { status: 'Checked-out' });
+    // Update room status to Available (for display purposes only)
+    // Note: Actual availability is determined by date-based queries
     await updateRoomStatus(reservation.room_id, 'Available');
   };
 
@@ -196,7 +200,8 @@ export const ReservationProvider = ({ children }) => {
 
     await updateReservation(id, { status: 'Cancelled' });
 
-    // If was checked in or reserved, make room available
+    // Update room status to Available if it was occupied/reserved (for display purposes only)
+    // Note: Actual availability is determined by date-based queries
     if (reservation.status === 'Checked-in' || reservation.status === 'Confirmed') {
       await updateRoomStatus(reservation.room_id, 'Available');
     }

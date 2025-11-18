@@ -201,6 +201,70 @@ export const updateRoomStatus = async(id, status) => {
     return { data, error }
 }
 
+// Sync room statuses based on current reservations
+// This updates room statuses for display purposes only
+// Availability is always determined by date-based queries
+export const syncRoomStatuses = async() => {
+    const today = new Date().toISOString().split('T')[0]
+
+    // Get all rooms
+    const { data: allRooms, error: roomsError } = await supabase
+        .from('rooms')
+        .select('id, status')
+
+    if (roomsError) return { error: roomsError }
+
+    // Get all active reservations (not cancelled or checked-out)
+    const { data: activeReservations, error: reservationsError } = await supabase
+        .from('reservations')
+        .select('room_id, check_in_date, check_out_date, status')
+        .not('status', 'in', '("Cancelled","Checked-out")')
+
+    if (reservationsError) return { error: reservationsError }
+
+    // Determine the correct status for each room
+    const updates = []
+    for (const room of allRooms) {
+        // Skip rooms in Maintenance or Blocked status (operational statuses)
+        if (room.status === 'Maintenance' || room.status === 'Blocked') {
+            continue
+        }
+
+        // Find if room has any active reservation
+        const roomReservations = activeReservations.filter(r => r.room_id === room.id)
+
+        let newStatus = 'Available'
+        for (const reservation of roomReservations) {
+            const checkIn = reservation.check_in_date
+            const checkOut = reservation.check_out_date
+
+            // If today is between check-in and check-out, room is Occupied
+            if (today >= checkIn && today < checkOut) {
+                newStatus = reservation.status === 'Checked-in' ? 'Occupied' : 'Reserved'
+                break
+            }
+            // If reservation is in the future, room is Reserved
+            else if (today < checkIn) {
+                newStatus = 'Reserved'
+            }
+        }
+
+        // Only update if status changed
+        if (room.status !== newStatus) {
+            updates.push({ id: room.id, status: newStatus })
+        }
+    }
+
+    // Perform bulk updates
+    if (updates.length > 0) {
+        for (const update of updates) {
+            await updateRoomStatus(update.id, update.status)
+        }
+    }
+
+    return { data: { updated: updates.length }, error: null }
+}
+
 export const deleteRoom = async(id) => {
     const { error } = await supabase
         .from('rooms')
@@ -331,12 +395,15 @@ export const getReservations = async() => {
 // Get available rooms for a specific date range
 export const getAvailableRooms = async(checkInDate, checkOutDate) => {
     // First, get all rooms with their types
+    // Exclude only rooms that are in Maintenance or Blocked status
+    // (these are operational statuses unrelated to reservations)
     const { data: allRooms, error: roomsError } = await supabase
         .from('rooms')
         .select(`
             *,
             room_types (*)
         `)
+        .not('status', 'in', '("Maintenance","Blocked")')
         .order('room_number')
 
     if (roomsError) return { data: null, error: roomsError }
@@ -358,9 +425,10 @@ export const getAvailableRooms = async(checkInDate, checkOutDate) => {
     // Extract room IDs that are already booked
     const bookedRoomIds = overlappingReservations.map(r => r.room_id)
 
-    // Filter out booked rooms and rooms not in 'Available' status
+    // Filter out booked rooms based on date overlap
+    // Room status (Occupied/Reserved/Available) is now only for display purposes
     const availableRooms = allRooms.filter(room =>
-        room.status === 'Available' && !bookedRoomIds.includes(room.id)
+        !bookedRoomIds.includes(room.id)
     )
 
     return { data: availableRooms, error: null }
