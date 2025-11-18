@@ -5,7 +5,17 @@ import {
   createBill as createBillAPI,
   updateBill as updateBillAPI,
   deleteBill as deleteBillAPI,
-  createPayment
+  createPayment,
+  createBillItem,
+  updateBillItem,
+  deleteBillItem,
+  getPayments,
+  getPaymentsByReservation,
+  updatePayment,
+  deletePayment,
+  getDiscountApplicationsByReservation,
+  createDiscountApplication,
+  deleteDiscountApplication
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
 
@@ -137,6 +147,125 @@ export const BillingProvider = ({ children }) => {
     };
   };
 
+  // Bill Item management
+  const addBillItem = async (billId, itemData) => {
+    const billItem = {
+      bill_id: billId,
+      ...itemData
+    };
+
+    const { data, error } = await createBillItem(billItem);
+    if (error) {
+      console.error('Error adding bill item:', error);
+      showError('Failed to add charge: ' + error.message);
+      return null;
+    }
+
+    await loadBills();
+    return data;
+  };
+
+  const updateBillItemData = async (itemId, itemData) => {
+    const { error } = await updateBillItem(itemId, itemData);
+    if (error) {
+      console.error('Error updating bill item:', error);
+      showError('Failed to update charge: ' + error.message);
+      return;
+    }
+    await loadBills();
+  };
+
+  const removeBillItem = async (itemId) => {
+    const { error } = await deleteBillItem(itemId);
+    if (error) {
+      console.error('Error deleting bill item:', error);
+      showError('Failed to delete charge: ' + error.message);
+      return;
+    }
+    await loadBills();
+  };
+
+  // Payment management
+  const addPayment = async (paymentData) => {
+    const { data, error } = await createPayment(paymentData);
+    if (error) {
+      console.error('Error adding payment:', error);
+      showError('Failed to add payment: ' + error.message);
+      return null;
+    }
+
+    // Update bill with new payment info
+    const bill = bills.find(b => b.id === paymentData.bill_id);
+    if (bill) {
+      const newPaidAmount = (bill.paid_amount || 0) + paymentData.amount;
+      const newBalance = bill.total - newPaidAmount;
+      const newStatus = newBalance <= 0 ? 'Paid' : newBalance === bill.total ? 'Pending' : 'Partial';
+
+      await updateBill(bill.id, {
+        paid_amount: newPaidAmount,
+        balance: newBalance,
+        payment_status: newStatus
+      });
+    }
+
+    return data;
+  };
+
+  const updatePaymentData = async (paymentId, paymentData) => {
+    const { error } = await updatePayment(paymentId, paymentData);
+    if (error) {
+      console.error('Error updating payment:', error);
+      showError('Failed to update payment: ' + error.message);
+      return;
+    }
+    await loadBills();
+  };
+
+  const removePayment = async (paymentId, billId, amount) => {
+    const { error } = await deletePayment(paymentId);
+    if (error) {
+      console.error('Error deleting payment:', error);
+      showError('Failed to delete payment: ' + error.message);
+      return;
+    }
+
+    // Update bill with removed payment
+    const bill = bills.find(b => b.id === billId);
+    if (bill) {
+      const newPaidAmount = (bill.paid_amount || 0) - amount;
+      const newBalance = bill.total - newPaidAmount;
+      const newStatus = newBalance <= 0 ? 'Paid' : newBalance === bill.total ? 'Pending' : 'Partial';
+
+      await updateBill(bill.id, {
+        paid_amount: newPaidAmount,
+        balance: newBalance,
+        payment_status: newStatus
+      });
+    }
+  };
+
+  // Discount management
+  const applyDiscount = async (discountData) => {
+    const { data, error } = await createDiscountApplication(discountData);
+    if (error) {
+      console.error('Error applying discount:', error);
+      showError('Failed to apply discount: ' + error.message);
+      return null;
+    }
+    await loadBills();
+    return data;
+  };
+
+  const removeDiscountApplication = async (applicationId) => {
+    const { error } = await deleteDiscountApplication(applicationId);
+    if (error) {
+      console.error('Error removing discount:', error);
+      showError('Failed to remove discount: ' + error.message);
+      return;
+    }
+    await loadBills();
+  };
+
   return (
     <BillingContext.Provider value={{
       bills,
@@ -146,7 +275,15 @@ export const BillingProvider = ({ children }) => {
       deleteBill,
       recordPayment,
       getBillsByReservation,
-      getMasterBill
+      getMasterBill,
+      addBillItem,
+      updateBillItemData,
+      removeBillItem,
+      addPayment,
+      updatePaymentData,
+      removePayment,
+      applyDiscount,
+      removeDiscountApplication
     }}>
       {children}
     </BillingContext.Provider>
