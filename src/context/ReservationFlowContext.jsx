@@ -394,6 +394,7 @@ export function ReservationFlowProvider({ children }) {
       photo: null,
       photoUrl: null
     })
+    setAllGuestsDetails([]) // Clear all guests array
     setPaymentInfo({
       paymentType: 'cash',
       amount: 0,

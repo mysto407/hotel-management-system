@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone, X, Users } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
@@ -26,6 +26,13 @@ export default function GuestDetailsPage({ onNavigate }) {
   const [selectedGuestId, setSelectedGuestId] = useState(null)
   const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false)
   const [currentGuestIndex, setCurrentGuestIndex] = useState(0)
+
+  // Reset guest index when component mounts or when allGuestsDetails is empty
+  useEffect(() => {
+    if (allGuestsDetails.length === 0) {
+      setCurrentGuestIndex(0)
+    }
+  }, [allGuestsDetails.length])
 
   const {
     guestDetails,
