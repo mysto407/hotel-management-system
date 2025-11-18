@@ -24,7 +24,6 @@ export default function GuestDetailsPage({ onNavigate }) {
   const [errors, setErrors] = useState({})
   const [guestSearch, setGuestSearch] = useState('')
   const [selectedGuestId, setSelectedGuestId] = useState(null)
-  const [showNewGuest, setShowNewGuest] = useState(true)
   const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false)
 
   const { guestDetails, setGuestDetails, selectedRooms } = flowContext
@@ -62,12 +61,11 @@ export default function GuestDetailsPage({ onNavigate }) {
 
 const handleSelectGuest = (guest) => {
     // Prevent duplicate selection
-    if (selectedGuestId === guest.id && !showNewGuest) {
+    if (selectedGuestId === guest.id) {
       return
     }
 
     setSelectedGuestId(guest.id)
-    setShowNewGuest(false)
 
     // Split name into firstName and surname
     const nameParts = (guest.name || '').trim().split(' ')
@@ -75,9 +73,7 @@ const handleSelectGuest = (guest) => {
     const surname = nameParts.slice(1).join(' ') || ''
 
     setGuestDetails({
-      // ...guestDetails, // <-- BUG: Remove this line
-      
-      id: guest.id, // <-- FIX: Add the guest's ID
+      id: guest.id,
       firstName,
       surname,
       email: guest.email || '',
@@ -88,7 +84,6 @@ const handleSelectGuest = (guest) => {
       city: guest.city || '',
       state: guest.state || '',
       country: guest.country || '',
-
       photo: null, // Clear any pending photo file
       photoUrl: guest.photo_url || null
     })
@@ -219,7 +214,7 @@ const handleSelectGuest = (guest) => {
                     key={guest.id}
                     onClick={() => handleSelectGuest(guest)}
                     className={`w-full text-left p-4 hover:bg-muted/30 transition-colors ${
-                      selectedGuestId === guest.id && !showNewGuest ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-400' : ''
+                      selectedGuestId === guest.id ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-400' : ''
                     }`}
                   >
                     <div className="flex items-start gap-3">
