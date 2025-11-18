@@ -192,26 +192,26 @@ const handleSelectGuest = (guest) => {
         {/* Left Sidebar - Guest Selection */}
         <div className="w-80 bg-card border-r flex flex-col">
           <div className="p-4 border-b flex-shrink-0">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search guests..."
+                  value={guestSearch}
+                  onChange={(e) => setGuestSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
               <Button
                 onClick={handleNewGuest}
                 variant={showNewGuest ? 'default' : 'outline'}
                 size="sm"
-                className="flex-1"
+                className="h-9 w-9 p-0 flex-shrink-0"
+                title="New Guest"
               >
-                <UserPlus className="w-4 h-4 mr-2" />
-                New Guest
+                <UserPlus className="w-4 h-4" />
               </Button>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search guests..."
-                value={guestSearch}
-                onChange={(e) => setGuestSearch(e.target.value)}
-                className="pl-9"
-              />
             </div>
           </div>
 
