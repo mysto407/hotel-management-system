@@ -40,6 +40,7 @@ export default function ReservationDetails({ onNavigate }) {
   const [groupedReservations, setGroupedReservations] = useState([])
   const [primaryReservation, setPrimaryReservation] = useState(null)
   const [guestInfo, setGuestInfo] = useState(null)
+  const [additionalGuestsInfo, setAdditionalGuestsInfo] = useState([])
   const [agentInfo, setAgentInfo] = useState(null)
 
   // Load reservation details when component mounts
@@ -58,9 +59,20 @@ export default function ReservationDetails({ onNavigate }) {
             setGroupedReservations(reservationGroup)
             setPrimaryReservation(reservationGroup[0])
 
-            // Load guest info
+            // Load primary guest info
             const guest = guests.find(g => g.id === reservationGroup[0].guest_id)
             setGuestInfo(guest)
+
+            // Load additional guests if they exist
+            const additionalGuestIds = reservationGroup[0].additional_guest_ids || []
+            if (additionalGuestIds && additionalGuestIds.length > 0) {
+              const additionalGuests = additionalGuestIds
+                .map(guestId => guests.find(g => g.id === guestId))
+                .filter(Boolean) // Remove any null/undefined entries
+              setAdditionalGuestsInfo(additionalGuests)
+            } else {
+              setAdditionalGuestsInfo([])
+            }
 
             // Load agent info if applicable
             if (reservationGroup[0].agent_id) {
