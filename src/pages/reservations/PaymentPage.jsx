@@ -149,8 +149,11 @@ export default function PaymentPage({ onNavigate }) {
 
       // Create reservations for each selected room
       const reservationPromises = selectedRooms.flatMap(roomType => {
+        // Use the selected rate price, or fall back to base price
+        const roomRate = roomType.ratePrice || roomType.base_price
+
         // Calculate total amount for this room type
-        const roomSubtotal = roomType.base_price * bill.nights
+        const roomSubtotal = roomRate * bill.nights
         const roomTax = roomSubtotal * 0.18 // 18% GST
         const roomTotal = roomSubtotal + roomTax
 
@@ -173,6 +176,7 @@ export default function PaymentPage({ onNavigate }) {
           return addReservation({
             guest_id: guestId,
             room_id: assignedRoomId,
+            room_rate_type_id: roomType.rateTypeId || null,
             check_in_date: filters.checkIn,
             check_out_date: filters.checkOut,
             booking_source: filters.source === 'walk-in' ? 'direct' : filters.source,
