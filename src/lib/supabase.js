@@ -517,13 +517,103 @@ export const deleteBill = async(id) => {
     return { error }
 }
 
+// Bill Items
+export const getBillItems = async(billId) => {
+    const { data, error } = await supabase
+        .from('bill_items')
+        .select('*')
+        .eq('bill_id', billId)
+        .order('created_at')
+    return { data, error }
+}
+
+export const createBillItem = async(billItem) => {
+    const { data, error } = await supabase
+        .from('bill_items')
+        .insert([billItem])
+        .select()
+    return { data, error }
+}
+
+export const updateBillItem = async(id, billItem) => {
+    const { data, error } = await supabase
+        .from('bill_items')
+        .update(billItem)
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const deleteBillItem = async(id) => {
+    const { error } = await supabase
+        .from('bill_items')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
 // Payments
+export const getPayments = async(billId = null) => {
+    let query = supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    if (billId) {
+        query = query.eq('bill_id', billId)
+    }
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+export const getPaymentsByReservation = async(reservationId) => {
+    // Get all bills for this reservation first
+    const { data: bills, error: billsError } = await supabase
+        .from('bills')
+        .select('id')
+        .eq('reservation_id', reservationId)
+
+    if (billsError) return { data: null, error: billsError }
+
+    const billIds = bills.map(b => b.id)
+
+    if (billIds.length === 0) {
+        return { data: [], error: null }
+    }
+
+    const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .in('bill_id', billIds)
+        .order('created_at', { ascending: false })
+
+    return { data, error }
+}
+
 export const createPayment = async(payment) => {
     const { data, error } = await supabase
         .from('payments')
         .insert([payment])
         .select()
     return { data, error }
+}
+
+export const updatePayment = async(id, payment) => {
+    const { data, error } = await supabase
+        .from('payments')
+        .update(payment)
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const deletePayment = async(id) => {
+    const { error } = await supabase
+        .from('payments')
+        .delete()
+        .eq('id', id)
+    return { error }
 }
 
 // Inventory
