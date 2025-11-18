@@ -27,13 +27,6 @@ export default function GuestDetailsPage({ onNavigate }) {
   const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false)
   const [currentGuestIndex, setCurrentGuestIndex] = useState(0)
 
-  // Reset guest index when component mounts or when allGuestsDetails is empty
-  useEffect(() => {
-    if (allGuestsDetails.length === 0) {
-      setCurrentGuestIndex(0)
-    }
-  }, [allGuestsDetails.length])
-
   const {
     guestDetails,
     setGuestDetails,
@@ -42,6 +35,13 @@ export default function GuestDetailsPage({ onNavigate }) {
     selectedRooms
   } = flowContext
   const { idProofTypes, guests } = guestContext
+
+  // Reset guest index when component mounts or when allGuestsDetails is empty
+  useEffect(() => {
+    if (allGuestsDetails.length === 0) {
+      setCurrentGuestIndex(0)
+    }
+  }, [allGuestsDetails.length])
 
   // Calculate total number of guests from selected rooms
   const totalGuestsCount = useMemo(() => {
