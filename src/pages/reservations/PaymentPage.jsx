@@ -176,7 +176,7 @@ export default function PaymentPage({ onNavigate }) {
           return addReservation({
             guest_id: guestId,
             room_id: assignedRoomId,
-            room_rate_type_id: roomType.rateTypeId || null,
+            rate_type_id: roomType.rateTypeId || null,
             check_in_date: filters.checkIn,
             check_out_date: filters.checkOut,
             booking_source: filters.source === 'walk-in' ? 'direct' : filters.source,
