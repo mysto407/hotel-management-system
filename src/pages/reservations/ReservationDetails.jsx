@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, Edit, Calendar, User, Users, DollarSign, Home, MapPin, Phone, Mail, Building } from 'lucide-react'
+import { ChevronLeft, Edit, Calendar, User, Users, DollarSign, Home, MapPin, Phone, Mail, Building, ChevronDown, ChevronUp } from 'lucide-react'
 import { useReservations } from '../../context/ReservationContext'
 import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
@@ -374,67 +374,98 @@ export default function ReservationDetails({ onNavigate }) {
         </TabsContent>
 
         <TabsContent value="guest-details">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Personal Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <User className="h-5 w-5" />
-                  Personal Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">Name:</span>
-                  <span className="font-medium">{guestInfo.name}</span>
+                  Guest Information
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="font-medium">{guestInfo.email || 'N/A'}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Primary Guest Section */}
+              <div className="bg-muted/20 rounded-lg p-4 space-y-3">
+                <div className="text-sm font-semibold text-muted-foreground mb-3">
+                  Primary Guest
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">Phone:</span>
-                  <span className="font-medium">{guestInfo.phone || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-muted-foreground">ID Proof:</span>
-                  <span className="font-medium">
-                    {guestInfo.id_proof_type && guestInfo.id_proof_type !== 'N/A'
-                      ? `${guestInfo.id_proof_type} - ${guestInfo.id_proof_number}`
-                      : 'N/A'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                  {/* Personal Information Column */}
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2 text-sm">
+                      <User className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">Name</div>
+                        <div className="font-medium">{guestInfo.name}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">Email</div>
+                        <div className="font-medium">{guestInfo.email || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">Phone</div>
+                        <div className="font-medium">{guestInfo.phone || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <Building className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">ID Proof</div>
+                        <div className="font-medium">
+                          {guestInfo.id_proof_type && guestInfo.id_proof_type !== 'N/A'
+                            ? `${guestInfo.id_proof_type} - ${guestInfo.id_proof_number}`
+                            : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Address Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Address Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">Address:</span>
-                  <span className="font-medium">{guestInfo.address || 'N/A'}</span>
+                  {/* Address Information Column */}
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">Address</div>
+                        <div className="font-medium">{guestInfo.address || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <Home className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">City</div>
+                        <div className="font-medium">{guestInfo.city || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">State</div>
+                        <div className="font-medium">{guestInfo.state || 'N/A'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-muted-foreground text-xs mb-0.5">Country</div>
+                        <div className="font-medium">{guestInfo.country || 'N/A'}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">City:</span>
-                  <span className="font-medium">{guestInfo.city || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-muted-foreground">State:</span>
-                  <span className="font-medium">{guestInfo.state || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between py-2">
-                  <span className="text-muted-foreground">Country:</span>
-                  <span className="font-medium">{guestInfo.country || 'N/A'}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+
+              {/* Placeholder for future multi-guest support */}
+              <div className="text-xs text-muted-foreground italic pt-2 border-t">
+                Note: Additional guest information will be displayed here when multi-guest support is fully implemented.
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="notes">
