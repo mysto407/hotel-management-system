@@ -154,6 +154,32 @@ export default function PaymentPage({ onNavigate }) {
         guestId = newGuest.id; // Use the newly created ID
       }
 
+      // Save all additional guests to the database
+      const additionalGuestIds = [];
+      if (additionalGuests.length > 0) {
+        console.log(`Saving ${additionalGuests.length} additional guests...`);
+        for (const additionalGuest of additionalGuests) {
+          const additionalGuestData = prepareGuestDataForSave(additionalGuest);
+
+          if (additionalGuest.id) {
+            // Update existing additional guest
+            await updateGuest(additionalGuest.id, additionalGuestData);
+            additionalGuestIds.push(additionalGuest.id);
+          } else {
+            // Create new additional guest
+            const newAdditionalGuest = await addGuest(additionalGuestData);
+            if (newAdditionalGuest) {
+              additionalGuestIds.push(newAdditionalGuest.id);
+            }
+          }
+        }
+      }
+
+      // Store additional guest IDs in the reservation
+      // NOTE: This requires the database migration: database/migrations/add_additional_guests_support.sql
+      // If the migration hasn't been run, the additional_guest_ids field will be ignored by the database
+      console.log('Additional guest IDs:', additionalGuestIds);
+
       // Create reservations for each selected room
       const reservationPromises = selectedRooms.flatMap(roomType => {
         // Use the selected rate price, or fall back to base price
@@ -195,7 +221,9 @@ export default function PaymentPage({ onNavigate }) {
             status: 'Confirmed',
             meal_plan: mealPlan === 'none' ? null : mealPlan,
             special_requests: '',
-            total_amount: roomTotal
+            total_amount: roomTotal,
+            // Include additional guest IDs if the migration has been run
+            ...(additionalGuestIds.length > 0 && { additional_guest_ids: additionalGuestIds })
           })
         }).filter(Boolean) // Remove null entries
       })

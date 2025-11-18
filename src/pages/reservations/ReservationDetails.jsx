@@ -384,10 +384,36 @@ export default function ReservationDetails({ onNavigate }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Guest Count Summary */}
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                      Total Guests in This Booking
+                    </div>
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                      {totalGuests} guest{totalGuests !== 1 ? 's' : ''} total across {groupedReservations.length} room{groupedReservations.length !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      {totalGuests}
+                    </div>
+                    <div className="text-xs text-blue-700 dark:text-blue-300">
+                      {groupedReservations.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)} Adults
+                      {groupedReservations.reduce((sum, r) => sum + (r.number_of_children || 0), 0) > 0 &&
+                        `, ${groupedReservations.reduce((sum, r) => sum + (r.number_of_children || 0), 0)} Children`}
+                      {groupedReservations.reduce((sum, r) => sum + (r.number_of_infants || 0), 0) > 0 &&
+                        `, ${groupedReservations.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)} Infants`}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Primary Guest Section */}
               <div className="bg-muted/20 rounded-lg p-4 space-y-3">
                 <div className="text-sm font-semibold text-muted-foreground mb-3">
-                  Primary Guest
+                  Primary Guest (Booking Contact)
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                   {/* Personal Information Column */}
@@ -460,9 +486,20 @@ export default function ReservationDetails({ onNavigate }) {
                 </div>
               </div>
 
-              {/* Placeholder for future multi-guest support */}
-              <div className="text-xs text-muted-foreground italic pt-2 border-t">
-                Note: Additional guest information will be displayed here when multi-guest support is fully implemented.
+              {/* Additional Guest Information Note */}
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-4">
+                <div className="text-xs text-amber-800 dark:text-amber-200">
+                  <div className="font-semibold mb-1">📋 Multi-Guest Support</div>
+                  <div>
+                    This booking includes {totalGuests} total guest{totalGuests !== 1 ? 's' : ''} across {groupedReservations.length} room{groupedReservations.length !== 1 ? 's' : ''}.
+                    The primary guest shown above is the main contact for this reservation.
+                    {totalGuests > 1 && (
+                      <div className="mt-1">
+                        Additional guests were saved to the system but require a database enhancement to display their individual details here.
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
