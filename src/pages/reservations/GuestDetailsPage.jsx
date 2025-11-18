@@ -4,6 +4,7 @@ import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
 import { useAlert } from '@/context/AlertContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
+import { AddGuestModal } from '../../components/guests/AddGuestModal'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -24,6 +25,7 @@ export default function GuestDetailsPage({ onNavigate }) {
   const [guestSearch, setGuestSearch] = useState('')
   const [selectedGuestId, setSelectedGuestId] = useState(null)
   const [showNewGuest, setShowNewGuest] = useState(true)
+  const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false)
 
   const { guestDetails, setGuestDetails, selectedRooms } = flowContext
   const { idProofTypes, guests } = guestContext
@@ -93,23 +95,12 @@ const handleSelectGuest = (guest) => {
   }
 
   const handleNewGuest = () => {
-    setSelectedGuestId(null)
-    setShowNewGuest(true)
-    setGuestDetails({
-      id: null, // <-- FIX: Explicitly set ID to null
-      firstName: '',
-      surname: '',
-      email: '',
-      phone: '',
-      idType: 'N/A',
-      idNumber: '',
-      address: '',
-      city: '',
-      state: '',
-      country: '',
-      photo: null,
-      photoUrl: null
-    })
+    setIsAddGuestModalOpen(true)
+  }
+
+  const handleGuestAdded = (newGuest) => {
+    // When a guest is added via the modal, select them automatically
+    handleSelectGuest(newGuest)
   }
 
   const handlePhotoUpload = (e) => {
@@ -205,10 +196,10 @@ const handleSelectGuest = (guest) => {
               </div>
               <Button
                 onClick={handleNewGuest}
-                variant={showNewGuest ? 'default' : 'outline'}
+                variant="outline"
                 size="sm"
                 className="h-9 w-9 p-0 flex-shrink-0"
-                title="New Guest"
+                title="Add New Guest"
               >
                 <UserPlus className="w-4 h-4" />
               </Button>
@@ -493,6 +484,13 @@ const handleSelectGuest = (guest) => {
           </Button>
         </div>
       </div>
+
+      {/* Add Guest Modal */}
+      <AddGuestModal
+        isOpen={isAddGuestModalOpen}
+        onClose={() => setIsAddGuestModalOpen(false)}
+        onGuestAdded={handleGuestAdded}
+      />
     </div>
   )
 }
