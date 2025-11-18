@@ -266,30 +266,30 @@ const handleSelectGuest = (guest) => {
 
         {/* Right Content - Guest Form */}
         <div className="flex-1 overflow-y-auto bg-card">
-          <div className="p-6">
+          <div className="p-4">
             {/* Single Unified Card with All Information */}
             <div className="bg-card border rounded-lg shadow-sm">
-              {/* Photo Section - Compact Header */}
-              <div className="border-b bg-muted/30 px-6 py-4">
-                <div className="flex items-center gap-6">
-                  {/* Compact Photo Preview */}
+              {/* Photo Section - Ultra Compact */}
+              <div className="border-b bg-muted/30 px-4 py-3">
+                <div className="flex items-center gap-4">
+                  {/* Smaller Photo Preview */}
                   <div className="relative flex-shrink-0">
                     {guestDetails.photoUrl ? (
                       <img
                         src={guestDetails.photoUrl}
                         alt="Guest"
-                        className="w-24 h-24 object-cover rounded-lg border-2 border-border"
+                        className="w-16 h-16 object-cover rounded-md border-2 border-border"
                       />
                     ) : (
-                      <div className="w-24 h-24 bg-muted rounded-lg border-2 border-dashed border-border flex items-center justify-center">
-                        <User className="w-10 h-10 text-muted-foreground" />
+                      <div className="w-16 h-16 bg-muted rounded-md border-2 border-dashed border-border flex items-center justify-center">
+                        <User className="w-7 h-7 text-muted-foreground" />
                       </div>
                     )}
                   </div>
 
-                  {/* Upload Controls - Inline */}
+                  {/* Upload Controls - Inline Compact */}
                   <div className="flex-1">
-                    <Label className="text-base font-semibold mb-2 block">Guest Photo</Label>
+                    <Label className="text-sm font-semibold mb-1 block">Photo</Label>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -303,8 +303,9 @@ const handleSelectGuest = (guest) => {
                         variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
+                        className="h-8"
                       >
-                        <Upload className="w-4 h-4 mr-2" />
+                        <Upload className="w-3.5 h-3.5 mr-1.5" />
                         {guestDetails.photoUrl ? 'Change' : 'Upload'}
                       </Button>
                       {guestDetails.photoUrl && (
@@ -313,68 +314,69 @@ const handleSelectGuest = (guest) => {
                           variant="outline"
                           size="sm"
                           onClick={handleRemovePhoto}
+                          className="h-8"
                         >
                           Remove
                         </Button>
                       )}
-                      <span className="text-xs text-muted-foreground ml-2">JPG, PNG. Max 5MB</span>
+                      <span className="text-xs text-muted-foreground">Max 5MB</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Form Fields - Three Column Layout */}
-              <div className="p-6">
+              {/* Form Fields - Compact Grid Layout */}
+              <div className="p-4">
                 {/* Personal Information Section */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Personal Information</h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="firstName" className="text-sm">First Name *</Label>
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Personal Info</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="firstName" className="text-xs">First Name *</Label>
                       <Input
                         id="firstName"
                         value={guestDetails.firstName}
                         onChange={(e) => setGuestDetails({ ...guestDetails, firstName: e.target.value })}
                         placeholder="John"
-                        className={errors.firstName ? 'border-red-500 dark:border-red-400' : ''}
+                        className={`h-9 ${errors.firstName ? 'border-red-500 dark:border-red-400' : ''}`}
                       />
                       {errors.firstName && <p className="text-xs text-red-500 dark:text-red-400">{errors.firstName}</p>}
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="surname" className="text-sm">Surname *</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="surname" className="text-xs">Surname *</Label>
                       <Input
                         id="surname"
                         value={guestDetails.surname}
                         onChange={(e) => setGuestDetails({ ...guestDetails, surname: e.target.value })}
                         placeholder="Doe"
-                        className={errors.surname ? 'border-red-500 dark:border-red-400' : ''}
+                        className={`h-9 ${errors.surname ? 'border-red-500 dark:border-red-400' : ''}`}
                       />
                       {errors.surname && <p className="text-xs text-red-500 dark:text-red-400">{errors.surname}</p>}
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-sm">Phone</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="phone" className="text-xs">Phone</Label>
                       <Input
                         id="phone"
                         type="tel"
                         value={guestDetails.phone}
                         onChange={(e) => setGuestDetails({ ...guestDetails, phone: e.target.value })}
                         placeholder="9876543210"
-                        className={errors.phone ? 'border-red-500 dark:border-red-400' : ''}
+                        className={`h-9 ${errors.phone ? 'border-red-500 dark:border-red-400' : ''}`}
                       />
                       {errors.phone && <p className="text-xs text-red-500 dark:text-red-400">{errors.phone}</p>}
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-sm">Email</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="email" className="text-xs">Email</Label>
                       <Input
                         id="email"
                         type="email"
                         value={guestDetails.email}
                         onChange={(e) => setGuestDetails({ ...guestDetails, email: e.target.value })}
                         placeholder="john@example.com"
-                        className={errors.email ? 'border-red-500 dark:border-red-400' : ''}
+                        className={`h-9 ${errors.email ? 'border-red-500 dark:border-red-400' : ''}`}
                       />
                       {errors.email && <p className="text-xs text-red-500 dark:text-red-400">{errors.email}</p>}
                     </div>
@@ -382,16 +384,16 @@ const handleSelectGuest = (guest) => {
                 </div>
 
                 {/* ID Proof Section */}
-                <div className="mb-6 pt-6 border-t">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">ID Proof</h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="idType" className="text-sm">ID Proof Type</Label>
+                <div className="mb-4 pt-4 border-t">
+                  <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">ID Proof</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="idType" className="text-xs">ID Type</Label>
                       <Select
                         value={guestDetails.idType}
                         onValueChange={(value) => setGuestDetails({ ...guestDetails, idType: value })}
                       >
-                        <SelectTrigger id="idType">
+                        <SelectTrigger id="idType" className="h-9">
                           <SelectValue placeholder="Select ID type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -403,63 +405,68 @@ const handleSelectGuest = (guest) => {
                       </Select>
                     </div>
 
-                    <div className="space-y-1.5 lg:col-span-2">
-                      <Label htmlFor="idNumber" className="text-sm">ID Proof Number</Label>
+                    <div className="space-y-1 md:col-span-1 lg:col-span-2">
+                      <Label htmlFor="idNumber" className="text-xs">ID Number</Label>
                       <Input
                         id="idNumber"
                         value={guestDetails.idNumber}
                         onChange={(e) => setGuestDetails({ ...guestDetails, idNumber: e.target.value })}
-                        placeholder="ID Number"
+                        placeholder="Enter ID number"
+                        className="h-9"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Address Section */}
-                <div className="pt-6 border-t">
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Address</h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="space-y-1.5 lg:col-span-3">
-                      <Label htmlFor="address" className="text-sm">Street Address</Label>
+                <div className="pt-4 border-t">
+                  <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Address</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="space-y-1 md:col-span-2 lg:col-span-3">
+                      <Label htmlFor="address" className="text-xs">Street Address</Label>
                       <Input
                         id="address"
                         value={guestDetails.address}
                         onChange={(e) => setGuestDetails({ ...guestDetails, address: e.target.value })}
                         placeholder="123 Main Street"
+                        className="h-9"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-sm">City</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="city" className="text-xs">City</Label>
                       <Input
                         id="city"
                         value={guestDetails.city}
                         onChange={(e) => setGuestDetails({ ...guestDetails, city: e.target.value })}
                         placeholder="Mumbai"
+                        className="h-9"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="state" className="text-sm">State</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="state" className="text-xs">State</Label>
                       <Input
                         id="state"
                         value={guestDetails.state}
                         onChange={(e) => setGuestDetails({ ...guestDetails, state: e.target.value })}
                         placeholder="Maharashtra"
+                        className="h-9"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="country" className="text-sm">Country</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="country" className="text-xs">Country</Label>
                       <Input
                         id="country"
                         value={guestDetails.country}
                         onChange={(e) => setGuestDetails({ ...guestDetails, country: e.target.value })}
                         placeholder="India"
+                        className="h-9"
                       />
                     </div>
 
-                    
+
                   </div>
                 </div>
               </div>
@@ -469,22 +476,20 @@ const handleSelectGuest = (guest) => {
       </div>
 
       {/* Footer with Navigation */}
-      <div className="sticky bottom-0 z-10 bg-card border-t px-6 py-4 shadow-lg">
-        <div className="flex justify-between">
+      <div className="sticky bottom-0 z-10 bg-card border-t px-4 py-3 shadow-lg">
+        <div className="flex justify-between items-center gap-4">
           <Button
             onClick={() => onNavigate('new-reservation')}
             variant="outline"
-            size="lg"
           >
-            <ChevronLeft className="h-5 w-5 mr-2" />
+            <ChevronLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <Button
             onClick={handleProceed}
-            size="lg"
           >
             Proceed to Payment
-            <ChevronRight className="h-5 w-5 ml-2" />
+            <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
       </div>
