@@ -126,28 +126,28 @@ export default function PaymentPage({ onNavigate }) {
   const handleConfirmReservation = async () => {
     setLoading(true)
     try {
-      // First, create or update the guest
+      // First, create or update the PRIMARY guest (first guest in allGuestsDetails)
       let guestId = null;
-      
-      // Get the formatted data *without* an ID
-      const guestData = prepareGuestDataForSave(guestDetails);
+
+      // Get the formatted data for the PRIMARY GUEST
+      const guestData = prepareGuestDataForSave(primaryGuest);
 
       /**
-       * FIX: We check guestDetails.id (from context) here.
-       * This correctly separates the logic for updating vs. creating.
+       * FIX: We check primaryGuest.id (the first guest) here.
+       * This ensures we save the primary guest, not the last guest entered.
        */
-      if (guestDetails.id) {
+      if (primaryGuest.id) {
         // --- EXISTING GUEST ---
-        console.log("Updating existing guest:", guestDetails.id);
+        console.log("Updating existing guest:", primaryGuest.id);
         // Pass the ID and the data to update separately
-        await updateGuest(guestDetails.id, guestData);
-        guestId = guestDetails.id; // Use the existing ID
+        await updateGuest(primaryGuest.id, guestData);
+        guestId = primaryGuest.id; // Use the existing ID
       } else {
         // --- NEW GUEST ---
         console.log("Adding new guest...");
         // Pass data *without* an 'id' key.
         // Supabase will now use the database's default UUID generator.
-        const newGuest = await addGuest(guestData); 
+        const newGuest = await addGuest(guestData);
         if (!newGuest) {
           throw new Error("Failed to create new guest.");
         }
