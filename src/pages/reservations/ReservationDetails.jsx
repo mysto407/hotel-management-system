@@ -498,21 +498,118 @@ export default function ReservationDetails({ onNavigate }) {
                 </div>
               </div>
 
-              {/* Additional Guest Information Note */}
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-4">
-                <div className="text-xs text-amber-800 dark:text-amber-200">
-                  <div className="font-semibold mb-1">📋 Multi-Guest Support</div>
-                  <div>
-                    This booking includes {totalGuests} total guest{totalGuests !== 1 ? 's' : ''} across {groupedReservations.length} room{groupedReservations.length !== 1 ? 's' : ''}.
-                    The primary guest shown above is the main contact for this reservation.
-                    {totalGuests > 1 && (
-                      <div className="mt-1">
-                        Additional guests were saved to the system but require a database enhancement to display their individual details here.
+              {/* Additional Guests Section */}
+              {additionalGuestsInfo.length > 0 && (
+                <div className="space-y-3 mt-4">
+                  <div className="text-sm font-semibold text-muted-foreground border-t pt-4">
+                    Additional Guests ({additionalGuestsInfo.length})
+                  </div>
+                  {additionalGuestsInfo.map((guest, index) => (
+                    <div key={guest.id} className="bg-muted/10 rounded-lg p-4 space-y-3">
+                      <div className="text-sm font-medium text-foreground mb-2">
+                        Guest {index + 2}
                       </div>
-                    )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                        {/* Personal Information Column */}
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-2 text-sm">
+                            <User className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <div className="text-muted-foreground text-xs mb-0.5">Name</div>
+                              <div className="font-medium">{guest.name}</div>
+                            </div>
+                          </div>
+                          {guest.email && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <Mail className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-muted-foreground text-xs mb-0.5">Email</div>
+                                <div className="font-medium">{guest.email}</div>
+                              </div>
+                            </div>
+                          )}
+                          {guest.phone && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <Phone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-muted-foreground text-xs mb-0.5">Phone</div>
+                                <div className="font-medium">{guest.phone}</div>
+                              </div>
+                            </div>
+                          )}
+                          {guest.id_proof_type && guest.id_proof_type !== 'N/A' && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <Building className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-muted-foreground text-xs mb-0.5">ID Proof</div>
+                                <div className="font-medium">
+                                  {guest.id_proof_type} - {guest.id_proof_number}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Address Information Column */}
+                        <div className="space-y-3">
+                          {guest.address && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-muted-foreground text-xs mb-0.5">Address</div>
+                                <div className="font-medium">{guest.address}</div>
+                              </div>
+                            </div>
+                          )}
+                          {guest.city && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <Home className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-muted-foreground text-xs mb-0.5">City</div>
+                                <div className="font-medium">{guest.city}</div>
+                              </div>
+                            </div>
+                          )}
+                          {guest.state && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-muted-foreground text-xs mb-0.5">State</div>
+                                <div className="font-medium">{guest.state}</div>
+                              </div>
+                            </div>
+                          )}
+                          {guest.country && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="text-muted-foreground text-xs mb-0.5">Country</div>
+                                <div className="font-medium">{guest.country}</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Information Note */}
+              {additionalGuestsInfo.length === 0 && totalGuests > 1 && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-4">
+                  <div className="text-xs text-amber-800 dark:text-amber-200">
+                    <div className="font-semibold mb-1">📋 Multi-Guest Information</div>
+                    <div>
+                      This booking includes {totalGuests} total guest{totalGuests !== 1 ? 's' : ''} across {groupedReservations.length} room{groupedReservations.length !== 1 ? 's' : ''}.
+                      The primary guest shown above is the main contact for this reservation.
+                      <div className="mt-1">
+                        Additional guest details are not available because the reservation was created before the multi-guest enhancement. To see individual guest details, please run the database migration at: <code className="text-xs bg-amber-100 dark:bg-amber-900 px-1 rounded">database/migrations/add_additional_guests_support.sql</code>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
