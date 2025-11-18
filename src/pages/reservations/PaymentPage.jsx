@@ -371,7 +371,7 @@ export default function PaymentPage({ onNavigate }) {
                             <div key={`${room.id}-${index}`} className="bg-muted/30 rounded p-3 space-y-1.5">
                               <div className="flex justify-between items-start">
                                 <span className="font-medium text-sm">{room.name}</span>
-                                <span className="text-sm font-semibold">₹{(room.base_price * bill.nights).toFixed(2)}</span>
+                                <span className="text-sm font-semibold">₹{((room.ratePrice || room.base_price) * bill.nights).toFixed(2)}</span>
                               </div>
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Guests:</span>
@@ -387,7 +387,7 @@ export default function PaymentPage({ onNavigate }) {
                               </div>
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Rate per night:</span>
-                                <span>₹{room.base_price.toFixed(2)}</span>
+                                <span>₹{(room.ratePrice || room.base_price).toFixed(2)}</span>
                               </div>
                             </div>
                           )
@@ -427,7 +427,7 @@ export default function PaymentPage({ onNavigate }) {
                             </td>
                             <td className="p-3 text-sm text-center">{bill.nights}</td>
                             <td className="p-3 text-sm text-right font-medium">
-                              ₹{(room.base_price * bill.nights).toFixed(2)}
+                              ₹{((room.ratePrice || room.base_price) * bill.nights).toFixed(2)}
                             </td>
                           </tr>
                         ))
@@ -451,7 +451,8 @@ export default function PaymentPage({ onNavigate }) {
                     <div className="space-y-3">
                       {selectedRooms.flatMap(room =>
                         Array.from({ length: room.quantity }, (_, index) => {
-                          const roomSubtotal = room.base_price * bill.nights
+                          const roomRate = room.ratePrice || room.base_price
+                          const roomSubtotal = roomRate * bill.nights
                           const roomTax = roomSubtotal * 0.18
                           const roomTotal = roomSubtotal + roomTax
 
@@ -468,8 +469,8 @@ export default function PaymentPage({ onNavigate }) {
                               </div>
                               <div className="space-y-1 pt-2 border-t border-border">
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">Base Rate</span>
-                                  <span>₹{room.base_price.toFixed(2)} × {bill.nights} nights</span>
+                                  <span className="text-muted-foreground">Room Rate</span>
+                                  <span>₹{roomRate.toFixed(2)} × {bill.nights} nights</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
                                   <span className="text-muted-foreground">Subtotal</span>
@@ -495,7 +496,8 @@ export default function PaymentPage({ onNavigate }) {
                       <div className="flex justify-between text-sm font-medium">
                         <span>Total Room Charges</span>
                         <span>₹{selectedRooms.reduce((sum, room) => {
-                          const roomSubtotal = room.base_price * bill.nights * room.quantity
+                          const roomRate = room.ratePrice || room.base_price
+                          const roomSubtotal = roomRate * bill.nights * room.quantity
                           const roomTax = roomSubtotal * 0.18
                           return sum + roomSubtotal + roomTax
                         }, 0).toFixed(2)}</span>

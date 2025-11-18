@@ -220,7 +220,9 @@ export default function ReservationDetails({ onNavigate }) {
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Rate Plan</p>
-              <p className="font-medium text-sm">{getMealPlanName(primaryReservation.meal_plan) || 'Base Rate'}</p>
+              <p className="font-medium text-sm">
+                {primaryReservation.room_rate_types?.rate_name || 'Standard Rate'}
+              </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
@@ -274,12 +276,22 @@ export default function ReservationDetails({ onNavigate }) {
                                      (reservation.number_of_children || 0) +
                                      (reservation.number_of_infants || 0)
 
+                    // Get the room rate - use rate type price if available, otherwise fall back to room type base price
+                    const roomRate = reservation.room_rate_types?.base_price || roomInfo.room?.room_types?.base_price || 0
+
                     return (
                       <TableRow key={reservation.id}>
                         <TableCell className="font-mono text-xs">
                           {reservation.id.substring(0, 13)}
                         </TableCell>
-                        <TableCell className="font-medium">{roomInfo.type}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{roomInfo.type}</div>
+                          {reservation.room_rate_types?.rate_name && (
+                            <div className="text-xs text-muted-foreground">
+                              {reservation.room_rate_types.rate_name} - ₹{roomRate.toFixed(2)}/night
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">Room {roomInfo.number}</Badge>
                         </TableCell>
