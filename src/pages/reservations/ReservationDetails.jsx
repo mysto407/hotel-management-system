@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table'
+import FolioTab from '../../components/reservations/FolioTab'
 
 export default function ReservationDetails({ onNavigate }) {
   const { reservations, updateReservation } = useReservations()
@@ -374,15 +375,10 @@ export default function ReservationDetails({ onNavigate }) {
         </TabsContent>
 
         <TabsContent value="folio">
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center text-muted-foreground">
-                <DollarSign className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-lg font-medium">Folio Information</p>
-                <p className="text-sm mt-2">Billing and payment details will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
+          <FolioTab
+            reservationIds={groupedReservations.map(r => r.id)}
+            primaryReservation={primaryReservation}
+          />
         </TabsContent>
 
         <TabsContent value="guest-details">
