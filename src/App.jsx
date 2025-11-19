@@ -9,7 +9,7 @@ import { ReservationProvider } from './context/ReservationContext';
 import { ReservationFlowProvider } from './context/ReservationFlowContext';
 import { BillingProvider } from './context/BillingContext';
 import { FolioProvider } from './context/FolioContext';
-import { InventoryProvider } from './context/InventoryProvider';
+import { InventoryProvider } from './context/InventoryContext';
 import { GuestProvider } from './context/GuestContext';
 import { AgentProvider } from './context/AgentContext';
 import { ExpenseProvider } from './context/ExpensesContext';
