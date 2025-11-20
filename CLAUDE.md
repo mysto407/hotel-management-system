@@ -22,7 +22,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Only tell the user what was changed AFTER making the changes
    - The user should never have to manually edit code based on your instructions
 
-4. **Supabase MCP Tools Available:**
+4. **Do NOT create "Enhanced" versions of files** - When improving existing code:
+   - ❌ BAD: Create `EnhancedFolioTab.jsx` as a new file
+   - ✅ GOOD: Directly enhance the existing `FolioTab.jsx` file
+   - Modify files in place rather than creating new versions
+   - Use the Edit tool to update existing files with improvements
+   - This keeps the codebase clean and avoids duplicate files
+
+5. **Supabase MCP Tools Available:**
    - `mcp__supabase__list_tables` - List tables in schemas
    - `mcp__supabase__apply_migration` - Apply DDL operations (CREATE, ALTER, DROP)
    - `mcp__supabase__execute_sql` - Execute SQL queries
