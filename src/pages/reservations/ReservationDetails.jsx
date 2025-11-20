@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table'
-import EnhancedFolioTab from '../../components/reservations/EnhancedFolioTab'
+import FolioTab from '../../components/reservations/FolioTab'
 
 export default function ReservationDetails({ onNavigate }) {
   const { reservations, updateReservation } = useReservations()
@@ -375,7 +375,7 @@ export default function ReservationDetails({ onNavigate }) {
         </TabsContent>
 
         <TabsContent value="folio">
-          <EnhancedFolioTab
+          <FolioTab
             reservationIds={groupedReservations.map(r => r.id)}
             primaryReservation={primaryReservation}
           />

@@ -1,701 +1,534 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Plus, Edit2, Trash2, Receipt, CreditCard, Tag, Download } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Download, Filter, RotateCcw, Ban, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { useBilling } from '../../context/BillingContext'
-import { getPaymentsByReservation, getDiscountApplicationsByReservation } from '../../lib/supabase'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { Badge } from '../ui/badge'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Textarea } from '../ui/textarea'
+import { Label } from '../ui/label'
+import AddTransactionModal from './AddTransactionModal'
 
 export default function FolioTab({ reservationIds, primaryReservation }) {
-  const { bills, addBillItem, removeBillItem, updateBillItemData, addPayment, removePayment, addBill } = useBilling()
+  const {
+    getTransactions,
+    getTransactionSummary,
+    reverseTransactionById,
+    voidTransactionById,
+    TRANSACTION_TYPES,
+    TRANSACTION_STATUS
+  } = useBilling()
 
-  const [payments, setPayments] = useState([])
-  const [discountApplications, setDiscountApplications] = useState([])
+  const [transactions, setTransactions] = useState([])
+  const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showReverseModal, setShowReverseModal] = useState(false)
+  const [showVoidModal, setShowVoidModal] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState(null)
+  const [reverseReason, setReverseReason] = useState('')
+  const [voidReason, setVoidReason] = useState('')
 
-  // Modal states
-  const [showAddChargeModal, setShowAddChargeModal] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [showDiscountModal, setShowDiscountModal] = useState(false)
-  const [editingCharge, setEditingCharge] = useState(null)
-
-  // Form states
-  const [chargeForm, setChargeForm] = useState({
-    description: '',
-    quantity: 1,
-    rate: 0,
-    billType: 'Other Sales'
+  // Filters
+  const [filters, setFilters] = useState({
+    type: 'all',
+    status: 'all',
+    search: ''
   })
+  const [showFilters, setShowFilters] = useState(false)
 
-  const [paymentForm, setPaymentForm] = useState({
-    amount: 0,
-    paymentMethod: 'Cash',
-    notes: ''
-  })
+  // Load transactions and summary
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      // For simplicity, load transactions for primary reservation
+      // In production, you might aggregate across all reservation IDs
+      const txData = await getTransactions(primaryReservation.id)
+      setTransactions(txData)
 
-  const [discountForm, setDiscountForm] = useState({
-    discountId: '',
-    amount: 0
-  })
-
-  const billTypes = [
-    'Room', 'Food', 'Spa', 'Conference', 'Laundry', 'Bar',
-    'KOT', 'BOT', 'Extra Bed', 'Other Sales'
-  ]
-
-  const paymentMethods = ['Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque', 'Other']
-
-  // Get all bills for these reservations
-  const reservationBills = useMemo(() => {
-    return bills.filter(bill => reservationIds.includes(bill.reservation_id))
-  }, [bills, reservationIds])
-
-  // Get all bill items from all bills
-  const allCharges = useMemo(() => {
-    const charges = []
-    reservationBills.forEach(bill => {
-      if (bill.bill_items && bill.bill_items.length > 0) {
-        bill.bill_items.forEach(item => {
-          charges.push({
-            ...item,
-            billId: bill.id,
-            billType: bill.bill_type,
-            date: item.created_at || bill.created_at
-          })
-        })
-      }
-    })
-    return charges.sort((a, b) => new Date(a.date) - new Date(b.date))
-  }, [reservationBills])
-
-  // Load payments and discounts
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-
-      // Load payments for all reservations
-      const allPayments = []
-      for (const resId of reservationIds) {
-        const { data } = await getPaymentsByReservation(resId)
-        if (data) {
-          allPayments.push(...data)
-        }
-      }
-      setPayments(allPayments)
-
-      // Load discount applications for all reservations
-      const allDiscounts = []
-      for (const resId of reservationIds) {
-        const { data } = await getDiscountApplicationsByReservation(resId)
-        if (data) {
-          allDiscounts.push(...data)
-        }
-      }
-      setDiscountApplications(allDiscounts)
-
+      const summaryData = await getTransactionSummary(primaryReservation.id)
+      setSummary(summaryData)
+    } catch (error) {
+      console.error('Error loading transactions:', error)
+    } finally {
       setLoading(false)
     }
+  }
 
-    if (reservationIds && reservationIds.length > 0) {
+  useEffect(() => {
+    if (primaryReservation?.id) {
       loadData()
     }
-  }, [reservationIds, bills])
+  }, [primaryReservation])
 
-  // Calculate totals
-  const totals = useMemo(() => {
-    // Calculate charges subtotal
-    const chargesSubtotal = allCharges.reduce((sum, charge) => {
-      return sum + ((charge.quantity || 1) * (charge.rate || 0))
-    }, 0)
-
-    // Calculate room charges from reservation data
-    const roomCharges = reservationBills.reduce((sum, bill) => {
-      if (bill.bill_type === 'Room') {
-        return sum + (bill.subtotal || 0)
-      }
-      return sum
-    }, 0)
-
-    // Total before discount
-    const subtotalBeforeDiscount = chargesSubtotal + roomCharges
-
-    // Calculate total discounts
-    const totalDiscount = discountApplications.reduce((sum, app) => {
-      return sum + (app.discount_amount || 0)
-    }, 0)
-
-    // Subtotal after discount
-    const subtotal = subtotalBeforeDiscount - totalDiscount
-
-    // Calculate tax (18% GST)
-    const tax = subtotal * 0.18
-
-    // Grand total
-    const total = subtotal + tax
-
-    // Total paid
-    const totalPaid = payments.reduce((sum, payment) => {
-      return sum + (payment.amount || 0)
-    }, 0)
-
-    // Balance due
-    const balance = total - totalPaid
-
-    return {
-      subtotalBeforeDiscount,
-      totalDiscount,
-      subtotal,
-      tax,
-      total,
-      totalPaid,
-      balance,
-      roomCharges,
-      otherCharges: chargesSubtotal
+  // Filter transactions
+  const filteredTransactions = transactions.filter(tx => {
+    if (filters.type !== 'all' && tx.transaction_type !== filters.type) return false
+    if (filters.status !== 'all' && tx.transaction_status !== filters.status) return false
+    if (filters.search) {
+      const search = filters.search.toLowerCase()
+      return tx.description?.toLowerCase().includes(search) ||
+             tx.reference_number?.toLowerCase().includes(search) ||
+             tx.payment_reference?.toLowerCase().includes(search)
     }
-  }, [allCharges, reservationBills, payments, discountApplications])
+    return true
+  })
 
-  // Get or create main bill for adding charges
-  const getMainBill = async () => {
-    // Try to find an existing "Other Sales" bill
-    let mainBill = reservationBills.find(b => b.bill_type === 'Other Sales' || b.bill_type === chargeForm.billType)
+  // Group transactions by type for summary
+  const groupedByType = filteredTransactions.reduce((acc, tx) => {
+    const type = tx.transaction_type
+    if (!acc[type]) acc[type] = []
+    acc[type].push(tx)
+    return acc
+  }, {})
 
-    // If no bill exists, create one
-    if (!mainBill) {
-      const newBillData = {
-        reservation_id: primaryReservation.id,
-        bill_type: chargeForm.billType,
-        subtotal: 0,
-        tax: 0,
-        discount: 0,
-        total: 0,
-        paid_amount: 0,
-        balance: 0,
-        payment_status: 'Pending',
-        notes: 'Folio charges'
-      }
+  // Handle reverse
+  const handleReverse = async () => {
+    if (!selectedTransaction || !reverseReason) return
 
-      const createdBill = await addBill({ ...newBillData, items: [] })
-      return createdBill
-    }
-
-    return mainBill
+    await reverseTransactionById(selectedTransaction.id, reverseReason)
+    setShowReverseModal(false)
+    setReverseReason('')
+    setSelectedTransaction(null)
+    loadData()
   }
 
-  // Handle add/edit charge
-  const handleSaveCharge = async () => {
-    const bill = await getMainBill()
-    if (!bill) return
+  // Handle void
+  const handleVoid = async () => {
+    if (!selectedTransaction || !voidReason) return
 
-    const itemData = {
-      description: chargeForm.description,
-      quantity: parseFloat(chargeForm.quantity) || 1,
-      rate: parseFloat(chargeForm.rate) || 0,
-      amount: (parseFloat(chargeForm.quantity) || 1) * (parseFloat(chargeForm.rate) || 0)
-    }
-
-    if (editingCharge) {
-      await updateBillItemData(editingCharge.id, itemData)
-    } else {
-      await addBillItem(bill.id, itemData)
-    }
-
-    // Recalculate bill totals
-    await updateBillTotals(bill.id)
-
-    resetChargeForm()
+    await voidTransactionById(selectedTransaction.id, voidReason)
+    setShowVoidModal(false)
+    setVoidReason('')
+    setSelectedTransaction(null)
+    loadData()
   }
 
-  // Update bill totals after adding/editing/removing items
-  const updateBillTotals = async (billId) => {
-    const bill = bills.find(b => b.id === billId)
-    if (!bill) return
-
-    const billItems = bill.bill_items || []
-    const subtotal = billItems.reduce((sum, item) => sum + ((item.quantity || 1) * (item.rate || 0)), 0)
-    const tax = subtotal * 0.18
-    const total = subtotal + tax
-
-    // Note: This would need to be implemented in BillingContext
-    // For now, the totals will recalculate on next load
+  // Get badge variant for transaction type
+  const getTypeVariant = (type) => {
+    if (type.startsWith('payment_')) return 'success'
+    if (type === 'discount' || type === 'refund' || type === 'write_off') return 'warning'
+    if (type === 'reversal' || type === 'void') return 'destructive'
+    return 'default'
   }
 
-  // Handle delete charge
-  const handleDeleteCharge = async (charge) => {
-    if (confirm('Are you sure you want to delete this charge?')) {
-      await removeBillItem(charge.id)
-      await updateBillTotals(charge.billId)
+  // Get badge variant for status
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case 'posted': return 'success'
+      case 'pending': return 'warning'
+      case 'reversed': case 'voided': return 'destructive'
+      default: return 'default'
     }
   }
 
-  // Handle post payment
-  const handlePostPayment = async () => {
-    const bill = await getMainBill()
-    if (!bill) return
-
-    const paymentData = {
-      bill_id: bill.id,
-      amount: parseFloat(paymentForm.amount) || 0,
-      payment_method: paymentForm.paymentMethod,
-      notes: paymentForm.notes,
-      payment_date: new Date().toISOString()
-    }
-
-    await addPayment(paymentData)
-
-    resetPaymentForm()
-
-    // Reload payments
-    const { data } = await getPaymentsByReservation(primaryReservation.id)
-    if (data) setPayments(data)
+  // Format transaction type for display
+  const formatType = (type) => {
+    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
   }
 
-  // Handle delete payment
-  const handleDeletePayment = async (payment) => {
-    if (confirm('Are you sure you want to delete this payment?')) {
-      await removePayment(payment.id, payment.bill_id, payment.amount)
+  // Format amount with color
+  const formatAmount = (amount, type) => {
+    const isCredit = amount < 0
+    const absAmount = Math.abs(amount)
+    const colorClass = isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'
 
-      // Reload payments
-      const { data } = await getPaymentsByReservation(primaryReservation.id)
-      if (data) setPayments(data)
-    }
-  }
-
-  // Reset forms
-  const resetChargeForm = () => {
-    setChargeForm({
-      description: '',
-      quantity: 1,
-      rate: 0,
-      billType: 'Other Sales'
-    })
-    setEditingCharge(null)
-    setShowAddChargeModal(false)
-  }
-
-  const resetPaymentForm = () => {
-    setPaymentForm({
-      amount: 0,
-      paymentMethod: 'Cash',
-      notes: ''
-    })
-    setShowPaymentModal(false)
-  }
-
-  // Edit charge
-  const handleEditCharge = (charge) => {
-    setEditingCharge(charge)
-    setChargeForm({
-      description: charge.description || '',
-      quantity: charge.quantity || 1,
-      rate: charge.rate || 0,
-      billType: charge.billType || 'Other Sales'
-    })
-    setShowAddChargeModal(true)
+    return (
+      <span className={colorClass}>
+        {isCredit && '- '}₹{absAmount.toFixed(2)}
+      </span>
+    )
   }
 
   return (
     <div className="space-y-4">
-      {/* Action Buttons */}
-      <div className="flex gap-2 flex-wrap">
-        <Button onClick={() => setShowAddChargeModal(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Charge
-        </Button>
-        <Button onClick={() => setShowPaymentModal(true)} variant="outline" className="gap-2">
-          <CreditCard className="h-4 w-4" />
-          Post Payment
-        </Button>
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Print Folio
+      {/* Action Bar */}
+      <div className="flex flex-wrap gap-2 justify-between items-center">
+        <div className="flex gap-2">
+          <Button onClick={() => setShowAddModal(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Transaction
+          </Button>
+          <Button variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Print Folio
+          </Button>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setShowFilters(!showFilters)}
+          className="gap-2"
+        >
+          <Filter className="h-4 w-4" />
+          Filters
+          {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
       </div>
 
-      {/* Charges Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Charges
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Rate</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allCharges.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    No charges found
-                  </TableCell>
-                </TableRow>
-              )}
-              {allCharges.map((charge) => (
-                <TableRow key={charge.id}>
-                  <TableCell className="text-sm">
-                    {new Date(charge.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{charge.description}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{charge.billType}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{charge.quantity}</TableCell>
-                  <TableCell className="text-right">₹{charge.rate?.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    ₹{((charge.quantity || 1) * (charge.rate || 0)).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditCharge(charge)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteCharge(charge)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Payments Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Payments
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No payments recorded
-                  </TableCell>
-                </TableRow>
-              )}
-              {payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="text-sm">
-                    {new Date(payment.created_at || payment.payment_date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{payment.payment_method}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {payment.notes || '-'}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold text-emerald-600">
-                    ₹{payment.amount?.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeletePayment(payment)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Discounts Table */}
-      {discountApplications.length > 0 && (
+      {/* Filters */}
+      {showFilters && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Tag className="h-5 w-5" />
-              Discounts Applied
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Discount</TableHead>
-                  <TableHead className="text-right">Original Amount</TableHead>
-                  <TableHead className="text-right">Discount Amount</TableHead>
-                  <TableHead className="text-right">Final Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {discountApplications.map((app) => (
-                  <TableRow key={app.id}>
-                    <TableCell className="text-sm">
-                      {new Date(app.applied_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{app.discounts?.name || 'Discount'}</TableCell>
-                    <TableCell className="text-right">₹{app.original_amount?.toFixed(2)}</TableCell>
-                    <TableCell className="text-right text-red-600">
-                      -₹{app.discount_amount?.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      ₹{app.final_amount?.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Transaction Type</Label>
+                <Select
+                  value={filters.type}
+                  onValueChange={(value) => setFilters({ ...filters, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="room_charge">Room Charge</SelectItem>
+                    <SelectItem value="service_charge">Service Charge</SelectItem>
+                    <SelectItem value="tax">Tax</SelectItem>
+                    <SelectItem value="fee">Fee</SelectItem>
+                    <SelectItem value="discount">Discount</SelectItem>
+                    <SelectItem value="payment_cash">Payment - Cash</SelectItem>
+                    <SelectItem value="payment_card">Payment - Card</SelectItem>
+                    <SelectItem value="payment_online">Payment - Online</SelectItem>
+                    <SelectItem value="refund">Refund</SelectItem>
+                    <SelectItem value="adjustment">Adjustment</SelectItem>
+                    <SelectItem value="deposit">Deposit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) => setFilters({ ...filters, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="posted">Posted</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="reversed">Reversed</SelectItem>
+                    <SelectItem value="voided">Voided</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Search</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search description, ref #..."
+                    value={filters.search}
+                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Summary Card */}
-      <Card className="bg-muted/30">
+      {summary && (
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+          <CardHeader>
+            <CardTitle>Transaction Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Charges</p>
+                <p className="text-2xl font-bold">₹{summary.total_charges?.toFixed(2) || '0.00'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Payments</p>
+                <p className="text-2xl font-bold text-emerald-600">
+                  ₹{summary.total_payments?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Discounts</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  ₹{summary.total_discounts?.toFixed(2) || '0.00'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Balance</p>
+                <p className={`text-2xl font-bold ${
+                  (summary.net_balance || 0) > 0 ? 'text-red-600' : 'text-emerald-600'
+                }`}>
+                  ₹{Math.abs(summary.net_balance || 0).toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {(summary.net_balance || 0) > 0 ? 'Due' : 'Credit'}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">Posted: </span>
+                <span className="font-semibold">{summary.total_posted_transactions || 0}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Pending: </span>
+                <span className="font-semibold">{summary.total_pending_transactions || 0}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Reversed: </span>
+                <span className="font-semibold">{summary.total_reversed_transactions || 0}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Transactions Table */}
+      <Card>
         <CardHeader>
-          <CardTitle>Folio Summary</CardTitle>
+          <CardTitle>
+            Transaction History ({filteredTransactions.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Room Charges:</span>
-              <span className="font-medium">₹{totals.roomCharges.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Other Charges:</span>
-              <span className="font-medium">₹{totals.otherCharges.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal (Before Discount):</span>
-              <span className="font-medium">₹{totals.subtotalBeforeDiscount.toFixed(2)}</span>
-            </div>
-            {totals.totalDiscount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Discounts:</span>
-                <span className="font-medium text-red-600">-₹{totals.totalDiscount.toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal:</span>
-              <span className="font-medium">₹{totals.subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Tax (18% GST):</span>
-              <span className="font-medium">₹{totals.tax.toFixed(2)}</span>
-            </div>
-            <div className="h-px bg-border my-2"></div>
-            <div className="flex justify-between text-base font-bold">
-              <span>Grand Total:</span>
-              <span>₹{totals.total.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-base">
-              <span className="text-emerald-600">Total Paid:</span>
-              <span className="font-semibold text-emerald-600">₹{totals.totalPaid.toFixed(2)}</span>
-            </div>
-            <div className="h-px bg-border my-2"></div>
-            <div className="flex justify-between text-lg font-bold">
-              <span className={totals.balance > 0 ? 'text-red-600' : 'text-emerald-600'}>
-                Balance Due:
-              </span>
-              <span className={totals.balance > 0 ? 'text-red-600' : 'text-emerald-600'}>
-                ₹{totals.balance.toFixed(2)}
-              </span>
-            </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created By</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      Loading transactions...
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && filteredTransactions.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      No transactions found
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && filteredTransactions.map((tx) => (
+                  <TableRow key={tx.id}>
+                    <TableCell className="text-sm">
+                      {new Date(tx.transaction_date).toLocaleDateString()}
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(tx.transaction_date).toLocaleTimeString()}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getTypeVariant(tx.transaction_type)}>
+                        {formatType(tx.transaction_type)}
+                      </Badge>
+                      {tx.service_category && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {formatType(tx.service_category)}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-xs">
+                        {tx.description}
+                        {tx.notes && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {tx.notes}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {tx.reference_number || tx.payment_reference || '-'}
+                      {tx.payment_method && (
+                        <div className="text-xs text-muted-foreground">
+                          {tx.payment_method}
+                          {tx.card_last_four && ` •••• ${tx.card_last_four}`}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatAmount(tx.amount, tx.transaction_type)}
+                      {tx.quantity && tx.quantity > 1 && (
+                        <div className="text-xs text-muted-foreground">
+                          {tx.quantity} × ₹{tx.rate?.toFixed(2)}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(tx.transaction_status)}>
+                        {formatType(tx.transaction_status)}
+                      </Badge>
+                      {tx.reversal_reason && (
+                        <div className="text-xs text-muted-foreground mt-1" title={tx.reversal_reason}>
+                          {tx.reversal_reason.substring(0, 20)}...
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {tx.created_by_user?.name || 'System'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        {tx.transaction_status === 'posted' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTransaction(tx)
+                              setShowReverseModal(true)
+                            }}
+                            title="Reverse Transaction"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {tx.transaction_status === 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTransaction(tx)
+                              setShowVoidModal(true)
+                            }}
+                            title="Void Transaction"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Add/Edit Charge Modal */}
-      <Dialog open={showAddChargeModal} onOpenChange={setShowAddChargeModal}>
+      {/* Add Transaction Modal */}
+      <AddTransactionModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        reservationId={primaryReservation?.id}
+        billId={null}
+        onSuccess={loadData}
+      />
+
+      {/* Reverse Transaction Modal */}
+      <Dialog open={showReverseModal} onOpenChange={setShowReverseModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingCharge ? 'Edit Charge' : 'Add Charge'}</DialogTitle>
+            <DialogTitle>Reverse Transaction</DialogTitle>
             <DialogDescription>
-              {editingCharge ? 'Update the charge details below.' : 'Add a new charge to the folio.'}
+              This will create a reversal transaction with the opposite amount.
+              The original transaction will be marked as reversed.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {selectedTransaction && (
+              <div className="bg-muted p-3 rounded-lg space-y-1">
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Type: </span>
+                  <span className="font-semibold">{formatType(selectedTransaction.transaction_type)}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Description: </span>
+                  <span>{selectedTransaction.description}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Amount: </span>
+                  <span className="font-semibold">₹{Math.abs(selectedTransaction.amount).toFixed(2)}</span>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="billType">Charge Type</Label>
-              <Select
-                value={chargeForm.billType}
-                onValueChange={(value) => setChargeForm({ ...chargeForm, billType: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {billTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={chargeForm.description}
-                onChange={(e) => setChargeForm({ ...chargeForm, description: e.target.value })}
-                placeholder="Enter charge description"
+              <Label>Reason for Reversal</Label>
+              <Textarea
+                value={reverseReason}
+                onChange={(e) => setReverseReason(e.target.value)}
+                placeholder="Enter the reason for reversing this transaction..."
+                rows={3}
+                required
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={chargeForm.quantity}
-                  onChange={(e) => setChargeForm({ ...chargeForm, quantity: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rate">Rate (₹)</Label>
-                <Input
-                  id="rate"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={chargeForm.rate}
-                  onChange={(e) => setChargeForm({ ...chargeForm, rate: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="pt-2 border-t">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Amount:</span>
-                <span className="font-bold">
-                  ₹{((parseFloat(chargeForm.quantity) || 0) * (parseFloat(chargeForm.rate) || 0)).toFixed(2)}
-                </span>
-              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={resetChargeForm}>
+            <Button variant="outline" onClick={() => setShowReverseModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveCharge}>
-              {editingCharge ? 'Update Charge' : 'Add Charge'}
+            <Button
+              onClick={handleReverse}
+              disabled={!reverseReason}
+              variant="destructive"
+            >
+              Reverse Transaction
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Post Payment Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+      {/* Void Transaction Modal */}
+      <Dialog open={showVoidModal} onOpenChange={setShowVoidModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Post Payment</DialogTitle>
+            <DialogTitle>Void Transaction</DialogTitle>
             <DialogDescription>
-              Record a payment for this reservation.
+              This will mark the transaction as voided. Only pending transactions can be voided.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {selectedTransaction && (
+              <div className="bg-muted p-3 rounded-lg space-y-1">
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Type: </span>
+                  <span className="font-semibold">{formatType(selectedTransaction.transaction_type)}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Description: </span>
+                  <span>{selectedTransaction.description}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Amount: </span>
+                  <span className="font-semibold">₹{Math.abs(selectedTransaction.amount).toFixed(2)}</span>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="paymentAmount">Amount (₹)</Label>
-              <Input
-                id="paymentAmount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={paymentForm.amount}
-                onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-muted-foreground">
-                Balance Due: ₹{totals.balance.toFixed(2)}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="paymentMethod">Payment Method</Label>
-              <Select
-                value={paymentForm.paymentMethod}
-                onValueChange={(value) => setPaymentForm({ ...paymentForm, paymentMethod: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethods.map(method => (
-                    <SelectItem key={method} value={method}>{method}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="paymentNotes">Notes (Optional)</Label>
+              <Label>Reason for Void</Label>
               <Textarea
-                id="paymentNotes"
-                value={paymentForm.notes}
-                onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                placeholder="Add any notes about this payment..."
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="Enter the reason for voiding this transaction..."
                 rows={3}
+                required
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={resetPaymentForm}>
+            <Button variant="outline" onClick={() => setShowVoidModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handlePostPayment}>
-              Post Payment
+            <Button
+              onClick={handleVoid}
+              disabled={!voidReason}
+              variant="destructive"
+            >
+              Void Transaction
             </Button>
           </DialogFooter>
         </DialogContent>
