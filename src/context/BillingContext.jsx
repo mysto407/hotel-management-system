@@ -15,9 +15,32 @@ import {
   deletePayment,
   getDiscountApplicationsByReservation,
   createDiscountApplication,
-  deleteDiscountApplication
+  deleteDiscountApplication,
+  // New transaction system imports
+  getTransactionsByReservation,
+  getReservationTransactionSummary,
+  getReservationBalance,
+  createRoomCharge,
+  createServiceCharge,
+  createTax,
+  createFee,
+  createDiscountTransaction,
+  createPaymentTransaction,
+  createRefund,
+  createAdjustment,
+  createWriteOff,
+  createDeposit,
+  createDepositUsage,
+  reverseTransaction,
+  voidTransaction,
+  updateTransaction,
+  deleteTransaction,
+  TRANSACTION_TYPES,
+  TRANSACTION_STATUS,
+  SERVICE_CATEGORIES
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
+import { useAuth } from './AuthContext';
 
 const BillingContext = createContext();
 
@@ -31,6 +54,7 @@ export const BillingProvider = ({ children }) => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const { error: showError } = useAlert();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadBills();
@@ -266,6 +290,238 @@ export const BillingProvider = ({ children }) => {
     await loadBills();
   };
 
+  // ============================================================================
+  // Enhanced Transaction System Methods
+  // ============================================================================
+
+  // Get all transactions for a reservation
+  const getTransactions = async (reservationId, options = {}) => {
+    const { data, error } = await getTransactionsByReservation(reservationId, options);
+    if (error) {
+      console.error('Error loading transactions:', error);
+      showError('Failed to load transactions: ' + error.message);
+      return [];
+    }
+    return data || [];
+  };
+
+  // Get transaction summary for a reservation
+  const getTransactionSummary = async (reservationId) => {
+    const { data, error } = await getReservationTransactionSummary(reservationId);
+    if (error) {
+      console.error('Error loading transaction summary:', error);
+      return null;
+    }
+    return data;
+  };
+
+  // Get balance for a reservation
+  const getBalance = async (reservationId) => {
+    const { data, error } = await getReservationBalance(reservationId);
+    if (error) {
+      console.error('Error loading balance:', error);
+      return 0;
+    }
+    return data || 0;
+  };
+
+  // Add room charge
+  const addRoomCharge = async (transactionData) => {
+    const { data, error } = await createRoomCharge({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding room charge:', error);
+      showError('Failed to add room charge: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add service charge
+  const addServiceCharge = async (transactionData) => {
+    const { data, error } = await createServiceCharge({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding service charge:', error);
+      showError('Failed to add service charge: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add tax
+  const addTax = async (transactionData) => {
+    const { data, error } = await createTax({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding tax:', error);
+      showError('Failed to add tax: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add fee
+  const addFee = async (transactionData) => {
+    const { data, error } = await createFee({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding fee:', error);
+      showError('Failed to add fee: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add discount as transaction
+  const addDiscountTransaction = async (transactionData) => {
+    const { data, error } = await createDiscountTransaction({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding discount:', error);
+      showError('Failed to add discount: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Record payment as transaction
+  const recordPaymentTransaction = async (transactionData) => {
+    const { data, error } = await createPaymentTransaction({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error recording payment:', error);
+      showError('Failed to record payment: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add refund
+  const addRefund = async (transactionData) => {
+    const { data, error } = await createRefund({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding refund:', error);
+      showError('Failed to add refund: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add adjustment
+  const addAdjustment = async (transactionData) => {
+    const { data, error } = await createAdjustment({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding adjustment:', error);
+      showError('Failed to add adjustment: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add write-off
+  const addWriteOff = async (transactionData) => {
+    const { data, error } = await createWriteOff({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding write-off:', error);
+      showError('Failed to add write-off: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Add deposit
+  const addDeposit = async (transactionData) => {
+    const { data, error } = await createDeposit({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error adding deposit:', error);
+      showError('Failed to add deposit: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Use deposit
+  const useDeposit = async (transactionData) => {
+    const { data, error } = await createDepositUsage({
+      ...transactionData,
+      created_by: user?.id
+    });
+    if (error) {
+      console.error('Error using deposit:', error);
+      showError('Failed to use deposit: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Reverse a transaction
+  const reverseTransactionById = async (transactionId, reason) => {
+    const { data, error } = await reverseTransaction(transactionId, reason, user?.id);
+    if (error) {
+      console.error('Error reversing transaction:', error);
+      showError('Failed to reverse transaction: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Void a transaction
+  const voidTransactionById = async (transactionId, reason) => {
+    const { data, error } = await voidTransaction(transactionId, reason, user?.id);
+    if (error) {
+      console.error('Error voiding transaction:', error);
+      showError('Failed to void transaction: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Update a transaction
+  const updateTransactionById = async (transactionId, updates) => {
+    const { data, error } = await updateTransaction(transactionId, updates);
+    if (error) {
+      console.error('Error updating transaction:', error);
+      showError('Failed to update transaction: ' + error.message);
+      return null;
+    }
+    return data;
+  };
+
+  // Delete a transaction
+  const deleteTransactionById = async (transactionId) => {
+    const { error } = await deleteTransaction(transactionId);
+    if (error) {
+      console.error('Error deleting transaction:', error);
+      showError('Failed to delete transaction: ' + error.message);
+      return;
+    }
+  };
+
   return (
     <BillingContext.Provider value={{
       bills,
@@ -283,7 +539,30 @@ export const BillingProvider = ({ children }) => {
       updatePaymentData,
       removePayment,
       applyDiscount,
-      removeDiscountApplication
+      removeDiscountApplication,
+      // Enhanced transaction methods
+      getTransactions,
+      getTransactionSummary,
+      getBalance,
+      addRoomCharge,
+      addServiceCharge,
+      addTax,
+      addFee,
+      addDiscountTransaction,
+      recordPaymentTransaction,
+      addRefund,
+      addAdjustment,
+      addWriteOff,
+      addDeposit,
+      useDeposit,
+      reverseTransactionById,
+      voidTransactionById,
+      updateTransactionById,
+      deleteTransactionById,
+      // Constants
+      TRANSACTION_TYPES,
+      TRANSACTION_STATUS,
+      SERVICE_CATEGORIES
     }}>
       {children}
     </BillingContext.Provider>

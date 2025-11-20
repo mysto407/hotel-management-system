@@ -1030,3 +1030,425 @@ export const deleteDiscountApplication = async(id) => {
         .eq('id', id)
     return { error }
 }
+
+// ============================================================================
+// Folio Transactions - Enhanced Transaction System
+// ============================================================================
+
+// Transaction Types
+export const TRANSACTION_TYPES = {
+    ROOM_CHARGE: 'room_charge',
+    SERVICE_CHARGE: 'service_charge',
+    TAX: 'tax',
+    FEE: 'fee',
+    DISCOUNT: 'discount',
+    PAYMENT_CASH: 'payment_cash',
+    PAYMENT_CARD: 'payment_card',
+    PAYMENT_ONLINE: 'payment_online',
+    PAYMENT_BANK_TRANSFER: 'payment_bank_transfer',
+    PAYMENT_OTHER: 'payment_other',
+    REFUND: 'refund',
+    ADJUSTMENT: 'adjustment',
+    WRITE_OFF: 'write_off',
+    REVERSAL: 'reversal',
+    VOID: 'void',
+    DEPOSIT: 'deposit',
+    DEPOSIT_USAGE: 'deposit_usage'
+}
+
+export const TRANSACTION_STATUS = {
+    POSTED: 'posted',
+    PENDING: 'pending',
+    REVERSED: 'reversed',
+    VOIDED: 'voided',
+    CANCELLED: 'cancelled'
+}
+
+export const SERVICE_CATEGORIES = {
+    FOOD: 'food',
+    BEVERAGE: 'beverage',
+    MINIBAR: 'minibar',
+    SPA: 'spa',
+    LAUNDRY: 'laundry',
+    ROOM_SERVICE: 'room_service',
+    TELEPHONE: 'telephone',
+    INTERNET: 'internet',
+    PARKING: 'parking',
+    CONFERENCE: 'conference',
+    EXTRA_BED: 'extra_bed',
+    OTHER: 'other'
+}
+
+// Get all transactions for a reservation
+export const getTransactionsByReservation = async(reservationId, options = {}) => {
+    let query = supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            created_by_user:users!created_by (
+                id,
+                name,
+                email
+            ),
+            reversed_transaction:folio_transactions!reversed_transaction_id (
+                id,
+                transaction_type,
+                amount,
+                description
+            )
+        `)
+        .eq('reservation_id', reservationId)
+
+    // Apply filters if provided
+    if (options.status) {
+        query = query.eq('transaction_status', options.status)
+    }
+    if (options.type) {
+        query = query.eq('transaction_type', options.type)
+    }
+    if (options.startDate) {
+        query = query.gte('transaction_date', options.startDate)
+    }
+    if (options.endDate) {
+        query = query.lte('transaction_date', options.endDate)
+    }
+
+    // Apply sorting
+    const sortBy = options.sortBy || 'transaction_date'
+    const sortOrder = options.sortOrder === 'asc' ? { ascending: true } : { ascending: false }
+    query = query.order(sortBy, sortOrder)
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+// Get transaction summary for a reservation
+export const getReservationTransactionSummary = async(reservationId) => {
+    const { data, error } = await supabase
+        .from('v_reservation_transaction_summary')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .single()
+
+    return { data, error }
+}
+
+// Get reservation balance
+export const getReservationBalance = async(reservationId) => {
+    const { data, error } = await supabase
+        .rpc('get_reservation_balance', { p_reservation_id: reservationId })
+
+    return { data, error }
+}
+
+// Create a room charge transaction
+export const createRoomCharge = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.ROOM_CHARGE,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: Math.abs(transactionData.amount), // Ensure positive
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a service charge transaction
+export const createServiceCharge = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.SERVICE_CHARGE,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: Math.abs(transactionData.amount), // Ensure positive
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a tax transaction
+export const createTax = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.TAX,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: Math.abs(transactionData.amount), // Ensure positive
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a fee transaction
+export const createFee = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.FEE,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: Math.abs(transactionData.amount), // Ensure positive
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a discount transaction
+export const createDiscountTransaction = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.DISCOUNT,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: -Math.abs(transactionData.amount), // Ensure negative (credit)
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a payment transaction
+export const createPaymentTransaction = async(transactionData) => {
+    // Determine payment type based on payment method
+    let transactionType = TRANSACTION_TYPES.PAYMENT_OTHER
+    const method = transactionData.payment_method?.toLowerCase()
+
+    if (method === 'cash') {
+        transactionType = TRANSACTION_TYPES.PAYMENT_CASH
+    } else if (method === 'card') {
+        transactionType = TRANSACTION_TYPES.PAYMENT_CARD
+    } else if (method === 'upi' || method === 'online') {
+        transactionType = TRANSACTION_TYPES.PAYMENT_ONLINE
+    } else if (method === 'bank transfer' || method === 'bank_transfer') {
+        transactionType = TRANSACTION_TYPES.PAYMENT_BANK_TRANSFER
+    }
+
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: transactionType,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: -Math.abs(transactionData.amount), // Ensure negative (credit)
+            description: transactionData.description || `Payment via ${transactionData.payment_method}`,
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a refund transaction
+export const createRefund = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.REFUND,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: -Math.abs(transactionData.amount), // Ensure negative (credit)
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create an adjustment transaction
+export const createAdjustment = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.ADJUSTMENT,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            // Amount can be positive or negative for adjustments
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a write-off transaction
+export const createWriteOff = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.WRITE_OFF,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: -Math.abs(transactionData.amount), // Ensure negative (credit)
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a deposit transaction
+export const createDeposit = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.DEPOSIT,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: -Math.abs(transactionData.amount), // Ensure negative (credit held)
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Create a deposit usage transaction
+export const createDepositUsage = async(transactionData) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            transaction_type: TRANSACTION_TYPES.DEPOSIT_USAGE,
+            transaction_status: TRANSACTION_STATUS.POSTED,
+            amount: Math.abs(transactionData.amount), // Ensure positive (using the deposit)
+            ...transactionData
+        }])
+        .select()
+
+    return { data, error }
+}
+
+// Reverse a transaction (creates a reversal transaction)
+export const reverseTransaction = async(transactionId, reason, userId) => {
+    const { data, error } = await supabase
+        .rpc('reverse_transaction', {
+            p_transaction_id: transactionId,
+            p_reason: reason,
+            p_user_id: userId
+        })
+
+    return { data, error }
+}
+
+// Void a transaction (marks as voided, only for pending transactions)
+export const voidTransaction = async(transactionId, reason, userId) => {
+    const { data, error } = await supabase
+        .rpc('void_transaction', {
+            p_transaction_id: transactionId,
+            p_reason: reason,
+            p_user_id: userId
+        })
+
+    return { data, error }
+}
+
+// Update a transaction
+export const updateTransaction = async(transactionId, updates) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .update(updates)
+        .eq('id', transactionId)
+        .select()
+
+    return { data, error }
+}
+
+// Delete a transaction (use carefully - prefer reversals for posted transactions)
+export const deleteTransaction = async(transactionId) => {
+    const { error } = await supabase
+        .from('folio_transactions')
+        .delete()
+        .eq('id', transactionId)
+
+    return { error }
+}
+
+// Get transaction details by ID
+export const getTransactionById = async(transactionId) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            created_by_user:users!created_by (
+                id,
+                name,
+                email
+            ),
+            reservation:reservations (
+                id,
+                confirmation_number,
+                guest:guests (
+                    id,
+                    name,
+                    email,
+                    phone
+                ),
+                room:rooms (
+                    id,
+                    room_number
+                )
+            )
+        `)
+        .eq('id', transactionId)
+        .single()
+
+    return { data, error }
+}
+
+// Get all transactions (with pagination and filters)
+export const getAllTransactions = async(options = {}) => {
+    let query = supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            created_by_user:users!created_by (name),
+            reservation:reservations (
+                confirmation_number,
+                guest:guests (name)
+            )
+        `, { count: 'exact' })
+
+    // Apply filters
+    if (options.status) {
+        query = query.eq('transaction_status', options.status)
+    }
+    if (options.type) {
+        query = query.eq('transaction_type', options.type)
+    }
+    if (options.startDate) {
+        query = query.gte('transaction_date', options.startDate)
+    }
+    if (options.endDate) {
+        query = query.lte('transaction_date', options.endDate)
+    }
+    if (options.reservationId) {
+        query = query.eq('reservation_id', options.reservationId)
+    }
+
+    // Pagination
+    const page = options.page || 1
+    const pageSize = options.pageSize || 50
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    query = query.range(from, to)
+
+    // Sorting
+    const sortBy = options.sortBy || 'transaction_date'
+    const sortOrder = options.sortOrder === 'asc' ? { ascending: true } : { ascending: false }
+    query = query.order(sortBy, sortOrder)
+
+    const { data, error, count } = await query
+
+    return {
+        data,
+        error,
+        count,
+        page,
+        pageSize,
+        totalPages: count ? Math.ceil(count / pageSize) : 0
+    }
+}
