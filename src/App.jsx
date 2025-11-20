@@ -8,7 +8,6 @@ import { MealPlanProvider } from './context/MealPlanContext';
 import { ReservationProvider } from './context/ReservationContext';
 import { ReservationFlowProvider } from './context/ReservationFlowContext';
 import { BillingProvider } from './context/BillingContext';
-import { FolioProvider } from './context/FolioContext';
 import { InventoryProvider } from './context/InventoryContext';
 import { GuestProvider } from './context/GuestContext';
 import { AgentProvider } from './context/AgentContext';
@@ -49,17 +48,15 @@ function App() {
                 <ReservationProvider>
                   <ReservationFlowProvider>
                     <BillingProvider>
-                      <FolioProvider>
-                        <InventoryProvider>
-                          <GuestProvider>
-                            <AgentProvider>
-                              <ExpenseProvider>
-                                <AppContent />
-                              </ExpenseProvider>
-                            </AgentProvider>
-                          </GuestProvider>
-                        </InventoryProvider>
-                      </FolioProvider>
+                      <InventoryProvider>
+                        <GuestProvider>
+                          <AgentProvider>
+                            <ExpenseProvider>
+                              <AppContent />
+                            </ExpenseProvider>
+                          </AgentProvider>
+                        </GuestProvider>
+                      </InventoryProvider>
                     </BillingProvider>
                   </ReservationFlowProvider>
                 </ReservationProvider>

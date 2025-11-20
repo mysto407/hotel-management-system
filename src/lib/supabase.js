@@ -1030,13 +1030,6 @@ export const deleteDiscountApplication = async(id) => {
         .eq('id', id)
     return { error }
 }
-
-// =====================================================
-// ENHANCED FOLIO SYSTEM
-// =====================================================
-
-// Folios
-export const getFolios = async() => {
     const { data, error } = await supabase
         .from('folios')
         .select(`
