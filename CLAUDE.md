@@ -14,7 +14,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Do NOT create `.sql` files in a `database/migrations/` folder
    - Make all database changes immediately using the MCP tools
 
-3. **Supabase MCP Tools Available:**
+3. **ALWAYS implement code changes automatically** - Never instruct the user to make code changes manually:
+   - ❌ BAD: "In `ReservationDetails.jsx`, replace line 32 with..."
+   - ❌ BAD: "Update the import statement to use..."
+   - ✅ GOOD: Use the Edit tool to make the changes directly
+   - If multiple files need updates, make ALL changes automatically
+   - Only tell the user what was changed AFTER making the changes
+   - The user should never have to manually edit code based on your instructions
+
+4. **Supabase MCP Tools Available:**
    - `mcp__supabase__list_tables` - List tables in schemas
    - `mcp__supabase__apply_migration` - Apply DDL operations (CREATE, ALTER, DROP)
    - `mcp__supabase__execute_sql` - Execute SQL queries
