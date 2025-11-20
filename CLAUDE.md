@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important Instructions
+
+**CRITICAL: Follow these rules for all tasks:**
+
+1. **Do NOT create documentation files** - Do not produce `.md` files, guides, or documentation unless explicitly requested by the user. Focus on code implementation only.
+
+2. **Do NOT create migration files** - This project has Supabase MCP tools connected. When database changes are needed:
+   - Use the `mcp__supabase__apply_migration` tool directly to apply schema changes
+   - Use the `mcp__supabase__execute_sql` tool for data operations
+   - Do NOT create `.sql` files in a `database/migrations/` folder
+   - Make all database changes immediately using the MCP tools
+
+3. **Supabase MCP Tools Available:**
+   - `mcp__supabase__list_tables` - List tables in schemas
+   - `mcp__supabase__apply_migration` - Apply DDL operations (CREATE, ALTER, DROP)
+   - `mcp__supabase__execute_sql` - Execute SQL queries
+   - Use these tools instead of generating migration files
+
 ## Project Overview
 
 A full-stack hotel management system built with React + Vite, Supabase backend, and Tailwind CSS. The application manages rooms, reservations, billing, inventory, guests, agents, expenses, and reporting for hotel operations.
