@@ -35,6 +35,190 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - `mcp__supabase__execute_sql` - Execute SQL queries
    - Use these tools instead of generating migration files
 
+6. **ALWAYS use Git for version control** - Follow the Branch-Per-Task workflow:
+   - ✅ ALWAYS create a feature branch BEFORE starting any work
+   - ✅ ALWAYS commit changes after completing each logical unit of work
+   - ✅ Use descriptive commit messages following conventional format
+   - ❌ NEVER work directly on the `main` branch
+   - See the "Git Workflow" section below for detailed instructions
+
+## Git Workflow (Branch-Per-Task Strategy)
+
+This project uses a **Branch-Per-Task** workflow to enable easy review and reversion of changes. Every feature, fix, or refactoring gets its own branch.
+
+### Workflow Overview
+
+```
+main (stable, always deployable)
+  ├── feature/add-meal-plan-editor
+  ├── feature/guest-search-improvements
+  ├── fix/date-calculation-bug
+  └── refactor/cleanup-billing-context
+```
+
+### Step-by-Step Process
+
+#### 1. Before Starting ANY Work
+**ALWAYS create a feature branch first:**
+
+```bash
+# For new features
+git checkout -b feature/short-descriptive-name
+
+# For bug fixes
+git checkout -b fix/bug-description
+
+# For refactoring
+git checkout -b refactor/what-youre-refactoring
+```
+
+**Examples:**
+- `feature/add-invoice-pdf-export`
+- `fix/reservation-date-overlap`
+- `refactor/simplify-room-context`
+
+#### 2. After Making Changes
+**ALWAYS commit after completing each logical change:**
+
+When you finish implementing a feature, fixing a bug, or making a meaningful change, create a commit immediately. Use this format:
+
+```bash
+git add .
+git commit -m "type: Brief description of what changed
+
+More detailed explanation if needed (optional).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+#### 3. Commit Message Format
+
+Use **conventional commit format** with these types:
+
+- `feat:` - New feature or functionality
+  - Example: `feat: Add PDF export for invoices`
+- `fix:` - Bug fix
+  - Example: `fix: Correct date calculation in billing system`
+- `refactor:` - Code restructuring without changing behavior
+  - Example: `refactor: Simplify ReservationContext state management`
+- `style:` - UI/styling changes
+  - Example: `style: Update reservation card layout`
+- `perf:` - Performance improvement
+  - Example: `perf: Optimize guest search query`
+- `docs:` - Documentation changes (rare, per rule #1)
+  - Example: `docs: Update CLAUDE.md with Git workflow`
+- `chore:` - Maintenance tasks (dependencies, config)
+  - Example: `chore: Update dependencies to latest versions`
+
+**Important:** Focus on WHAT changed and WHY, not HOW (the code shows how).
+
+#### 4. Review Changes Before Merging
+
+Before merging your branch to `main`, review what changed:
+
+```bash
+# See all changes compared to main
+git diff main
+
+# See commit history
+git log --oneline
+
+# See changed files
+git diff main --name-only
+```
+
+#### 5. Merge or Discard
+
+**Option A: Keep the changes (merge to main)**
+```bash
+git checkout main
+git merge feature/your-feature-name
+git push origin main
+git branch -D feature/your-feature-name  # Delete the branch
+```
+
+**Option B: Discard all changes (delete the branch)**
+```bash
+git checkout main
+git branch -D feature/your-feature-name  # All changes lost
+```
+
+**Option C: Keep only some commits (cherry-pick)**
+```bash
+git checkout main
+git cherry-pick <commit-hash1> <commit-hash2>
+git push origin main
+git branch -D feature/your-feature-name
+```
+
+### GitHub Integration
+
+#### Push branches to GitHub
+```bash
+# Push feature branch to GitHub (for backup or collaboration)
+git push origin feature/your-feature-name
+
+# Push main after merging
+git push origin main
+```
+
+#### Create Pull Requests
+If you want to review changes on GitHub before merging:
+```bash
+# Create PR using GitHub CLI (if installed)
+gh pr create --title "Feature: Your feature name" --body "Description of changes"
+```
+
+Or manually create a PR on GitHub web interface.
+
+### Quick Reference
+
+| Task | Command |
+|------|---------|
+| Create feature branch | `git checkout -b feature/name` |
+| Create fix branch | `git checkout -b fix/bug-name` |
+| Commit changes | `git add . && git commit -m "type: message"` |
+| View changes | `git diff main` |
+| View commits | `git log --oneline` |
+| Switch to main | `git checkout main` |
+| Merge branch | `git merge feature/name` |
+| Delete branch | `git branch -D feature/name` |
+| Push to GitHub | `git push origin main` |
+
+### Example Workflow Session
+
+```bash
+# 1. Start new feature
+git checkout -b feature/add-room-service-menu
+
+# 2. Claude makes changes and commits
+# (Multiple commits as work progresses)
+
+# 3. Review changes
+git diff main
+git log --oneline
+
+# 4. Happy with changes? Merge!
+git checkout main
+git merge feature/add-room-service-menu
+git push origin main
+git branch -D feature/add-room-service-menu
+
+# 5. Not happy? Discard!
+git checkout main
+git branch -D feature/add-room-service-menu
+```
+
+### Important Notes
+
+- **Never commit directly to `main`** - Always use a feature branch
+- **Commit frequently** - Each logical change should be a commit
+- **Descriptive messages** - Future you will thank present you
+- **Review before merging** - Use `git diff main` to see all changes
+- **Push regularly** - Backup your work to GitHub
+
 ## Project Overview
 
 A full-stack hotel management system built with React + Vite, Supabase backend, and Tailwind CSS. The application manages rooms, reservations, billing, inventory, guests, agents, expenses, and reporting for hotel operations.
@@ -158,6 +342,7 @@ Authentication uses Supabase Auth with a separate `users` table linked via `auth
 ## Styling Guidelines
 
 This project uses **Tailwind CSS v4** with shadcn/ui:
+- **ALWAYS use shadcn/ui components for UI elements** - Use components from `src/components/ui/` (button, dialog, input, select, card, etc.) rather than building custom HTML/styled elements
 - Use Tailwind utility classes for styling
 - CSS Modules (`.module.css`) are used sparingly for complex component styles
 - CSS variables for theming are defined in `src/index.css` using HSL colors
