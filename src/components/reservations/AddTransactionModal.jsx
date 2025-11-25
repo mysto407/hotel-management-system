@@ -6,8 +6,9 @@ import { Label } from '../ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Textarea } from '../ui/textarea'
 import { useBilling } from '../../context/BillingContext'
+import { getCurrenciesArray, formatCurrency, calculateBaseCurrencyAmount, DEFAULT_BASE_CURRENCY, getApproximateExchangeRate } from '../../utils/currency'
 
-export default function AddTransactionModal({ open, onOpenChange, reservationId, billId, onSuccess }) {
+export default function AddTransactionModal({ open, onOpenChange, reservationId, folioId, billId, onSuccess }) {
   const {
     addRoomCharge,
     addServiceCharge,
@@ -22,7 +23,10 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
     SERVICE_CATEGORIES
   } = useBilling()
 
+  const { getBaseCurrency } = useBilling()
+
   const [transactionType, setTransactionType] = useState('service_charge')
+  const [baseCurrency, setBaseCurrency] = useState(DEFAULT_BASE_CURRENCY)
   const [formData, setFormData] = useState({
     amount: '',
     quantity: '1',
@@ -35,10 +39,26 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
     tax_rate: '18',
     tax_name: 'GST',
     reference_number: '',
-    notes: ''
+    notes: '',
+    transaction_currency: DEFAULT_BASE_CURRENCY,
+    exchange_rate: '1.0',
+    // Gateway fields
+    gateway_transaction_id: '',
+    authorization_number: '',
+    gateway_status: 'completed'
   })
 
   const [loading, setLoading] = useState(false)
+  const currencies = getCurrenciesArray()
+
+  // Load base currency from settings
+  useEffect(() => {
+    const loadBaseCurrency = async () => {
+      const { data } = await getBaseCurrency()
+      setBaseCurrency(data || DEFAULT_BASE_CURRENCY)
+    }
+    loadBaseCurrency()
+  }, [])
 
   // Reset form when modal opens
   useEffect(() => {
@@ -55,14 +75,34 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
         tax_rate: '18',
         tax_name: 'GST',
         reference_number: '',
-        notes: ''
+        notes: '',
+        transaction_currency: baseCurrency,
+        exchange_rate: '1.0',
+        // Gateway fields
+        gateway_transaction_id: '',
+        authorization_number: '',
+        gateway_status: 'completed'
       })
       setTransactionType('service_charge')
     }
-  }, [open])
+  }, [open, baseCurrency])
+
+  // Handle currency change and update exchange rate
+  const handleCurrencyChange = (currency) => {
+    const approximateRate = getApproximateExchangeRate(currency, baseCurrency)
+    setFormData({
+      ...formData,
+      transaction_currency: currency,
+      exchange_rate: approximateRate.toString()
+    })
+  }
 
   // Calculate amount based on quantity and rate
   const calculatedAmount = (parseFloat(formData.quantity) || 0) * (parseFloat(formData.rate) || 0)
+
+  // Calculate base currency amount
+  const transactionAmount = parseFloat(formData.amount) || calculatedAmount
+  const baseCurrencyAmount = calculateBaseCurrencyAmount(transactionAmount, parseFloat(formData.exchange_rate))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -71,11 +111,15 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
     try {
       const baseData = {
         reservation_id: reservationId,
+        folio_id: folioId,
         bill_id: billId,
         description: formData.description,
-        amount: parseFloat(formData.amount) || calculatedAmount,
+        amount: transactionAmount,
         notes: formData.notes,
-        reference_number: formData.reference_number || null
+        reference_number: formData.reference_number || null,
+        transaction_currency: formData.transaction_currency,
+        exchange_rate: parseFloat(formData.exchange_rate),
+        base_currency_amount: baseCurrencyAmount
       }
 
       let result = null
@@ -122,7 +166,11 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
             ...baseData,
             payment_method: formData.payment_method,
             payment_reference: formData.payment_reference || null,
-            card_last_four: formData.card_last_four || null
+            card_last_four: formData.card_last_four || null,
+            // Gateway fields
+            gateway_transaction_id: formData.gateway_transaction_id || null,
+            authorization_number: formData.authorization_number || null,
+            gateway_status: formData.gateway_status || 'completed'
           })
           break
 
@@ -318,6 +366,60 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
                 placeholder="Transaction ID, Cheque #, etc."
               />
             </div>
+
+            {/* Gateway Integration Fields */}
+            {(formData.payment_method === 'Card' || formData.payment_method === 'UPI') && (
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3 mt-4">
+                <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                  Gateway Integration (Optional)
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Gateway Transaction ID</Label>
+                    <Input
+                      value={formData.gateway_transaction_id}
+                      onChange={(e) => setFormData({ ...formData, gateway_transaction_id: e.target.value })}
+                      placeholder="e.g., pay_xxxxxxxxxxxx"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Transaction ID from payment gateway
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Authorization Number</Label>
+                    <Input
+                      value={formData.authorization_number}
+                      onChange={(e) => setFormData({ ...formData, authorization_number: e.target.value })}
+                      placeholder="e.g., 123456"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Authorization code from gateway
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Gateway Status</Label>
+                  <Select
+                    value={formData.gateway_status}
+                    onValueChange={(value) => setFormData({ ...formData, gateway_status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="authorized">Authorized</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs text-muted-foreground">
+                    Current status of the gateway transaction
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )
 
@@ -403,6 +505,61 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
               placeholder="Enter transaction description"
               required
             />
+          </div>
+
+          {/* Currency Selection */}
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3">
+            <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
+              Currency Information
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Transaction Currency</Label>
+                <Select
+                  value={formData.transaction_currency}
+                  onValueChange={handleCurrencyChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {currencies.map((currency) => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {currency.symbol} {currency.code} - {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="text-xs text-muted-foreground">
+                  Select the currency for this transaction
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Exchange Rate</Label>
+                <Input
+                  type="number"
+                  step="0.000001"
+                  min="0"
+                  value={formData.exchange_rate}
+                  onChange={(e) => setFormData({ ...formData, exchange_rate: e.target.value })}
+                  required
+                  disabled={formData.transaction_currency === baseCurrency}
+                />
+                <div className="text-xs text-muted-foreground">
+                  1 {formData.transaction_currency} = {formData.exchange_rate} {baseCurrency}
+                </div>
+              </div>
+            </div>
+            {formData.transaction_currency !== baseCurrency && transactionAmount > 0 && (
+              <div className="bg-white dark:bg-gray-800 p-3 rounded-md border">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Base Currency Amount:</span>
+                  <span className="text-sm font-bold">
+                    {formatCurrency(baseCurrencyAmount, baseCurrency, { showCode: true })}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {renderTypeSpecificFields()}

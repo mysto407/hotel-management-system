@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone, X, Users } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
+import { useRooms } from '../../context/RoomContext'
 import { useAlert } from '@/context/AlertContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { AddGuestModal } from '../../components/guests/AddGuestModal'
@@ -19,9 +20,9 @@ import {
 export default function GuestDetailsPage({ onNavigate }) {
   const flowContext = useReservationFlow()
   const guestContext = useGuests()
+  const roomContext = useRooms()
   const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
   const fileInputRef = useRef(null)
-  const [errors, setErrors] = useState({})
   const [guestSearch, setGuestSearch] = useState('')
   const [selectedGuestId, setSelectedGuestId] = useState(null)
   const [isAddGuestModalOpen, setIsAddGuestModalOpen] = useState(false)
@@ -35,6 +36,7 @@ export default function GuestDetailsPage({ onNavigate }) {
     selectedRooms
   } = flowContext
   const { idProofTypes, guests } = guestContext
+  const { rooms } = roomContext
 
   // Reset guest index when component mounts or when allGuestsDetails is empty
   useEffect(() => {
@@ -57,6 +59,33 @@ export default function GuestDetailsPage({ onNavigate }) {
     // Default to at least 1 guest if no counts are set
     return total > 0 ? total : 1
   }, [selectedRooms])
+
+  // Get all booked rooms for dropdown
+  const bookedRoomsList = useMemo(() => {
+    if (!selectedRooms || selectedRooms.length === 0 || !rooms) return []
+
+    const bookedRooms = []
+    selectedRooms.forEach(roomType => {
+      // Add each assigned room
+      roomType.assignedRooms?.forEach((roomId, index) => {
+        if (roomId) {
+          // Find the actual room data to get room number
+          const roomData = rooms.find(r => r.id === roomId)
+          const roomNumber = roomData?.room_number || roomId
+
+          bookedRooms.push({
+            id: roomId,
+            label: `${roomType.room_type_name || roomType.name} - Room ${roomNumber}`,
+            roomNumber: roomNumber,
+            roomTypeName: roomType.room_type_name || roomType.name,
+            cartKey: roomType.cartKey,
+            index
+          })
+        }
+      })
+    })
+    return bookedRooms
+  }, [selectedRooms, rooms])
 
   // Filter guests based on search
   const filteredGuests = useMemo(() => {
@@ -107,6 +136,7 @@ const handleSelectGuest = (guest) => {
       surname,
       email: guest.email || '',
       phone: guest.phone || '',
+      dateOfBirth: guest.date_of_birth || '',
       idType: guest.id_proof_type || 'N/A',
       idNumber: guest.id_proof_number || '',
       address: guest.address || '',
@@ -114,7 +144,8 @@ const handleSelectGuest = (guest) => {
       state: guest.state || '',
       country: guest.country || '',
       photo: null, // Clear any pending photo file
-      photoUrl: guest.photo_url || null
+      photoUrl: guest.photo_url || null,
+      assignedRoomId: ''
     })
   }
 
@@ -135,6 +166,7 @@ const handleSelectGuest = (guest) => {
       surname: '',
       email: '',
       phone: '',
+      dateOfBirth: '',
       idType: 'N/A',
       idNumber: '',
       address: '',
@@ -142,9 +174,9 @@ const handleSelectGuest = (guest) => {
       state: '',
       country: '',
       photo: null,
-      photoUrl: null
+      photoUrl: null,
+      assignedRoomId: ''
     })
-    setErrors({})
   }
 
   const handleNextGuest = () => {
@@ -224,36 +256,30 @@ const handleSelectGuest = (guest) => {
     }
   }
 
-  const validateForm = () => {
-    const newErrors = {}
-
-    if (!guestDetails.firstName.trim()) {
-      newErrors.firstName = 'First name is required'
-    }
-
-    if (!guestDetails.surname.trim()) {
-      newErrors.surname = 'Surname is required'
-    }
-
-    // Optional: Validate email format only if provided
-    if (guestDetails.email && !/\S+@\S+\.\S+/.test(guestDetails.email)) {
-      newErrors.email = 'Email is invalid'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
   const handleProceed = () => {
-    if (validateForm()) {
-      // Save current guest details before proceeding
-      const updatedGuests = [...allGuestsDetails]
-      updatedGuests[currentGuestIndex] = { ...guestDetails }
-      setAllGuestsDetails(updatedGuests)
+    // Save current guest details first
+    const updatedGuests = [...allGuestsDetails]
+    updatedGuests[currentGuestIndex] = { ...guestDetails }
 
-      // Navigate to payment
-      onNavigate('payment')
+    // Validate that at least the primary guest (index 0) has required fields
+    const primaryGuest = updatedGuests[0] || guestDetails
+
+    if (!primaryGuest.firstName?.trim() || !primaryGuest.surname?.trim()) {
+      showError('Primary guest name is required. Please fill in the first guest details.')
+      return
     }
+
+    // Validate email format only if provided
+    if (guestDetails.email && !/\S+@\S+\.\S+/.test(guestDetails.email)) {
+      showError('Please enter a valid email address')
+      return
+    }
+
+    // Save all guest details including current one
+    setAllGuestsDetails(updatedGuests)
+
+    // Navigate to payment
+    onNavigate('payment')
   }
 
   return (
@@ -357,7 +383,7 @@ const handleSelectGuest = (guest) => {
             <div className="bg-card border rounded-lg shadow-sm">
               {/* Form Header with Guest Navigation and Clear Button */}
               <div className="flex items-center justify-between border-b bg-muted/10 px-4 py-2.5">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   {totalGuestsCount > 1 && (
                     <>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -388,6 +414,11 @@ const handleSelectGuest = (guest) => {
                           <ChevronRight className="w-3.5 h-3.5" />
                         </Button>
                       </div>
+                      {currentGuestIndex > 0 && (
+                        <div className="text-xs text-muted-foreground italic border-l pl-3">
+                          Optional - Can be added later in reservation details
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -423,11 +454,18 @@ const handleSelectGuest = (guest) => {
 
                   {/* Upload Controls - Inline Compact */}
                   <div className="flex-1">
-                    <Label className="text-sm font-semibold mb-1 block">
-                      {guestDetails.firstName || guestDetails.surname
-                        ? `${guestDetails.firstName} ${guestDetails.surname}`.trim()
-                        : 'Guest Photo'}
-                    </Label>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Label className="text-sm font-semibold">
+                        {guestDetails.firstName || guestDetails.surname
+                          ? `${guestDetails.firstName} ${guestDetails.surname}`.trim()
+                          : 'Guest Photo'}
+                      </Label>
+                      {currentGuestIndex === 0 && (
+                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 rounded-full">
+                          Primary Guest
+                        </span>
+                      )}
+                    </div>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -460,6 +498,29 @@ const handleSelectGuest = (guest) => {
                       <span className="text-xs text-muted-foreground">Max 5MB</span>
                     </div>
                   </div>
+
+                  {/* Room Assignment Dropdown */}
+                  {bookedRoomsList.length > 0 && (
+                    <div className="flex-shrink-0 border-l pl-4">
+                      <Label className="text-xs text-muted-foreground mb-2 block">Room Assignment</Label>
+                      <Select
+                        value={guestDetails.assignedRoomId || 'unassigned'}
+                        onValueChange={(value) => setGuestDetails({ ...guestDetails, assignedRoomId: value === 'unassigned' ? '' : value })}
+                      >
+                        <SelectTrigger className="h-9 w-[200px]">
+                          <SelectValue placeholder="Select room" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">No room assigned</SelectItem>
+                          {bookedRoomsList.map(room => (
+                            <SelectItem key={room.id} value={room.id}>
+                              {room.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -470,27 +531,29 @@ const handleSelectGuest = (guest) => {
                   <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Personal Info</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div className="space-y-1">
-                      <Label htmlFor="firstName" className="text-xs">First Name *</Label>
+                      <Label htmlFor="firstName" className="text-xs">
+                        First Name {currentGuestIndex === 0 && '*'}
+                      </Label>
                       <Input
                         id="firstName"
                         value={guestDetails.firstName}
                         onChange={(e) => setGuestDetails({ ...guestDetails, firstName: e.target.value })}
                         placeholder="John"
-                        className={`h-9 ${errors.firstName ? 'border-red-500 dark:border-red-400' : ''}`}
+                        className="h-9"
                       />
-                      {errors.firstName && <p className="text-xs text-red-500 dark:text-red-400">{errors.firstName}</p>}
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="surname" className="text-xs">Surname *</Label>
+                      <Label htmlFor="surname" className="text-xs">
+                        Surname {currentGuestIndex === 0 && '*'}
+                      </Label>
                       <Input
                         id="surname"
                         value={guestDetails.surname}
                         onChange={(e) => setGuestDetails({ ...guestDetails, surname: e.target.value })}
                         placeholder="Doe"
-                        className={`h-9 ${errors.surname ? 'border-red-500 dark:border-red-400' : ''}`}
+                        className="h-9"
                       />
-                      {errors.surname && <p className="text-xs text-red-500 dark:text-red-400">{errors.surname}</p>}
                     </div>
 
                     <div className="space-y-1">
@@ -501,9 +564,8 @@ const handleSelectGuest = (guest) => {
                         value={guestDetails.phone}
                         onChange={(e) => setGuestDetails({ ...guestDetails, phone: e.target.value })}
                         placeholder="9876543210"
-                        className={`h-9 ${errors.phone ? 'border-red-500 dark:border-red-400' : ''}`}
+                        className="h-9"
                       />
-                      {errors.phone && <p className="text-xs text-red-500 dark:text-red-400">{errors.phone}</p>}
                     </div>
 
                     <div className="space-y-1">
@@ -514,9 +576,19 @@ const handleSelectGuest = (guest) => {
                         value={guestDetails.email}
                         onChange={(e) => setGuestDetails({ ...guestDetails, email: e.target.value })}
                         placeholder="john@example.com"
-                        className={`h-9 ${errors.email ? 'border-red-500 dark:border-red-400' : ''}`}
+                        className="h-9"
                       />
-                      {errors.email && <p className="text-xs text-red-500 dark:text-red-400">{errors.email}</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="dateOfBirth" className="text-xs">Date of Birth</Label>
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={guestDetails.dateOfBirth}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, dateOfBirth: e.target.value })}
+                        className="h-9"
+                      />
                     </div>
                   </div>
                 </div>

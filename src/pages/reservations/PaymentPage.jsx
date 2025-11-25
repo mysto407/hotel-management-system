@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ChevronLeft, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { ChevronLeft, Check, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useReservations } from '../../context/ReservationContext'
 import { useGuests } from '../../context/GuestContext'
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select'
+import { groupConsecutiveBookings, formatRoomChangeSequence, getStayNights } from '../../utils/bookingUtils'
 
 export default function PaymentPage({ onNavigate }) {
   const {
@@ -48,9 +49,28 @@ export default function PaymentPage({ onNavigate }) {
   // Get primary guest (first guest or fallback to guestDetails)
   const primaryGuest = allGuestsDetails.length > 0 ? allGuestsDetails[0] : guestDetails
   const additionalGuests = allGuestsDetails.slice(1)
-  const hasAdditionalGuests = additionalGuests.length > 0
 
   const bill = calculateBill()
+
+  // Group consecutive bookings into continuous stays
+  const stays = useMemo(() => groupConsecutiveBookings(selectedRooms), [selectedRooms])
+
+  // Calculate total guest counts across all rooms
+  const totalGuestCounts = selectedRooms.reduce((totals, roomType) => {
+    // Sum up guest counts for all instances of this room type
+    for (let i = 0; i < roomType.quantity; i++) {
+      const guestCount = roomType.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
+      totals.adults += guestCount.adults || 1
+      totals.children += guestCount.children || 0
+      totals.infants += guestCount.infants || 0
+    }
+    return totals
+  }, { adults: 0, children: 0, infants: 0 })
+
+  // Calculate total number of guests and additional guests count
+  const totalGuests = totalGuestCounts.adults + totalGuestCounts.children + totalGuestCounts.infants
+  const expectedAdditionalGuests = Math.max(0, totalGuests - 1) // Subtract 1 for primary guest
+  const hasAdditionalGuests = expectedAdditionalGuests > 0
 
   // Handle promo code application
   const handleApplyPromoCode = async () => {
@@ -77,18 +97,6 @@ export default function PaymentPage({ onNavigate }) {
       showInfo('Promo code removed')
     }
   }
-
-  // Calculate total guest counts across all rooms
-  const totalGuestCounts = selectedRooms.reduce((totals, roomType) => {
-    // Sum up guest counts for all instances of this room type
-    for (let i = 0; i < roomType.quantity; i++) {
-      const guestCount = roomType.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
-      totals.adults += guestCount.adults || 1
-      totals.children += guestCount.children || 0
-      totals.infants += guestCount.infants || 0
-    }
-    return totals
-  }, { adults: 0, children: 0, infants: 0 })
 
   /**
    * FIX: This helper is updated to remove 'pincode' and the 'id' field.
@@ -154,39 +162,60 @@ export default function PaymentPage({ onNavigate }) {
         guestId = newGuest.id; // Use the newly created ID
       }
 
-      // Save all additional guests to the database
-      const additionalGuestIds = [];
+      // Save additional guests to the database (only those with at least a name)
+      const guestIdToRoomIdMap = new Map(); // Map guest IDs to their assigned room IDs
       if (additionalGuests.length > 0) {
-        console.log(`Saving ${additionalGuests.length} additional guests...`);
-        for (const additionalGuest of additionalGuests) {
-          const additionalGuestData = prepareGuestDataForSave(additionalGuest);
+        // Filter to only include guests with at least a first name or surname
+        const guestsToSave = additionalGuests.filter(guest =>
+          guest.firstName?.trim() || guest.surname?.trim()
+        );
 
-          if (additionalGuest.id) {
-            // Update existing additional guest
-            await updateGuest(additionalGuest.id, additionalGuestData);
-            additionalGuestIds.push(additionalGuest.id);
-          } else {
-            // Create new additional guest
-            const newAdditionalGuest = await addGuest(additionalGuestData);
-            if (newAdditionalGuest) {
-              additionalGuestIds.push(newAdditionalGuest.id);
+        if (guestsToSave.length > 0) {
+          console.log(`Saving ${guestsToSave.length} additional guests...`);
+          for (const additionalGuest of guestsToSave) {
+            const additionalGuestData = prepareGuestDataForSave(additionalGuest);
+
+            let savedGuestId = null;
+            if (additionalGuest.id) {
+              // Update existing additional guest
+              await updateGuest(additionalGuest.id, additionalGuestData);
+              savedGuestId = additionalGuest.id;
+            } else {
+              // Create new additional guest
+              const newAdditionalGuest = await addGuest(additionalGuestData);
+              if (newAdditionalGuest) {
+                savedGuestId = newAdditionalGuest.id;
+              }
+            }
+
+            // Track which room this guest is assigned to
+            if (savedGuestId && additionalGuest.assignedRoomId) {
+              guestIdToRoomIdMap.set(savedGuestId, additionalGuest.assignedRoomId);
             }
           }
         }
       }
 
-      // Store additional guest IDs in the reservation
-      // NOTE: This requires the database migration: database/migrations/add_additional_guests_support.sql
-      // If the migration hasn't been run, the additional_guest_ids field will be ignored by the database
-      console.log('Additional guest IDs:', additionalGuestIds);
+      console.log('Guest to Room assignments:', Object.fromEntries(guestIdToRoomIdMap));
+
+      // Generate a unique booking ID for this booking to link all reservations together
+      // This allows multiple reservations (different rooms, room changes, etc.) to be grouped as one booking
+      const bookingId = crypto.randomUUID();
 
       // Create reservations for each selected room
       const reservationPromises = selectedRooms.flatMap(roomType => {
         // Use the selected rate price, or fall back to base price
         const roomRate = roomType.ratePrice || roomType.base_price
 
-        // Calculate total amount for this room type
-        const roomSubtotal = roomRate * bill.nights
+        // Calculate nights for THIS specific room based on ITS date range
+        const roomCheckIn = roomType.checkIn ? new Date(roomType.checkIn) : null
+        const roomCheckOut = roomType.checkOut ? new Date(roomType.checkOut) : null
+        const roomNights = roomCheckIn && roomCheckOut
+          ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+          : 0
+
+        // Calculate total amount for this room type using its specific nights
+        const roomSubtotal = roomRate * roomNights
         const roomTax = roomSubtotal * 0.18 // 18% GST
         const roomTotal = roomSubtotal + roomTax
 
@@ -206,12 +235,20 @@ export default function PaymentPage({ onNavigate }) {
           // Get guest counts for this room (default to 1 adult if not set)
           const guestCount = roomType.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
 
+          // Get additional guests assigned to THIS specific room
+          const guestsForThisRoom = [];
+          guestIdToRoomIdMap.forEach((roomId, guestId) => {
+            if (roomId === assignedRoomId) {
+              guestsForThisRoom.push(guestId);
+            }
+          });
+
           return addReservation({
             guest_id: guestId,
             room_id: assignedRoomId,
             rate_type_id: roomType.rateTypeId || null,
-            check_in_date: filters.checkIn,
-            check_out_date: filters.checkOut,
+            check_in_date: roomType.checkIn, // Use room's specific check-in date
+            check_out_date: roomType.checkOut, // Use room's specific check-out date
             booking_source: filters.source === 'walk-in' ? 'direct' : filters.source,
             direct_source: filters.source === 'walk-in' ? 'Walk-in' : filters.source,
             agent_id: selectedAgent?.id || null,
@@ -222,8 +259,9 @@ export default function PaymentPage({ onNavigate }) {
             meal_plan: mealPlan === 'none' ? null : mealPlan,
             special_requests: '',
             total_amount: roomTotal,
-            // Include additional guest IDs if the migration has been run
-            ...(additionalGuestIds.length > 0 && { additional_guest_ids: additionalGuestIds })
+            booking_id: bookingId, // Link all reservations from this booking together
+            // Include additional guest IDs only for guests assigned to THIS room
+            ...(guestsForThisRoom.length > 0 && { additional_guest_ids: guestsForThisRoom })
           })
         }).filter(Boolean) // Remove null entries
       })
@@ -295,7 +333,7 @@ export default function PaymentPage({ onNavigate }) {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase">
-                        Guest Information {hasAdditionalGuests && `(${allGuestsDetails.length} Guests)`}
+                        Guest Information {hasAdditionalGuests && `(${totalGuests} Guests)`}
                       </h3>
                       {hasAdditionalGuests && (
                         <Button
@@ -312,7 +350,7 @@ export default function PaymentPage({ onNavigate }) {
                           ) : (
                             <>
                               <ChevronDown className="w-3.5 h-3.5 mr-1" />
-                              +{additionalGuests.length} other{additionalGuests.length > 1 ? 's' : ''}
+                              +{expectedAdditionalGuests} other{expectedAdditionalGuests > 1 ? 's' : ''}
                             </>
                           )}
                         </Button>
@@ -357,35 +395,37 @@ export default function PaymentPage({ onNavigate }) {
                     {/* Additional Guests (Collapsible) */}
                     {showAllGuests && hasAdditionalGuests && (
                       <div className="mt-3 space-y-2">
-                        {additionalGuests.map((guest, index) => (
-                          <div key={index} className="space-y-1.5 bg-muted/10 rounded p-3 border-l-2 border-muted">
-                            <div className="text-xs font-semibold text-muted-foreground mb-1.5">
-                              Guest {index + 2}
+                        {additionalGuests
+                          .filter(guest => guest.firstName?.trim() || guest.surname?.trim())
+                          .map((guest, index) => (
+                            <div key={index} className="space-y-1.5 bg-muted/10 rounded p-3 border-l-2 border-muted">
+                              <div className="text-xs font-semibold text-muted-foreground mb-1.5">
+                                Additional Guest {index + 1}
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Name:</span>
+                                <span className="font-medium">{guest.firstName} {guest.surname}</span>
+                              </div>
+                              {guest.email && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Email:</span>
+                                  <span className="font-medium">{guest.email}</span>
+                                </div>
+                              )}
+                              {guest.phone && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Phone:</span>
+                                  <span className="font-medium">{guest.phone}</span>
+                                </div>
+                              )}
+                              {guest.idType && guest.idNumber && guest.idType !== 'N/A' && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">ID Proof:</span>
+                                  <span className="font-medium">{guest.idType} - {guest.idNumber}</span>
+                                </div>
+                              )}
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Name:</span>
-                              <span className="font-medium">{guest.firstName} {guest.surname}</span>
-                            </div>
-                            {guest.email && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Email:</span>
-                                <span className="font-medium">{guest.email}</span>
-                              </div>
-                            )}
-                            {guest.phone && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Phone:</span>
-                                <span className="font-medium">{guest.phone}</span>
-                              </div>
-                            )}
-                            {guest.idType && guest.idNumber && guest.idType !== 'N/A' && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">ID Proof:</span>
-                                <span className="font-medium">{guest.idType} - {guest.idNumber}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     )}
                   </div>
@@ -394,33 +434,74 @@ export default function PaymentPage({ onNavigate }) {
                   <div className="pt-4 border-t">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Stay Details</h3>
                     <div className="space-y-1.5">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Check-in:</span>
-                        <span className="font-medium">
-                          {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          }) : '-'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Check-out:</span>
-                        <span className="font-medium">
-                          {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          }) : '-'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total Nights:</span>
-                        <span className="font-medium">{bill.nights}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
+                      {stays.length > 0 && (
+                        <>
+                          {stays.map((stay, index) => {
+                            const stayNights = getStayNights(stay)
+                            const stayCheckIn = stay.checkIn ? new Date(stay.checkIn) : null
+                            const stayCheckOut = stay.checkOut ? new Date(stay.checkOut) : null
+
+                            return (
+                              <div key={index} className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">
+                                    {stays.length > 1 ? `Stay ${index + 1}:` : 'Check-in:'}
+                                  </span>
+                                  <span className="font-medium">
+                                    {stayCheckIn ? stayCheckIn.toLocaleDateString('en-IN', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric'
+                                    }) : '-'}
+                                  </span>
+                                </div>
+                                {stays.length > 1 && (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Check-out:</span>
+                                    <span className="font-medium">
+                                      {stayCheckOut ? stayCheckOut.toLocaleDateString('en-IN', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric'
+                                      }) : '-'}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">
+                                    {stays.length > 1 ? 'Nights:' : 'Total Nights:'}
+                                  </span>
+                                  <span className="font-medium">{stayNights}</span>
+                                </div>
+                                {stay.isConsecutive && (
+                                  <div className="flex items-start gap-1.5 text-sm bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5 mt-1">
+                                    <ArrowRight className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <div className="text-amber-800 dark:text-amber-300 font-medium text-xs">Room Move:</div>
+                                      <div className="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
+                                        {formatRoomChangeSequence(stay.rooms)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                          {stays.length === 1 && !stays[0].isConsecutive && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Check-out:</span>
+                              <span className="font-medium">
+                                {stays[0].checkOut ? new Date(stays[0].checkOut).toLocaleDateString('en-IN', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                }) : '-'}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      <div className="flex justify-between text-sm pt-2 border-t">
                         <span className="text-muted-foreground">Total Guests:</span>
                         <span className="font-medium">
                           {totalGuestCounts.adults + totalGuestCounts.children + totalGuestCounts.infants}
@@ -461,20 +542,34 @@ export default function PaymentPage({ onNavigate }) {
                   <div className="pt-4 border-t">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Room Details</h3>
                     <div className="space-y-3">
-                      {selectedRooms.flatMap(room =>
-                        Array.from({ length: room.quantity }, (_, index) => {
+                      {selectedRooms.flatMap(room => {
+                        const roomCheckIn = room.checkIn ? new Date(room.checkIn) : null
+                        const roomCheckOut = room.checkOut ? new Date(room.checkOut) : null
+                        const roomNights = roomCheckIn && roomCheckOut
+                          ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+                          : 0
+
+                        return Array.from({ length: room.quantity }, (_, index) => {
                           const guestCount = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
                           const mealPlanCode = room.mealPlans?.[index] || 'none'
                           const mealPlanName = (mealPlanCode && mealPlanCode !== 'none') ? getMealPlanName(mealPlanCode) : 'No Meal Plan'
                           const mealPlanPrice = (mealPlanCode && mealPlanCode !== 'none') ? getMealPlanPrice(mealPlanCode) : 0
                           const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
-                          const mealPlanCost = mealPlanPrice * totalGuests * bill.nights
+                          const mealPlanCost = mealPlanPrice * totalGuests * roomNights
 
                           return (
-                            <div key={`${room.id}-${index}`} className="bg-muted/30 rounded p-3 space-y-1.5">
+                            <div key={`${room.cartKey}-${index}`} className="bg-muted/30 rounded p-3 space-y-1.5">
                               <div className="flex justify-between items-start">
                                 <span className="font-medium text-sm">{room.name}</span>
-                                <span className="text-sm font-semibold">₹{((room.ratePrice || room.base_price) * bill.nights).toFixed(2)}</span>
+                                <span className="text-sm font-semibold">₹{((room.ratePrice || room.base_price) * roomNights).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-xs text-blue-600 dark:text-blue-400">
+                                <span>Dates:</span>
+                                <span>
+                                  {roomCheckIn && roomCheckOut && (
+                                    `${roomCheckIn.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${roomCheckOut.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                                  )}
+                                </span>
                               </div>
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Guests:</span>
@@ -490,12 +585,12 @@ export default function PaymentPage({ onNavigate }) {
                               </div>
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Rate per night:</span>
-                                <span>₹{(room.ratePrice || room.base_price).toFixed(2)}</span>
+                                <span>₹{(room.ratePrice || room.base_price).toFixed(2)} × {roomNights}</span>
                               </div>
                             </div>
                           )
                         })
-                      )}
+                      })}
                     </div>
                   </div>
                 </div>
@@ -507,36 +602,72 @@ export default function PaymentPage({ onNavigate }) {
                   <h2 className="text-lg font-semibold">Accommodation Summary</h2>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-muted/30">
-                      <tr>
-                        <th className="text-left p-3 text-sm font-semibold">Type</th>
-                        <th className="text-left p-3 text-sm font-semibold">Arrival</th>
-                        <th className="text-left p-3 text-sm font-semibold">Departure</th>
-                        <th className="text-center p-3 text-sm font-semibold">Nights</th>
-                        <th className="text-right p-3 text-sm font-semibold">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedRooms.flatMap(room =>
-                        Array.from({ length: room.quantity }, (_, index) => (
-                          <tr key={`${room.id}-${index}`} className="border-b">
-                            <td className="p-3 text-sm">{room.name}</td>
-                            <td className="p-3 text-sm">
-                              {filters.checkIn ? new Date(filters.checkIn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
-                            </td>
-                            <td className="p-3 text-sm">
-                              {filters.checkOut ? new Date(filters.checkOut).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
-                            </td>
-                            <td className="p-3 text-sm text-center">{bill.nights}</td>
-                            <td className="p-3 text-sm text-right font-medium">
-                              ₹{((room.ratePrice || room.base_price) * bill.nights).toFixed(2)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                  {stays.map((stay, stayIndex) => {
+                    const stayCheckIn = stay.checkIn ? new Date(stay.checkIn) : null
+                    const stayCheckOut = stay.checkOut ? new Date(stay.checkOut) : null
+                    const stayNights = getStayNights(stay)
+
+                    return (
+                      <div key={stayIndex}>
+                        {stays.length > 1 && (
+                          <div className="px-6 py-2 bg-muted/50 border-b">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-semibold">
+                                {stay.isConsecutive ? 'Continuous Stay' : `Stay ${stayIndex + 1}`}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {stayCheckIn?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - {stayCheckOut?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} ({stayNights} night{stayNights !== 1 ? 's' : ''})
+                              </span>
+                            </div>
+                            {stay.isConsecutive && (
+                              <div className="flex items-center gap-1.5 mt-1 text-xs text-amber-700 dark:text-amber-400">
+                                <ArrowRight className="h-3 w-3" />
+                                <span>Room Move: {formatRoomChangeSequence(stay.rooms)}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <table className="w-full">
+                          {stayIndex === 0 && (
+                            <thead className="bg-muted/30">
+                              <tr>
+                                <th className="text-left p-3 text-sm font-semibold">Type</th>
+                                <th className="text-left p-3 text-sm font-semibold">Arrival</th>
+                                <th className="text-left p-3 text-sm font-semibold">Departure</th>
+                                <th className="text-center p-3 text-sm font-semibold">Nights</th>
+                                <th className="text-right p-3 text-sm font-semibold">Total</th>
+                              </tr>
+                            </thead>
+                          )}
+                          <tbody>
+                            {stay.rooms.flatMap(room => {
+                              const roomCheckIn = room.checkIn ? new Date(room.checkIn) : null
+                              const roomCheckOut = room.checkOut ? new Date(room.checkOut) : null
+                              const roomNights = roomCheckIn && roomCheckOut
+                                ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+                                : 0
+
+                              return Array.from({ length: room.quantity }, (_, index) => (
+                                <tr key={`${room.cartKey}-${index}`} className="border-b">
+                                  <td className="p-3 text-sm">{room.name}</td>
+                                  <td className="p-3 text-sm">
+                                    {roomCheckIn ? roomCheckIn.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                  </td>
+                                  <td className="p-3 text-sm">
+                                    {roomCheckOut ? roomCheckOut.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                                  </td>
+                                  <td className="p-3 text-sm text-center">{roomNights}</td>
+                                  <td className="p-3 text-sm text-right font-medium">
+                                    ₹{((room.ratePrice || room.base_price) * roomNights).toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -552,20 +683,31 @@ export default function PaymentPage({ onNavigate }) {
                   <div>
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Room Charges</h3>
                     <div className="space-y-3">
-                      {selectedRooms.flatMap(room =>
-                        Array.from({ length: room.quantity }, (_, index) => {
+                      {selectedRooms.flatMap(room => {
+                        const roomCheckIn = room.checkIn ? new Date(room.checkIn) : null
+                        const roomCheckOut = room.checkOut ? new Date(room.checkOut) : null
+                        const roomNights = roomCheckIn && roomCheckOut
+                          ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+                          : 0
+
+                        return Array.from({ length: room.quantity }, (_, index) => {
                           const roomRate = room.ratePrice || room.base_price
-                          const roomSubtotal = roomRate * bill.nights
+                          const roomSubtotal = roomRate * roomNights
                           const roomTax = roomSubtotal * 0.18
                           const roomTotal = roomSubtotal + roomTax
 
                           return (
-                            <div key={`bill-${room.id}-${index}`} className="bg-muted/30 rounded p-3 space-y-2">
+                            <div key={`bill-${room.cartKey}-${index}`} className="bg-muted/30 rounded p-3 space-y-2">
                               <div className="flex justify-between items-start">
                                 <div>
                                   <div className="font-medium text-sm">{room.name}</div>
                                   <div className="text-xs text-muted-foreground mt-0.5">
                                     Room {index + 1} of {room.quantity}
+                                  </div>
+                                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                    {roomCheckIn && roomCheckOut && (
+                                      `${roomCheckIn.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${roomCheckOut.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                                    )}
                                   </div>
                                 </div>
                                 <span className="text-sm font-semibold">₹{roomTotal.toFixed(2)}</span>
@@ -573,7 +715,7 @@ export default function PaymentPage({ onNavigate }) {
                               <div className="space-y-1 pt-2 border-t border-border">
                                 <div className="flex justify-between text-xs">
                                   <span className="text-muted-foreground">Room Rate</span>
-                                  <span>₹{roomRate.toFixed(2)} × {bill.nights} nights</span>
+                                  <span>₹{roomRate.toFixed(2)} × {roomNights} nights</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
                                   <span className="text-muted-foreground">Subtotal</span>
@@ -591,7 +733,7 @@ export default function PaymentPage({ onNavigate }) {
                             </div>
                           )
                         })
-                      )}
+                      })}
                     </div>
 
                     {/* Room Charges Summary */}
@@ -599,8 +741,13 @@ export default function PaymentPage({ onNavigate }) {
                       <div className="flex justify-between text-sm font-medium">
                         <span>Total Room Charges</span>
                         <span>₹{selectedRooms.reduce((sum, room) => {
+                          const roomCheckIn = room.checkIn ? new Date(room.checkIn) : null
+                          const roomCheckOut = room.checkOut ? new Date(room.checkOut) : null
+                          const roomNights = roomCheckIn && roomCheckOut
+                            ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+                            : 0
                           const roomRate = room.ratePrice || room.base_price
-                          const roomSubtotal = roomRate * bill.nights * room.quantity
+                          const roomSubtotal = roomRate * roomNights * room.quantity
                           const roomTax = roomSubtotal * 0.18
                           return sum + roomSubtotal + roomTax
                         }, 0).toFixed(2)}</span>
@@ -613,15 +760,21 @@ export default function PaymentPage({ onNavigate }) {
                     <div className="pt-3 border-t">
                       <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Meal Plan Charges</h3>
                       <div className="space-y-3">
-                        {selectedRooms.flatMap(room =>
-                          Array.from({ length: room.quantity }, (_, index) => {
+                        {selectedRooms.flatMap(room => {
+                          const roomCheckIn = room.checkIn ? new Date(room.checkIn) : null
+                          const roomCheckOut = room.checkOut ? new Date(room.checkOut) : null
+                          const roomNights = roomCheckIn && roomCheckOut
+                            ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+                            : 0
+
+                          return Array.from({ length: room.quantity }, (_, index) => {
                             const mealPlanCode = room.mealPlans?.[index] || 'none'
                             const mealPlanName = (mealPlanCode && mealPlanCode !== 'none') ? getMealPlanName(mealPlanCode) : 'No Meal Plan'
                             const pricePerPerson = (mealPlanCode && mealPlanCode !== 'none') ? getMealPlanPrice(mealPlanCode) : 0
                             const guestCount = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
                             const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
 
-                            const mealPlanSubtotal = pricePerPerson * totalGuests * bill.nights
+                            const mealPlanSubtotal = pricePerPerson * totalGuests * roomNights
                             const mealPlanTax = mealPlanSubtotal * 0.18
                             const mealPlanTotal = mealPlanSubtotal + mealPlanTax
 
@@ -629,12 +782,17 @@ export default function PaymentPage({ onNavigate }) {
                             if (mealPlanSubtotal === 0) return null
 
                             return (
-                              <div key={`meal-${room.id}-${index}`} className="bg-muted/30 rounded p-3 space-y-2">
+                              <div key={`meal-${room.cartKey}-${index}`} className="bg-muted/30 rounded p-3 space-y-2">
                                 <div className="flex justify-between items-start">
                                   <div>
                                     <div className="font-medium text-sm">{room.name} - {mealPlanName}</div>
                                     <div className="text-xs text-muted-foreground mt-0.5">
                                       Room {index + 1} of {room.quantity}
+                                    </div>
+                                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                      {roomCheckIn && roomCheckOut && (
+                                        `${roomCheckIn.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${roomCheckOut.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                                      )}
                                     </div>
                                   </div>
                                   <span className="text-sm font-semibold">₹{mealPlanTotal.toFixed(2)}</span>
@@ -646,7 +804,7 @@ export default function PaymentPage({ onNavigate }) {
                                   </div>
                                   <div className="flex justify-between text-xs">
                                     <span className="text-muted-foreground">Guests × Nights</span>
-                                    <span>{totalGuests} × {bill.nights}</span>
+                                    <span>{totalGuests} × {roomNights}</span>
                                   </div>
                                   <div className="flex justify-between text-xs">
                                     <span className="text-muted-foreground">Subtotal</span>
@@ -664,7 +822,7 @@ export default function PaymentPage({ onNavigate }) {
                               </div>
                             )
                           }).filter(Boolean)
-                        )}
+                        })}
                       </div>
 
                       {/* Meal Plan Charges Summary */}
@@ -672,13 +830,19 @@ export default function PaymentPage({ onNavigate }) {
                         <div className="flex justify-between text-sm font-medium">
                           <span>Total Meal Plan Charges</span>
                           <span>₹{selectedRooms.reduce((sum, room) => {
+                            const roomCheckIn = room.checkIn ? new Date(room.checkIn) : null
+                            const roomCheckOut = room.checkOut ? new Date(room.checkOut) : null
+                            const roomNights = roomCheckIn && roomCheckOut
+                              ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+                              : 0
+
                             let roomMealPlanTotal = 0
                             for (let i = 0; i < room.quantity; i++) {
                               const mealPlanCode = room.mealPlans?.[i] || 'none'
                               const pricePerPerson = (mealPlanCode && mealPlanCode !== 'none') ? getMealPlanPrice(mealPlanCode) : 0
                               const guestCount = room.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
                               const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
-                              const mealPlanSubtotal = pricePerPerson * totalGuests * bill.nights
+                              const mealPlanSubtotal = pricePerPerson * totalGuests * roomNights
                               const mealPlanTax = mealPlanSubtotal * 0.18
                               roomMealPlanTotal += mealPlanSubtotal + mealPlanTax
                             }

@@ -386,7 +386,8 @@ export const getReservations = async() => {
       guests (*),
       rooms (*, room_types (*)),
       agents (*),
-      room_rate_types (*)
+      room_rate_types (*),
+      booking_id
     `)
         .order('created_at', { ascending: false })
     return { data, error }
@@ -454,6 +455,282 @@ export const updateReservation = async(id, reservation) => {
 export const deleteReservation = async(id) => {
     const { error } = await supabase
         .from('reservations')
+        .delete()
+        .eq('id', id)
+    return { error }
+}
+
+// Split Reservation - Updates a reservation by splitting it into multiple segments
+export const splitReservation = async(originalReservationId, splitData) => {
+    try {
+        // Get the original reservation
+        const { data: originalReservation, error: fetchError } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('id', originalReservationId)
+            .single()
+
+        if (fetchError) return { data: null, error: fetchError }
+
+        // Group nights by room ID and consecutive dates
+        // This handles multiple rooms per date (quantity > 1)
+        const roomSegments = {}
+
+        // Sort nights by date and room ID for proper grouping
+        const sortedNights = [...splitData.nights].sort((a, b) => {
+            const dateCompare = new Date(a.date) - new Date(b.date)
+            if (dateCompare !== 0) return dateCompare
+            return a.roomId.localeCompare(b.roomId)
+        })
+
+        for (const night of sortedNights) {
+            const roomId = night.roomId
+
+            if (!roomSegments[roomId]) {
+                roomSegments[roomId] = []
+            }
+
+            // Check if this night is consecutive with the last segment for this room
+            const segments = roomSegments[roomId]
+            const lastSegment = segments[segments.length - 1]
+
+            if (lastSegment) {
+                const lastDate = new Date(lastSegment.endDate)
+                const currentDate = new Date(night.date)
+                const dayDiff = (currentDate - lastDate) / (1000 * 60 * 60 * 24)
+
+                // If consecutive (next day), add to existing segment
+                if (dayDiff === 1) {
+                    lastSegment.endDate = night.date
+                    lastSegment.nights.push(night)
+                    lastSegment.totalPrice += night.price
+                } else {
+                    // Create new segment for this room
+                    segments.push({
+                        roomId: night.roomId,
+                        roomTypeId: night.roomTypeId,
+                        roomRateTypeId: night.roomRateTypeId,
+                        startDate: night.date,
+                        endDate: night.date,
+                        nights: [night],
+                        totalPrice: night.price,
+                    })
+                }
+            } else {
+                // First segment for this room
+                segments.push({
+                    roomId: night.roomId,
+                    roomTypeId: night.roomTypeId,
+                    roomRateTypeId: night.roomRateTypeId,
+                    startDate: night.date,
+                    endDate: night.date,
+                    nights: [night],
+                    totalPrice: night.price,
+                })
+            }
+        }
+
+        // Flatten all segments into a single array
+        const allSegments = []
+        for (const roomId in roomSegments) {
+            allSegments.push(...roomSegments[roomId])
+        }
+
+        // Sort segments by start date to determine which becomes the primary
+        allSegments.sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+
+        if (allSegments.length === 0) {
+            return { data: null, error: { message: 'No nights selected' } }
+        }
+
+        // Generate a booking reference for split reservations if there isn't one already
+        const bookingReference = originalReservation.booking_reference || `SPLIT-${originalReservationId.substring(0, 8)}-${Date.now()}`
+
+        // Update the original reservation with the first segment
+        const firstSegment = allSegments[0]
+        const firstCheckOut = new Date(firstSegment.endDate)
+        firstCheckOut.setDate(firstCheckOut.getDate() + 1)
+
+        const firstTax = firstSegment.totalPrice * 0.18
+        const firstTotal = firstSegment.totalPrice + firstTax
+
+        const updateData = {
+            check_in_date: firstSegment.startDate,
+            check_out_date: firstCheckOut.toISOString().split('T')[0],
+            room_id: firstSegment.roomId,
+            total_amount: firstTotal,
+            booking_reference: bookingReference,
+        }
+
+        // Only update rate_type_id if it's provided, otherwise keep original
+        if (firstSegment.roomRateTypeId) {
+            updateData.rate_type_id = firstSegment.roomRateTypeId
+        }
+
+        const { data: updatedReservation, error: updateError } = await supabase
+            .from('reservations')
+            .update(updateData)
+            .eq('id', originalReservationId)
+            .select()
+
+        if (updateError) {
+            console.error('Error updating original reservation:', updateError)
+            return { data: null, error: updateError }
+        }
+
+        const createdReservationIds = [originalReservationId]
+        const errors = []
+
+        // Create new reservations for all additional segments
+        for (let i = 1; i < allSegments.length; i++) {
+            const segment = allSegments[i]
+            const segmentCheckOut = new Date(segment.endDate)
+            segmentCheckOut.setDate(segmentCheckOut.getDate() + 1)
+
+            const segmentTax = segment.totalPrice * 0.18
+            const segmentTotal = segment.totalPrice + segmentTax
+
+            const newReservationData = {
+                guest_id: originalReservation.guest_id,
+                room_id: segment.roomId,
+                check_in_date: segment.startDate,
+                check_out_date: segmentCheckOut.toISOString().split('T')[0],
+                status: originalReservation.status,
+                booking_source: originalReservation.booking_source,
+                booking_reference: bookingReference,
+                booking_id: originalReservation.booking_id, // Preserve booking_id to keep all segments linked
+                agent_id: originalReservation.agent_id,
+                number_of_adults: originalReservation.number_of_adults,
+                number_of_children: originalReservation.number_of_children,
+                number_of_infants: originalReservation.number_of_infants,
+                total_amount: segmentTotal,
+                advance_payment: 0, // No advance for split segments
+                special_requests: originalReservation.special_requests,
+                meal_plan: originalReservation.meal_plan,
+                rate_type_id: segment.roomRateTypeId || originalReservation.rate_type_id,
+                direct_source: originalReservation.direct_source,
+                additional_guest_ids: originalReservation.additional_guest_ids,
+            }
+
+            const { data: newReservation, error: insertError } = await supabase
+                .from('reservations')
+                .insert([newReservationData])
+                .select()
+
+            if (!insertError && newReservation) {
+                createdReservationIds.push(newReservation[0].id)
+            } else if (insertError) {
+                console.error('Error creating segment reservation:', insertError)
+                console.error('Segment data:', segment)
+                console.error('Insert data:', newReservationData)
+                errors.push({ segment: i, error: insertError })
+            }
+        }
+
+        // If any segments failed to create, return error
+        if (errors.length > 0) {
+            return {
+                data: null,
+                error: {
+                    message: `Failed to create ${errors.length} reservation segment(s). Check console for details.`,
+                    details: errors
+                }
+            }
+        }
+
+        // Fetch all created/updated reservations with full relations
+        const { data: allReservationsWithRelations, error: relationsError } = await supabase
+            .from('reservations')
+            .select(`
+                *,
+                guests (*),
+                rooms (
+                    *,
+                    room_types (*)
+                ),
+                room_rate_types (*),
+                agents (*)
+            `)
+            .in('id', createdReservationIds)
+            .order('check_in_date', { ascending: true })
+
+        if (relationsError) {
+            console.error('Error fetching reservations with relations:', relationsError)
+        }
+
+        return { data: {
+            updatedReservation: updatedReservation[0],
+            allReservations: allReservationsWithRelations || [],
+            segments: allSegments
+        }, error: null }
+
+    } catch (error) {
+        console.error('Error splitting reservation:', error)
+        return { data: null, error }
+    }
+}
+
+// Reservation Notes
+export const getReservationNotes = async(reservationId) => {
+    const { data, error } = await supabase
+        .from('reservation_notes')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .order('created_at', { ascending: false })
+    return { data, error }
+}
+
+export const getActiveReservationNotes = async(reservationId) => {
+    const { data, error } = await supabase
+        .from('reservation_notes')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false })
+    return { data, error }
+}
+
+export const getArchivedReservationNotes = async(reservationId) => {
+    const { data, error } = await supabase
+        .from('reservation_notes')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .eq('is_archived', true)
+        .order('created_at', { ascending: false })
+    return { data, error }
+}
+
+export const createReservationNote = async(note) => {
+    const { data, error } = await supabase
+        .from('reservation_notes')
+        .insert([note])
+        .select()
+    return { data, error }
+}
+
+export const updateReservationNote = async(id, updates) => {
+    const { data, error } = await supabase
+        .from('reservation_notes')
+        .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+    return { data, error }
+}
+
+export const archiveReservationNote = async(id) => {
+    return updateReservationNote(id, { is_archived: true })
+}
+
+export const unarchiveReservationNote = async(id) => {
+    return updateReservationNote(id, { is_archived: false })
+}
+
+export const deleteReservationNote = async(id) => {
+    const { error } = await supabase
+        .from('reservation_notes')
         .delete()
         .eq('id', id)
     return { error }
@@ -1143,11 +1420,16 @@ export const getReservationBalance = async(reservationId) => {
 
 // Create a room charge transaction
 export const createRoomCharge = async(transactionData) => {
+    // Determine status based on whether scheduled_post_date is provided
+    const status = transactionData.scheduled_post_date
+        ? TRANSACTION_STATUS.PENDING
+        : TRANSACTION_STATUS.POSTED
+
     const { data, error } = await supabase
         .from('folio_transactions')
         .insert([{
             transaction_type: TRANSACTION_TYPES.ROOM_CHARGE,
-            transaction_status: TRANSACTION_STATUS.POSTED,
+            transaction_status: status,
             amount: Math.abs(transactionData.amount), // Ensure positive
             ...transactionData
         }])
@@ -1158,11 +1440,16 @@ export const createRoomCharge = async(transactionData) => {
 
 // Create a service charge transaction
 export const createServiceCharge = async(transactionData) => {
+    // Determine status based on whether scheduled_post_date is provided
+    const status = transactionData.scheduled_post_date
+        ? TRANSACTION_STATUS.PENDING
+        : TRANSACTION_STATUS.POSTED
+
     const { data, error } = await supabase
         .from('folio_transactions')
         .insert([{
             transaction_type: TRANSACTION_TYPES.SERVICE_CHARGE,
-            transaction_status: TRANSACTION_STATUS.POSTED,
+            transaction_status: status,
             amount: Math.abs(transactionData.amount), // Ensure positive
             ...transactionData
         }])
@@ -1173,11 +1460,16 @@ export const createServiceCharge = async(transactionData) => {
 
 // Create a tax transaction
 export const createTax = async(transactionData) => {
+    // Determine status based on whether scheduled_post_date is provided
+    const status = transactionData.scheduled_post_date
+        ? TRANSACTION_STATUS.PENDING
+        : TRANSACTION_STATUS.POSTED
+
     const { data, error } = await supabase
         .from('folio_transactions')
         .insert([{
             transaction_type: TRANSACTION_TYPES.TAX,
-            transaction_status: TRANSACTION_STATUS.POSTED,
+            transaction_status: status,
             amount: Math.abs(transactionData.amount), // Ensure positive
             ...transactionData
         }])
@@ -1188,11 +1480,16 @@ export const createTax = async(transactionData) => {
 
 // Create a fee transaction
 export const createFee = async(transactionData) => {
+    // Determine status based on whether scheduled_post_date is provided
+    const status = transactionData.scheduled_post_date
+        ? TRANSACTION_STATUS.PENDING
+        : TRANSACTION_STATUS.POSTED
+
     const { data, error } = await supabase
         .from('folio_transactions')
         .insert([{
             transaction_type: TRANSACTION_TYPES.FEE,
-            transaction_status: TRANSACTION_STATUS.POSTED,
+            transaction_status: status,
             amount: Math.abs(transactionData.amount), // Ensure positive
             ...transactionData
         }])
@@ -1203,11 +1500,16 @@ export const createFee = async(transactionData) => {
 
 // Create a discount transaction
 export const createDiscountTransaction = async(transactionData) => {
+    // Determine status based on whether scheduled_post_date is provided
+    const status = transactionData.scheduled_post_date
+        ? TRANSACTION_STATUS.PENDING
+        : TRANSACTION_STATUS.POSTED
+
     const { data, error } = await supabase
         .from('folio_transactions')
         .insert([{
             transaction_type: TRANSACTION_TYPES.DISCOUNT,
-            transaction_status: TRANSACTION_STATUS.POSTED,
+            transaction_status: status,
             amount: -Math.abs(transactionData.amount), // Ensure negative (credit)
             ...transactionData
         }])
@@ -1232,11 +1534,21 @@ export const createPaymentTransaction = async(transactionData) => {
         transactionType = TRANSACTION_TYPES.PAYMENT_BANK_TRANSFER
     }
 
+    // Determine transaction status based on gateway status
+    let transactionStatus = TRANSACTION_STATUS.POSTED
+    if (transactionData.gateway_status) {
+        if (transactionData.gateway_status === 'pending' || transactionData.gateway_status === 'authorized') {
+            transactionStatus = TRANSACTION_STATUS.PENDING
+        } else if (transactionData.gateway_status === 'failed') {
+            transactionStatus = TRANSACTION_STATUS.CANCELLED
+        }
+    }
+
     const { data, error } = await supabase
         .from('folio_transactions')
         .insert([{
             transaction_type: transactionType,
-            transaction_status: TRANSACTION_STATUS.POSTED,
+            transaction_status: transactionStatus,
             amount: -Math.abs(transactionData.amount), // Ensure negative (credit)
             description: transactionData.description || `Payment via ${transactionData.payment_method}`,
             ...transactionData
@@ -1451,4 +1763,1035 @@ export const getAllTransactions = async(options = {}) => {
         pageSize,
         totalPages: count ? Math.ceil(count / pageSize) : 0
     }
+}
+
+// ============================================
+// FOLIO MANAGEMENT FUNCTIONS
+// ============================================
+
+// Create a folio
+export const createFolio = async (folioData) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .insert([{
+            ...folioData,
+            folio_number: folioData.folio_number || `F-${Date.now()}`
+        }])
+        .select(`
+            *,
+            room:rooms (
+                id,
+                room_number,
+                room_type:room_types (
+                    id,
+                    name
+                )
+            ),
+            guest:guests (
+                id,
+                name,
+                email,
+                phone
+            ),
+            reservation:reservations (
+                id,
+                check_in_date,
+                check_out_date,
+                status
+            )
+        `)
+        .single()
+
+    return { data, error }
+}
+
+// Get all folios for a reservation
+export const getFoliosByReservation = async (reservationId) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .select(`
+            *,
+            room:rooms (
+                id,
+                room_number,
+                room_type:room_types (
+                    id,
+                    name
+                )
+            ),
+            guest:guests (
+                id,
+                name,
+                email,
+                phone
+            ),
+            reservation:reservations (
+                id,
+                check_in_date,
+                check_out_date,
+                status
+            )
+        `)
+        .eq('reservation_id', reservationId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+
+    return { data, error }
+}
+
+// Get transactions for a specific folio
+export const getTransactionsByFolio = async (folioId, options = {}) => {
+    let query = supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            created_by_user:users!created_by (
+                id,
+                name,
+                email
+            ),
+            reversed_transaction:folio_transactions!reversed_transaction_id (
+                id,
+                transaction_type,
+                amount,
+                description
+            )
+        `)
+        .eq('folio_id', folioId)
+
+    // Apply filters if provided
+    if (options.status) {
+        query = query.eq('transaction_status', options.status)
+    }
+    if (options.type) {
+        query = query.eq('transaction_type', options.type)
+    }
+    if (options.startDate) {
+        query = query.gte('transaction_date', options.startDate)
+    }
+    if (options.endDate) {
+        query = query.lte('transaction_date', options.endDate)
+    }
+
+    // Default ordering
+    query = query.order('transaction_date', { ascending: false })
+
+    const { data, error } = await query
+
+    return { data, error }
+}
+
+// Get folio summary (totals)
+export const getFolioSummary = async (folioId) => {
+    const { data: transactions, error } = await supabase
+        .from('folio_transactions')
+        .select('transaction_type, transaction_status, amount')
+        .eq('folio_id', folioId)
+
+    if (error) return { data: null, error }
+
+    const summary = {
+        // Charge breakdown
+        subtotal: 0, // Charges before tax and discounts
+        total_charges: 0, // All charges including taxes
+        total_payments: 0,
+        total_discounts: 0,
+        total_taxes: 0,
+        total_refunds: 0,
+        total_deposits: 0,
+
+        // Balance calculations
+        net_balance: 0, // Total charges - payments
+        balance_due: 0, // Amount still owed (positive) or credit (negative)
+        credit_balance: 0, // If overpaid
+        deposit_available: 0, // Unused deposits
+
+        // Transaction counts
+        total_posted_transactions: 0,
+        total_pending_transactions: 0,
+        total_reversed_transactions: 0,
+
+        // Pending amounts (scheduled but not posted)
+        pending_charges: 0,
+        pending_payments: 0
+    }
+
+    transactions.forEach(tx => {
+        const amount = parseFloat(tx.amount) || 0
+        const isPending = tx.transaction_status === 'pending'
+        const isPosted = tx.transaction_status === 'posted'
+
+        // Count by status
+        if (isPosted) {
+            summary.total_posted_transactions++
+        } else if (isPending) {
+            summary.total_pending_transactions++
+        } else if (tx.transaction_status === 'reversed') {
+            summary.total_reversed_transactions++
+        }
+
+        // Skip reversed/voided transactions from balance calculation
+        if (tx.transaction_status === 'reversed' || tx.transaction_status === 'voided') {
+            return
+        }
+
+        // Separate pending amounts
+        if (isPending) {
+            if (tx.transaction_type.startsWith('payment_')) {
+                summary.pending_payments += Math.abs(amount)
+            } else {
+                summary.pending_charges += Math.abs(amount)
+            }
+            // Don't include pending in main totals
+            return
+        }
+
+        // Calculate posted totals
+        if (tx.transaction_type.startsWith('payment_')) {
+            if (tx.transaction_type === 'payment_refund' || tx.transaction_type === 'payment_reversal') {
+                summary.total_refunds += Math.abs(amount)
+                summary.net_balance += amount // Refunds are negative, add them back
+            } else {
+                summary.total_payments += Math.abs(amount)
+                summary.net_balance -= Math.abs(amount) // Payments reduce balance
+            }
+        } else if (tx.transaction_type === 'deposit') {
+            summary.total_deposits += Math.abs(amount)
+            summary.deposit_available += Math.abs(amount)
+            summary.net_balance -= Math.abs(amount)
+        } else if (tx.transaction_type === 'deposit_usage') {
+            summary.deposit_available -= Math.abs(amount)
+            // Deposit usage doesn't affect net balance as it's already counted
+        } else if (tx.transaction_type === 'discount' || tx.transaction_type === 'write_off') {
+            summary.total_discounts += Math.abs(amount)
+            summary.net_balance -= Math.abs(amount) // Discounts reduce balance
+        } else if (tx.transaction_type === 'tax') {
+            summary.total_taxes += Math.abs(amount)
+            summary.total_charges += Math.abs(amount)
+            summary.net_balance += Math.abs(amount)
+        } else {
+            // Regular charges (room, service, fee, etc.)
+            summary.subtotal += Math.abs(amount)
+            summary.total_charges += Math.abs(amount)
+            summary.net_balance += Math.abs(amount)
+        }
+    })
+
+    // Calculate balance due and credit
+    summary.balance_due = summary.net_balance
+
+    if (summary.balance_due < 0) {
+        summary.credit_balance = Math.abs(summary.balance_due)
+        summary.balance_due = 0
+    } else {
+        summary.credit_balance = 0
+    }
+
+    return { data: summary, error: null }
+}
+
+// Transfer transaction to a different folio
+export const transferTransaction = async (transactionId, targetFolioId, userId, reason = null) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .update({
+            folio_id: targetFolioId,
+            notes: reason ? `Transferred: ${reason}` : 'Transferred to another folio',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', transactionId)
+        .select()
+        .single()
+
+    return { data, error }
+}
+
+// Transfer multiple transactions to a different folio
+export const transferMultipleTransactions = async (transactionIds, targetFolioId, userId, reason = null) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .update({
+            folio_id: targetFolioId,
+            notes: reason ? `Transferred: ${reason}` : 'Transferred to another folio',
+            updated_at: new Date().toISOString()
+        })
+        .in('id', transactionIds)
+        .select()
+
+    return { data, error }
+}
+
+// Update folio
+export const updateFolio = async (folioId, updates) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', folioId)
+        .select()
+        .single()
+
+    return { data, error }
+}
+
+// Delete/deactivate folio
+export const deleteFolio = async (folioId) => {
+    // First check if folio has any transactions
+    const { data: transactions } = await supabase
+        .from('folio_transactions')
+        .select('id')
+        .eq('folio_id', folioId)
+        .limit(1)
+
+    if (transactions && transactions.length > 0) {
+        return {
+            error: {
+                message: 'Cannot delete folio with existing transactions. Transfer transactions first or deactivate the folio.'
+            }
+        }
+    }
+
+    // If no transactions, we can delete
+    const { error } = await supabase
+        .from('folios')
+        .delete()
+        .eq('id', folioId)
+
+    return { error }
+}
+
+// Deactivate folio (soft delete)
+export const deactivateFolio = async (folioId) => {
+    return updateFolio(folioId, { is_active: false })
+}
+
+// Create master folio for a reservation (auto-created)
+export const createMasterFolio = async (reservationId, reservationData = {}) => {
+    return createFolio({
+        reservation_id: reservationId,
+        folio_type: 'master',
+        name: `Master Folio - ${reservationData.guestName || 'Main'}`,
+        folio_number: `MF-${reservationId.substring(0, 8)}`
+    })
+}
+
+// Create room-based folio
+export const createRoomFolio = async (reservationId, roomId, roomNumber) => {
+    return createFolio({
+        reservation_id: reservationId,
+        folio_type: 'room',
+        room_id: roomId,
+        name: `Room ${roomNumber} Folio`,
+        folio_number: `RF-${roomId.substring(0, 8)}`
+    })
+}
+
+// Create guest-based folio
+export const createGuestFolio = async (reservationId, guestId, guestName) => {
+    return createFolio({
+        reservation_id: reservationId,
+        folio_type: 'guest',
+        guest_id: guestId,
+        name: `${guestName}'s Folio`,
+        folio_number: `GF-${guestId.substring(0, 8)}`
+    })
+}
+
+// ============================================================================
+// Transaction Business Logic Functions
+// ============================================================================
+
+// Generate daily room charges for a reservation
+export const generateDailyRoomCharges = async (
+    reservationId,
+    folioId,
+    roomRate,
+    checkInDate,
+    checkOutDate,
+    roomNumber,
+    userId
+) => {
+    const { data, error } = await supabase.rpc('generate_daily_room_charges', {
+        p_reservation_id: reservationId,
+        p_folio_id: folioId,
+        p_room_rate: roomRate,
+        p_check_in_date: checkInDate,
+        p_check_out_date: checkOutDate,
+        p_room_number: roomNumber,
+        p_user_id: userId
+    })
+
+    if (error) {
+        console.error('Error generating daily room charges:', error)
+        return { data: null, error }
+    }
+
+    return { data, error: null }
+}
+
+// Auto-post scheduled transactions that are due
+export const autoPostScheduledTransactions = async () => {
+    const { data, error } = await supabase.rpc('auto_post_scheduled_transactions')
+
+    if (error) {
+        console.error('Error auto-posting scheduled transactions:', error)
+        return { data: null, error }
+    }
+
+    return { data, error: null }
+}
+
+// Create a reversal transaction for a payment
+export const reversePayment = async (paymentTransactionId, userId, reason = null) => {
+    // First get the original payment transaction
+    const { data: originalTx, error: fetchError } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('id', paymentTransactionId)
+        .single()
+
+    if (fetchError) {
+        console.error('Error fetching original payment:', fetchError)
+        return { data: null, error: fetchError }
+    }
+
+    // Create a reversal transaction with negative amount
+    const reversalData = {
+        folio_id: originalTx.folio_id,
+        reservation_id: originalTx.reservation_id,
+        transaction_type: 'payment_reversal',
+        transaction_category: originalTx.transaction_category,
+        description: `Reversal: ${originalTx.description}${reason ? ` - ${reason}` : ''}`,
+        amount: -Math.abs(originalTx.amount), // Negative to reverse
+        transaction_date: new Date().toISOString(),
+        transaction_status: 'posted',
+        created_by: userId,
+        parent_transaction_id: paymentTransactionId,
+        notes: reason
+    }
+
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([reversalData])
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error creating payment reversal:', error)
+        return { data: null, error }
+    }
+
+    return { data, error: null }
+}
+
+// Create a refund transaction for a payment
+export const refundPayment = async (paymentTransactionId, refundAmount, userId, reason = null) => {
+    // First get the original payment transaction
+    const { data: originalTx, error: fetchError } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('id', paymentTransactionId)
+        .single()
+
+    if (fetchError) {
+        console.error('Error fetching original payment:', fetchError)
+        return { data: null, error: fetchError }
+    }
+
+    // Validate refund amount
+    if (refundAmount > Math.abs(originalTx.amount)) {
+        return {
+            data: null,
+            error: { message: 'Refund amount cannot exceed original payment amount' }
+        }
+    }
+
+    // Create a refund transaction
+    const refundData = {
+        folio_id: originalTx.folio_id,
+        reservation_id: originalTx.reservation_id,
+        transaction_type: 'payment_refund',
+        transaction_category: originalTx.transaction_category,
+        description: `Refund: ${originalTx.description}${reason ? ` - ${reason}` : ''}`,
+        amount: -Math.abs(refundAmount), // Negative to refund
+        transaction_date: new Date().toISOString(),
+        transaction_status: 'posted',
+        created_by: userId,
+        parent_transaction_id: paymentTransactionId,
+        notes: reason
+    }
+
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .insert([refundData])
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Error creating payment refund:', error)
+        return { data: null, error }
+    }
+
+    return { data, error: null }
+}
+
+// ============================================================================
+// Folio Checkout Functions
+// ============================================================================
+
+// Checkout a folio
+export const checkoutFolio = async (folioId, userId, allowPartial = false) => {
+    const { data, error } = await supabase.rpc('checkout_folio', {
+        p_folio_id: folioId,
+        p_user_id: userId,
+        p_allow_partial: allowPartial
+    })
+
+    if (error) {
+        console.error('Error checking out folio:', error)
+        return { data: null, error }
+    }
+
+    return { data, error: null }
+}
+
+// Get folio with checkout info
+export const getFolioWithCheckout = async (folioId) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .select(`
+            *,
+            checked_out_by_user:users!checked_out_by (
+                id,
+                name,
+                email
+            )
+        `)
+        .eq('id', folioId)
+        .single()
+
+    return { data, error }
+}
+
+// Get invoice/receipt data
+export const getInvoiceData = async (folioId) => {
+    try {
+        // Get folio details
+        const { data: folio, error: folioError } = await supabase
+            .from('folios')
+            .select(`
+                *,
+                reservation:reservations (
+                    *,
+                    guest:guests (*),
+                    room:rooms (
+                        *,
+                        room_type:room_types (*)
+                    )
+                )
+            `)
+            .eq('id', folioId)
+            .single()
+
+        if (folioError) return { data: null, error: folioError }
+
+        // Get all transactions
+        const { data: transactions, error: txError } = await supabase
+            .from('folio_transactions')
+            .select(`
+                *,
+                created_by_user:users!created_by (
+                    id,
+                    name
+                )
+            `)
+            .eq('folio_id', folioId)
+            .order('transaction_date', { ascending: true })
+
+        if (txError) return { data: null, error: txError }
+
+        // Get summary
+        const { data: summary, error: summaryError } = await getFolioSummary(folioId)
+        if (summaryError) return { data: null, error: summaryError }
+
+        // Get hotel settings
+        const { data: hotelSettings } = await supabase
+            .from('hotel_settings')
+            .select('*')
+
+        // Build hotel info from settings
+        const hotelInfo = {}
+        hotelSettings?.forEach(setting => {
+            hotelInfo[setting.setting_key] = setting.setting_value
+        })
+
+        return {
+            data: {
+                folio,
+                transactions,
+                summary,
+                hotelInfo
+            },
+            error: null
+        }
+    } catch (error) {
+        console.error('Error fetching invoice data:', error)
+        return { data: null, error }
+    }
+}
+
+// Check if folio can be edited (not checked out)
+export const canEditFolio = async (folioId) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .select('checkout_status')
+        .eq('id', folioId)
+        .single()
+
+    if (error) return { data: false, error }
+
+    return { data: data.checkout_status !== 'checked_out', error: null }
+}
+
+// ============================================
+// AUDIT LOG FUNCTIONS
+// ============================================
+
+/**
+ * Manually log a transaction audit entry
+ * (Note: Most audits are automatically logged via database triggers)
+ */
+export const logTransactionAudit = async ({
+    transactionId,
+    folioId,
+    actionType,
+    performedBy,
+    performedByName,
+    previousValues,
+    newValues,
+    changesSummary,
+    metadata
+}) => {
+    const { data, error } = await supabase
+        .from('transaction_audit_log')
+        .insert([{
+            transaction_id: transactionId,
+            folio_id: folioId,
+            action_type: actionType,
+            performed_by: performedBy,
+            performed_by_name: performedByName,
+            previous_values: previousValues,
+            new_values: newValues,
+            changes_summary: changesSummary,
+            metadata
+        }])
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Get audit log entries for a specific folio
+ */
+export const getAuditLogByFolio = async (folioId, options = {}) => {
+    const {
+        limit = 100,
+        offset = 0,
+        actionType = null,
+        startDate = null,
+        endDate = null
+    } = options
+
+    let query = supabase
+        .from('transaction_audit_log')
+        .select(`
+            *,
+            transaction:folio_transactions(id, description, transaction_type, amount),
+            user:users(id, name, email)
+        `)
+        .eq('folio_id', folioId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1)
+
+    // Filter by action type if specified
+    if (actionType) {
+        query = query.eq('action_type', actionType)
+    }
+
+    // Filter by date range if specified
+    if (startDate) {
+        query = query.gte('created_at', startDate)
+    }
+    if (endDate) {
+        query = query.lte('created_at', endDate)
+    }
+
+    const { data, error } = await query
+
+    return { data, error }
+}
+
+/**
+ * Get audit log entries for a specific transaction
+ */
+export const getAuditLogByTransaction = async (transactionId) => {
+    const { data, error } = await supabase
+        .from('transaction_audit_log')
+        .select(`
+            *,
+            transaction:folio_transactions(id, description, transaction_type, amount),
+            user:users(id, name, email)
+        `)
+        .eq('transaction_id', transactionId)
+        .order('created_at', { ascending: false })
+
+    return { data, error }
+}
+
+/**
+ * Get audit statistics for a folio
+ */
+export const getAuditStatsByFolio = async (folioId) => {
+    const { data, error } = await supabase
+        .from('transaction_audit_log')
+        .select('action_type, performed_by_name')
+        .eq('folio_id', folioId)
+
+    if (error) return { data: null, error }
+
+    // Calculate statistics
+    const stats = {
+        total_actions: data.length,
+        actions_by_type: {},
+        actions_by_user: {},
+        recent_activity: []
+    }
+
+    // Group by action type
+    data.forEach(entry => {
+        stats.actions_by_type[entry.action_type] = (stats.actions_by_type[entry.action_type] || 0) + 1
+        stats.actions_by_user[entry.performed_by_name] = (stats.actions_by_user[entry.performed_by_name] || 0) + 1
+    })
+
+    return { data: stats, error: null }
+}
+
+/**
+ * Get recent audit activity across all folios (for admin dashboard)
+ */
+export const getRecentAuditActivity = async (limit = 50) => {
+    const { data, error } = await supabase
+        .from('transaction_audit_log')
+        .select(`
+            *,
+            transaction:folio_transactions(id, description, transaction_type, amount),
+            folio:folios(id, folio_number, name),
+            user:users(id, name, email)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    return { data, error }
+}
+
+// ============================================================================
+// Currency & Exchange Rate Functions
+// ============================================================================
+
+/**
+ * Get base currency from hotel settings
+ */
+export const getBaseCurrency = async () => {
+    const { data, error } = await supabase
+        .from('hotel_settings')
+        .select('setting_value')
+        .eq('setting_key', 'base_currency')
+        .single()
+
+    if (error) return { data: 'INR', error: null } // Default to INR if not set
+    return { data: data?.setting_value || 'INR', error: null }
+}
+
+/**
+ * Set base currency in hotel settings
+ */
+export const setBaseCurrency = async (currencyCode) => {
+    const { data, error } = await supabase
+        .from('hotel_settings')
+        .upsert({
+            setting_key: 'base_currency',
+            setting_value: currencyCode
+        }, {
+            onConflict: 'setting_key'
+        })
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Get current exchange rate for a currency pair
+ * First checks the exchange_rate_history table, otherwise returns 1.0
+ */
+export const getExchangeRate = async (fromCurrency, toCurrency) => {
+    if (fromCurrency === toCurrency) {
+        return { data: 1.0, error: null }
+    }
+
+    const { data, error } = await supabase
+        .from('exchange_rate_history')
+        .select('exchange_rate')
+        .eq('from_currency', fromCurrency)
+        .eq('to_currency', toCurrency)
+        .order('rate_date', { ascending: false })
+        .limit(1)
+        .single()
+
+    if (error || !data) {
+        // No rate found, return 1.0 as default
+        return { data: 1.0, error: null }
+    }
+
+    return { data: data.exchange_rate, error: null }
+}
+
+/**
+ * Save exchange rate to history
+ */
+export const saveExchangeRate = async (fromCurrency, toCurrency, rate, source = 'manual', userId = null) => {
+    const { data, error } = await supabase
+        .from('exchange_rate_history')
+        .insert([{
+            from_currency: fromCurrency,
+            to_currency: toCurrency,
+            exchange_rate: rate,
+            source: source,
+            created_by: userId
+        }])
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Get exchange rate history for a currency pair
+ */
+export const getExchangeRateHistory = async (fromCurrency, toCurrency, limit = 30) => {
+    const { data, error } = await supabase
+        .from('exchange_rate_history')
+        .select('*')
+        .eq('from_currency', fromCurrency)
+        .eq('to_currency', toCurrency)
+        .order('rate_date', { ascending: false })
+        .limit(limit)
+
+    return { data, error }
+}
+
+/**
+ * Get all recent exchange rates (for all currency pairs)
+ */
+export const getAllRecentExchangeRates = async () => {
+    const { data, error } = await supabase
+        .from('exchange_rate_history')
+        .select('*')
+        .order('rate_date', { ascending: false })
+
+    if (error) return { data: null, error }
+
+    // Get the most recent rate for each currency pair
+    const rateMap = {}
+    data.forEach(rate => {
+        const key = `${rate.from_currency}-${rate.to_currency}`
+        if (!rateMap[key]) {
+            rateMap[key] = rate
+        }
+    })
+
+    return { data: Object.values(rateMap), error: null }
+}
+
+/**
+ * Convert amount from one currency to another
+ * This will automatically fetch the exchange rate if needed
+ */
+export const convertCurrency = async (amount, fromCurrency, toCurrency) => {
+    if (fromCurrency === toCurrency) {
+        return { data: parseFloat(amount), error: null }
+    }
+
+    const { data: rate, error } = await getExchangeRate(fromCurrency, toCurrency)
+
+    if (error) return { data: null, error }
+
+    const convertedAmount = parseFloat(amount) * parseFloat(rate)
+
+    return { data: convertedAmount, error: null }
+}
+
+// ============================================================================
+// PAYMENT GATEWAY INTEGRATION FUNCTIONS
+// ============================================================================
+
+/**
+ * Update gateway status for a transaction
+ * Used to update payment status after gateway callback
+ */
+export const updateGatewayStatus = async (transactionId, gatewayData) => {
+    const updates = {
+        gateway_status: gatewayData.gateway_status,
+        updated_at: new Date().toISOString()
+    }
+
+    // Update gateway transaction ID if provided
+    if (gatewayData.gateway_transaction_id) {
+        updates.gateway_transaction_id = gatewayData.gateway_transaction_id
+    }
+
+    // Update authorization number if provided
+    if (gatewayData.authorization_number) {
+        updates.authorization_number = gatewayData.authorization_number
+    }
+
+    // Update metadata if provided
+    if (gatewayData.metadata) {
+        updates.metadata = gatewayData.metadata
+    }
+
+    // Update transaction status based on gateway status
+    if (gatewayData.gateway_status === 'completed') {
+        updates.transaction_status = TRANSACTION_STATUS.POSTED
+    } else if (gatewayData.gateway_status === 'failed') {
+        updates.transaction_status = TRANSACTION_STATUS.CANCELLED
+    } else if (gatewayData.gateway_status === 'pending' || gatewayData.gateway_status === 'authorized') {
+        updates.transaction_status = TRANSACTION_STATUS.PENDING
+    }
+
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .update(updates)
+        .eq('id', transactionId)
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Get pending gateway transactions
+ * Used to check for transactions that need processing
+ */
+export const getPendingGatewayTransactions = async (reservationId = null) => {
+    let query = supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            reservation:reservations (
+                id,
+                confirmation_number,
+                guest:guests (name, email, phone)
+            )
+        `)
+        .in('transaction_type', [
+            TRANSACTION_TYPES.PAYMENT_CARD,
+            TRANSACTION_TYPES.PAYMENT_ONLINE
+        ])
+        .eq('gateway_status', 'pending')
+        .order('transaction_date', { ascending: false })
+
+    if (reservationId) {
+        query = query.eq('reservation_id', reservationId)
+    }
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+/**
+ * Get failed gateway transactions
+ * Used to show transactions that need retry
+ */
+export const getFailedGatewayTransactions = async (reservationId = null) => {
+    let query = supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            reservation:reservations (
+                id,
+                confirmation_number,
+                guest:guests (name, email, phone)
+            )
+        `)
+        .in('transaction_type', [
+            TRANSACTION_TYPES.PAYMENT_CARD,
+            TRANSACTION_TYPES.PAYMENT_ONLINE
+        ])
+        .eq('gateway_status', 'failed')
+        .order('transaction_date', { ascending: false })
+
+    if (reservationId) {
+        query = query.eq('reservation_id', reservationId)
+    }
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+/**
+ * Retry a failed gateway transaction
+ * Creates a new transaction with the same details but resets gateway fields
+ */
+export const retryGatewayTransaction = async (transactionId) => {
+    // Get the original transaction
+    const { data: original, error: fetchError } = await getTransactionById(transactionId)
+
+    if (fetchError) return { data: null, error: fetchError }
+    if (!original) return { data: null, error: { message: 'Transaction not found' } }
+
+    // Create a new transaction with same details but reset gateway fields
+    const retryTransaction = {
+        reservation_id: original.reservation_id,
+        folio_id: original.folio_id,
+        bill_id: original.bill_id,
+        amount: original.amount,
+        description: original.description + ' (Retry)',
+        payment_method: original.payment_method,
+        transaction_currency: original.transaction_currency,
+        exchange_rate: original.exchange_rate,
+        base_currency_amount: original.base_currency_amount,
+        gateway_status: 'pending',
+        notes: `Retry of transaction ${transactionId}. Original failed at: ${original.updated_at}`,
+        metadata: {
+            ...original.metadata,
+            original_transaction_id: transactionId,
+            retry_count: (original.metadata?.retry_count || 0) + 1,
+            retry_timestamp: new Date().toISOString()
+        }
+    }
+
+    const { data, error } = await createPaymentTransaction(retryTransaction)
+
+    return { data, error }
+}
+
+/**
+ * Get gateway transaction by gateway transaction ID
+ * Used for webhook callbacks and reconciliation
+ */
+export const getTransactionByGatewayId = async (gatewayTransactionId) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            reservation:reservations (
+                id,
+                confirmation_number,
+                guest:guests (name, email, phone)
+            )
+        `)
+        .eq('gateway_transaction_id', gatewayTransactionId)
+        .single()
+
+    return { data, error }
 }

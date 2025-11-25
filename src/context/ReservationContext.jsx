@@ -5,11 +5,18 @@ import {
   createReservation as createReservationAPI,
   updateReservation as updateReservationAPI,
   deleteReservation as deleteReservationAPI,
+  splitReservation as splitReservationAPI,
   updateRoomStatus,
   createBill,
-  getMealPlanByCode
+  getMealPlanByCode,
+  // Folio and transaction business logic
+  createMasterFolio,
+  getFoliosByReservation,
+  generateDailyRoomCharges,
+  createServiceCharge
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
+import { useAuth } from './AuthContext';
 
 const ReservationContext = createContext();
 
@@ -23,6 +30,7 @@ export const ReservationProvider = ({ children }) => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const { error: showError, success: showSuccess } = useAlert();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadReservations();
@@ -47,6 +55,23 @@ export const ReservationProvider = ({ children }) => {
       return null;
     }
 
+    const createdReservation = data[0];
+
+    // Create master folio immediately after reservation is created
+    try {
+      const { data: newFolio, error: folioError } = await createMasterFolio(createdReservation.id, {
+        guestName: 'Main Folio'
+      });
+
+      if (folioError) {
+        console.error('Error creating folio:', folioError);
+        showError('Reservation created but failed to create folio. Please contact support.');
+      }
+    } catch (folioError) {
+      console.error('Error creating folio:', folioError);
+      // Continue even if folio creation fails - user can create it manually later
+    }
+
     // Update room status for display purposes only
     // Note: Actual availability is determined by date-based queries, not status
     if (reservation.status === 'Checked-in') {
@@ -57,7 +82,7 @@ export const ReservationProvider = ({ children }) => {
     }
 
     await loadReservations(); // Reload to get with relations
-    return data[0];
+    return createdReservation;
   };
 
   const updateReservation = async (id, updatedReservation) => {
@@ -101,28 +126,45 @@ export const ReservationProvider = ({ children }) => {
       // Note: Actual availability is determined by date-based queries
       await updateRoomStatus(reservation.room_id, 'Occupied');
 
-      // Auto-create Room Charge Bill
-      const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+      // Get or create master folio for the reservation
+      const { data: existingFolios } = await getFoliosByReservation(id);
+      let masterFolio = existingFolios?.find(f => f.folio_type === 'master');
 
-      // Use rate type price if available, otherwise fall back to room type base price
-      const roomRate = reservation.room_rate_types?.base_price || reservation.rooms?.room_types?.base_price || 0;
-
-      // Create bill items for each night
-      const billItems = [];
-      let subtotal = 0;
-
-      // Add room charges
-      for (let i = 0; i < nights; i++) {
-        billItems.push({
-          description: `Room ${reservation.rooms?.room_number || 'N/A'} - Night ${i + 1}`,
-          quantity: 1,
-          rate: roomRate,
-          amount: roomRate
+      if (!masterFolio) {
+        const { data: newFolio } = await createMasterFolio(id, {
+          guestName: reservation.guests?.name || 'Main'
         });
-        subtotal += roomRate;
+        masterFolio = newFolio;
       }
 
-      // Add meal plan charges if available
+      if (!masterFolio) {
+        console.error('Failed to create or find master folio');
+        showError('Failed to create billing folio');
+        return;
+      }
+
+      // Generate daily room charges with scheduled posting
+      const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+      const roomRate = reservation.room_rate_types?.base_price || reservation.rooms?.room_types?.base_price || 0;
+
+      // Generate daily room charges with auto-posting at midnight
+      const { data: roomCharges, error: roomChargeError } = await generateDailyRoomCharges(
+        id, // reservation_id
+        masterFolio.id, // folio_id
+        roomRate, // room_rate
+        reservation.check_in_date, // check_in_date
+        reservation.check_out_date, // check_out_date
+        reservation.rooms?.room_number || 'N/A', // room_number
+        user?.id || null // user_id
+      );
+
+      if (roomChargeError) {
+        console.error('Error generating room charges:', roomChargeError);
+        showError('Guest checked in successfully, but failed to generate room charges. Please add manually.');
+        return;
+      }
+
+      // Add meal plan charges if available (scheduled for each day)
       if (reservation.meal_plan && reservation.meal_plan !== 'EP') {
         try {
           const { data: mealPlanData } = await getMealPlanByCode(reservation.meal_plan);
@@ -132,51 +174,38 @@ export const ReservationProvider = ({ children }) => {
               const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
               const mealPlanPerNight = mealPlanPrice * totalGuests;
 
+              // Create scheduled meal plan charges for each day
+              const checkInDate = new Date(reservation.check_in_date);
               for (let i = 0; i < nights; i++) {
-                billItems.push({
+                const scheduledDate = new Date(checkInDate);
+                scheduledDate.setDate(scheduledDate.getDate() + i);
+                scheduledDate.setHours(0, 0, 0, 0); // Midnight
+
+                await createServiceCharge({
+                  folio_id: masterFolio.id,
+                  reservation_id: id,
                   description: `Meal Plan (${mealPlanData[0].name}) - Day ${i + 1} - ${totalGuests} guests`,
+                  service_category: 'meal_plan',
+                  amount: mealPlanPerNight,
                   quantity: 1,
                   rate: mealPlanPerNight,
-                  amount: mealPlanPerNight
+                  transaction_date: new Date().toISOString(),
+                  scheduled_post_date: scheduledDate.toISOString(),
+                  auto_posted: true,
+                  created_by: user?.id || null
                 });
-                subtotal += mealPlanPerNight;
               }
             }
           }
         } catch (mealPlanError) {
-          console.error('Error fetching meal plan:', mealPlanError);
+          console.error('Error creating meal plan charges:', mealPlanError);
           // Continue without meal plan if there's an error
         }
       }
 
-      const tax = subtotal * 0.18; // 18% GST
-      const total = subtotal + tax;
-
-      // Create the room charge bill
       const rateTypeName = reservation.room_rate_types?.rate_name || 'Standard Rate';
-      const billData = {
-        reservation_id: reservation.id,
-        bill_type: 'Room',
-        subtotal: subtotal,
-        tax: tax,
-        discount: 0,
-        total: total,
-        paid_amount: 0,
-        balance: total,
-        payment_status: 'Pending',
-        notes: `Auto-generated room charge for ${nights} night(s) - ${rateTypeName}` +
-               (reservation.meal_plan && reservation.meal_plan !== 'EP' ? ` with ${reservation.meal_plan} meal plan` : '')
-      };
-
-      const { data: billResult, error: billError } = await createBill(billData, billItems);
-      
-      if (billError) {
-        console.error('Error creating room charge bill:', billError);
-        showError('Guest checked in successfully, but failed to create room charge bill. Please create manually.');
-      } else {
-        console.log('Room charge bill created successfully:', billResult);
-        showSuccess(`Guest checked in successfully! Room charge bill created for ${nights} night(s) - Total: â‚¹${total.toFixed(2)}`);
-      }
+      console.log('Room charges generated successfully for', nights, 'nights');
+      showSuccess(`Guest checked in successfully! Room charges scheduled for ${nights} night(s) - ${rateTypeName}`);
 
     } catch (error) {
       console.error('Error during check-in:', error);
@@ -207,6 +236,20 @@ export const ReservationProvider = ({ children }) => {
     }
   };
 
+  const splitReservation = async (originalReservationId, splitData) => {
+    const { data, error } = await splitReservationAPI(originalReservationId, splitData);
+
+    if (error) {
+      console.error('Error splitting reservation:', error);
+      showError('Failed to split reservation: ' + error.message);
+      return null;
+    }
+
+    showSuccess('Reservation split successfully');
+    await loadReservations();
+    return data;
+  };
+
   return (
     <ReservationContext.Provider value={{
       reservations,
@@ -214,6 +257,7 @@ export const ReservationProvider = ({ children }) => {
       addReservation,
       updateReservation,
       deleteReservation,
+      splitReservation,
       checkIn,
       checkOut,
       cancelReservation,

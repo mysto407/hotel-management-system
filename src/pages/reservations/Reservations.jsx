@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye } from 'lucide-react';
+import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import ReservationSummary from '../../components/reservations/ReservationSummary';
 import { useReservations } from '../../context/ReservationContext';
@@ -388,8 +388,22 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const handleViewDetails = (group) => {
+    // Get the first reservation to check for booking_id
+    const firstReservation = Array.isArray(group) ? group[0] : group;
+
+    // If the reservation has a booking_id, find ALL reservations with that booking_id
+    // This ensures we load all related reservations even if they weren't grouped together in the list
+    let reservationIds;
+    if (firstReservation.booking_id) {
+      // Find all reservations with the same booking_id
+      const relatedReservations = reservations.filter(r => r.booking_id === firstReservation.booking_id);
+      reservationIds = relatedReservations.map(r => r.id);
+    } else {
+      // Fallback to the old behavior for reservations without booking_id
+      reservationIds = Array.isArray(group) ? group.map(r => r.id) : [group.id];
+    }
+
     // Store reservation IDs in sessionStorage
-    const reservationIds = group.map(r => r.id);
     sessionStorage.setItem('reservationDetailsIds', JSON.stringify(reservationIds));
     onNavigate('reservation-details');
   };
@@ -407,13 +421,27 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const groupReservations = (reservations) => {
-    // ... (logic from original file remains the same)
+    // Group reservations by booking_id (primary method) or by legacy heuristics
     const groups = [];
     const processed = new Set();
     reservations.forEach(reservation => {
       if (processed.has(reservation.id)) return;
       const group = reservations.filter(r => {
         if (processed.has(r.id)) return false;
+
+        // PRIMARY GROUPING: If both reservations have a booking_id and they match, group them together
+        // This is the most reliable method for multi-room bookings and room changes
+        if (reservation.booking_id && r.booking_id === reservation.booking_id) {
+          return true;
+        }
+
+        // LEGACY: If both have a booking_reference and they match, group them together (split reservations)
+        if (reservation.booking_reference && r.booking_reference === reservation.booking_reference) {
+          return true;
+        }
+
+        // FALLBACK: Use the original heuristic grouping logic for older reservations without booking_id
+        // This groups multi-room bookings created together (same guest, dates, source, meal plan, and within 30 seconds)
         const sameGuest = r.guest_id === reservation.guest_id;
         const sameDates = r.check_in_date === reservation.check_in_date && r.check_out_date === reservation.check_out_date;
         const sameSource = r.booking_source === reservation.booking_source && r.agent_id === reservation.agent_id;
@@ -658,12 +686,16 @@ const Reservations = ({ onNavigate }) => {
                 const primaryReservation = group[0];
                 const groupId = `${primaryReservation.guest_id}-${primaryReservation.check_in_date}-${groupIndex}`;
                 const isExpanded = expandedGroups.has(groupId);
-                
+
+                // Check if this is a split reservation group
+                const isSplitReservation = primaryReservation.booking_reference &&
+                                          primaryReservation.booking_reference.startsWith('SPLIT-');
+
                 const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
-                const totalGuests = group.reduce((sum, r) => 
+                const totalGuests = group.reduce((sum, r) =>
                   sum + (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0), 0
                 );
-                
+
                 return (
                   <>
                     <TableRow 
@@ -681,13 +713,30 @@ const Reservations = ({ onNavigate }) => {
                                   <User size={12} className="mr-1" />
                                   Agent{primaryReservation.agents?.name ? `: ${primaryReservation.agents.name}` : ''}
                                 </Badge>
+                              ) : primaryReservation.booking_source === 'walk-in' ? (
+                                <Badge variant="success">
+                                  <Building size={12} className="mr-1" />Walk-in
+                                </Badge>
+                              ) : primaryReservation.booking_source === 'phone' ? (
+                                <Badge variant="info">
+                                  <Phone size={12} className="mr-1" />Phone
+                                </Badge>
+                              ) : primaryReservation.booking_source === 'email' ? (
+                                <Badge variant="warning">
+                                  <Mail size={12} className="mr-1" />Email
+                                </Badge>
+                              ) : primaryReservation.booking_source === 'website' ? (
+                                <Badge variant="purple">
+                                  <Building size={12} className="mr-1" />Website
+                                </Badge>
+                              ) : primaryReservation.booking_source === 'direct' && primaryReservation.direct_source ? (
+                                <Badge variant="success">
+                                  <Building size={12} className="mr-1" />{primaryReservation.direct_source}
+                                </Badge>
                               ) : (
                                 <Badge variant="success">
                                   <Building size={12} className="mr-1" />Direct
                                 </Badge>
-                              )}
-                              {primaryReservation.booking_source === 'direct' && primaryReservation.direct_source && (
-                                <Badge variant="warning">{primaryReservation.direct_source}</Badge>
                               )}
                             </div>
                             <div className="font-bold mt-1">{primaryReservation.guests?.name || 'Unknown'}</div>
@@ -698,7 +747,14 @@ const Reservations = ({ onNavigate }) => {
                       <TableCell>
                         {isMultiRoom ? (
                           <div>
-                            <strong>{group.length} Rooms</strong>
+                            <div className="flex items-center gap-2">
+                              <strong>{group.length} Rooms</strong>
+                              {isSplitReservation && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200">
+                                  Extended
+                                </Badge>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground max-w-xs truncate">
                               {group.map(r => r.rooms?.room_number).filter(Boolean).join(', ')}
                             </div>
@@ -707,8 +763,36 @@ const Reservations = ({ onNavigate }) => {
                           getRoomInfo(primaryReservation.rooms)
                         )}
                       </TableCell>
-                      <TableCell>{primaryReservation.check_in_date}</TableCell>
-                      <TableCell>{primaryReservation.check_out_date}</TableCell>
+                      <TableCell>
+                        {isMultiRoom ? (
+                          <div>
+                            <div className="font-medium">
+                              {/* Show earliest check-in date */}
+                              {group.reduce((earliest, r) => {
+                                return !earliest || r.check_in_date < earliest ? r.check_in_date : earliest;
+                              }, null)}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">Earliest</div>
+                          </div>
+                        ) : (
+                          primaryReservation.check_in_date
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isMultiRoom ? (
+                          <div>
+                            <div className="font-medium">
+                              {/* Show latest check-out date */}
+                              {group.reduce((latest, r) => {
+                                return !latest || r.check_out_date > latest ? r.check_out_date : latest;
+                              }, null)}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">Latest</div>
+                          </div>
+                        ) : (
+                          primaryReservation.check_out_date
+                        )}
+                      </TableCell>
                       <TableCell>
                         {totalGuests} Total
                         <div className="text-xs text-muted-foreground">
@@ -837,8 +921,12 @@ const Reservations = ({ onNavigate }) => {
                           <span className="text-xs text-muted-foreground">Room {roomIndex + 1}</span>
                         </TableCell>
                         <TableCell>{getRoomInfo(reservation.rooms)}</TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>-</TableCell>
+                        <TableCell>
+                          <span className="text-sm">{reservation.check_in_date}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{reservation.check_out_date}</span>
+                        </TableCell>
                         <TableCell>
                           <small>
                             {reservation.number_of_adults || 0} A

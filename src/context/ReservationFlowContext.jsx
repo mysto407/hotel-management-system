@@ -46,7 +46,8 @@ export function ReservationFlowProvider({ children }) {
     idType: 'N/A',
     idNumber: '',
     photo: null,
-    photoUrl: null
+    photoUrl: null,
+    assignedRoomId: ''
   })
 
   // Multiple guests support (allGuestsDetails[0] is always the primary guest)
@@ -60,27 +61,31 @@ export function ReservationFlowProvider({ children }) {
   })
 
   // Room selection handlers
-  const addRoom = useCallback((room, quantity = 1, rateTypeId = null) => {
+  const addRoom = useCallback((room, quantity = 1, rateTypeId = null, checkIn = null, checkOut = null) => {
     setSelectedRooms(prev => {
-      const existing = prev.find(r => r.id === room.id)
+      // Create a unique key based on room type, rate, and date range
+      const cartKey = `${room.id}_${checkIn}_${checkOut}_${rateTypeId || 'default'}`
+      const existing = prev.find(r => r.cartKey === cartKey)
+
       if (existing) {
         return prev.map(r =>
-          r.id === room.id
+          r.cartKey === cartKey
             ? {
                 ...r,
                 quantity: r.quantity + quantity,
                 assignedRooms: r.assignedRooms || [],
                 mealPlans: r.mealPlans || [],
-                guestCounts: r.guestCounts || [],
-                rateTypeId: rateTypeId || r.rateTypeId || null,
-                ratePrice: room.ratePrice || r.ratePrice || room.base_price
+                guestCounts: r.guestCounts || []
               }
             : r
         )
       }
       return [...prev, {
         ...room,
+        cartKey,
         quantity,
+        checkIn,
+        checkOut,
         assignedRooms: [],
         mealPlans: [],
         guestCounts: [],
@@ -90,22 +95,22 @@ export function ReservationFlowProvider({ children }) {
     })
   }, [])
 
-  const removeRoom = useCallback((roomId) => {
-    setSelectedRooms(prev => prev.filter(r => r.id !== roomId))
+  const removeRoom = useCallback((cartKey) => {
+    setSelectedRooms(prev => prev.filter(r => r.cartKey !== cartKey))
   }, [])
 
   const clearSelectedRooms = useCallback(() => {
     setSelectedRooms([])
   }, [])
 
-  const updateRoomQuantity = useCallback((roomId, quantity) => {
+  const updateRoomQuantity = useCallback((cartKey, quantity) => {
     if (quantity <= 0) {
-      removeRoom(roomId)
+      removeRoom(cartKey)
       return
     }
     setSelectedRooms(prev =>
       prev.map(r => {
-        if (r.id === roomId) {
+        if (r.cartKey === cartKey) {
           // Trim assigned rooms, meal plans, and guest counts if quantity decreased
           const assignedRooms = (r.assignedRooms || []).slice(0, quantity)
           const mealPlans = (r.mealPlans || []).slice(0, quantity)
@@ -117,10 +122,10 @@ export function ReservationFlowProvider({ children }) {
     )
   }, [removeRoom])
 
-  const updateRoomRate = useCallback((roomId, rateTypeId, ratePrice) => {
+  const updateRoomRate = useCallback((cartKey, rateTypeId, ratePrice) => {
     setSelectedRooms(prev =>
       prev.map(r =>
-        r.id === roomId
+        r.cartKey === cartKey
           ? { ...r, rateTypeId, ratePrice }
           : r
       )
@@ -128,10 +133,10 @@ export function ReservationFlowProvider({ children }) {
   }, [])
 
   // Room assignment handlers
-  const assignRoom = useCallback((roomTypeId, roomId, index) => {
+  const assignRoom = useCallback((cartKey, roomId, index) => {
     setSelectedRooms(prev =>
       prev.map(r => {
-        if (r.id === roomTypeId) {
+        if (r.cartKey === cartKey) {
           const assignedRooms = [...(r.assignedRooms || [])]
           assignedRooms[index] = roomId
           return { ...r, assignedRooms }
@@ -141,10 +146,10 @@ export function ReservationFlowProvider({ children }) {
     )
   }, [])
 
-  const unassignRoom = useCallback((roomTypeId, index) => {
+  const unassignRoom = useCallback((cartKey, index) => {
     setSelectedRooms(prev =>
       prev.map(r => {
-        if (r.id === roomTypeId) {
+        if (r.cartKey === cartKey) {
           const assignedRooms = [...(r.assignedRooms || [])]
           assignedRooms[index] = null
           return { ...r, assignedRooms }
@@ -154,10 +159,10 @@ export function ReservationFlowProvider({ children }) {
     )
   }, [])
 
-  const autoAssignRooms = useCallback((roomTypeId, availableRoomIds) => {
+  const autoAssignRooms = useCallback((cartKey, availableRoomIds) => {
     setSelectedRooms(prev =>
       prev.map(r => {
-        if (r.id === roomTypeId) {
+        if (r.cartKey === cartKey) {
           // Auto-assign available rooms up to the quantity
           const assignedRooms = availableRoomIds.slice(0, r.quantity)
           return { ...r, assignedRooms }
@@ -168,10 +173,10 @@ export function ReservationFlowProvider({ children }) {
   }, [])
 
   // Meal plan handlers
-  const setMealPlan = useCallback((roomTypeId, index, mealPlan) => {
+  const setMealPlan = useCallback((cartKey, index, mealPlan) => {
     setSelectedRooms(prev =>
       prev.map(r => {
-        if (r.id === roomTypeId) {
+        if (r.cartKey === cartKey) {
           const mealPlans = [...(r.mealPlans || [])]
           mealPlans[index] = mealPlan
           return { ...r, mealPlans }
@@ -191,12 +196,14 @@ export function ReservationFlowProvider({ children }) {
   }, [])
 
   // Guest count handlers
-  const setGuestCount = useCallback((roomTypeId, index, guestCount) => {
+  const setGuestCount = useCallback((cartKey, index, guestCount) => {
     setSelectedRooms(prev =>
       prev.map(r => {
-        if (r.id === roomTypeId) {
+        if (r.cartKey === cartKey) {
           const guestCounts = [...(r.guestCounts || [])]
-          guestCounts[index] = guestCount
+          // Merge with existing guest count to preserve other fields (adults/children/infants)
+          const currentCount = guestCounts[index] || { adults: 1, children: 0, infants: 0 }
+          guestCounts[index] = { ...currentCount, ...guestCount }
           return { ...r, guestCounts }
         }
         return r
@@ -263,10 +270,8 @@ export function ReservationFlowProvider({ children }) {
 
   // Bill calculation
   const calculateBill = useCallback(() => {
-    const checkIn = filters.checkIn ? new Date(filters.checkIn) : null
-    const checkOut = filters.checkOut ? new Date(filters.checkOut) : null
-
-    if (!checkIn || !checkOut) {
+    // If no rooms selected, return empty bill
+    if (selectedRooms.length === 0) {
       return {
         subtotal: 0,
         tax: 0,
@@ -278,16 +283,35 @@ export function ReservationFlowProvider({ children }) {
       }
     }
 
-    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+    // Calculate total nights across all date ranges (for display purposes)
+    const totalNights = selectedRooms.reduce((sum, room) => {
+      if (!room.checkIn || !room.checkOut) return sum
+      const checkIn = new Date(room.checkIn)
+      const checkOut = new Date(room.checkOut)
+      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+      return sum + (nights * room.quantity)
+    }, 0)
 
     // Calculate room charges using selected rate price
     const roomSubtotal = selectedRooms.reduce((sum, room) => {
+      if (!room.checkIn || !room.checkOut) return sum
+
+      const checkIn = new Date(room.checkIn)
+      const checkOut = new Date(room.checkOut)
+      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+
       const roomTotal = (room.ratePrice || room.base_price || 0) * nights * room.quantity
       return sum + roomTotal
     }, 0)
 
     // Calculate meal plan charges
     const mealPlanSubtotal = selectedRooms.reduce((sum, room) => {
+      if (!room.checkIn || !room.checkOut) return sum
+
+      const checkIn = new Date(room.checkIn)
+      const checkOut = new Date(room.checkOut)
+      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+
       let roomMealPlanTotal = 0
 
       // Calculate for each room instance
@@ -358,12 +382,12 @@ export function ReservationFlowProvider({ children }) {
       },
       tax,
       total,
-      nights,
+      nights: totalNights,
       suggestedDeposit,
       balanceDue,
       mealPlanSubtotal
     }
-  }, [filters, selectedRooms, addons, selectedDiscounts, paymentInfo.amount, getMealPlanPrice])
+  }, [selectedRooms, addons, selectedDiscounts, paymentInfo.amount, getMealPlanPrice])
 
   // Reset flow
   const resetFlow = useCallback(() => {
@@ -392,7 +416,8 @@ export function ReservationFlowProvider({ children }) {
       idType: 'N/A',
       idNumber: '',
       photo: null,
-      photoUrl: null
+      photoUrl: null,
+      assignedRoomId: ''
     })
     setAllGuestsDetails([]) // Clear all guests array
     setPaymentInfo({

@@ -37,7 +37,50 @@ import {
   deleteTransaction,
   TRANSACTION_TYPES,
   TRANSACTION_STATUS,
-  SERVICE_CATEGORIES
+  SERVICE_CATEGORIES,
+  // Folio management imports
+  createFolio,
+  getFoliosByReservation,
+  getTransactionsByFolio,
+  getFolioSummary,
+  transferTransaction,
+  transferMultipleTransactions,
+  updateFolio,
+  deleteFolio,
+  deactivateFolio,
+  createMasterFolio,
+  createRoomFolio,
+  createGuestFolio,
+  // Transaction business logic imports
+  generateDailyRoomCharges,
+  autoPostScheduledTransactions,
+  reversePayment,
+  refundPayment,
+  // Checkout imports
+  checkoutFolio,
+  getFolioWithCheckout,
+  getInvoiceData,
+  canEditFolio,
+  // Audit log imports
+  logTransactionAudit,
+  getAuditLogByFolio,
+  getAuditLogByTransaction,
+  getAuditStatsByFolio,
+  getRecentAuditActivity,
+  // Currency imports
+  getBaseCurrency,
+  setBaseCurrency,
+  getExchangeRate,
+  saveExchangeRate,
+  getExchangeRateHistory,
+  getAllRecentExchangeRates,
+  convertCurrency as convertCurrencyAPI,
+  // Gateway integration imports
+  updateGatewayStatus,
+  getPendingGatewayTransactions,
+  getFailedGatewayTransactions,
+  retryGatewayTransaction,
+  getTransactionByGatewayId
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
 import { useAuth } from './AuthContext';
@@ -559,6 +602,49 @@ export const BillingProvider = ({ children }) => {
       voidTransactionById,
       updateTransactionById,
       deleteTransactionById,
+      // Folio management methods
+      createFolio,
+      getFolios: getFoliosByReservation,
+      getTransactionsByFolio,
+      getFolioSummary,
+      transferTransaction,
+      transferMultipleTransactions,
+      updateFolio,
+      deleteFolio,
+      deactivateFolio,
+      createMasterFolio,
+      createRoomFolio,
+      createGuestFolio,
+      // Transaction business logic methods
+      generateDailyRoomCharges,
+      autoPostScheduledTransactions,
+      reversePayment,
+      refundPayment,
+      // Checkout methods
+      checkoutFolio,
+      getFolioWithCheckout,
+      getInvoiceData,
+      canEditFolio,
+      // Audit log methods
+      logTransactionAudit,
+      getAuditLogByFolio,
+      getAuditLogByTransaction,
+      getAuditStatsByFolio,
+      getRecentAuditActivity,
+      // Currency methods
+      getBaseCurrency,
+      setBaseCurrency,
+      getExchangeRate,
+      saveExchangeRate,
+      getExchangeRateHistory,
+      getAllRecentExchangeRates,
+      convertCurrencyAPI,
+      // Gateway integration methods
+      updateGatewayStatus,
+      getPendingGatewayTransactions,
+      getFailedGatewayTransactions,
+      retryGatewayTransaction,
+      getTransactionByGatewayId,
       // Constants
       TRANSACTION_TYPES,
       TRANSACTION_STATUS,

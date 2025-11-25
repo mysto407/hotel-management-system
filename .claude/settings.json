@@ -1,0 +1,12 @@
+{
+  "defaultMode": "bypassPermissions",
+  "permissions": {
+    "allow": [
+      "Bash(npx:*)",
+      "Bash(npm search:*)",
+      "Bash(SUPABASE_URL=\"https://whyygwttsmxyyaravpud.supabase.co\" SUPABASE_SERVICE_ROLE_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoeXlnd3R0c214eXlhcmF2cHVkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDY3OTMxMywiZXhwIjoyMDc2MjU1MzEzfQ.Zg4la60OlePF55rEhr3N0qdgSYYAm4pialQtRf2SDmA\" SUPABASE_DB_PASSWORD=\"OK8xCsM2tTRBNSUt\" timeout 5 npx:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

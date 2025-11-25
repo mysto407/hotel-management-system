@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Trash2, ChevronRight, Shuffle, UserPlus } from 'lucide-react'
+import { Search, Plus, Trash2, ChevronRight, Shuffle, UserPlus, ArrowRight, CalendarPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useRooms } from '../../context/RoomContext'
@@ -9,6 +9,7 @@ import { useAlert } from '@/context/AlertContext'
 import { getAvailableRooms } from '../../lib/supabase'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { AddAgentModal } from '../../components/agents/AddAgentModal'
+import { groupConsecutiveBookings, formatRoomChangeSequence } from '../../utils/bookingUtils'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -103,14 +104,13 @@ export default function NewReservation({ onNavigate }) {
         }
         setLoadingRooms(false)
       } else {
-        // Clear available rooms and selected rooms when dates are cleared
+        // Only clear available rooms when dates are cleared (don't clear cart)
         setAvailableRooms([])
-        clearSelectedRooms()
       }
     }
 
     fetchAvailableRooms()
-  }, [filters.checkIn, filters.checkOut, showError, clearSelectedRooms])
+  }, [filters.checkIn, filters.checkOut, showError])
 
   const getRoomQuantity = (roomTypeId) => {
     return roomQuantities[roomTypeId] || 1
@@ -130,28 +130,34 @@ export default function NewReservation({ onNavigate }) {
     }
   }
 
-  // Get available rooms for a specific room type (excluding already assigned rooms)
-  const getAvailableRoomsForType = (roomTypeId) => {
+  // Get available rooms for a specific room type and date range (excluding already assigned rooms)
+  const getAvailableRoomsForType = (roomTypeId, checkIn, checkOut) => {
     // Get all rooms of this type that are available for the selected date range
     const typeRooms = availableRooms.filter(r => r.room_type_id === roomTypeId)
 
-    // Get already assigned room IDs across all selected rooms
-    const assignedRoomIds = selectedRooms.flatMap(sr => sr.assignedRooms || []).filter(Boolean)
+    // Get already assigned room IDs for the SAME date range
+    const assignedRoomIds = selectedRooms
+      .filter(sr => sr.checkIn === checkIn && sr.checkOut === checkOut)
+      .flatMap(sr => sr.assignedRooms || [])
+      .filter(Boolean)
 
-    // Return rooms that haven't been assigned yet in this booking
+    // Return rooms that haven't been assigned yet in this booking for this date range
     return typeRooms.filter(r => !assignedRoomIds.includes(r.id))
   }
 
   const handleAutoAssignAll = () => {
     selectedRooms.forEach(roomType => {
-      const typeAvailableRooms = getAvailableRoomsForType(roomType.id)
+      const typeAvailableRooms = getAvailableRoomsForType(roomType.id, roomType.checkIn, roomType.checkOut)
       const availableRoomIds = typeAvailableRooms.map(r => r.id)
-      autoAssignRooms(roomType.id, availableRoomIds)
+      autoAssignRooms(roomType.cartKey, availableRoomIds)
     })
   }
 
   // Calculate bill
   const bill = calculateBill()
+
+  // Group consecutive bookings for better display
+  const stays = useMemo(() => groupConsecutiveBookings(selectedRooms), [selectedRooms])
 
   // Check if filters are applied (dates are required)
   const hasFiltersApplied = filters.checkIn && filters.checkOut
@@ -166,9 +172,12 @@ export default function NewReservation({ onNavigate }) {
       // Get all rooms of this type that are available for the selected date range
       const typeRooms = availableRooms.filter(r => r.room_type_id === roomType.id)
 
-      // Calculate how many are already selected
-      const selected = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
-      const availableCount = typeRooms.length - selected
+      // Calculate how many are already selected for the CURRENT date range
+      const selectedForCurrentDates = selectedRooms
+        .filter(sr => sr.id === roomType.id && sr.checkIn === filters.checkIn && sr.checkOut === filters.checkOut)
+        .reduce((sum, sr) => sum + sr.quantity, 0)
+
+      const availableCount = typeRooms.length - selectedForCurrentDates
 
       return {
         ...roomType,
@@ -182,27 +191,30 @@ export default function NewReservation({ onNavigate }) {
       }
       return true
     })
-  }, [roomTypes, availableRooms, selectedRooms, filters.searchQuery, hasFiltersApplied])
+  }, [roomTypes, availableRooms, selectedRooms, filters.searchQuery, filters.checkIn, filters.checkOut, hasFiltersApplied])
 
   const handleAddRoom = (roomType, quantity = 1) => {
-    if (roomType.availableCount > 0) {
+    if (roomType.availableCount > 0 && filters.checkIn && filters.checkOut) {
       // Get the selected rate for this room type
       const selectedRate = getSelectedRateForRoomType(roomType.id)
 
-      // Add the room with rate information
+      // Add the room with rate information and date range
       const roomWithRate = {
         ...roomType,
         ratePrice: selectedRate?.base_price || roomType.base_price
       }
 
-      addRoom(roomWithRate, quantity, selectedRate?.id)
+      addRoom(roomWithRate, quantity, selectedRate?.id, filters.checkIn, filters.checkOut)
+
+      // Show info message about the dates
+      showInfo(`Added ${quantity} × ${roomType.name} for ${format(new Date(filters.checkIn), 'dd MMM yyyy')} - ${format(new Date(filters.checkOut), 'dd MMM yyyy')}`)
     }
   }
 
-  const handleAutoAssign = (roomTypeId) => {
-    const typeAvailableRooms = getAvailableRoomsForType(roomTypeId)
+  const handleAutoAssign = (cartKey, roomTypeId, checkIn, checkOut) => {
+    const typeAvailableRooms = getAvailableRoomsForType(roomTypeId, checkIn, checkOut)
     const availableRoomIds = typeAvailableRooms.map(r => r.id)
-    autoAssignRooms(roomTypeId, availableRoomIds)
+    autoAssignRooms(cartKey, availableRoomIds)
   }
 
   const handleAddAddon = () => {
@@ -216,11 +228,11 @@ export default function NewReservation({ onNavigate }) {
         return
       }
 
-      const room = selectedRooms.find(r => r.id === addonForm.roomId)
+      const room = selectedRooms.find(r => r.cartKey === addonForm.roomId)
 
       addAddon({
         roomId: addonForm.roomId,
-        roomName: room?.name || 'Unknown Room',
+        roomName: room ? `${room.name} (${format(new Date(room.checkIn), 'dd MMM')} - ${format(new Date(room.checkOut), 'dd MMM')})` : 'Unknown Room',
         addonType: addonForm.addonType,
         name: addonName,
         price: parseFloat(addonForm.price),
@@ -279,15 +291,45 @@ export default function NewReservation({ onNavigate }) {
       [roomTypeId]: rateTypeId
     }))
 
-    // If this room is already selected, update its rate in the cart
-    const isRoomSelected = selectedRooms.some(sr => sr.id === roomTypeId)
-    if (isRoomSelected) {
-      const rateTypes = getRateTypesByRoomType(roomTypeId)
-      const selectedRate = rateTypes.find(rt => rt.id === rateTypeId)
-      if (selectedRate) {
-        updateRoomRate(roomTypeId, rateTypeId, selectedRate.base_price)
-      }
+    // Update rate for all cart items with this room type
+    const rateTypes = getRateTypesByRoomType(roomTypeId)
+    const selectedRate = rateTypes.find(rt => rt.id === rateTypeId)
+    if (selectedRate) {
+      selectedRooms
+        .filter(sr => sr.id === roomTypeId)
+        .forEach(sr => {
+          updateRoomRate(sr.cartKey, rateTypeId, selectedRate.base_price)
+        })
     }
+  }
+
+  // Handle "New Date Range" button - clears current selection and opens calendar
+  const handleNewDateRange = () => {
+    setFilters({
+      ...filters,
+      checkIn: null,
+      checkOut: null
+    })
+    setDateRangeOpen(true)
+  }
+
+  // Get all dates that have rooms in the cart for visual indicators
+  const getBookedDatesFromCart = () => {
+    const bookedDates = []
+
+    selectedRooms.forEach(room => {
+      if (room.checkIn && room.checkOut) {
+        const start = new Date(room.checkIn)
+        const end = new Date(room.checkOut)
+
+        // Add all dates in the range
+        for (let date = new Date(start); date < end; date.setDate(date.getDate() + 1)) {
+          bookedDates.push(new Date(date))
+        }
+      }
+    })
+
+    return bookedDates
   }
 
   return (
@@ -366,22 +408,23 @@ export default function NewReservation({ onNavigate }) {
 
           <div className={`space-y-2 ${filters.source === 'agent' ? 'md:col-span-2' : 'md:col-span-2'}`}>
             <Label>Check-in / Check-out Date *</Label>
-            <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  {filters.checkIn && filters.checkOut ? (
-                    <>
-                      {format(new Date(filters.checkIn), 'dd MMM yyyy')} - {format(new Date(filters.checkOut), 'dd MMM yyyy')}
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">Select date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+            <div className="flex gap-2">
+              <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex-1 justify-start text-left font-normal"
+                  >
+                    {filters.checkIn && filters.checkOut ? (
+                      <>
+                        {format(new Date(filters.checkIn), 'dd MMM yyyy')} - {format(new Date(filters.checkOut), 'dd MMM yyyy')}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">Select date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
                 <div className="space-y-2">
                   <Calendar
                     mode="range"
@@ -398,6 +441,12 @@ export default function NewReservation({ onNavigate }) {
                           }
                         : undefined
                     }
+                    modifiers={{
+                      booked: getBookedDatesFromCart()
+                    }}
+                    modifiersClassNames={{
+                      booked: "relative after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-blue-500 dark:after:bg-blue-400"
+                    }}
                     onSelect={(range) => {
                       if (range?.from) {
                         const fromDate = format(range.from, 'yyyy-MM-dd')
@@ -480,6 +529,20 @@ export default function NewReservation({ onNavigate }) {
                 </div>
               </PopoverContent>
             </Popover>
+
+            {/* New Date Range button - only show when cart has items */}
+            {selectedRooms.length > 0 && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNewDateRange}
+                title="Select new date range"
+                className="flex-shrink-0"
+              >
+                <CalendarPlus className="h-4 w-4" />
+              </Button>
+            )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -497,12 +560,21 @@ export default function NewReservation({ onNavigate }) {
           </div>
         </div>
 
-        {bill.nights > 0 && (
+        {selectedRooms.length > 0 && (
           <div className="mt-3 text-sm text-muted-foreground">
-            <strong>{bill.nights}</strong> night{bill.nights !== 1 ? 's' : ''}
-            {filters.checkIn && filters.checkOut &&
-              ` (${new Date(filters.checkIn).toLocaleDateString()} - ${new Date(filters.checkOut).toLocaleDateString()})`
-            }
+            Cart contains <strong>{selectedRooms.length}</strong> room selection{selectedRooms.length !== 1 ? 's' : ''}{' '}
+            {stays.length > 1 ? (
+              <>across <strong>{stays.length}</strong> separate stay{stays.length !== 1 ? 's' : ''}</>
+            ) : stays.length === 1 && stays[0].isConsecutive ? (
+              <>forming <strong>1 continuous stay</strong> with room changes</>
+            ) : (
+              <>across <strong>{new Set(selectedRooms.map(r => `${r.checkIn}_${r.checkOut}`)).size}</strong> date range{new Set(selectedRooms.map(r => `${r.checkIn}_${r.checkOut}`)).size !== 1 ? 's' : ''}</>
+            )}
+          </div>
+        )}
+        {filters.checkIn && filters.checkOut && (
+          <div className="mt-1 text-sm text-muted-foreground">
+            Current selection: {format(new Date(filters.checkIn), 'dd MMM yyyy')} - {format(new Date(filters.checkOut), 'dd MMM yyyy')}
           </div>
         )}
       </div>
@@ -545,8 +617,9 @@ export default function NewReservation({ onNavigate }) {
                           </tr>
                         ) : (
                         availableRoomTypes.map(roomType => {
-                          const isSelected = selectedRooms.some(sr => sr.id === roomType.id)
-                          const selectedQty = selectedRooms.find(sr => sr.id === roomType.id)?.quantity || 0
+                          const selectedQty = selectedRooms
+                            .filter(sr => sr.id === roomType.id && sr.checkIn === filters.checkIn && sr.checkOut === filters.checkOut)
+                            .reduce((sum, sr) => sum + sr.quantity, 0)
 
                           return (
                             <tr key={roomType.id} className="border-b hover:bg-muted/30">
@@ -604,7 +677,7 @@ export default function NewReservation({ onNavigate }) {
                                   ${roomType.availableCount > 0 ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400'}
                                 `}>
                                   {roomType.availableCount}
-                                  {isSelected && ` (${selectedQty} selected)`}
+                                  {selectedQty > 0 && ` (${selectedQty} selected)`}
                                 </span>
                               </td>
                               <td className="p-3 text-center">
@@ -704,28 +777,53 @@ export default function NewReservation({ onNavigate }) {
                 ) : (
                   <div className="space-y-4">
                     {selectedRooms.map(room => {
-                      const typeAvailableRooms = getAvailableRoomsForType(room.id)
+                      const typeAvailableRooms = getAvailableRoomsForType(room.id, room.checkIn, room.checkOut)
+                      const roomCheckIn = room.checkIn ? new Date(room.checkIn) : null
+                      const roomCheckOut = room.checkOut ? new Date(room.checkOut) : null
+                      const roomNights = roomCheckIn && roomCheckOut
+                        ? Math.ceil((roomCheckOut - roomCheckIn) / (1000 * 60 * 60 * 24))
+                        : 0
+
+                      // Find which stay this room belongs to and if it's part of a consecutive booking
+                      const parentStay = stays.find(stay => stay.rooms.some(r => r.cartKey === room.cartKey))
+                      const isPartOfConsecutiveStay = parentStay?.isConsecutive
+
                       return (
-                        <div key={room.id} className="border rounded-lg p-3 space-y-3">
+                        <div key={room.cartKey} className="border rounded-lg p-3 space-y-3">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="font-medium">{room.name}</div>
                               <div className="text-sm text-muted-foreground">
-                                ₹{room.ratePrice || room.base_price} × {bill.nights} nights
+                                ₹{room.ratePrice || room.base_price} × {roomNights} night{roomNights !== 1 ? 's' : ''}
                               </div>
+                              <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                {roomCheckIn && roomCheckOut && (
+                                  <>
+                                    {format(roomCheckIn, 'dd MMM yyyy')} - {format(roomCheckOut, 'dd MMM yyyy')}
+                                  </>
+                                )}
+                              </div>
+                              {isPartOfConsecutiveStay && (
+                                <div className="flex items-center gap-1.5 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1 mt-2">
+                                  <ArrowRight className="h-3 w-3 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                                  <span className="text-amber-800 dark:text-amber-300">
+                                    Part of continuous stay: {formatRoomChangeSequence(parentStay.rooms)}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <Input
                                 type="number"
                                 min="1"
                                 value={room.quantity}
-                                onChange={(e) => updateRoomQuantity(room.id, parseInt(e.target.value))}
+                                onChange={(e) => updateRoomQuantity(room.cartKey, parseInt(e.target.value))}
                                 className="w-16 text-center"
                               />
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => removeRoom(room.id)}
+                                onClick={() => removeRoom(room.cartKey)}
                               >
                                 <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
                               </Button>
@@ -734,7 +832,18 @@ export default function NewReservation({ onNavigate }) {
 
                           {/* Room Number Assignments */}
                           <div className="space-y-2 border-t pt-3">
-                            <Label className="text-sm font-medium">Room Assignments *</Label>
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm font-medium">Room Assignments *</Label>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAutoAssign(room.cartKey, room.id, room.checkIn, room.checkOut)}
+                                className="h-7 text-xs"
+                              >
+                                <Shuffle className="h-3 w-3 mr-1" />
+                                Auto Assign
+                              </Button>
+                            </div>
                             {Array.from({ length: room.quantity }).map((_, index) => (
                               <div key={index} className="space-y-1.5">
                                 <div className="flex items-center gap-2">
@@ -743,9 +852,9 @@ export default function NewReservation({ onNavigate }) {
                                     value={room.assignedRooms?.[index] || ''}
                                     onValueChange={(value) => {
                                       if (value === 'unassign') {
-                                        unassignRoom(room.id, index)
+                                        unassignRoom(room.cartKey, index)
                                       } else {
-                                        assignRoom(room.id, value, index)
+                                        assignRoom(room.cartKey, value, index)
                                       }
                                     }}
                                   >
@@ -783,7 +892,7 @@ export default function NewReservation({ onNavigate }) {
                                     <Label className="text-xs text-muted-foreground w-20">Meal Plan:</Label>
                                     <Select
                                       value={room.mealPlans?.[index] || 'none'}
-                                      onValueChange={(value) => setMealPlan(room.id, index, value)}
+                                      onValueChange={(value) => setMealPlan(room.cartKey, index, value)}
                                     >
                                       <SelectTrigger className="h-7 text-xs flex-1">
                                         <SelectValue placeholder="No meal plan" />
@@ -805,49 +914,102 @@ export default function NewReservation({ onNavigate }) {
                                   <div className="space-y-1">
                                     <Label className="text-xs text-muted-foreground">Adults</Label>
                                     <Input
-                                      type="number"
-                                      min="1"
-                                      value={room.guestCounts?.[index]?.adults || 1}
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={room.guestCounts?.[index]?.adults ?? 1}
                                       onChange={(e) => {
-                                        const currentCounts = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
-                                        setGuestCount(room.id, index, {
-                                          ...currentCounts,
-                                          adults: parseInt(e.target.value) || 1
-                                        })
+                                        const val = e.target.value.replace(/\D/g, '')
+                                        // Allow empty string while typing
+                                        if (val === '') {
+                                          setGuestCount(room.cartKey, index, {
+                                            adults: ''
+                                          })
+                                        } else {
+                                          const numVal = parseInt(val)
+                                          if (numVal >= 0 && numVal <= 99) {
+                                            setGuestCount(room.cartKey, index, {
+                                              adults: numVal
+                                            })
+                                          }
+                                        }
                                       }}
-                                      className="h-7 text-xs"
+                                      onFocus={(e) => e.target.select()}
+                                      onBlur={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '')
+                                        if (!val || parseInt(val) < 1) {
+                                          setGuestCount(room.cartKey, index, {
+                                            adults: 1
+                                          })
+                                        }
+                                      }}
+                                      className="h-7 text-xs text-center"
                                     />
                                   </div>
                                   <div className="space-y-1">
                                     <Label className="text-xs text-muted-foreground">Children</Label>
                                     <Input
-                                      type="number"
-                                      min="0"
-                                      value={room.guestCounts?.[index]?.children || 0}
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={room.guestCounts?.[index]?.children ?? 0}
                                       onChange={(e) => {
-                                        const currentCounts = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
-                                        setGuestCount(room.id, index, {
-                                          ...currentCounts,
-                                          children: parseInt(e.target.value) || 0
+                                        const val = e.target.value.replace(/\D/g, '')
+                                        // Allow empty string while typing
+                                        if (val === '') {
+                                          setGuestCount(room.cartKey, index, {
+                                            children: ''
+                                          })
+                                        } else {
+                                          const numVal = parseInt(val)
+                                          if (numVal >= 0 && numVal <= 99) {
+                                            setGuestCount(room.cartKey, index, {
+                                              children: numVal
+                                            })
+                                          }
+                                        }
+                                      }}
+                                      onFocus={(e) => e.target.select()}
+                                      onBlur={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '')
+                                        setGuestCount(room.cartKey, index, {
+                                          children: val ? parseInt(val) : 0
                                         })
                                       }}
-                                      className="h-7 text-xs"
+                                      className="h-7 text-xs text-center"
                                     />
                                   </div>
                                   <div className="space-y-1">
                                     <Label className="text-xs text-muted-foreground">Infants</Label>
                                     <Input
-                                      type="number"
-                                      min="0"
-                                      value={room.guestCounts?.[index]?.infants || 0}
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={room.guestCounts?.[index]?.infants ?? 0}
                                       onChange={(e) => {
-                                        const currentCounts = room.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
-                                        setGuestCount(room.id, index, {
-                                          ...currentCounts,
-                                          infants: parseInt(e.target.value) || 0
+                                        const val = e.target.value.replace(/\D/g, '')
+                                        // Allow empty string while typing
+                                        if (val === '') {
+                                          setGuestCount(room.cartKey, index, {
+                                            infants: ''
+                                          })
+                                        } else {
+                                          const numVal = parseInt(val)
+                                          if (numVal >= 0 && numVal <= 99) {
+                                            setGuestCount(room.cartKey, index, {
+                                              infants: numVal
+                                            })
+                                          }
+                                        }
+                                      }}
+                                      onFocus={(e) => e.target.select()}
+                                      onBlur={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '')
+                                        setGuestCount(room.cartKey, index, {
+                                          infants: val ? parseInt(val) : 0
                                         })
                                       }}
-                                      className="h-7 text-xs"
+                                      className="h-7 text-xs text-center"
                                     />
                                   </div>
                                 </div>
@@ -884,8 +1046,8 @@ export default function NewReservation({ onNavigate }) {
                       </SelectTrigger>
                       <SelectContent>
                         {selectedRooms.map(room => (
-                          <SelectItem key={room.id} value={room.id}>
-                            {room.name}
+                          <SelectItem key={room.cartKey} value={room.cartKey}>
+                            {room.name} ({format(new Date(room.checkIn), 'dd MMM')} - {format(new Date(room.checkOut), 'dd MMM')})
                           </SelectItem>
                         ))}
                       </SelectContent>

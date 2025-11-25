@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Plus, Download, Filter, RotateCcw, Ban, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Download, Filter, RotateCcw, Ban, X, ArrowRightLeft, FileText, History, TrendingUp, Calendar, RefreshCw, AlertCircle } from 'lucide-react'
 import { useBilling } from '../../context/BillingContext'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -10,74 +10,238 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Textarea } from '../ui/textarea'
 import { Label } from '../ui/label'
+import { Checkbox } from '../ui/checkbox'
+import { getCurrencySymbol, DEFAULT_BASE_CURRENCY, formatCurrency } from '../../utils/currency'
 import AddTransactionModal from './AddTransactionModal'
+import InvoiceReceipt from './InvoiceReceipt'
+import { format } from 'date-fns'
+import { useReactToPrint } from 'react-to-print'
 
 export default function FolioTab({ reservationIds, primaryReservation }) {
   const {
-    getTransactions,
-    getTransactionSummary,
+    getTransactionsByFolio,
+    getFolioSummary,
     reverseTransactionById,
     voidTransactionById,
     TRANSACTION_TYPES,
-    TRANSACTION_STATUS
+    TRANSACTION_STATUS,
+    getFolios,
+    createFolio,
+    transferTransaction,
+    transferMultipleTransactions,
+    checkoutFolio,
+    getInvoiceData,
+    canEditFolio,
+    getAuditLogByFolio,
+    getAuditStatsByFolio,
+    getBaseCurrency,
+    retryGatewayTransaction,
+    updateGatewayStatus
   } = useBilling()
 
+  // State management
+  const [folios, setFolios] = useState([])
+  const [selectedFolioId, setSelectedFolioId] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [baseCurrency, setBaseCurrency] = useState(DEFAULT_BASE_CURRENCY)
+
+  // Modal states
   const [showAddModal, setShowAddModal] = useState(false)
   const [showReverseModal, setShowReverseModal] = useState(false)
   const [showVoidModal, setShowVoidModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false)
+  const [showNewFolioModal, setShowNewFolioModal] = useState(false)
+
+  // Selected items
   const [selectedTransaction, setSelectedTransaction] = useState(null)
+  const [selectedTransactions, setSelectedTransactions] = useState([])
   const [reverseReason, setReverseReason] = useState('')
   const [voidReason, setVoidReason] = useState('')
+
+  // View modes
+  const [viewMode, setViewMode] = useState('transactions') // 'transactions' or 'audit'
+  const [displayMode, setDisplayMode] = useState('chronological') // 'chronological' or 'grouped'
+  const [showFilters, setShowFilters] = useState(false)
 
   // Filters
   const [filters, setFilters] = useState({
     type: 'all',
     status: 'all',
-    search: ''
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    amountMin: '',
+    amountMax: ''
   })
-  const [showFilters, setShowFilters] = useState(false)
 
-  // Load transactions and summary
-  const loadData = async () => {
+  // Audit log state
+  const [auditLogs, setAuditLogs] = useState([])
+  const [auditStats, setAuditStats] = useState(null)
+
+  // Checkout state
+  const [invoiceData, setInvoiceData] = useState(null)
+  const [checkoutNotes, setCheckoutNotes] = useState('')
+  const invoiceRef = useRef()
+
+  // Transfer state
+  const [transferToFolioId, setTransferToFolioId] = useState(null)
+  const [transferNotes, setTransferNotes] = useState('')
+
+  // New folio state
+  const [newFolioData, setNewFolioData] = useState({
+    folio_type: 'room',
+    folio_name: '',
+    notes: ''
+  })
+
+  // Load base currency
+  useEffect(() => {
+    const loadBaseCurrency = async () => {
+      const { data } = await getBaseCurrency()
+      setBaseCurrency(data || DEFAULT_BASE_CURRENCY)
+    }
+    loadBaseCurrency()
+  }, [])
+
+  // Load folios for the reservation
+  const loadFolios = async () => {
+    if (!primaryReservation?.id) {
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
-      // For simplicity, load transactions for primary reservation
-      // In production, you might aggregate across all reservation IDs
-      const txData = await getTransactions(primaryReservation.id)
-      setTransactions(txData)
+      const { data, error } = await getFolios(primaryReservation.id)
+      if (error) {
+        console.error('Error loading folios:', error)
+        setLoading(false)
+        return
+      }
 
-      const summaryData = await getTransactionSummary(primaryReservation.id)
-      setSummary(summaryData)
+      setFolios(data || [])
+
+      // Auto-select the first active folio
+      if (data && data.length > 0 && !selectedFolioId) {
+        const activeFolio = data.find(f => f.is_active) || data[0]
+        setSelectedFolioId(activeFolio.id)
+      }
     } catch (error) {
-      console.error('Error loading transactions:', error)
+      console.error('Error loading folios:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    if (primaryReservation?.id) {
-      loadData()
+  // Load transactions and summary for selected folio
+  const loadFolioData = async () => {
+    if (!selectedFolioId) return
+
+    setLoading(true)
+    try {
+      // Load transactions
+      const { data: txData, error: txError } = await getTransactionsByFolio(selectedFolioId)
+      if (txError) {
+        console.error('Error loading transactions:', txError)
+      } else {
+        setTransactions(txData || [])
+      }
+
+      // Load summary
+      const { data: summaryData, error: summaryError } = await getFolioSummary(selectedFolioId)
+      if (summaryError) {
+        console.error('Error loading summary:', summaryError)
+      } else {
+        setSummary(summaryData)
+      }
+
+      // Load audit logs if in audit view
+      if (viewMode === 'audit') {
+        await loadAuditData()
+      }
+    } catch (error) {
+      console.error('Error loading folio data:', error)
+    } finally {
+      setLoading(false)
     }
-  }, [primaryReservation])
+  }
+
+  // Load audit log data
+  const loadAuditData = async () => {
+    if (!selectedFolioId) return
+
+    try {
+      const { data: logs, error: logsError } = await getAuditLogByFolio(selectedFolioId)
+      if (logsError) {
+        console.error('Error loading audit logs:', logsError)
+      } else {
+        setAuditLogs(logs || [])
+      }
+
+      const { data: stats, error: statsError } = await getAuditStatsByFolio(selectedFolioId)
+      if (statsError) {
+        console.error('Error loading audit stats:', statsError)
+      } else {
+        setAuditStats(stats)
+      }
+    } catch (error) {
+      console.error('Error loading audit data:', error)
+    }
+  }
+
+  // Effects
+  useEffect(() => {
+    loadFolios()
+  }, [primaryReservation?.id])
+
+  useEffect(() => {
+    if (selectedFolioId) {
+      loadFolioData()
+    }
+  }, [selectedFolioId, viewMode])
 
   // Filter transactions
   const filteredTransactions = transactions.filter(tx => {
+    // Type filter
     if (filters.type !== 'all' && tx.transaction_type !== filters.type) return false
+
+    // Status filter
     if (filters.status !== 'all' && tx.transaction_status !== filters.status) return false
+
+    // Search filter
     if (filters.search) {
       const search = filters.search.toLowerCase()
-      return tx.description?.toLowerCase().includes(search) ||
-             tx.reference_number?.toLowerCase().includes(search) ||
-             tx.payment_reference?.toLowerCase().includes(search)
+      const matchesDescription = tx.description?.toLowerCase().includes(search)
+      const matchesReference = tx.reference_number?.toLowerCase().includes(search)
+      const matchesPaymentRef = tx.payment_reference?.toLowerCase().includes(search)
+      if (!matchesDescription && !matchesReference && !matchesPaymentRef) return false
     }
+
+    // Date range filter
+    if (filters.dateFrom) {
+      const txDate = new Date(tx.transaction_date)
+      const fromDate = new Date(filters.dateFrom)
+      if (txDate < fromDate) return false
+    }
+    if (filters.dateTo) {
+      const txDate = new Date(tx.transaction_date)
+      const toDate = new Date(filters.dateTo)
+      toDate.setHours(23, 59, 59, 999) // Include entire end date
+      if (txDate > toDate) return false
+    }
+
+    // Amount range filter
+    const absAmount = Math.abs(tx.amount)
+    if (filters.amountMin && absAmount < parseFloat(filters.amountMin)) return false
+    if (filters.amountMax && absAmount > parseFloat(filters.amountMax)) return false
+
     return true
   })
 
-  // Group transactions by type for summary
+  // Group transactions by type
   const groupedByType = filteredTransactions.reduce((acc, tx) => {
     const type = tx.transaction_type
     if (!acc[type]) acc[type] = []
@@ -85,146 +249,794 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
     return acc
   }, {})
 
+  // Format transaction type for display
+  const formatTransactionType = (type) => {
+    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  }
+
+  // Format amount with currency
+  const formatAmount = (transaction) => {
+    const isCredit = transaction.amount < 0
+    const absAmount = Math.abs(transaction.amount)
+    const txCurrency = transaction.transaction_currency || baseCurrency
+    const txSymbol = getCurrencySymbol(txCurrency)
+    const baseSymbol = getCurrencySymbol(baseCurrency)
+    const baseAmount = transaction.base_currency_amount || absAmount
+
+    const colorClass = isCredit
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : 'text-gray-900 dark:text-gray-100'
+
+    if (txCurrency !== baseCurrency) {
+      return (
+        <div className={colorClass}>
+          <div className="font-semibold">
+            {isCredit && '- '}{txSymbol}{absAmount.toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            ≈ {baseSymbol}{Math.abs(baseAmount).toFixed(2)}
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <span className={colorClass}>
+        {isCredit && '- '}{baseSymbol}{absAmount.toFixed(2)}
+      </span>
+    )
+  }
+
   // Handle reverse
   const handleReverse = async () => {
     if (!selectedTransaction || !reverseReason) return
 
-    await reverseTransactionById(selectedTransaction.id, reverseReason)
-    setShowReverseModal(false)
-    setReverseReason('')
-    setSelectedTransaction(null)
-    loadData()
+    const result = await reverseTransactionById(selectedTransaction.id, reverseReason)
+    if (result) {
+      setShowReverseModal(false)
+      setReverseReason('')
+      setSelectedTransaction(null)
+      loadFolioData()
+    }
   }
 
   // Handle void
   const handleVoid = async () => {
     if (!selectedTransaction || !voidReason) return
 
-    await voidTransactionById(selectedTransaction.id, voidReason)
-    setShowVoidModal(false)
-    setVoidReason('')
-    setSelectedTransaction(null)
-    loadData()
-  }
-
-  // Get badge variant for transaction type
-  const getTypeVariant = (type) => {
-    if (type.startsWith('payment_')) return 'success'
-    if (type === 'discount' || type === 'refund' || type === 'write_off') return 'warning'
-    if (type === 'reversal' || type === 'void') return 'destructive'
-    return 'default'
-  }
-
-  // Get badge variant for status
-  const getStatusVariant = (status) => {
-    switch (status) {
-      case 'posted': return 'success'
-      case 'pending': return 'warning'
-      case 'reversed': case 'voided': return 'destructive'
-      default: return 'default'
+    const result = await voidTransactionById(selectedTransaction.id, voidReason)
+    if (result) {
+      setShowVoidModal(false)
+      setVoidReason('')
+      setSelectedTransaction(null)
+      loadFolioData()
     }
   }
 
-  // Format transaction type for display
-  const formatType = (type) => {
-    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  // Handle transfer
+  const handleTransfer = async () => {
+    if (!transferToFolioId) return
+
+    try {
+      if (selectedTransactions.length > 1) {
+        await transferMultipleTransactions(selectedTransactions, transferToFolioId, transferNotes)
+      } else if (selectedTransactions.length === 1) {
+        await transferTransaction(selectedTransactions[0], transferToFolioId, transferNotes)
+      }
+
+      setShowTransferModal(false)
+      setTransferToFolioId(null)
+      setTransferNotes('')
+      setSelectedTransactions([])
+      loadFolioData()
+    } catch (error) {
+      console.error('Error transferring transactions:', error)
+    }
   }
 
-  // Format amount with color
-  const formatAmount = (amount, type) => {
-    const isCredit = amount < 0
-    const absAmount = Math.abs(amount)
-    const colorClass = isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'
+  // Handle checkout
+  const handleCheckout = async () => {
+    if (!selectedFolioId) return
+
+    try {
+      // Get invoice data first
+      const { data: invData, error: invError } = await getInvoiceData(selectedFolioId)
+      if (invError) {
+        console.error('Error loading invoice data:', invError)
+        return
+      }
+
+      setInvoiceData(invData)
+      setShowCheckoutModal(true)
+    } catch (error) {
+      console.error('Error preparing checkout:', error)
+    }
+  }
+
+  // Confirm checkout
+  const confirmCheckout = async () => {
+    if (!selectedFolioId) return
+
+    try {
+      const result = await checkoutFolio(selectedFolioId, checkoutNotes)
+      if (result) {
+        setShowCheckoutModal(false)
+        setCheckoutNotes('')
+        loadFolios()
+        loadFolioData()
+      }
+    } catch (error) {
+      console.error('Error checking out folio:', error)
+    }
+  }
+
+  // Get selected folio
+  const selectedFolio = folios.find(f => f.id === selectedFolioId)
+
+  // Check if folio can be edited
+  const canEdit = selectedFolio ? canEditFolio(selectedFolio) : false
+
+  // Handle print invoice
+  const handlePrint = useReactToPrint({
+    content: () => invoiceRef.current,
+    documentTitle: `Invoice-${selectedFolio?.folio_number || 'Unknown'}`
+  })
+
+  // Handle create new folio
+  const handleCreateFolio = async () => {
+    if (!primaryReservation?.id) return
+
+    try {
+      const { data, error } = await createFolio({
+        reservation_id: primaryReservation.id,
+        ...newFolioData
+      })
+
+      if (error) {
+        console.error('Error creating folio:', error)
+        return
+      }
+
+      setShowNewFolioModal(false)
+      setNewFolioData({ folio_type: 'room', folio_name: '', notes: '' })
+      await loadFolios()
+      if (data) {
+        setSelectedFolioId(data.id)
+      }
+    } catch (error) {
+      console.error('Error creating folio:', error)
+    }
+  }
+
+  // Toggle transaction selection
+  const toggleTransactionSelection = (txId) => {
+    setSelectedTransactions(prev =>
+      prev.includes(txId)
+        ? prev.filter(id => id !== txId)
+        : [...prev, txId]
+    )
+  }
+
+  // Handle retry gateway transaction
+  const handleRetryTransaction = async (transactionId) => {
+    const result = await retryGatewayTransaction(transactionId)
+    if (result) {
+      loadFolioData()
+    }
+  }
+
+  // Render transaction table row
+  const renderTransactionRow = (tx, showCheckbox = false) => {
+    const isSelected = selectedTransactions.includes(tx.id)
+    const isReversedOrVoided = tx.transaction_status === 'reversed' || tx.transaction_status === 'voided'
+    const isPayment = tx.transaction_type?.includes('payment')
+    const hasGatewayInfo = tx.gateway_transaction_id || tx.gateway_status
 
     return (
-      <span className={colorClass}>
-        {isCredit && '- '}₹{absAmount.toFixed(2)}
-      </span>
+      <TableRow
+        key={tx.id}
+        className={`${isReversedOrVoided ? 'opacity-50' : ''} ${isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}`}
+      >
+        {showCheckbox && (
+          <TableCell>
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => toggleTransactionSelection(tx.id)}
+              disabled={isReversedOrVoided || !canEdit}
+            />
+          </TableCell>
+        )}
+        <TableCell className="text-sm">
+          {format(new Date(tx.transaction_date), 'MMM dd, yyyy HH:mm')}
+        </TableCell>
+        <TableCell>
+          <div>
+            <div className="font-medium">{tx.description}</div>
+            {tx.notes && (
+              <div className="text-xs text-muted-foreground">{tx.notes}</div>
+            )}
+            {/* Gateway Information */}
+            {isPayment && hasGatewayInfo && (
+              <div className="mt-1 space-y-0.5">
+                {tx.gateway_transaction_id && (
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
+                    Gateway ID: {tx.gateway_transaction_id}
+                  </div>
+                )}
+                {tx.authorization_number && (
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
+                    Auth: {tx.authorization_number}
+                  </div>
+                )}
+                {tx.gateway_status && (
+                  <Badge
+                    variant={
+                      tx.gateway_status === 'completed' ? 'default' :
+                      tx.gateway_status === 'pending' || tx.gateway_status === 'authorized' ? 'secondary' :
+                      tx.gateway_status === 'failed' ? 'destructive' :
+                      'outline'
+                    }
+                    className="text-xs"
+                  >
+                    Gateway: {tx.gateway_status}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline">{formatTransactionType(tx.transaction_type)}</Badge>
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant={
+              tx.transaction_status === 'posted' ? 'default' :
+              tx.transaction_status === 'pending' ? 'secondary' :
+              tx.transaction_status === 'reversed' ? 'destructive' :
+              'outline'
+            }
+          >
+            {tx.transaction_status}
+          </Badge>
+        </TableCell>
+        <TableCell className="text-right font-medium">
+          {formatAmount(tx)}
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex gap-1 justify-end">
+            {/* Retry button for failed gateway transactions */}
+            {canEdit && isPayment && tx.gateway_status === 'failed' && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleRetryTransaction(tx.id)}
+                title="Retry Payment"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            )}
+            {/* Regular reverse/void actions */}
+            {canEdit && tx.transaction_status === 'posted' && (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSelectedTransaction(tx)
+                    setShowReverseModal(true)
+                  }}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSelectedTransaction(tx)
+                    setShowVoidModal(true)
+                  }}
+                >
+                  <Ban className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+    )
+  }
+
+  // Render audit log entry
+  const renderAuditLogEntry = (log) => {
+    const getBorderColor = () => {
+      switch (log.action_type.toLowerCase()) {
+        case 'created':
+        case 'create':
+          return 'border-green-500'
+        case 'modified':
+        case 'update':
+          return 'border-blue-500'
+        case 'reversed':
+        case 'reverse':
+          return 'border-orange-500'
+        case 'voided':
+        case 'void':
+          return 'border-red-500'
+        case 'transferred':
+        case 'transfer':
+          return 'border-purple-500'
+        default:
+          return 'border-gray-500'
+      }
+    }
+
+    // Get the transaction details from old_values or new_values
+    const getTransactionDetails = () => {
+      const data = log.new_values || log.old_values || {}
+      return {
+        description: data.description || 'N/A',
+        amount: data.amount || 0,
+        type: data.transaction_type || 'Unknown',
+        status: data.transaction_status || 'Unknown',
+        currency: data.transaction_currency || baseCurrency,
+        reference: data.reference_number || data.payment_reference || null
+      }
+    }
+
+    // Extract meaningful changes from old/new values
+    const formatChanges = () => {
+      const actionType = log.action_type.toLowerCase()
+      const changes = []
+      const details = getTransactionDetails()
+
+      // For created transactions, show all key details
+      if (actionType === 'created' || actionType === 'create') {
+        changes.push({ label: 'Transaction', value: details.description })
+        changes.push({ label: 'Amount', value: formatCurrency(Math.abs(details.amount), details.currency) })
+        changes.push({ label: 'Type', value: formatTransactionType(details.type) })
+        if (details.reference) {
+          changes.push({ label: 'Reference', value: details.reference })
+        }
+        return changes
+      }
+
+      // For reversed or voided, show what was reversed/voided
+      if (actionType === 'reversed' || actionType === 'reverse' || actionType === 'voided' || actionType === 'void') {
+        changes.push({ label: 'Transaction', value: details.description })
+        changes.push({ label: 'Amount', value: formatCurrency(Math.abs(details.amount), details.currency) })
+        changes.push({ label: 'Type', value: formatTransactionType(details.type) })
+        changes.push({ label: 'Original Status', value: log.old_values?.transaction_status || 'posted' })
+
+        // Show reason if available
+        if (log.metadata?.reason || log.old_values?.reversal_reason || log.old_values?.void_reason) {
+          const reason = log.metadata?.reason || log.old_values?.reversal_reason || log.old_values?.void_reason
+          changes.push({ label: 'Reason', value: reason, highlight: true })
+        }
+
+        if (details.reference) {
+          changes.push({ label: 'Reference', value: details.reference })
+        }
+        return changes
+      }
+
+      // For transferred, show from/to details
+      if (actionType === 'transferred' || actionType === 'transfer') {
+        changes.push({ label: 'Transaction', value: details.description })
+        changes.push({ label: 'Amount', value: formatCurrency(Math.abs(details.amount), details.currency) })
+
+        if (log.metadata?.from_folio || log.metadata?.to_folio) {
+          changes.push({ label: 'From Folio', value: log.metadata.from_folio || 'N/A' })
+          changes.push({ label: 'To Folio', value: log.metadata.to_folio || 'N/A' })
+        }
+
+        if (log.metadata?.notes) {
+          changes.push({ label: 'Notes', value: log.metadata.notes })
+        }
+        return changes
+      }
+
+      // For modifications, show what changed
+      if (actionType === 'modified' || actionType === 'update') {
+        if (log.old_values && log.new_values) {
+          const oldVal = log.old_values
+          const newVal = log.new_values
+
+          // Always show the transaction being modified
+          changes.push({ label: 'Transaction', value: newVal.description || oldVal.description || 'N/A' })
+
+          if (oldVal.description !== newVal.description) {
+            changes.push({
+              label: 'Description Changed',
+              value: `"${oldVal.description || 'none'}" → "${newVal.description}"`,
+              isChange: true
+            })
+          }
+          if (oldVal.amount !== newVal.amount) {
+            changes.push({
+              label: 'Amount Changed',
+              value: `${formatCurrency(Math.abs(oldVal.amount || 0), baseCurrency)} → ${formatCurrency(Math.abs(newVal.amount), baseCurrency)}`,
+              isChange: true
+            })
+          }
+          if (oldVal.transaction_status !== newVal.transaction_status) {
+            changes.push({
+              label: 'Status Changed',
+              value: `${oldVal.transaction_status || 'none'} → ${newVal.transaction_status}`,
+              isChange: true
+            })
+          }
+          if (oldVal.transaction_type !== newVal.transaction_type) {
+            changes.push({
+              label: 'Type Changed',
+              value: `${formatTransactionType(oldVal.transaction_type)} → ${formatTransactionType(newVal.transaction_type)}`,
+              isChange: true
+            })
+          }
+          if (oldVal.notes !== newVal.notes && newVal.notes) {
+            changes.push({
+              label: 'Notes Changed',
+              value: `"${oldVal.notes || 'none'}" → "${newVal.notes}"`,
+              isChange: true
+            })
+          }
+        }
+        return changes
+      }
+
+      return changes
+    }
+
+    const changes = formatChanges()
+
+    return (
+      <div key={log.id} className={`border-l-4 ${getBorderColor()} pl-4 py-3 hover:bg-muted/50 rounded-r transition-colors`}>
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-1 min-w-0">
+            {/* Action Type Badge */}
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="outline" className="font-semibold">
+                {log.action_type}
+              </Badge>
+              {log.user && (
+                <span className="text-xs text-muted-foreground">
+                  by {log.user.name || 'System'}
+                </span>
+              )}
+            </div>
+
+            {/* Description */}
+            {log.action_description && (
+              <div className="text-sm text-foreground mb-2">
+                {log.action_description}
+              </div>
+            )}
+
+            {/* Changes */}
+            {changes && changes.length > 0 && (
+              <div className="space-y-1 mt-2">
+                {changes.map((change, idx) => (
+                  <div
+                    key={idx}
+                    className={`text-xs px-2 py-1 rounded ${
+                      change.highlight
+                        ? 'bg-amber-100 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100 font-medium'
+                        : change.isChange
+                        ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-900 dark:text-blue-100'
+                        : 'bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    <span className="font-semibold">{change.label}:</span> {change.value}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Timestamp */}
+          <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
+            <div>{format(new Date(log.created_at), 'MMM dd, yyyy')}</div>
+            <div>{format(new Date(log.created_at), 'HH:mm:ss')}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading && folios.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading folios...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!loading && folios.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Folio Available</h3>
+            <p className="text-muted-foreground mb-4 max-w-md">
+              Folios are created automatically when a guest checks in. Please check in the guest first to view their folio and manage transactions.
+            </p>
+            {primaryReservation?.status !== 'Checked-in' && (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Current reservation status: <strong>{primaryReservation?.status}</strong>
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
     <div className="space-y-4">
-      {/* Action Bar */}
-      <div className="flex flex-wrap gap-2 justify-between items-center">
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddModal(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Transaction
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Print Folio
-          </Button>
-        </div>
+      {/* Folio Tabs */}
+      <div className="flex items-center gap-2 border-b">
+        {folios.map(folio => (
+          <button
+            key={folio.id}
+            onClick={() => setSelectedFolioId(folio.id)}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              selectedFolioId === folio.id
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {folio.folio_name || `Folio #${folio.folio_number}`}
+            {!folio.is_active && <span className="ml-1 text-xs">(Closed)</span>}
+          </button>
+        ))}
         <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-          className="gap-2"
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowNewFolioModal(true)}
         >
-          <Filter className="h-4 w-4" />
-          Filters
-          {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <Plus className="h-4 w-4 mr-1" />
+          New Folio
         </Button>
       </div>
 
-      {/* Filters */}
-      {showFilters && (
+      {/* Summary Card */}
+      {summary && (
         <Card>
           <CardContent className="pt-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div>
+                <div className="text-sm text-muted-foreground">Total Charges</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(summary.total_charges || 0, baseCurrency)}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Total Payments</div>
+                <div className="text-2xl font-bold text-emerald-600">
+                  {formatCurrency(summary.total_payments || 0, baseCurrency)}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Balance Due</div>
+                <div className={`text-2xl font-bold ${
+                  summary.balance_due > 0 ? 'text-red-600' : 'text-emerald-600'
+                }`}>
+                  {formatCurrency(summary.balance_due || 0, baseCurrency)}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Total Taxes</div>
+                <div className="text-lg font-semibold">
+                  {formatCurrency(summary.total_taxes || 0, baseCurrency)}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Discounts</div>
+                <div className="text-lg font-semibold">
+                  {formatCurrency(summary.total_discounts || 0, baseCurrency)}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Action Bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* View Mode Toggle */}
+        <div className="flex border rounded-lg">
+          <Button
+            variant={viewMode === 'transactions' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('transactions')}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Transactions
+          </Button>
+          <Button
+            variant={viewMode === 'audit' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('audit')}
+          >
+            <History className="h-4 w-4 mr-1" />
+            Audit Log
+          </Button>
+        </div>
+
+        {/* Display Mode Toggle (Transactions only) */}
+        {viewMode === 'transactions' && (
+          <div className="flex border rounded-lg">
+            <Button
+              variant={displayMode === 'chronological' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setDisplayMode('chronological')}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              Chronological
+            </Button>
+            <Button
+              variant={displayMode === 'grouped' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setDisplayMode('grouped')}
+            >
+              <TrendingUp className="h-4 w-4 mr-1" />
+              Grouped
+            </Button>
+          </div>
+        )}
+
+        <div className="flex-1"></div>
+
+        {/* Actions */}
+        {viewMode === 'transactions' && canEdit && (
+          <>
+            <Button
+              size="sm"
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Transaction
+            </Button>
+            {selectedTransactions.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowTransferModal(true)}
+              >
+                <ArrowRightLeft className="h-4 w-4 mr-1" />
+                Transfer ({selectedTransactions.length})
+              </Button>
+            )}
+          </>
+        )}
+
+        {viewMode === 'transactions' && (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-4 w-4 mr-1" />
+              Filters
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCheckout}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Checkout & Invoice
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Filters Panel */}
+      {showFilters && viewMode === 'transactions' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between">
+              <span>Advanced Filters</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setFilters({
+                  type: 'all',
+                  status: 'all',
+                  search: '',
+                  dateFrom: '',
+                  dateTo: '',
+                  amountMin: '',
+                  amountMax: ''
+                })}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear All
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
+              <div>
                 <Label>Transaction Type</Label>
-                <Select
-                  value={filters.type}
-                  onValueChange={(value) => setFilters({ ...filters, type: value })}
-                >
+                <Select value={filters.type} onValueChange={(val) => setFilters({ ...filters, type: val })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="room_charge">Room Charge</SelectItem>
-                    <SelectItem value="service_charge">Service Charge</SelectItem>
-                    <SelectItem value="tax">Tax</SelectItem>
-                    <SelectItem value="fee">Fee</SelectItem>
-                    <SelectItem value="discount">Discount</SelectItem>
-                    <SelectItem value="payment_cash">Payment - Cash</SelectItem>
-                    <SelectItem value="payment_card">Payment - Card</SelectItem>
-                    <SelectItem value="payment_online">Payment - Online</SelectItem>
-                    <SelectItem value="refund">Refund</SelectItem>
-                    <SelectItem value="adjustment">Adjustment</SelectItem>
-                    <SelectItem value="deposit">Deposit</SelectItem>
+                    {Object.entries(TRANSACTION_TYPES).map(([key, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {formatTransactionType(value)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+
+              <div>
                 <Label>Status</Label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value) => setFilters({ ...filters, status: value })}
-                >
+                <Select value={filters.status} onValueChange={(val) => setFilters({ ...filters, status: val })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="posted">Posted</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="reversed">Reversed</SelectItem>
-                    <SelectItem value="voided">Voided</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
+                    {Object.entries(TRANSACTION_STATUS).map(([key, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {value.charAt(0).toUpperCase() + value.slice(1)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+
+              <div>
                 <Label>Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Description, reference..."
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label>Date From</Label>
+                <Input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label>Date To</Label>
+                <Input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label>Amount Range</Label>
+                <div className="flex gap-2">
                   <Input
-                    placeholder="Search description, ref #..."
-                    value={filters.search}
-                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                    className="pl-8"
+                    type="number"
+                    placeholder="Min"
+                    value={filters.amountMin}
+                    onChange={(e) => setFilters({ ...filters, amountMin: e.target.value })}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.amountMax}
+                    onChange={(e) => setFilters({ ...filters, amountMax: e.target.value })}
                   />
                 </div>
               </div>
@@ -233,200 +1045,128 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         </Card>
       )}
 
-      {/* Summary Card */}
-      {summary && (
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+      {/* Content Area */}
+      {viewMode === 'transactions' ? (
+        <Card>
+          <CardContent className="pt-6">
+            {displayMode === 'chronological' ? (
+              /* Chronological View */
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {canEdit && (
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedTransactions.length === filteredTransactions.filter(tx => tx.transaction_status === 'posted').length}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedTransactions(
+                                  filteredTransactions
+                                    .filter(tx => tx.transaction_status === 'posted')
+                                    .map(tx => tx.id)
+                                )
+                              } else {
+                                setSelectedTransactions([])
+                              }
+                            }}
+                          />
+                        </TableHead>
+                      )}
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground">
+                          No transactions found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredTransactions.map(tx => renderTransactionRow(tx, canEdit))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              /* Grouped View */
+              <div className="space-y-4">
+                {Object.keys(groupedByType).length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No transactions found
+                  </div>
+                ) : (
+                  Object.entries(groupedByType).map(([type, txs]) => (
+                    <div key={type} className="border rounded-lg overflow-hidden">
+                      <div className="bg-muted px-4 py-2 font-semibold">
+                        {formatTransactionType(type)} ({txs.length})
+                      </div>
+                      <div className="rounded-md">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              {canEdit && <TableHead className="w-12"></TableHead>}
+                              <TableHead>Date</TableHead>
+                              <TableHead>Description</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {txs.map(tx => renderTransactionRow(tx, canEdit))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        /* Audit Log View */
+        <Card>
           <CardHeader>
-            <CardTitle>Transaction Summary</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Audit Trail</span>
+              {auditStats && (
+                <div className="text-sm font-normal text-muted-foreground">
+                  {auditStats.total_actions} actions by {auditStats.unique_users} users
+                </div>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Charges</p>
-                <p className="text-2xl font-bold">₹{summary.total_charges?.toFixed(2) || '0.00'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Payments</p>
-                <p className="text-2xl font-bold text-emerald-600">
-                  ₹{summary.total_payments?.toFixed(2) || '0.00'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Discounts</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  ₹{summary.total_discounts?.toFixed(2) || '0.00'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Balance</p>
-                <p className={`text-2xl font-bold ${
-                  (summary.net_balance || 0) > 0 ? 'text-red-600' : 'text-emerald-600'
-                }`}>
-                  ₹{Math.abs(summary.net_balance || 0).toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {(summary.net_balance || 0) > 0 ? 'Due' : 'Credit'}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Posted: </span>
-                <span className="font-semibold">{summary.total_posted_transactions || 0}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Pending: </span>
-                <span className="font-semibold">{summary.total_pending_transactions || 0}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Reversed: </span>
-                <span className="font-semibold">{summary.total_reversed_transactions || 0}</span>
-              </div>
+            <div className="space-y-2">
+              {auditLogs.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No audit logs found
+                </div>
+              ) : (
+                auditLogs.map(log => renderAuditLogEntry(log))
+              )}
             </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Transaction History ({filteredTransactions.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Reference</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
-                      Loading transactions...
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loading && filteredTransactions.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      No transactions found
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loading && filteredTransactions.map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="text-sm">
-                      {new Date(tx.transaction_date).toLocaleDateString()}
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(tx.transaction_date).toLocaleTimeString()}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getTypeVariant(tx.transaction_type)}>
-                        {formatType(tx.transaction_type)}
-                      </Badge>
-                      {tx.service_category && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {formatType(tx.service_category)}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-xs">
-                        {tx.description}
-                        {tx.notes && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {tx.notes}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {tx.reference_number || tx.payment_reference || '-'}
-                      {tx.payment_method && (
-                        <div className="text-xs text-muted-foreground">
-                          {tx.payment_method}
-                          {tx.card_last_four && ` •••• ${tx.card_last_four}`}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatAmount(tx.amount, tx.transaction_type)}
-                      {tx.quantity && tx.quantity > 1 && (
-                        <div className="text-xs text-muted-foreground">
-                          {tx.quantity} × ₹{tx.rate?.toFixed(2)}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(tx.transaction_status)}>
-                        {formatType(tx.transaction_status)}
-                      </Badge>
-                      {tx.reversal_reason && (
-                        <div className="text-xs text-muted-foreground mt-1" title={tx.reversal_reason}>
-                          {tx.reversal_reason.substring(0, 20)}...
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {tx.created_by_user?.name || 'System'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        {tx.transaction_status === 'posted' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedTransaction(tx)
-                              setShowReverseModal(true)
-                            }}
-                            title="Reverse Transaction"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {tx.transaction_status === 'pending' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedTransaction(tx)
-                              setShowVoidModal(true)
-                            }}
-                            title="Void Transaction"
-                          >
-                            <Ban className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Add Transaction Modal */}
       <AddTransactionModal
         open={showAddModal}
         onOpenChange={setShowAddModal}
         reservationId={primaryReservation?.id}
+        folioId={selectedFolioId}
         billId={null}
-        onSuccess={loadData}
+        onSuccess={loadFolioData}
       />
 
       {/* Reverse Transaction Modal */}
@@ -435,35 +1175,24 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
           <DialogHeader>
             <DialogTitle>Reverse Transaction</DialogTitle>
             <DialogDescription>
-              This will create a reversal transaction with the opposite amount.
-              The original transaction will be marked as reversed.
+              This will create a reversing entry for this transaction. Please provide a reason.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             {selectedTransaction && (
-              <div className="bg-muted p-3 rounded-lg space-y-1">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Type: </span>
-                  <span className="font-semibold">{formatType(selectedTransaction.transaction_type)}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Description: </span>
-                  <span>{selectedTransaction.description}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Amount: </span>
-                  <span className="font-semibold">₹{Math.abs(selectedTransaction.amount).toFixed(2)}</span>
-                </div>
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <div><strong>Description:</strong> {selectedTransaction.description}</div>
+                <div><strong>Amount:</strong> {formatCurrency(Math.abs(selectedTransaction.amount), baseCurrency)}</div>
+                <div><strong>Date:</strong> {format(new Date(selectedTransaction.transaction_date), 'MMM dd, yyyy')}</div>
               </div>
             )}
             <div className="space-y-2">
-              <Label>Reason for Reversal</Label>
+              <Label>Reason for Reversal *</Label>
               <Textarea
                 value={reverseReason}
                 onChange={(e) => setReverseReason(e.target.value)}
-                placeholder="Enter the reason for reversing this transaction..."
+                placeholder="Enter reason for reversing this transaction..."
                 rows={3}
-                required
               />
             </div>
           </div>
@@ -471,11 +1200,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
             <Button variant="outline" onClick={() => setShowReverseModal(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleReverse}
-              disabled={!reverseReason}
-              variant="destructive"
-            >
+            <Button onClick={handleReverse} disabled={!reverseReason}>
               Reverse Transaction
             </Button>
           </DialogFooter>
@@ -488,34 +1213,24 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
           <DialogHeader>
             <DialogTitle>Void Transaction</DialogTitle>
             <DialogDescription>
-              This will mark the transaction as voided. Only pending transactions can be voided.
+              This will mark the transaction as void. This action cannot be undone. Please provide a reason.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             {selectedTransaction && (
-              <div className="bg-muted p-3 rounded-lg space-y-1">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Type: </span>
-                  <span className="font-semibold">{formatType(selectedTransaction.transaction_type)}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Description: </span>
-                  <span>{selectedTransaction.description}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Amount: </span>
-                  <span className="font-semibold">₹{Math.abs(selectedTransaction.amount).toFixed(2)}</span>
-                </div>
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <div><strong>Description:</strong> {selectedTransaction.description}</div>
+                <div><strong>Amount:</strong> {formatCurrency(Math.abs(selectedTransaction.amount), baseCurrency)}</div>
+                <div><strong>Date:</strong> {format(new Date(selectedTransaction.transaction_date), 'MMM dd, yyyy')}</div>
               </div>
             )}
             <div className="space-y-2">
-              <Label>Reason for Void</Label>
+              <Label>Reason for Voiding *</Label>
               <Textarea
                 value={voidReason}
                 onChange={(e) => setVoidReason(e.target.value)}
-                placeholder="Enter the reason for voiding this transaction..."
+                placeholder="Enter reason for voiding this transaction..."
                 rows={3}
-                required
               />
             </div>
           </div>
@@ -523,12 +1238,174 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
             <Button variant="outline" onClick={() => setShowVoidModal(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleVoid}
-              disabled={!voidReason}
-              variant="destructive"
-            >
+            <Button variant="destructive" onClick={handleVoid} disabled={!voidReason}>
               Void Transaction
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer Transactions Modal */}
+      <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer Transactions</DialogTitle>
+            <DialogDescription>
+              Transfer {selectedTransactions.length} transaction(s) to another folio
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Destination Folio *</Label>
+              <Select value={transferToFolioId || ''} onValueChange={setTransferToFolioId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select folio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {folios
+                    .filter(f => f.id !== selectedFolioId && f.is_active)
+                    .map(folio => (
+                      <SelectItem key={folio.id} value={folio.id}>
+                        {folio.folio_name || `Folio #${folio.folio_number}`}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes (Optional)</Label>
+              <Textarea
+                value={transferNotes}
+                onChange={(e) => setTransferNotes(e.target.value)}
+                placeholder="Add transfer notes..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTransferModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleTransfer} disabled={!transferToFolioId}>
+              Transfer Transactions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Checkout Modal with Invoice Preview */}
+      <Dialog open={showCheckoutModal} onOpenChange={setShowCheckoutModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Checkout Folio & Generate Invoice</DialogTitle>
+            <DialogDescription>
+              Review the invoice and complete checkout for this folio
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Invoice Preview */}
+            {invoiceData && (
+              <div className="border rounded-lg overflow-hidden">
+                <InvoiceReceipt ref={invoiceRef} invoiceData={invoiceData} type="invoice" />
+              </div>
+            )}
+
+            {/* Checkout Notes */}
+            <div className="space-y-2">
+              <Label>Checkout Notes (Optional)</Label>
+              <Textarea
+                value={checkoutNotes}
+                onChange={(e) => setCheckoutNotes(e.target.value)}
+                placeholder="Add checkout notes..."
+                rows={2}
+              />
+            </div>
+
+            {/* Warning if balance due */}
+            {summary && summary.balance_due > 0 && (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <div className="text-amber-600 dark:text-amber-400">⚠️</div>
+                  <div>
+                    <div className="font-semibold text-amber-900 dark:text-amber-100">
+                      Outstanding Balance
+                    </div>
+                    <div className="text-sm text-amber-700 dark:text-amber-300">
+                      There is an outstanding balance of {formatCurrency(summary.balance_due, baseCurrency)}.
+                      You can still checkout, but payment should be collected.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCheckoutModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="outline" onClick={handlePrint}>
+              <Download className="h-4 w-4 mr-1" />
+              Print Invoice
+            </Button>
+            <Button onClick={confirmCheckout}>
+              Complete Checkout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Folio Modal */}
+      <Dialog open={showNewFolioModal} onOpenChange={setShowNewFolioModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folio</DialogTitle>
+            <DialogDescription>
+              Add a new folio to this reservation
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Folio Type *</Label>
+              <Select
+                value={newFolioData.folio_type}
+                onValueChange={(val) => setNewFolioData({ ...newFolioData, folio_type: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="room">Room Folio</SelectItem>
+                  <SelectItem value="guest">Guest Folio</SelectItem>
+                  <SelectItem value="master">Master Folio</SelectItem>
+                  <SelectItem value="split">Split Folio</SelectItem>
+                  <SelectItem value="group">Group Folio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Folio Name</Label>
+              <Input
+                value={newFolioData.folio_name}
+                onChange={(e) => setNewFolioData({ ...newFolioData, folio_name: e.target.value })}
+                placeholder="e.g., Guest 2, Incidentals, etc."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes (Optional)</Label>
+              <Textarea
+                value={newFolioData.notes}
+                onChange={(e) => setNewFolioData({ ...newFolioData, notes: e.target.value })}
+                placeholder="Add notes..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewFolioModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateFolio}>
+              Create Folio
             </Button>
           </DialogFooter>
         </DialogContent>

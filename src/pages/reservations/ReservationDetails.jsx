@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
-import { ChevronLeft, Edit, Calendar, User, Users, DollarSign, Home, MapPin, Phone, Mail, Building, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { ChevronLeft, Edit, Calendar, User, Users, DollarSign, Home, MapPin, Phone, Mail, Building, ChevronDown, ChevronUp, MoreVertical, Trash2, ArrowRight } from 'lucide-react'
 import { useReservations } from '../../context/ReservationContext'
 import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
 import { useAgents } from '../../context/AgentContext'
 import { useMealPlans } from '../../context/MealPlanContext'
+import { getActiveReservationNotes } from '../../lib/supabase'
+import { groupConsecutiveReservations, formatRoomChangeSequence } from '../../utils/bookingUtils'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
@@ -29,20 +31,35 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu'
 import FolioTab from '../../components/reservations/FolioTab'
+import NotesTab from '../../components/reservations/NotesTab'
+import QuickEditModal from '../../components/reservations/QuickEditModal'
+import MealPlanEditModal from '../../components/reservations/MealPlanEditModal'
+import GuestDetailsTab from '../../components/reservations/GuestDetailsTab'
 
 export default function ReservationDetails({ onNavigate }) {
-  const { reservations, updateReservation } = useReservations()
+  const { reservations, updateReservation, splitReservation } = useReservations()
   const { rooms, roomTypes } = useRooms()
   const { guests } = useGuests()
   const { agents } = useAgents()
-  const { getMealPlanName } = useMealPlans()
+  const { getMealPlanName, calculateMealPlanCost } = useMealPlans()
 
   const [groupedReservations, setGroupedReservations] = useState([])
   const [primaryReservation, setPrimaryReservation] = useState(null)
   const [guestInfo, setGuestInfo] = useState(null)
   const [additionalGuestsInfo, setAdditionalGuestsInfo] = useState([])
   const [agentInfo, setAgentInfo] = useState(null)
+  const [notesCount, setNotesCount] = useState(0)
+  const [quickEditModalOpen, setQuickEditModalOpen] = useState(false)
+  const [selectedReservationForEdit, setSelectedReservationForEdit] = useState(null)
+  const [mealPlanModalOpen, setMealPlanModalOpen] = useState(false)
+  const [selectedReservationForMealPlan, setSelectedReservationForMealPlan] = useState(null)
 
   // Load reservation details when component mounts
   useEffect(() => {
@@ -80,6 +97,9 @@ export default function ReservationDetails({ onNavigate }) {
               const agent = agents.find(a => a.id === reservationGroup[0].agent_id)
               setAgentInfo(agent)
             }
+
+            // Load notes count
+            loadNotesCount(reservationGroup[0].id)
           }
         }
 
@@ -90,6 +110,35 @@ export default function ReservationDetails({ onNavigate }) {
       }
     }
   }, [reservations, guests, agents])
+
+  const loadNotesCount = async (reservationId) => {
+    try {
+      const { data, error } = await getActiveReservationNotes(reservationId)
+      if (!error && data) {
+        setNotesCount(data.length)
+      }
+    } catch (error) {
+      console.error('Error loading notes count:', error)
+    }
+  }
+
+  // Helper function to get room info (must be before useMemo)
+  const getRoomInfo = (roomId) => {
+    const room = rooms.find(r => r.id === roomId)
+    if (!room) return { number: 'N/A', type: 'Unknown' }
+    const roomType = roomTypes.find(rt => rt.id === room.room_type_id)
+    return {
+      number: room.room_number,
+      type: roomType?.name || 'Unknown',
+      room: room
+    }
+  }
+
+  // Group consecutive reservations for better display (must be before early returns)
+  const stays = useMemo(() =>
+    groupConsecutiveReservations(groupedReservations, getRoomInfo),
+    [groupedReservations, rooms, roomTypes]
+  )
 
   if (!primaryReservation || !guestInfo) {
     return (
@@ -119,17 +168,6 @@ export default function ReservationDetails({ onNavigate }) {
     sum + (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0), 0
   )
 
-  const getRoomInfo = (roomId) => {
-    const room = rooms.find(r => r.id === roomId)
-    if (!room) return { number: 'N/A', type: 'Unknown' }
-    const roomType = roomTypes.find(rt => rt.id === room.room_type_id)
-    return {
-      number: room.room_number,
-      type: roomType?.name || 'Unknown',
-      room: room
-    }
-  }
-
   const getStatusBadgeVariant = (status) => {
     switch (status) {
       case 'Inquiry': return 'purple'
@@ -151,6 +189,78 @@ export default function ReservationDetails({ onNavigate }) {
       }
     } catch (error) {
       console.error('Error updating reservation status:', error)
+    }
+  }
+
+  const handleQuickEdit = (reservation) => {
+    setSelectedReservationForEdit(reservation)
+    setQuickEditModalOpen(true)
+  }
+
+  const handleEditMealPlan = (reservation) => {
+    setSelectedReservationForMealPlan(reservation)
+    setMealPlanModalOpen(true)
+  }
+
+  const handleSaveMealPlan = async (reservationId, mealPlan) => {
+    try {
+      // Find the reservation being updated
+      const reservation = groupedReservations.find(r => r.id === reservationId)
+      if (!reservation) return
+
+      // Calculate nights
+      const checkIn = new Date(reservation.check_in_date)
+      const checkOut = new Date(reservation.check_out_date)
+      const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+
+      // Calculate total guests
+      const totalGuests = (reservation.number_of_adults || 0) +
+                         (reservation.number_of_children || 0) +
+                         (reservation.number_of_infants || 0)
+
+      // Get room rate (use rate type price if available, otherwise room type base price)
+      const roomInfo = getRoomInfo(reservation.room_id)
+      const roomRate = reservation.room_rate_types?.base_price || roomInfo.room?.room_types?.base_price || 0
+
+      // Calculate room cost
+      const roomCost = roomRate * nights
+
+      // Calculate meal plan cost
+      const mealPlanCost = mealPlan ? calculateMealPlanCost(mealPlan, totalGuests, nights) : 0
+
+      // Calculate subtotal and total with 18% GST
+      const subtotal = roomCost + mealPlanCost
+      const tax = subtotal * 0.18
+      const totalAmount = subtotal + tax
+
+      // Update reservation with new meal plan and total amount
+      await updateReservation(reservationId, {
+        meal_plan: mealPlan,
+        total_amount: totalAmount
+      })
+    } catch (error) {
+      console.error('Error updating meal plan:', error)
+      alert('Failed to update meal plan: ' + error.message)
+    }
+  }
+
+  const handleSaveSplit = async (splitData) => {
+    const result = await splitReservation(selectedReservationForEdit.id, splitData)
+    if (result && result.allReservations) {
+      // Update sessionStorage with all reservation IDs (original + new ones)
+      const allReservationIds = result.allReservations.map(r => r.id)
+      sessionStorage.setItem('reservationDetailsIds', JSON.stringify(allReservationIds))
+
+      setQuickEditModalOpen(false)
+      setSelectedReservationForEdit(null)
+
+      // Update local state immediately with the new reservations
+      // This ensures the UI updates without needing a page reload
+      setGroupedReservations(result.allReservations)
+      setPrimaryReservation(result.allReservations[0])
+
+      // The context has already reloaded reservations via loadReservations()
+      // The useEffect will pick up the changes on the next render cycle
     }
   }
 
@@ -200,7 +310,7 @@ export default function ReservationDetails({ onNavigate }) {
           </div>
 
           {/* Quick Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 pb-4 border-b">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 pb-4 border-b">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Check-In</p>
               <p className="font-medium text-sm">{new Date(primaryReservation.check_in_date).toLocaleDateString()}</p>
@@ -224,17 +334,19 @@ export default function ReservationDetails({ onNavigate }) {
               <p className="font-medium text-sm">{totalGuests}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Source</p>
+              <p className="text-xs text-muted-foreground mb-1">Booking Source</p>
               <p className="font-medium text-sm capitalize">
                 {primaryReservation.booking_source === 'agent' && agentInfo
-                  ? agentInfo.name
+                  ? `Agent: ${agentInfo.name}`
+                  : primaryReservation.booking_source === 'walk-in'
+                  ? 'Walk-in'
+                  : primaryReservation.booking_source === 'phone'
+                  ? 'Phone'
+                  : primaryReservation.booking_source === 'email'
+                  ? 'Email'
+                  : primaryReservation.booking_source === 'website'
+                  ? 'Website'
                   : primaryReservation.direct_source || primaryReservation.booking_source || 'Walk-in'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Rate Plan</p>
-              <p className="font-medium text-sm">
-                {primaryReservation.room_rate_types?.rate_name || 'Standard Rate'}
               </p>
             </div>
             <div className="text-right">
@@ -260,7 +372,7 @@ export default function ReservationDetails({ onNavigate }) {
           <TabsTrigger value="accommodations">Accommodations</TabsTrigger>
           <TabsTrigger value="folio">Folio</TabsTrigger>
           <TabsTrigger value="guest-details">Guest Details</TabsTrigger>
-          <TabsTrigger value="notes">Notes ({primaryReservation.special_requests ? '1' : '0'})</TabsTrigger>
+          <TabsTrigger value="notes">Notes ({notesCount})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
@@ -274,26 +386,59 @@ export default function ReservationDetails({ onNavigate }) {
                     <TableHead>RES ID</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Room</TableHead>
-                    <TableHead>Guest</TableHead>
                     <TableHead>Arrival/Departure</TableHead>
                     <TableHead className="text-center">Guests</TableHead>
+                    <TableHead className="text-center">Meal Plan</TableHead>
                     <TableHead className="text-center">Nights</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-center">Edit</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {groupedReservations.map((reservation) => {
-                    const roomInfo = getRoomInfo(reservation.room_id)
-                    const guestCount = (reservation.number_of_adults || 0) +
-                                     (reservation.number_of_children || 0) +
-                                     (reservation.number_of_infants || 0)
-
-                    // Get the room rate - use rate type price if available, otherwise fall back to room type base price
-                    const roomRate = reservation.room_rate_types?.base_price || roomInfo.room?.room_types?.base_price || 0
+                  {stays.map((stay, stayIndex) => {
+                    const isConsecutive = stay.isConsecutive
+                    const stayRooms = stay.rooms // These are the normalized reservations
 
                     return (
-                      <TableRow key={reservation.id}>
+                      <>
+                        {/* Show stay header if multiple stays or if it's a consecutive stay */}
+                        {(stays.length > 1 || isConsecutive) && (
+                          <TableRow key={`stay-header-${stayIndex}`} className="bg-muted/30">
+                            <TableCell colSpan={10} className="py-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">
+                                  {isConsecutive ? 'Continuous Stay' : `Stay ${stayIndex + 1}`}
+                                </span>
+                                {isConsecutive && (
+                                  <div className="flex items-center gap-1.5 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1">
+                                    <ArrowRight className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                                    <span className="text-amber-800 dark:text-amber-300">
+                                      Room Move: {formatRoomChangeSequence(stayRooms)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Render each reservation in the stay */}
+                        {stayRooms.map((reservation) => {
+                          const roomInfo = getRoomInfo(reservation.room_id)
+                          const guestCount = (reservation.number_of_adults || 0) +
+                                           (reservation.number_of_children || 0) +
+                                           (reservation.number_of_infants || 0)
+
+                          // Get the room rate - use rate type price if available, otherwise fall back to room type base price
+                          const roomRate = reservation.room_rate_types?.base_price || roomInfo.room?.room_types?.base_price || 0
+
+                          // Calculate nights for this specific reservation
+                          const resCheckIn = new Date(reservation.check_in_date)
+                          const resCheckOut = new Date(reservation.check_out_date)
+                          const resNights = Math.ceil((resCheckOut - resCheckIn) / (1000 * 60 * 60 * 24))
+
+                          return (
+                            <TableRow key={reservation.id}>
                         <TableCell className="font-mono text-xs">
                           {reservation.id.substring(0, 13)}
                         </TableCell>
@@ -308,12 +453,6 @@ export default function ReservationDetails({ onNavigate }) {
                         <TableCell>
                           <Badge variant="outline">Room {roomInfo.number}</Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span>{guestInfo.name}</span>
-                          </div>
-                        </TableCell>
                         <TableCell className="text-sm">
                           {new Date(reservation.check_in_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                           {' - '}
@@ -325,16 +464,45 @@ export default function ReservationDetails({ onNavigate }) {
                             <span>{guestCount}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">{nights}</TableCell>
+                        <TableCell className="text-center">
+                          <button
+                            onClick={() => handleEditMealPlan(reservation)}
+                            className="text-sm underline decoration-dotted hover:text-primary cursor-pointer"
+                          >
+                            {getMealPlanName(reservation.meal_plan) || 'N/A'}
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-center">{resNights}</TableCell>
                         <TableCell className="text-right font-semibold">
                           ₹{reservation.total_amount?.toFixed(2) || '0.00'}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button variant="ghost" size="icon">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleQuickEdit(reservation)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Calendar className="h-4 w-4 mr-2" />
+                                View on Calendar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Accommodation
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
+                          )
+                        })}
+                      </>
                     )
                   })}
                 </TableBody>
@@ -382,247 +550,15 @@ export default function ReservationDetails({ onNavigate }) {
         </TabsContent>
 
         <TabsContent value="guest-details">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Guest Information
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Guest Count Summary */}
-              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                      Total Guests in This Booking
-                    </div>
-                    <div className="text-xs text-blue-700 dark:text-blue-300">
-                      {totalGuests} guest{totalGuests !== 1 ? 's' : ''} total across {groupedReservations.length} room{groupedReservations.length !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                      {totalGuests}
-                    </div>
-                    <div className="text-xs text-blue-700 dark:text-blue-300">
-                      {groupedReservations.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)} Adults
-                      {groupedReservations.reduce((sum, r) => sum + (r.number_of_children || 0), 0) > 0 &&
-                        `, ${groupedReservations.reduce((sum, r) => sum + (r.number_of_children || 0), 0)} Children`}
-                      {groupedReservations.reduce((sum, r) => sum + (r.number_of_infants || 0), 0) > 0 &&
-                        `, ${groupedReservations.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)} Infants`}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Primary Guest Section */}
-              <div className="bg-muted/20 rounded-lg p-4 space-y-3">
-                <div className="text-sm font-semibold text-muted-foreground mb-3">
-                  Primary Guest (Booking Contact)
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                  {/* Personal Information Column */}
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2 text-sm">
-                      <User className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">Name</div>
-                        <div className="font-medium">{guestInfo.name}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">Email</div>
-                        <div className="font-medium">{guestInfo.email || 'N/A'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">Phone</div>
-                        <div className="font-medium">{guestInfo.phone || 'N/A'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <Building className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">ID Proof</div>
-                        <div className="font-medium">
-                          {guestInfo.id_proof_type && guestInfo.id_proof_type !== 'N/A'
-                            ? `${guestInfo.id_proof_type} - ${guestInfo.id_proof_number}`
-                            : 'N/A'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Address Information Column */}
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">Address</div>
-                        <div className="font-medium">{guestInfo.address || 'N/A'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <Home className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">City</div>
-                        <div className="font-medium">{guestInfo.city || 'N/A'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">State</div>
-                        <div className="font-medium">{guestInfo.state || 'N/A'}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-muted-foreground text-xs mb-0.5">Country</div>
-                        <div className="font-medium">{guestInfo.country || 'N/A'}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Guests Section */}
-              {additionalGuestsInfo.length > 0 && (
-                <div className="space-y-3 mt-4">
-                  <div className="text-sm font-semibold text-muted-foreground border-t pt-4">
-                    Additional Guests ({additionalGuestsInfo.length})
-                  </div>
-                  {additionalGuestsInfo.map((guest, index) => (
-                    <div key={guest.id} className="bg-muted/10 rounded-lg p-4 space-y-3">
-                      <div className="text-sm font-medium text-foreground mb-2">
-                        Guest {index + 2}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                        {/* Personal Information Column */}
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-2 text-sm">
-                            <User className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                            <div className="flex-1">
-                              <div className="text-muted-foreground text-xs mb-0.5">Name</div>
-                              <div className="font-medium">{guest.name}</div>
-                            </div>
-                          </div>
-                          {guest.email && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <Mail className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="text-muted-foreground text-xs mb-0.5">Email</div>
-                                <div className="font-medium">{guest.email}</div>
-                              </div>
-                            </div>
-                          )}
-                          {guest.phone && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <Phone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="text-muted-foreground text-xs mb-0.5">Phone</div>
-                                <div className="font-medium">{guest.phone}</div>
-                              </div>
-                            </div>
-                          )}
-                          {guest.id_proof_type && guest.id_proof_type !== 'N/A' && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <Building className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="text-muted-foreground text-xs mb-0.5">ID Proof</div>
-                                <div className="font-medium">
-                                  {guest.id_proof_type} - {guest.id_proof_number}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Address Information Column */}
-                        <div className="space-y-3">
-                          {guest.address && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="text-muted-foreground text-xs mb-0.5">Address</div>
-                                <div className="font-medium">{guest.address}</div>
-                              </div>
-                            </div>
-                          )}
-                          {guest.city && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <Home className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="text-muted-foreground text-xs mb-0.5">City</div>
-                                <div className="font-medium">{guest.city}</div>
-                              </div>
-                            </div>
-                          )}
-                          {guest.state && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="text-muted-foreground text-xs mb-0.5">State</div>
-                                <div className="font-medium">{guest.state}</div>
-                              </div>
-                            </div>
-                          )}
-                          {guest.country && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div className="text-muted-foreground text-xs mb-0.5">Country</div>
-                                <div className="font-medium">{guest.country}</div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Information Note */}
-              {additionalGuestsInfo.length === 0 && totalGuests > 1 && (
-                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-4">
-                  <div className="text-xs text-amber-800 dark:text-amber-200">
-                    <div className="font-semibold mb-1">📋 Multi-Guest Information</div>
-                    <div>
-                      This booking includes {totalGuests} total guest{totalGuests !== 1 ? 's' : ''} across {groupedReservations.length} room{groupedReservations.length !== 1 ? 's' : ''}.
-                      The primary guest shown above is the main contact for this reservation.
-                      <div className="mt-1">
-                        Additional guest details are not available because the reservation was created before the multi-guest enhancement. To see individual guest details, please run the database migration at: <code className="text-xs bg-amber-100 dark:bg-amber-900 px-1 rounded">database/migrations/add_additional_guests_support.sql</code>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <GuestDetailsTab
+            groupedReservations={groupedReservations}
+            guests={guests}
+            getRoomInfo={getRoomInfo}
+          />
         </TabsContent>
 
         <TabsContent value="notes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Special Requests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {primaryReservation.special_requests ? (
-                <p className="text-foreground">{primaryReservation.special_requests}</p>
-              ) : (
-                <p className="text-muted-foreground italic">No special requests</p>
-              )}
-            </CardContent>
-          </Card>
+          <NotesTab reservationId={primaryReservation.id} />
         </TabsContent>
 
         <TabsContent value="activity">
@@ -657,6 +593,22 @@ export default function ReservationDetails({ onNavigate }) {
         </TabsContent>
       </Tabs>
       </div>
+
+      {/* Quick Edit Modal */}
+      <QuickEditModal
+        open={quickEditModalOpen}
+        onOpenChange={setQuickEditModalOpen}
+        reservation={selectedReservationForEdit}
+        onSave={handleSaveSplit}
+      />
+
+      {/* Meal Plan Edit Modal */}
+      <MealPlanEditModal
+        open={mealPlanModalOpen}
+        onOpenChange={setMealPlanModalOpen}
+        reservation={selectedReservationForMealPlan}
+        onSave={handleSaveMealPlan}
+      />
     </div>
   )
 }

@@ -36,6 +36,7 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
     city: '',
     state: '',
     country: 'India',
+    date_of_birth: '',
     guest_type: 'Regular'
   });
 
@@ -43,7 +44,7 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
     setGuestFormData({
       name: '', email: '', phone: '', id_proof_type: 'AADHAR',
       id_proof_number: '', address: '', city: '', state: '',
-      country: 'India', guest_type: 'Regular'
+      country: 'India', date_of_birth: '', guest_type: 'Regular'
     });
     onClose();
   };
@@ -101,6 +102,15 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
               value={guestFormData.email}
               onChange={(e) => setGuestFormData({ ...guestFormData, email: e.target.value })}
               placeholder="john@example.com"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="date_of_birth">Date of Birth</Label>
+            <Input
+              id="date_of_birth"
+              type="date"
+              value={guestFormData.date_of_birth}
+              onChange={(e) => setGuestFormData({ ...guestFormData, date_of_birth: e.target.value })}
             />
           </div>
            <div className="space-y-2">
