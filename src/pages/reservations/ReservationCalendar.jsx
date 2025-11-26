@@ -38,6 +38,9 @@ import { EditBookingModal } from '../../components/reservations/EditBookingModal
 import RoomBlockingModal from '../../components/rooms/RoomBlockingModal';
 import CalendarPrintView from '../../components/reservations/CalendarPrintView';
 import ReservationListPrintView from '../../components/reservations/ReservationListPrintView';
+import ReservationTooltip from '../../components/reservations/ReservationTooltip';
+import QuickEditModal from '../../components/reservations/QuickEditModal';
+import { useAgents } from '../../context/AgentContext';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -99,6 +102,7 @@ const ReservationCalendar = ({ onNavigate }) => {
   const { reservations, updateReservation, cancelReservation, deleteReservation, fetchReservations, checkIn, checkOut } = useReservations();
   const { rooms, roomTypes, blockings } = useRooms();
   const { guests } = useGuests();
+  const { agents } = useAgents();
   const confirm = useConfirm();
   const { success: showSuccess, error: showError } = useAlert();
   const { resetFlow, setFilters, addRoom, assignRoom } = useReservationFlow();
@@ -168,6 +172,10 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [printFormat, setPrintFormat] = useState('calendar'); // 'calendar' | 'list'
   const [printListType, setPrintListType] = useState('all'); // 'all' | 'arrivals' | 'departures' | 'in-house'
   const [showPrintMenu, setShowPrintMenu] = useState(false);
+
+  // QuickEditModal state
+  const [isQuickEditModalOpen, setIsQuickEditModalOpen] = useState(false);
+  const [quickEditReservation, setQuickEditReservation] = useState(null);
 
   const calendarRef = useRef(null);
   const calendarPrintRef = useRef(null);
