@@ -705,7 +705,9 @@ const ReservationCalendar = ({ onNavigate }) => {
     }
   };
 
-  // Render reservation bar
+  // Render reservation bar with partial booking visualization
+  // Check-in: bar starts at midpoint of check-in day (afternoon arrival)
+  // Check-out: bar ends at midpoint of check-out day (morning departure)
   const renderReservationBar = (reservation, roomId) => {
     const checkIn = parseISO(reservation.check_in_date);
     const checkOut = parseISO(reservation.check_out_date);
@@ -722,11 +724,33 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     if (daySpan <= 0) return null;
 
-    const left = startOffset * CELL_WIDTH;
-    const width = daySpan * CELL_WIDTH - 4; // -4 for margin
-
     const extendsLeft = checkIn < rangeStart;
     const extendsRight = checkOut > rangeEnd;
+
+    // Partial booking positioning logic:
+    // - Check-in visible: start at midpoint of check-in day (afternoon arrival)
+    // - Check-out visible: end at midpoint of check-out day (morning departure)
+    // This allows two reservations to share a date visually (one ending, one starting)
+
+    let barStart;
+    if (extendsLeft) {
+      barStart = 0;
+    } else {
+      // Start at midpoint of check-in day
+      barStart = startOffset * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    let barEnd;
+    if (extendsRight) {
+      barEnd = viewDays * CELL_WIDTH;
+    } else {
+      // End at midpoint of check-out day
+      // checkout day offset = startOffset + daySpan
+      barEnd = (startOffset + daySpan) * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    const left = barStart + 2; // +2 for margin
+    const width = barEnd - barStart - 4; // -4 for margin
 
     const guest = guests.find(g => g.id === reservation.guest_id);
     const guestName = guest?.name || 'Unknown Guest';
