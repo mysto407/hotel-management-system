@@ -163,44 +163,16 @@ export default function ReservationTooltip({
     return reservation.booking_source || 'Walk-in'
   }
 
-  // Calculate arrow position (centered on reservation bar)
-  const arrowLeft = targetRect ? Math.max(20, Math.min(targetRect.left + targetRect.width / 2 - tooltipPosition.left, TOOLTIP_WIDTH - 20)) : TOOLTIP_WIDTH / 2
-
-  // Arrow size is 12px (w-3 h-3), rotated 45deg makes it ~8.5px point-to-point
-  // Position arrow so it overlaps tooltip edge by half to eliminate gap
-  const arrowOffset = 4 // Half of arrow's visible height after rotation
-
   return (
-    <>
-      {/* Arrow indicator - rendered outside main container to avoid clipping */}
-      <div
-        className="fixed z-[51] pointer-events-none"
-        style={{
-          left: tooltipPosition.left + arrowLeft - 6,
-          top: tooltipPosition.showAbove
-            ? tooltipPosition.top + tooltipPosition.actualHeight - arrowOffset
-            : tooltipPosition.top - arrowOffset - 4
-        }}
-      >
-        <div
-          className={cn(
-            "w-3 h-3 bg-card border rotate-45",
-            tooltipPosition.showAbove
-              ? "border-t-0 border-l-0 shadow-[2px_2px_2px_rgba(0,0,0,0.05)]"
-              : "border-b-0 border-r-0 shadow-[-1px_-1px_2px_rgba(0,0,0,0.05)]"
-          )}
-        />
-      </div>
-
-      <div
-        ref={tooltipRef}
-        className="action-menu fixed z-50 bg-card border rounded-xl shadow-2xl overflow-hidden"
-        style={{
-          left: tooltipPosition.left,
-          top: tooltipPosition.top,
-          width: `${TOOLTIP_WIDTH}px`
-        }}
-      >
+    <div
+      ref={tooltipRef}
+      className="action-menu fixed z-50 bg-card border rounded-xl shadow-2xl overflow-hidden"
+      style={{
+        left: tooltipPosition.left,
+        top: tooltipPosition.top,
+        width: `${TOOLTIP_WIDTH}px`
+      }}
+    >
       {/* Header Section */}
       <div className="bg-muted/50 px-4 py-3 border-b">
         <div className="flex items-start justify-between gap-2">
@@ -420,7 +392,6 @@ export default function ReservationTooltip({
           </Tabs>
         </div>
       </div>
-      </div>
-    </>
+    </div>
   )
 }
