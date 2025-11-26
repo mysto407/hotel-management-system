@@ -1,5 +1,6 @@
 // src/pages/reservations/ReservationCalendar.jsx
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useReactToPrint } from 'react-to-print';
 import {
   ChevronLeft,
   ChevronRight,
@@ -24,7 +25,8 @@ import {
   ArrowLeftRight,
   LayoutGrid,
   List,
-  Wrench
+  Wrench,
+  Printer
 } from 'lucide-react';
 import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
@@ -34,6 +36,8 @@ import { useConfirm, useAlert } from '@/context/AlertContext';
 import { useReservationFlow } from '../../context/ReservationFlowContext';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomBlockingModal from '../../components/rooms/RoomBlockingModal';
+import CalendarPrintView from '../../components/reservations/CalendarPrintView';
+import ReservationListPrintView from '../../components/reservations/ReservationListPrintView';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -153,7 +157,40 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [blockingModalEndDate, setBlockingModalEndDate] = useState(null);
   const [editingBlocking, setEditingBlocking] = useState(null);
 
+  // Print state
+  const [printFormat, setPrintFormat] = useState('calendar'); // 'calendar' | 'list'
+  const [printListType, setPrintListType] = useState('all'); // 'all' | 'arrivals' | 'departures' | 'in-house'
+  const [showPrintMenu, setShowPrintMenu] = useState(false);
+
   const calendarRef = useRef(null);
+  const calendarPrintRef = useRef(null);
+  const listPrintRef = useRef(null);
+
+  // Print handlers
+  const handlePrintCalendar = useReactToPrint({
+    contentRef: calendarPrintRef,
+    documentTitle: `Calendar_${format(startDate, 'yyyy-MM-dd')}`
+  });
+
+  const handlePrintList = useReactToPrint({
+    contentRef: listPrintRef,
+    documentTitle: `Reservations_${printListType}_${format(startDate, 'yyyy-MM-dd')}`
+  });
+
+  const handlePrint = (format, listType = 'all') => {
+    setPrintFormat(format);
+    setPrintListType(listType);
+    setShowPrintMenu(false);
+
+    // Small delay to ensure state is updated before printing
+    setTimeout(() => {
+      if (format === 'calendar') {
+        handlePrintCalendar();
+      } else {
+        handlePrintList();
+      }
+    }, 100);
+  };
 
   // Generate date range for the calendar
   const dateRange = useMemo(() => {
@@ -1505,6 +1542,42 @@ const ReservationCalendar = ({ onNavigate }) => {
                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
               )}
             </Button>
+
+            {/* Print Dropdown */}
+            <DropdownMenu open={showPrintMenu} onOpenChange={setShowPrintMenu}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Printer className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Print / Export</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handlePrint('calendar')}>
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Calendar View
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">List Reports</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handlePrint('list', 'all')}>
+                  <List className="h-4 w-4 mr-2" />
+                  All Reservations
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePrint('list', 'arrivals')}>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Arrivals
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePrint('list', 'departures')}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Departures
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePrint('list', 'in-house')}>
+                  <Users className="h-4 w-4 mr-2" />
+                  In-House Guests
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               variant="outline"
               size="icon"
@@ -2047,6 +2120,31 @@ const ReservationCalendar = ({ onNavigate }) => {
         initialEndDate={blockingModalEndDate}
         editingBlocking={editingBlocking}
       />
+
+      {/* Hidden Print Views */}
+      <div className="hidden">
+        <CalendarPrintView
+          ref={calendarPrintRef}
+          startDate={startDate}
+          viewDays={viewDays}
+          rooms={rooms}
+          roomTypes={roomTypes}
+          reservations={reservations}
+          blockings={blockings}
+          guests={guests}
+        />
+        <ReservationListPrintView
+          ref={listPrintRef}
+          startDate={startDate}
+          viewDays={viewDays}
+          rooms={rooms}
+          roomTypes={roomTypes}
+          reservations={reservations}
+          guests={guests}
+          statusFilter={statusFilter}
+          listType={printListType}
+        />
+      </div>
     </div>
   );
 };
