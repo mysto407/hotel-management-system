@@ -10,8 +10,6 @@ import {
   ChevronUp,
   Lock,
   Plus,
-  Edit2,
-  Trash2,
   X,
   Ban,
   Users,
@@ -1317,6 +1315,57 @@ const ReservationCalendar = ({ onNavigate }) => {
     }
   };
 
+  // Navigate to reservation details page
+  const handleNavigateToDetails = () => {
+    if (!selectedReservation) return;
+    closeActionMenu();
+    if (onNavigate) {
+      onNavigate('reservation-details', { reservationId: selectedReservation.id });
+    }
+  };
+
+  // Open QuickEdit modal
+  const handleOpenQuickEdit = () => {
+    if (!selectedReservation) return;
+    setQuickEditReservation(selectedReservation);
+    setIsQuickEditModalOpen(true);
+    closeActionMenu();
+  };
+
+  // Handle QuickEdit save
+  const handleQuickEditSave = async (splitData) => {
+    try {
+      // The QuickEditModal returns split data with nights array
+      // For now, we just update the reservation dates based on the booked nights
+      if (splitData && splitData.nights && splitData.nights.length > 0) {
+        const sortedNights = [...splitData.nights].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const newCheckIn = format(new Date(sortedNights[0].date), 'yyyy-MM-dd');
+        const lastDate = new Date(sortedNights[sortedNights.length - 1].date);
+        lastDate.setDate(lastDate.getDate() + 1);
+        const newCheckOut = format(lastDate, 'yyyy-MM-dd');
+        const newRoomId = sortedNights[0].roomId;
+
+        await updateReservation(splitData.originalReservationId, {
+          check_in_date: newCheckIn,
+          check_out_date: newCheckOut,
+          room_id: newRoomId,
+          total_amount: splitData.totals.total
+        });
+
+        showSuccess('Reservation updated successfully');
+      }
+      setIsQuickEditModalOpen(false);
+      setQuickEditReservation(null);
+    } catch (error) {
+      showError('Failed to update reservation: ' + error.message);
+    }
+  };
+
+  // Handle unassign room (placeholder for future implementation)
+  const handleUnassignRoom = () => {
+    showError('Unassign room feature coming soon');
+  };
+
   // Render reservation bar with partial booking visualization
   // Check-in: bar starts at midpoint of check-in day (afternoon arrival)
   // Check-out: bar ends at midpoint of check-out day (morning departure)
@@ -2248,137 +2297,34 @@ const ReservationCalendar = ({ onNavigate }) => {
             </>
           )}
 
-          {actionMenuType === 'reservation' && selectedReservation && (
-            <>
-              <div className="px-2 py-1.5 border-b mb-1">
-                <p className="text-sm font-semibold">
-                  {guests.find(g => g.id === selectedReservation.guest_id)?.name || 'Guest'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {format(parseISO(selectedReservation.check_in_date), 'MMM d')} - {format(parseISO(selectedReservation.check_out_date), 'MMM d')}
-                </p>
-                <Badge className={cn("text-xs mt-1", STATUS_COLORS[selectedReservation.status])}>
-                  {selectedReservation.status}
-                </Badge>
-                {relatedReservations.length > 0 && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    <Users className="h-3 w-3 inline mr-1" />
-                    Group booking ({relatedReservations.length + 1} rooms)
-                  </p>
-                )}
-              </div>
-
-              {relatedReservations.length > 0 ? (
-                <>
-                  <div className="text-xs text-muted-foreground px-2 py-1">Edit</div>
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
-                    onClick={() => handleEditReservation(true)}
-                  >
-                    <Users className="h-4 w-4 text-blue-500" />
-                    Edit All ({relatedReservations.length + 1})
-                  </button>
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
-                    onClick={() => handleEditReservation(false)}
-                  >
-                    <Edit2 className="h-4 w-4 text-blue-500" />
-                    Edit Single
-                  </button>
-                  <div className="border-t my-1" />
-                  <div className="text-xs text-muted-foreground px-2 py-1">Cancel</div>
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-orange-600"
-                    onClick={() => handleCancelReservation(true)}
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel All ({relatedReservations.length + 1})
-                  </button>
-                  <div className="border-t my-1" />
-                  <div className="text-xs text-muted-foreground px-2 py-1">Delete</div>
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-red-600"
-                    onClick={() => handleDeleteReservation(true)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete All ({relatedReservations.length + 1})
-                  </button>
-                </>
-              ) : (
-                <>
-                  {/* Quick Check-in/Check-out actions */}
-                  {selectedReservation.status === 'Confirmed' && parseISO(selectedReservation.check_in_date) <= startOfDay(new Date()) && (
-                    <button
-                      className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-green-600"
-                      onClick={handleQuickCheckIn}
-                    >
-                      <LogIn className="h-4 w-4" />
-                      Check-in Now
-                    </button>
-                  )}
-                  {selectedReservation.status === 'Checked-in' && (
-                    <button
-                      className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-blue-600"
-                      onClick={handleQuickCheckOut}
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Check-out Now
-                    </button>
-                  )}
-                  {(selectedReservation.status === 'Confirmed' || selectedReservation.status === 'Checked-in') && (
-                    <div className="border-t my-1" />
-                  )}
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
-                    onClick={() => handleEditReservation(false)}
-                  >
-                    <Edit2 className="h-4 w-4 text-blue-500" />
-                    Edit Reservation
-                  </button>
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
-                    onClick={() => handleStartResizeMode(selectedReservation)}
-                  >
-                    <ArrowLeftRight className="h-4 w-4 text-cyan-500 rotate-90" />
-                    Resize Dates
-                  </button>
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
-                    onClick={() => handleStartSwap(selectedReservation)}
-                  >
-                    <ArrowLeftRight className="h-4 w-4 text-purple-500" />
-                    Swap Room
-                  </button>
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-orange-600"
-                    onClick={() => handleCancelReservation(false)}
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel Reservation
-                  </button>
-                  <div className="border-t my-1" />
-                  <button
-                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-red-600"
-                    onClick={() => handleDeleteReservation(false)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Permanently
-                  </button>
-                </>
-              )}
-
-              <div className="border-t mt-1 pt-1">
-                <button
-                  className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-muted-foreground"
-                  onClick={closeActionMenu}
-                >
-                  <X className="h-4 w-4" />
-                  Close
-                </button>
-              </div>
-            </>
-          )}
         </div>
+      )}
+
+      {/* Reservation Tooltip */}
+      {actionMenuType === 'reservation' && selectedReservation && actionMenuPosition && (
+        <ReservationTooltip
+          reservation={selectedReservation}
+          guest={guests.find(g => g.id === selectedReservation.guest_id)}
+          room={rooms.find(r => r.id === selectedReservation.room_id)}
+          agent={agents.find(a => a.id === selectedReservation.agent_id)}
+          relatedReservations={relatedReservations}
+          position={actionMenuPosition}
+          onClose={closeActionMenu}
+          onNavigateToDetails={handleNavigateToDetails}
+          onQuickEdit={handleOpenQuickEdit}
+          onResize={() => {
+            handleStartResizeMode(selectedReservation);
+            closeActionMenu();
+          }}
+          onSwapRoom={() => {
+            handleStartSwap(selectedReservation);
+            closeActionMenu();
+          }}
+          onCancel={() => handleCancelReservation(false)}
+          onCheckIn={handleQuickCheckIn}
+          onCheckOut={handleQuickCheckOut}
+          onUnassignRoom={handleUnassignRoom}
+        />
       )}
 
       {/* Modals */}
@@ -2404,6 +2350,14 @@ const ReservationCalendar = ({ onNavigate }) => {
         initialStartDate={blockingModalStartDate}
         initialEndDate={blockingModalEndDate}
         editingBlocking={editingBlocking}
+      />
+
+      {/* Quick Edit Modal */}
+      <QuickEditModal
+        open={isQuickEditModalOpen}
+        onOpenChange={setIsQuickEditModalOpen}
+        reservation={quickEditReservation}
+        onSave={handleQuickEditSave}
       />
 
       {/* Hidden Print Views */}
