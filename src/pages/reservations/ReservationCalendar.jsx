@@ -97,7 +97,6 @@ const ReservationCalendar = ({ onNavigate }) => {
 
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
-  const [selectedCellKeys, setSelectedCellKeys] = useState(new Set());
 
   // Use refs for drag state to avoid async state issues and throttling
   const dragStateRef = useRef({
@@ -257,12 +256,11 @@ const ReservationCalendar = ({ onNavigate }) => {
     }));
   };
 
-  // Optimized selection calculation - returns both cells array and keys Set
+  // Optimized selection calculation - returns cells array
   const calculateSelectedCells = useCallback((startCell, endCell) => {
-    if (!startCell || !endCell) return { cells: [], keys: new Set() };
+    if (!startCell || !endCell) return { cells: [] };
 
     const cells = [];
-    const keys = new Set();
     const startDateObj = startCell.date;
     const endDateObj = endCell.date;
 
@@ -287,14 +285,13 @@ const ReservationCalendar = ({ onNavigate }) => {
           // Use pre-computed map - if key exists, cell is occupied
           if (!cellAvailabilityMap.has(key)) {
             cells.push({ roomId, date: new Date(currentDate), dateStr });
-            keys.add(key);
           }
         }
       }
       currentDate = addDays(currentDate, 1);
     }
 
-    return { cells, keys };
+    return { cells };
   }, [selectableRoomIds, cellAvailabilityMap]);
 
   // Selection handlers using refs for immediate state access
@@ -318,7 +315,6 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     // Set initial selection
     setSelectedCells([cell]);
-    setSelectedCellKeys(new Set([key]));
   }, [isCellAvailableFast]);
 
   const handleCellMouseEnter = useCallback((roomId, date) => {
@@ -335,9 +331,8 @@ const ReservationCalendar = ({ onNavigate }) => {
     dragStateRef.current.currentCell = { roomId, date, dateStr };
 
     // Calculate and update selected cells
-    const { cells, keys } = calculateSelectedCells(startCell, { roomId, date, dateStr });
+    const { cells } = calculateSelectedCells(startCell, { roomId, date, dateStr });
     setSelectedCells(cells);
-    setSelectedCellKeys(keys);
   }, [calculateSelectedCells]);
 
   const handleCellMouseUp = useCallback((e) => {
@@ -424,7 +419,6 @@ const ReservationCalendar = ({ onNavigate }) => {
     setSelectedReservation(null);
     setRelatedReservations([]);
     setSelectedCells([]);
-    setSelectedCellKeys(new Set());
   };
 
   // Click outside to close action menu
