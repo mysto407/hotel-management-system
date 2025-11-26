@@ -110,6 +110,9 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [draggedReservation, setDraggedReservation] = useState(null);
   const [dragOverCell, setDragOverCell] = useState(null); // { roomId, date }
 
+  // Resize state for extending/shortening reservations
+  const [resizeState, setResizeState] = useState(null); // { reservation, edge: 'left'|'right', startX, originalDate }
+
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
 
@@ -384,6 +387,103 @@ const ReservationCalendar = ({ onNavigate }) => {
     setDraggedReservation(null);
     setDragOverCell(null);
   }, [draggedReservation, canMoveReservation, guests, rooms, confirm, updateReservation, showSuccess, showError]);
+
+  // Resize handlers for extending/shortening reservations
+  const handleResizeStart = useCallback((e, reservation, edge) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const originalDate = edge === 'left'
+      ? parseISO(reservation.check_in_date)
+      : parseISO(reservation.check_out_date);
+
+    setResizeState({
+      reservation,
+      edge,
+      startX: e.clientX,
+      originalDate,
+      currentDate: originalDate
+    });
+  }, []);
+
+  // Check if a resize is valid (no conflicts, minimum 1 night)
+  const canResize = useCallback((reservation, edge, newDate) => {
+    const checkIn = edge === 'left' ? newDate : parseISO(reservation.check_in_date);
+    const checkOut = edge === 'right' ? newDate : parseISO(reservation.check_out_date);
+
+    // Minimum 1 night
+    if (differenceInDays(checkOut, checkIn) < 1) {
+      return false;
+    }
+
+    // Check for overlapping reservations
+    const hasConflict = reservations.some(res => {
+      if (res.id === reservation.id) return false;
+      if (res.room_id !== reservation.room_id) return false;
+      if (res.status === 'Cancelled' || res.status === 'Checked-out') return false;
+
+      const resStart = parseISO(res.check_in_date);
+      const resEnd = parseISO(res.check_out_date);
+
+      return checkIn < resEnd && checkOut > resStart;
+    });
+
+    return !hasConflict;
+  }, [reservations]);
+
+  // Handle mouse move during resize
+  useEffect(() => {
+    if (!resizeState) return;
+
+    const handleMouseMove = (e) => {
+      const deltaX = e.clientX - resizeState.startX;
+      const daysDelta = Math.round(deltaX / CELL_WIDTH);
+
+      if (daysDelta === 0) return;
+
+      const newDate = addDays(resizeState.originalDate, daysDelta);
+
+      setResizeState(prev => ({
+        ...prev,
+        currentDate: newDate,
+        isValid: canResize(prev.reservation, prev.edge, newDate)
+      }));
+    };
+
+    const handleMouseUp = async () => {
+      if (!resizeState.currentDate || resizeState.currentDate.getTime() === resizeState.originalDate.getTime()) {
+        setResizeState(null);
+        return;
+      }
+
+      const isValid = canResize(resizeState.reservation, resizeState.edge, resizeState.currentDate);
+
+      if (!isValid) {
+        showError('Cannot resize - minimum 1 night required or there is a conflict');
+        setResizeState(null);
+        return;
+      }
+
+      const updateData = resizeState.edge === 'left'
+        ? { check_in_date: format(resizeState.currentDate, 'yyyy-MM-dd') }
+        : { check_out_date: format(resizeState.currentDate, 'yyyy-MM-dd') };
+
+      await updateReservation(resizeState.reservation.id, updateData);
+
+      const guest = guests.find(g => g.id === resizeState.reservation.guest_id);
+      showSuccess(`Updated ${guest?.name || 'reservation'} dates`);
+
+      setResizeState(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizeState, canResize, updateReservation, guests, showSuccess, showError]);
 
   // Navigation handlers
   const goToPreviousWeek = () => setStartDate(prev => addDays(prev, -7));
@@ -1314,6 +1414,8 @@ const ReservationCalendar = ({ onNavigate }) => {
                       <div className="relative flex" style={{ height: 40 }}>
                         {dateRange.map((date, idx) => {
                           const available = isCellAvailableFast(room.id, date);
+                          const isDragOver = dragOverCell?.roomId === room.id &&
+                            dragOverCell?.date?.getTime() === date.getTime();
 
                           return (
                             <div
@@ -1323,14 +1425,20 @@ const ReservationCalendar = ({ onNavigate }) => {
                                 isToday(date) && "bg-blue-50/30 dark:bg-blue-950/30",
                                 isWeekend(date) && "bg-muted/20",
                                 available && !isBlocked && "cursor-pointer",
-                                isBlocked && "bg-red-50/50 dark:bg-red-950/20 cursor-not-allowed"
+                                isBlocked && "bg-red-50/50 dark:bg-red-950/20 cursor-not-allowed",
+                                // Drag-over visual feedback
+                                isDragOver && dragOverCell?.canDrop && "bg-green-200 dark:bg-green-900/50",
+                                isDragOver && !dragOverCell?.canDrop && "bg-red-200 dark:bg-red-900/50"
                               )}
                               style={{ width: CELL_WIDTH, height: '100%' }}
                               onMouseDown={(e) => handleCellMouseDown(room.id, date, e)}
                               onMouseEnter={() => handleCellMouseEnter(room.id, date)}
+                              onDragOver={(e) => handleCellDragOver(e, room.id, date)}
+                              onDragLeave={handleCellDragLeave}
+                              onDrop={(e) => handleCellDrop(e, room.id, date)}
                             >
                               {/* Partial hover indicator - shows right half (afternoon check-in) */}
-                              {available && !isBlocked && (
+                              {available && !isBlocked && !draggedReservation && (
                                 <div
                                   className="absolute top-0 right-0 h-full w-1/2 bg-accent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                                 />
