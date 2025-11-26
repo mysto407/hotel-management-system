@@ -32,6 +32,7 @@ import { useGuests } from '../../context/GuestContext';
 import { useConfirm, useAlert } from '@/context/AlertContext';
 import { useReservationFlow } from '../../context/ReservationFlowContext';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
+import RoomBlockingModal from '../../components/rooms/RoomBlockingModal';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components

@@ -528,6 +528,7 @@ export const RoomProvider = ({ children }) => {
       roomTypes,
       rooms,
       rateTypes,
+      blockings,
       loading,
       addRoomType,
       updateRoomType,
@@ -554,7 +555,14 @@ export const RoomProvider = ({ children }) => {
       getRateTypesByRoomType,
       getActiveRateTypesByRoomType,
       getDefaultRateTypeByRoomType,
-      getRateTypeById
+      getRateTypeById,
+      // Room blocking operations
+      addBlocking,
+      updateBlocking,
+      removeBlocking,
+      fetchBlockings: loadBlockings,
+      getBlockingsForRoom,
+      getBlockingsInRange
     }}>
       {children}
     </RoomContext.Provider>
