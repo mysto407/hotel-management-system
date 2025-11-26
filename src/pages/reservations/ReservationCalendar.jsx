@@ -611,6 +611,7 @@ const ReservationCalendar = ({ onNavigate }) => {
 
       if (!isValid) {
         showError('Cannot resize - minimum 1 night required or there is a conflict');
+        setResizeModeReservation(null);
         setResizeState(null);
         setResizePreview(null);
         return;
@@ -654,6 +655,8 @@ const ReservationCalendar = ({ onNavigate }) => {
         showSuccess(`Updated ${guestName}: ${format(newCheckIn, 'MMM d')} - ${format(newCheckOut, 'MMM d')} (${newNights} nights)`);
       }
 
+      // Clear all resize state
+      setResizeModeReservation(null);
       setResizeState(null);
       setResizePreview(null);
     };
@@ -666,6 +669,7 @@ const ReservationCalendar = ({ onNavigate }) => {
         if (animationFrameId) {
           cancelAnimationFrame(animationFrameId);
         }
+        setResizeModeReservation(null);
         setResizeState(null);
         setResizePreview(null);
       }
