@@ -750,10 +750,8 @@ const ReservationCalendar = ({ onNavigate }) => {
           <TooltipTrigger asChild>
             <div
               className={cn(
-                "absolute top-1 h-8 rounded-md cursor-pointer flex items-center px-2 text-white text-xs font-medium shadow-sm transition-all z-10",
-                STATUS_COLORS[reservation.status] || 'bg-gray-500',
-                extendsLeft && "rounded-l-none",
-                extendsRight && "rounded-r-none"
+                "absolute top-1 h-8 cursor-pointer flex items-center px-2 text-white text-xs font-medium shadow-sm transition-all z-10",
+                STATUS_COLORS[reservation.status] || 'bg-gray-500'
               )}
               style={{
                 left: `${left + 2}px`,
@@ -843,11 +841,7 @@ const ReservationCalendar = ({ onNavigate }) => {
     return (
       <div
         key={`selection-${roomId}`}
-        className={cn(
-          "absolute top-1 h-8 rounded-md flex items-center justify-center text-blue-800 dark:text-blue-200 text-xs font-medium border-2 border-blue-500 border-dashed bg-blue-100/80 dark:bg-blue-900/50 z-20 pointer-events-none",
-          extendsLeft && "rounded-l-none",
-          extendsRight && "rounded-r-none"
-        )}
+        className="absolute top-1 h-8 flex items-center justify-center text-blue-800 dark:text-blue-200 text-xs font-medium border-2 border-blue-500 border-dashed bg-blue-100/80 dark:bg-blue-900/50 z-20 pointer-events-none"
         style={{
           left: `${left}px`,
           width: `${width}px`,
