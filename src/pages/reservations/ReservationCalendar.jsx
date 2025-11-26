@@ -946,6 +946,15 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     const rect = e.currentTarget.getBoundingClientRect();
     setActionMenuPosition({ x: rect.left + rect.width / 2, y: rect.bottom + 5 });
+    // Store the full bounding rect for the tooltip positioning
+    setSelectedReservationRect({
+      top: rect.top,
+      bottom: rect.bottom,
+      left: rect.left,
+      right: rect.right,
+      width: rect.width,
+      height: rect.height
+    });
     setActionMenuType('reservation');
   };
 
@@ -990,6 +999,7 @@ const ReservationCalendar = ({ onNavigate }) => {
     setSelectedReservation(null);
     setRelatedReservations([]);
     setSelectedCells([]);
+    setSelectedReservationRect(null);
   };
 
   // Click outside to close action menu
@@ -2302,14 +2312,15 @@ const ReservationCalendar = ({ onNavigate }) => {
       )}
 
       {/* Reservation Tooltip */}
-      {actionMenuType === 'reservation' && selectedReservation && actionMenuPosition && (
+      {actionMenuType === 'reservation' && selectedReservation && selectedReservationRect && (
         <ReservationTooltip
           reservation={selectedReservation}
           guest={guests.find(g => g.id === selectedReservation.guest_id)}
           room={rooms.find(r => r.id === selectedReservation.room_id)}
           agent={agents.find(a => a.id === selectedReservation.agent_id)}
           relatedReservations={relatedReservations}
-          position={actionMenuPosition}
+          targetRect={selectedReservationRect}
+          containerRef={calendarRef}
           onClose={closeActionMenu}
           onNavigateToDetails={handleNavigateToDetails}
           onQuickEdit={handleOpenQuickEdit}
