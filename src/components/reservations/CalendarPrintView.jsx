@@ -64,7 +64,8 @@ const CalendarPrintView = forwardRef(({
   };
 
   // Calculate position for a reservation/blocking bar
-  const calculateBarPosition = (itemStartDate, itemEndDate, isReservation = true) => {
+  // Both use partial day positioning (mid-day start/end) for consistency
+  const calculateBarPosition = (itemStartDate, itemEndDate) => {
     const itemStart = typeof itemStartDate === 'string' ? parseISO(itemStartDate) : itemStartDate;
     const itemEnd = typeof itemEndDate === 'string' ? parseISO(itemEndDate) : itemEndDate;
     const rangeStart = startDate;
@@ -80,24 +81,16 @@ const CalendarPrintView = forwardRef(({
 
     const cellWidth = 100 / viewDays; // percentage per day
 
-    // For reservations, use partial positioning (mid-day)
-    // For blockings, use full cell coverage
-    if (isReservation) {
-      const extendsLeft = itemStart < rangeStart;
-      const extendsRight = itemEnd > rangeEnd;
+    const extendsLeft = itemStart < rangeStart;
+    const extendsRight = itemEnd > rangeEnd;
 
-      let left = extendsLeft ? 0 : (startOffset + 0.5) * cellWidth;
-      let width = extendsRight
-        ? (viewDays * cellWidth) - left
-        : ((startOffset + daySpan + 0.5) * cellWidth) - left;
+    // Use partial day positioning - start at midpoint of start day, end at midpoint of end day
+    let left = extendsLeft ? 0 : (startOffset + 0.5) * cellWidth;
+    let width = extendsRight
+      ? (viewDays * cellWidth) - left
+      : ((startOffset + daySpan + 0.5) * cellWidth) - left;
 
-      return { left: `${left}%`, width: `${width}%` };
-    } else {
-      return {
-        left: `${startOffset * cellWidth}%`,
-        width: `${daySpan * cellWidth}%`
-      };
-    }
+    return { left: `${left}%`, width: `${width}%` };
   };
 
   return (
@@ -154,7 +147,7 @@ const CalendarPrintView = forwardRef(({
                       <div className="relative" style={{ height: '24px' }}>
                         {/* Blocking bars */}
                         {roomBlockings.map(blocking => {
-                          const pos = calculateBarPosition(blocking.start_date, blocking.end_date, false);
+                          const pos = calculateBarPosition(blocking.start_date, blocking.end_date);
                           if (!pos) return null;
                           return (
                             <div
@@ -174,7 +167,7 @@ const CalendarPrintView = forwardRef(({
 
                         {/* Reservation bars */}
                         {roomReservations.map(res => {
-                          const pos = calculateBarPosition(res.check_in_date, res.check_out_date, true);
+                          const pos = calculateBarPosition(res.check_in_date, res.check_out_date);
                           if (!pos) return null;
                           const guest = guests.find(g => g.id === res.guest_id);
                           return (

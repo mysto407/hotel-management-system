@@ -1384,6 +1384,7 @@ const ReservationCalendar = ({ onNavigate }) => {
   }, [selectedCells, startDate, viewDays]);
 
   // Render blocking bar (gray striped bar for maintenance/blocked dates)
+  // Uses same partial day logic as reservations for visual consistency
   const renderBlockingBar = (blocking, roomId) => {
     const blockStart = parseISO(blocking.start_date);
     const blockEnd = parseISO(blocking.end_date);
@@ -1403,9 +1404,24 @@ const ReservationCalendar = ({ onNavigate }) => {
     const extendsLeft = blockStart < rangeStart;
     const extendsRight = blockEnd > rangeEnd;
 
-    // Full cell coverage for blockings (not partial like reservations)
-    const left = startOffset * CELL_WIDTH + 2;
-    const width = daySpan * CELL_WIDTH - 4;
+    // Use same partial day positioning as reservations
+    // Start at midpoint of start day, end at midpoint of end day
+    let barStart;
+    if (extendsLeft) {
+      barStart = 0;
+    } else {
+      barStart = startOffset * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    let barEnd;
+    if (extendsRight) {
+      barEnd = viewDays * CELL_WIDTH;
+    } else {
+      barEnd = (startOffset + daySpan) * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    const left = barStart + 2;
+    const width = barEnd - barStart - 4;
 
     const duration = differenceInDays(blockEnd, blockStart);
 
