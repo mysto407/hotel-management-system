@@ -367,11 +367,6 @@ const ReservationCalendar = ({ onNavigate }) => {
     });
   }, []);
 
-  // Check if cell is selected - O(1) lookup using Set
-  const isCellSelected = useCallback((roomId, dateStr) => {
-    return selectedCellKeys.has(`${roomId}_${dateStr}`);
-  }, [selectedCellKeys]);
-
   // Reservation click handler
   const handleReservationClick = (reservation, e) => {
     e.stopPropagation();
@@ -800,6 +795,75 @@ const ReservationCalendar = ({ onNavigate }) => {
     );
   };
 
+  // Render selection bar with partial booking visualization
+  // Shows the same mid-day split as reservation bars
+  const renderSelectionBar = useCallback((roomId) => {
+    // Get selected cells for this room
+    const roomCells = selectedCells.filter(cell => cell.roomId === roomId);
+    if (roomCells.length === 0) return null;
+
+    // Find min and max dates in selection
+    const dates = roomCells.map(cell => cell.date.getTime());
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+
+    // Calculate check-in (first selected date) and check-out (day after last selected)
+    const checkIn = minDate;
+    const checkOut = addDays(maxDate, 1); // Checkout is day after last night
+
+    const rangeStart = startDate;
+    const rangeEnd = addDays(startDate, viewDays);
+
+    // Calculate visible portion
+    const visibleStart = checkIn < rangeStart ? rangeStart : checkIn;
+    const visibleEnd = checkOut > rangeEnd ? rangeEnd : checkOut;
+
+    const startOffset = differenceInDays(visibleStart, rangeStart);
+    const daySpan = differenceInDays(visibleEnd, visibleStart);
+
+    if (daySpan <= 0) return null;
+
+    const extendsLeft = checkIn < rangeStart;
+    const extendsRight = checkOut > rangeEnd;
+
+    // Use same partial booking positioning as reservation bars
+    let barStart;
+    if (extendsLeft) {
+      barStart = 0;
+    } else {
+      barStart = startOffset * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    let barEnd;
+    if (extendsRight) {
+      barEnd = viewDays * CELL_WIDTH;
+    } else {
+      barEnd = (startOffset + daySpan) * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    const left = barStart + 2;
+    const width = barEnd - barStart - 4;
+
+    const nights = differenceInDays(checkOut, checkIn);
+
+    return (
+      <div
+        key={`selection-${roomId}`}
+        className={cn(
+          "absolute top-1 h-8 rounded-md flex items-center justify-center text-blue-800 dark:text-blue-200 text-xs font-medium border-2 border-blue-500 border-dashed bg-blue-100/80 dark:bg-blue-900/50 z-20 pointer-events-none",
+          extendsLeft && "rounded-l-none",
+          extendsRight && "rounded-r-none"
+        )}
+        style={{
+          left: `${left}px`,
+          width: `${width}px`,
+        }}
+      >
+        {nights} night{nights !== 1 ? 's' : ''}
+      </div>
+    );
+  }, [selectedCells, startDate, viewDays]);
+
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header / Navigation */}
@@ -994,9 +1058,7 @@ const ReservationCalendar = ({ onNavigate }) => {
                       {/* Date Cells Container */}
                       <div className="relative flex" style={{ height: 40 }}>
                         {dateRange.map((date, idx) => {
-                          const dateStr = format(date, 'yyyy-MM-dd');
                           const available = isCellAvailableFast(room.id, date);
-                          const selected = isCellSelected(room.id, dateStr);
 
                           return (
                             <div
@@ -1006,7 +1068,6 @@ const ReservationCalendar = ({ onNavigate }) => {
                                 isToday(date) && "bg-blue-50/30 dark:bg-blue-950/30",
                                 isWeekend(date) && "bg-muted/20",
                                 available && !isBlocked && "cursor-pointer hover:bg-accent",
-                                selected && "bg-blue-200 dark:bg-blue-800",
                                 isBlocked && "bg-red-50/50 dark:bg-red-950/20 cursor-not-allowed"
                               )}
                               style={{ width: CELL_WIDTH, height: '100%' }}
@@ -1018,6 +1079,9 @@ const ReservationCalendar = ({ onNavigate }) => {
 
                         {/* Reservation Bars */}
                         {roomReservations.map(res => renderReservationBar(res, room.id))}
+
+                        {/* Selection Bar (shows partial booking visualization during selection) */}
+                        {renderSelectionBar(room.id)}
                       </div>
                     </div>
                   );
