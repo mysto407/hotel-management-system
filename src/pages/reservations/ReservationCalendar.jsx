@@ -1285,10 +1285,17 @@ const ReservationCalendar = ({ onNavigate }) => {
   // Check-in: bar starts at midpoint of check-in day (afternoon arrival)
   // Check-out: bar ends at midpoint of check-out day (morning departure)
   const renderReservationBar = (reservation, roomId) => {
-    const checkIn = parseISO(reservation.check_in_date);
-    const checkOut = parseISO(reservation.check_out_date);
+    const originalCheckIn = parseISO(reservation.check_in_date);
+    const originalCheckOut = parseISO(reservation.check_out_date);
     const rangeStart = startDate;
     const rangeEnd = addDays(startDate, viewDays);
+
+    // Check if this reservation is being resized
+    const isResizing = resizeState?.reservation?.id === reservation.id;
+
+    // Use preview dates if this reservation is being resized
+    const checkIn = isResizing && resizePreview ? resizePreview.newCheckIn : originalCheckIn;
+    const checkOut = isResizing && resizePreview ? resizePreview.newCheckOut : originalCheckOut;
 
     // Calculate visible portion
     const visibleStart = checkIn < rangeStart ? rangeStart : checkIn;
@@ -1335,12 +1342,16 @@ const ReservationCalendar = ({ onNavigate }) => {
     const matchesFilters = reservationMatchesFilters(reservation);
     const dimmed = hasActiveFilters && !matchesFilters;
 
-    // Check if this reservation is being resized
-    const isResizing = resizeState?.reservation?.id === reservation.id;
     // Check if this is the selected swap reservation
     const isSwapSelected = swapMode?.reservationA?.id === reservation.id;
     // Check if swap mode is active (for other reservations to be clickable targets)
     const isSwapTarget = swapMode && !isSwapSelected;
+
+    // Resize validity and change info
+    const resizeIsValid = isResizing ? resizeState?.isValid : true;
+    const originalNights = differenceInDays(originalCheckOut, originalCheckIn);
+    const currentNights = isResizing && resizePreview ? resizePreview.nights : originalNights;
+    const nightsDelta = isResizing && resizePreview ? resizePreview.daysDelta : 0;
 
     // Handle click - either complete swap or show action menu
     const handleBarClick = (e) => {
@@ -1357,38 +1368,49 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     return (
       <TooltipProvider key={reservation.id}>
-        <Tooltip>
+        <Tooltip open={isResizing ? true : undefined}>
           <TooltipTrigger asChild>
             <div
               draggable={!isResizing && !swapMode}
               onDragStart={(e) => handleReservationDragStart(e, reservation)}
               onDragEnd={handleReservationDragEnd}
               className={cn(
-                "absolute top-1 h-8 cursor-grab flex items-center text-white text-xs font-medium shadow-sm transition-all z-10 group/bar",
+                "absolute top-1 h-8 cursor-grab flex items-center text-white text-xs font-medium shadow-sm z-10 group/bar",
+                // Smooth transition only when not resizing (resizing needs instant updates)
+                !isResizing && "transition-all",
                 STATUS_COLORS[reservation.status] || 'bg-gray-500',
                 dimmed && "opacity-25",
                 "active:cursor-grabbing",
-                isResizing && "ring-2 ring-white ring-opacity-50",
+                // Resize visual feedback
+                isResizing && "ring-2 shadow-lg",
+                isResizing && resizeIsValid && "ring-blue-400",
+                isResizing && !resizeIsValid && "ring-red-400 opacity-60",
                 isSwapSelected && "ring-2 ring-yellow-400 animate-pulse",
                 isSwapTarget && "cursor-pointer ring-2 ring-transparent hover:ring-yellow-400"
               )}
               style={{
                 left: `${left + 2}px`,
-                width: `${width}px`,
+                width: `${Math.max(width, 20)}px`, // Minimum width to prevent collapse
               }}
               onClick={handleBarClick}
             >
-              {/* Left resize handle */}
+              {/* Left resize handle - more prominent on hover */}
               {!extendsLeft && (
                 <div
-                  className="absolute left-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 transition-colors"
+                  className={cn(
+                    "absolute left-0 top-0 w-3 h-full cursor-ew-resize transition-all flex items-center justify-center",
+                    "hover:bg-white/40 group-hover/bar:bg-white/20",
+                    isResizing && resizeState?.edge === 'left' && "bg-white/50"
+                  )}
                   onMouseDown={(e) => handleResizeStart(e, reservation, 'left')}
                   onClick={(e) => e.stopPropagation()}
-                />
+                >
+                  <div className="w-0.5 h-4 bg-white/60 rounded group-hover/bar:bg-white/80" />
+                </div>
               )}
 
               {/* Content */}
-              <div className="flex items-center px-2 flex-1 min-w-0">
+              <div className="flex items-center px-3 flex-1 min-w-0">
                 {extendsLeft && (
                   <ArrowLeftToLine className="h-3 w-3 mr-1 flex-shrink-0" />
                 )}
@@ -1401,26 +1423,65 @@ const ReservationCalendar = ({ onNavigate }) => {
                 )}
               </div>
 
-              {/* Right resize handle */}
+              {/* Right resize handle - more prominent on hover */}
               {!extendsRight && (
                 <div
-                  className="absolute right-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 transition-colors"
+                  className={cn(
+                    "absolute right-0 top-0 w-3 h-full cursor-ew-resize transition-all flex items-center justify-center",
+                    "hover:bg-white/40 group-hover/bar:bg-white/20",
+                    isResizing && resizeState?.edge === 'right' && "bg-white/50"
+                  )}
                   onMouseDown={(e) => handleResizeStart(e, reservation, 'right')}
                   onClick={(e) => e.stopPropagation()}
-                />
+                >
+                  <div className="w-0.5 h-4 bg-white/60 rounded group-hover/bar:bg-white/80" />
+                </div>
+              )}
+
+              {/* Resize indicator badge - shows during resize */}
+              {isResizing && nightsDelta !== 0 && (
+                <div
+                  className={cn(
+                    "absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-lg",
+                    resizeIsValid
+                      ? "bg-blue-600 text-white"
+                      : "bg-red-600 text-white"
+                  )}
+                >
+                  {currentNights} night{currentNights !== 1 ? 's' : ''} ({nightsDelta > 0 ? '+' : ''}{nightsDelta})
+                </div>
               )}
             </div>
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-xs">
             <div className="space-y-1">
               <p className="font-semibold">{guestName}</p>
-              <p className="text-xs">
-                {format(checkIn, 'MMM d')} - {format(checkOut, 'MMM d, yyyy')}
-              </p>
-              <Badge className={cn("text-xs", STATUS_COLORS[reservation.status])}>
-                {reservation.status}
-              </Badge>
-              <p className="text-xs text-muted-foreground">Drag edges to resize</p>
+              {isResizing ? (
+                <>
+                  <p className="text-xs">
+                    <span className="line-through text-muted-foreground">
+                      {format(originalCheckIn, 'MMM d')} - {format(originalCheckOut, 'MMM d')}
+                    </span>
+                  </p>
+                  <p className="text-xs font-medium text-blue-400">
+                    {format(checkIn, 'MMM d')} - {format(checkOut, 'MMM d, yyyy')}
+                  </p>
+                  <p className="text-xs">
+                    {originalNights} → {currentNights} nights
+                    {!resizeIsValid && <span className="text-red-400 ml-1">(Invalid)</span>}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs">
+                    {format(checkIn, 'MMM d')} - {format(checkOut, 'MMM d, yyyy')}
+                  </p>
+                  <Badge className={cn("text-xs", STATUS_COLORS[reservation.status])}>
+                    {reservation.status}
+                  </Badge>
+                  <p className="text-xs text-muted-foreground">Drag edges to resize</p>
+                </>
+              )}
             </div>
           </TooltipContent>
         </Tooltip>
