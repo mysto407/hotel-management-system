@@ -129,6 +129,9 @@ const ReservationCalendar = ({ onNavigate }) => {
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
 
+  // Hover state for partial day highlighting
+  const [hoveredCell, setHoveredCell] = useState(null); // { roomId, date, dateStr }
+
   // Use refs for drag state to avoid async state issues and throttling
   const dragStateRef = useRef({
     isSelecting: false,
@@ -1847,12 +1850,19 @@ const ReservationCalendar = ({ onNavigate }) => {
                           const available = isCellAvailableFast(room.id, date);
                           const isDragOver = dragOverCell?.roomId === room.id &&
                             dragOverCell?.date?.getTime() === date.getTime();
+                          const dateStr = format(date, 'yyyy-MM-dd');
+
+                          // Check if this cell or previous cell is hovered (for partial day highlight)
+                          const isHovered = hoveredCell?.roomId === room.id && hoveredCell?.dateStr === dateStr;
+                          const prevDate = idx > 0 ? dateRange[idx - 1] : null;
+                          const prevDateStr = prevDate ? format(prevDate, 'yyyy-MM-dd') : null;
+                          const isPrevHovered = prevDateStr && hoveredCell?.roomId === room.id && hoveredCell?.dateStr === prevDateStr;
 
                           return (
                             <div
                               key={idx}
                               className={cn(
-                                "flex-shrink-0 border-r relative group",
+                                "flex-shrink-0 border-r relative",
                                 isToday(date) && "bg-blue-50/30 dark:bg-blue-950/30",
                                 isWeekend(date) && "bg-muted/20",
                                 available && !isBlocked && "cursor-pointer",
@@ -1863,15 +1873,31 @@ const ReservationCalendar = ({ onNavigate }) => {
                               )}
                               style={{ width: CELL_WIDTH, height: '100%' }}
                               onMouseDown={(e) => handleCellMouseDown(room.id, date, e)}
-                              onMouseEnter={() => handleCellMouseEnter(room.id, date)}
+                              onMouseEnter={() => {
+                                handleCellMouseEnter(room.id, date);
+                                if (available && !isBlocked && !draggedReservation) {
+                                  setHoveredCell({ roomId: room.id, date, dateStr });
+                                }
+                              }}
+                              onMouseLeave={() => {
+                                if (hoveredCell?.roomId === room.id && hoveredCell?.dateStr === dateStr) {
+                                  setHoveredCell(null);
+                                }
+                              }}
                               onDragOver={(e) => handleCellDragOver(e, room.id, date)}
                               onDragLeave={handleCellDragLeave}
                               onDrop={(e) => handleCellDrop(e, room.id, date)}
                             >
-                              {/* Partial hover indicator - shows right half (afternoon check-in) */}
-                              {available && !isBlocked && !draggedReservation && (
+                              {/* Partial hover indicator - right half (afternoon check-in) on hovered cell */}
+                              {available && !isBlocked && !draggedReservation && isHovered && (
                                 <div
-                                  className="absolute top-0 right-0 h-full w-1/2 bg-accent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                                  className="absolute top-0 right-0 h-full w-1/2 bg-accent opacity-100 transition-opacity pointer-events-none"
+                                />
+                              )}
+                              {/* Partial hover indicator - left half (morning checkout) when previous cell is hovered */}
+                              {!isBlocked && !draggedReservation && isPrevHovered && (
+                                <div
+                                  className="absolute top-0 left-0 h-full w-1/2 bg-accent opacity-100 transition-opacity pointer-events-none"
                                 />
                               )}
                             </div>
