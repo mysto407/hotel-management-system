@@ -20,7 +20,8 @@ import {
   LogOut,
   Search,
   Filter,
-  XCircle
+  XCircle,
+  ArrowLeftRight
 } from 'lucide-react';
 import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
@@ -112,6 +113,9 @@ const ReservationCalendar = ({ onNavigate }) => {
 
   // Resize state for extending/shortening reservations
   const [resizeState, setResizeState] = useState(null); // { reservation, edge: 'left'|'right', startX, originalDate }
+
+  // Room swap state
+  const [swapMode, setSwapMode] = useState(null); // { reservationA: object }
 
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
@@ -484,6 +488,55 @@ const ReservationCalendar = ({ onNavigate }) => {
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [resizeState, canResize, updateReservation, guests, showSuccess, showError]);
+
+  // Room swap handlers
+  const handleStartSwap = useCallback((reservation) => {
+    setSwapMode({ reservationA: reservation });
+    closeActionMenu();
+  }, []);
+
+  const handleCancelSwap = useCallback(() => {
+    setSwapMode(null);
+  }, []);
+
+  const handleCompleteSwap = useCallback(async (reservationB) => {
+    if (!swapMode?.reservationA) return;
+
+    const reservationA = swapMode.reservationA;
+
+    // Don't swap with itself
+    if (reservationA.id === reservationB.id) {
+      setSwapMode(null);
+      return;
+    }
+
+    // Swap the room_ids
+    const guestA = guests.find(g => g.id === reservationA.guest_id);
+    const guestB = guests.find(g => g.id === reservationB.guest_id);
+    const roomA = rooms.find(r => r.id === reservationA.room_id);
+    const roomB = rooms.find(r => r.id === reservationB.room_id);
+
+    // Perform the swap
+    await updateReservation(reservationA.id, { room_id: reservationB.room_id });
+    await updateReservation(reservationB.id, { room_id: reservationA.room_id });
+
+    showSuccess(`Swapped rooms: ${guestA?.name || 'Guest'} (${roomA?.room_number}) ↔ ${guestB?.name || 'Guest'} (${roomB?.room_number})`);
+    setSwapMode(null);
+  }, [swapMode, guests, rooms, updateReservation, showSuccess]);
+
+  // Cancel swap mode with Escape key
+  useEffect(() => {
+    if (!swapMode) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSwapMode(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [swapMode]);
 
   // Navigation handlers
   const goToPreviousWeek = () => setStartDate(prev => addDays(prev, -7));
@@ -1036,35 +1089,79 @@ const ReservationCalendar = ({ onNavigate }) => {
     const matchesFilters = reservationMatchesFilters(reservation);
     const dimmed = hasActiveFilters && !matchesFilters;
 
+    // Check if this reservation is being resized
+    const isResizing = resizeState?.reservation?.id === reservation.id;
+    // Check if this is the selected swap reservation
+    const isSwapSelected = swapMode?.reservationA?.id === reservation.id;
+    // Check if swap mode is active (for other reservations to be clickable targets)
+    const isSwapTarget = swapMode && !isSwapSelected;
+
+    // Handle click - either complete swap or show action menu
+    const handleBarClick = (e) => {
+      if (swapMode) {
+        e.stopPropagation();
+        if (isSwapTarget) {
+          handleCompleteSwap(reservation);
+        }
+        // If clicking the selected one, do nothing (or cancel)
+        return;
+      }
+      handleReservationClick(reservation, e);
+    };
+
     return (
       <TooltipProvider key={reservation.id}>
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              draggable
+              draggable={!isResizing && !swapMode}
               onDragStart={(e) => handleReservationDragStart(e, reservation)}
               onDragEnd={handleReservationDragEnd}
               className={cn(
-                "absolute top-1 h-8 cursor-grab flex items-center px-2 text-white text-xs font-medium shadow-sm transition-all z-10",
+                "absolute top-1 h-8 cursor-grab flex items-center text-white text-xs font-medium shadow-sm transition-all z-10 group/bar",
                 STATUS_COLORS[reservation.status] || 'bg-gray-500',
                 dimmed && "opacity-25",
-                "active:cursor-grabbing"
+                "active:cursor-grabbing",
+                isResizing && "ring-2 ring-white ring-opacity-50",
+                isSwapSelected && "ring-2 ring-yellow-400 animate-pulse",
+                isSwapTarget && "cursor-pointer ring-2 ring-transparent hover:ring-yellow-400"
               )}
               style={{
                 left: `${left + 2}px`,
                 width: `${width}px`,
               }}
-              onClick={(e) => handleReservationClick(reservation, e)}
+              onClick={handleBarClick}
             >
-              {extendsLeft && (
-                <ArrowLeftToLine className="h-3 w-3 mr-1 flex-shrink-0" />
+              {/* Left resize handle */}
+              {!extendsLeft && (
+                <div
+                  className="absolute left-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 transition-colors"
+                  onMouseDown={(e) => handleResizeStart(e, reservation, 'left')}
+                  onClick={(e) => e.stopPropagation()}
+                />
               )}
-              <span className="truncate flex-1">
-                {reservation.status === 'Hold' && <Lock className="h-3 w-3 inline mr-1" />}
-                {guestName}
-              </span>
-              {extendsRight && (
-                <ArrowRightToLine className="h-3 w-3 ml-1 flex-shrink-0" />
+
+              {/* Content */}
+              <div className="flex items-center px-2 flex-1 min-w-0">
+                {extendsLeft && (
+                  <ArrowLeftToLine className="h-3 w-3 mr-1 flex-shrink-0" />
+                )}
+                <span className="truncate flex-1">
+                  {reservation.status === 'Hold' && <Lock className="h-3 w-3 inline mr-1" />}
+                  {guestName}
+                </span>
+                {extendsRight && (
+                  <ArrowRightToLine className="h-3 w-3 ml-1 flex-shrink-0" />
+                )}
+              </div>
+
+              {/* Right resize handle */}
+              {!extendsRight && (
+                <div
+                  className="absolute right-0 top-0 w-2 h-full cursor-ew-resize hover:bg-white/30 transition-colors"
+                  onMouseDown={(e) => handleResizeStart(e, reservation, 'right')}
+                  onClick={(e) => e.stopPropagation()}
+                />
               )}
             </div>
           </TooltipTrigger>
@@ -1077,6 +1174,7 @@ const ReservationCalendar = ({ onNavigate }) => {
               <Badge className={cn("text-xs", STATUS_COLORS[reservation.status])}>
                 {reservation.status}
               </Badge>
+              <p className="text-xs text-muted-foreground">Drag edges to resize</p>
             </div>
           </TooltipContent>
         </Tooltip>
