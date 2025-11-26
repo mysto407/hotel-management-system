@@ -1492,8 +1492,54 @@ const ReservationCalendar = ({ onNavigate }) => {
             })}
           </div>
 
-          {/* Room Type Sections */}
-          {roomTypes.map(roomType => {
+          {/* Overview Mode - Compressed occupancy view */}
+          {viewMode === 'overview' && (
+            <div>
+              {roomTypes.map(roomType => {
+                const typeRooms = rooms.filter(r => r.room_type_id === roomType.id);
+                return (
+                  <div key={roomType.id} className="flex border-b">
+                    {/* Room Type Name */}
+                    <div
+                      className="flex-shrink-0 p-2 border-r flex items-center gap-2 sticky left-0 z-10 bg-card font-medium"
+                      style={{ width: ROOM_COLUMN_WIDTH, height: 36 }}
+                    >
+                      <span className="text-sm">{roomType.name}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {typeRooms.length}
+                      </Badge>
+                    </div>
+                    {/* Occupancy cells */}
+                    {dateRange.map((date, idx) => {
+                      const occupancy = getOccupancyByType(roomType.id, date);
+                      const available = 100 - occupancy;
+                      return (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "flex-shrink-0 border-r flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity",
+                            isToday(date) && "ring-1 ring-inset ring-blue-400",
+                            isWeekend(date) && "bg-muted/20",
+                            available > 50 ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" :
+                            available > 20 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300" :
+                            "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                          )}
+                          style={{ width: CELL_WIDTH, height: 36 }}
+                          onClick={() => switchToDetailedView(date, roomType.id)}
+                          title={`${available}% available - Click to view details`}
+                        >
+                          <span className="text-xs font-medium">{occupancy}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Detailed Mode - Room Type Sections */}
+          {viewMode === 'detailed' && roomTypes.map(roomType => {
             const typeRooms = roomsByType[roomType.id] || [];
             const isCollapsed = collapsedRoomTypes[roomType.id];
 
