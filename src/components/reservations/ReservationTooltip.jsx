@@ -82,13 +82,13 @@ export default function ReservationTooltip({
 
     let top
     if (showAbove) {
-      top = targetRect.top - TOOLTIP_HEIGHT - 8
+      top = targetRect.top - TOOLTIP_HEIGHT - 4 // 4px gap above
     } else {
-      top = targetRect.bottom + 8
+      top = targetRect.bottom + 4 // 4px gap below
     }
 
     // Constrain to viewport
-    top = Math.max(8, Math.min(top, viewportHeight - TOOLTIP_HEIGHT - 8))
+    top = Math.max(4, Math.min(top, viewportHeight - TOOLTIP_HEIGHT - 4))
 
     setTooltipPosition({ top, left, showAbove })
   }, [targetRect])
@@ -158,25 +158,36 @@ export default function ReservationTooltip({
   const arrowLeft = targetRect ? Math.max(20, Math.min(targetRect.left + targetRect.width / 2 - tooltipPosition.left, TOOLTIP_WIDTH - 20)) : TOOLTIP_WIDTH / 2
 
   return (
-    <div
-      ref={tooltipRef}
-      className="action-menu fixed z-50 bg-card border rounded-xl shadow-2xl overflow-hidden"
-      style={{
-        left: tooltipPosition.left,
-        top: tooltipPosition.top,
-        width: `${TOOLTIP_WIDTH}px`
-      }}
-    >
-      {/* Arrow indicator */}
+    <>
+      {/* Arrow indicator - rendered outside main container to avoid clipping */}
       <div
-        className={cn(
-          "absolute w-3 h-3 bg-card border rotate-45",
-          tooltipPosition.showAbove
-            ? "bottom-[-7px] border-t-0 border-l-0"
-            : "top-[-7px] border-b-0 border-r-0"
-        )}
-        style={{ left: arrowLeft - 6 }}
-      />
+        className="fixed z-[51] pointer-events-none"
+        style={{
+          left: tooltipPosition.left + arrowLeft - 6,
+          top: tooltipPosition.showAbove
+            ? tooltipPosition.top + TOOLTIP_HEIGHT - 6
+            : tooltipPosition.top - 6
+        }}
+      >
+        <div
+          className={cn(
+            "w-3 h-3 bg-card border rotate-45 shadow-sm",
+            tooltipPosition.showAbove
+              ? "border-t-0 border-l-0"
+              : "border-b-0 border-r-0"
+          )}
+        />
+      </div>
+
+      <div
+        ref={tooltipRef}
+        className="action-menu fixed z-50 bg-card border rounded-xl shadow-2xl overflow-hidden"
+        style={{
+          left: tooltipPosition.left,
+          top: tooltipPosition.top,
+          width: `${TOOLTIP_WIDTH}px`
+        }}
+      >
       {/* Header Section */}
       <div className="bg-muted/50 px-4 py-3 border-b">
         <div className="flex items-start justify-between gap-2">
@@ -396,6 +407,7 @@ export default function ReservationTooltip({
           </Tabs>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
