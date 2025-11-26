@@ -17,7 +17,10 @@ import {
   ArrowLeftToLine,
   ArrowRightToLine,
   LogIn,
-  LogOut
+  LogOut,
+  Search,
+  Filter,
+  XCircle
 } from 'lucide-react';
 import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
@@ -96,6 +99,16 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [viewDays, setViewDays] = useState(14);
   const [collapsedRoomTypes, setCollapsedRoomTypes] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roomTypeFilter, setRoomTypeFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Drag-and-drop state for moving reservations
+  const [draggedReservation, setDraggedReservation] = useState(null);
+  const [dragOverCell, setDragOverCell] = useState(null); // { roomId, date }
 
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
@@ -232,6 +245,145 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     return typeRooms.length - occupiedRoomIds.size;
   }, [rooms, reservations]);
+
+  // Check if any filters are active
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || roomTypeFilter !== 'all';
+
+  // Check if a reservation matches the current filters
+  const reservationMatchesFilters = useCallback((reservation) => {
+    // Status filter
+    if (statusFilter !== 'all' && reservation.status !== statusFilter) {
+      return false;
+    }
+
+    // Room type filter
+    if (roomTypeFilter !== 'all') {
+      const room = rooms.find(r => r.id === reservation.room_id);
+      if (!room || room.room_type_id !== roomTypeFilter) {
+        return false;
+      }
+    }
+
+    // Search query (guest name)
+    if (searchQuery) {
+      const guest = guests.find(g => g.id === reservation.guest_id);
+      const guestName = guest?.name?.toLowerCase() || '';
+      if (!guestName.includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+    }
+
+    return true;
+  }, [statusFilter, roomTypeFilter, searchQuery, rooms, guests]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setRoomTypeFilter('all');
+  };
+
+  // Check if a reservation can be moved to a specific room/date range
+  const canMoveReservation = useCallback((reservation, targetRoomId, targetStartDate) => {
+    const nights = differenceInDays(parseISO(reservation.check_out_date), parseISO(reservation.check_in_date));
+    const targetEndDate = addDays(targetStartDate, nights);
+
+    // Check if target room exists and is not blocked
+    const targetRoom = rooms.find(r => r.id === targetRoomId);
+    if (!targetRoom || targetRoom.status === 'Maintenance' || targetRoom.status === 'Blocked') {
+      return false;
+    }
+
+    // Check for overlapping reservations (excluding the one being moved)
+    const hasConflict = reservations.some(res => {
+      if (res.id === reservation.id) return false;
+      if (res.room_id !== targetRoomId) return false;
+      if (res.status === 'Cancelled' || res.status === 'Checked-out') return false;
+
+      const resStart = parseISO(res.check_in_date);
+      const resEnd = parseISO(res.check_out_date);
+
+      // Check overlap: starts before other ends AND ends after other starts
+      return targetStartDate < resEnd && targetEndDate > resStart;
+    });
+
+    return !hasConflict;
+  }, [rooms, reservations]);
+
+  // Drag-and-drop handlers for moving reservations
+  const handleReservationDragStart = useCallback((e, reservation) => {
+    e.stopPropagation();
+    setDraggedReservation(reservation);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', reservation.id);
+    // Make the drag image semi-transparent
+    if (e.target) {
+      e.target.style.opacity = '0.5';
+    }
+  }, []);
+
+  const handleReservationDragEnd = useCallback((e) => {
+    if (e.target) {
+      e.target.style.opacity = '1';
+    }
+    setDraggedReservation(null);
+    setDragOverCell(null);
+  }, []);
+
+  const handleCellDragOver = useCallback((e, roomId, date) => {
+    e.preventDefault();
+    if (!draggedReservation) return;
+
+    const canMove = canMoveReservation(draggedReservation, roomId, date);
+    e.dataTransfer.dropEffect = canMove ? 'move' : 'none';
+    setDragOverCell({ roomId, date, canDrop: canMove });
+  }, [draggedReservation, canMoveReservation]);
+
+  const handleCellDragLeave = useCallback(() => {
+    setDragOverCell(null);
+  }, []);
+
+  const handleCellDrop = useCallback(async (e, targetRoomId, targetDate) => {
+    e.preventDefault();
+    if (!draggedReservation) return;
+
+    const canMove = canMoveReservation(draggedReservation, targetRoomId, targetDate);
+    if (!canMove) {
+      showError('Cannot move reservation here - room is blocked or there is a conflict');
+      setDraggedReservation(null);
+      setDragOverCell(null);
+      return;
+    }
+
+    // Calculate the new dates
+    const originalStart = parseISO(draggedReservation.check_in_date);
+    const originalEnd = parseISO(draggedReservation.check_out_date);
+    const nights = differenceInDays(originalEnd, originalStart);
+    const newEndDate = addDays(targetDate, nights);
+
+    const guest = guests.find(g => g.id === draggedReservation.guest_id);
+    const targetRoom = rooms.find(r => r.id === targetRoomId);
+
+    // Confirm the move
+    const confirmed = await confirm({
+      title: 'Move Reservation',
+      message: `Move ${guest?.name || 'Guest'} to Room ${targetRoom?.room_number || 'N/A'}, ${format(targetDate, 'MMM d')} - ${format(newEndDate, 'MMM d')}?`,
+      confirmText: 'Move',
+      variant: 'default'
+    });
+
+    if (confirmed) {
+      await updateReservation(draggedReservation.id, {
+        room_id: targetRoomId,
+        check_in_date: format(targetDate, 'yyyy-MM-dd'),
+        check_out_date: format(newEndDate, 'yyyy-MM-dd')
+      });
+      showSuccess(`Moved ${guest?.name || 'Guest'} to Room ${targetRoom?.room_number}`);
+    }
+
+    setDraggedReservation(null);
+    setDragOverCell(null);
+  }, [draggedReservation, canMoveReservation, guests, rooms, confirm, updateReservation, showSuccess, showError]);
 
   // Navigation handlers
   const goToPreviousWeek = () => setStartDate(prev => addDays(prev, -7));
@@ -780,14 +932,23 @@ const ReservationCalendar = ({ onNavigate }) => {
     const guest = guests.find(g => g.id === reservation.guest_id);
     const guestName = guest?.name || 'Unknown Guest';
 
+    // Check if reservation matches current filters
+    const matchesFilters = reservationMatchesFilters(reservation);
+    const dimmed = hasActiveFilters && !matchesFilters;
+
     return (
       <TooltipProvider key={reservation.id}>
         <Tooltip>
           <TooltipTrigger asChild>
             <div
+              draggable
+              onDragStart={(e) => handleReservationDragStart(e, reservation)}
+              onDragEnd={handleReservationDragEnd}
               className={cn(
-                "absolute top-1 h-8 cursor-pointer flex items-center px-2 text-white text-xs font-medium shadow-sm transition-all z-10",
-                STATUS_COLORS[reservation.status] || 'bg-gray-500'
+                "absolute top-1 h-8 cursor-grab flex items-center px-2 text-white text-xs font-medium shadow-sm transition-all z-10",
+                STATUS_COLORS[reservation.status] || 'bg-gray-500',
+                dimmed && "opacity-25",
+                "active:cursor-grabbing"
               )}
               style={{
                 left: `${left + 2}px`,
@@ -938,6 +1099,17 @@ const ReservationCalendar = ({ onNavigate }) => {
               </SelectContent>
             </Select>
             <Button
+              variant={showFilters || hasActiveFilters ? "default" : "outline"}
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className="relative"
+            >
+              <Filter className="h-4 w-4" />
+              {hasActiveFilters && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+              )}
+            </Button>
+            <Button
               variant="outline"
               size="icon"
               onClick={handleRefresh}
@@ -948,6 +1120,65 @@ const ReservationCalendar = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+
+      {/* Filter Bar */}
+      {showFilters && (
+        <div className="flex-shrink-0 px-4 py-3 border-b bg-muted/30 flex flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search guest name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-48"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="Confirmed">Confirmed</SelectItem>
+              <SelectItem value="Checked-in">Checked-in</SelectItem>
+              <SelectItem value="Hold">Hold</SelectItem>
+              <SelectItem value="Tentative">Tentative</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Room Type Filter */}
+          <Select value={roomTypeFilter} onValueChange={setRoomTypeFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Room Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Room Types</SelectItem>
+              {roomTypes.map(rt => (
+                <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+              <XCircle className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
+
+          {/* Active filter count */}
+          {hasActiveFilters && (
+            <Badge variant="secondary" className="ml-auto">
+              {[searchQuery, statusFilter !== 'all', roomTypeFilter !== 'all'].filter(Boolean).length} filter(s) active
+            </Badge>
+          )}
+        </div>
+      )}
 
       {/* Calendar Grid */}
       <div
@@ -1250,6 +1481,28 @@ const ReservationCalendar = ({ onNavigate }) => {
                 </>
               ) : (
                 <>
+                  {/* Quick Check-in/Check-out actions */}
+                  {selectedReservation.status === 'Confirmed' && parseISO(selectedReservation.check_in_date) <= startOfDay(new Date()) && (
+                    <button
+                      className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-green-600"
+                      onClick={handleQuickCheckIn}
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Check-in Now
+                    </button>
+                  )}
+                  {selectedReservation.status === 'Checked-in' && (
+                    <button
+                      className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-blue-600"
+                      onClick={handleQuickCheckOut}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Check-out Now
+                    </button>
+                  )}
+                  {(selectedReservation.status === 'Confirmed' || selectedReservation.status === 'Checked-in') && (
+                    <div className="border-t my-1" />
+                  )}
                   <button
                     className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
                     onClick={() => handleEditReservation(false)}
