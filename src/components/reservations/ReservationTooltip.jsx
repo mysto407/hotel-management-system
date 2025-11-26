@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { format, parseISO } from 'date-fns'
 import {
   ExternalLink,
@@ -32,14 +32,8 @@ const STATUS_COLORS = {
   'Checked-out': 'bg-gray-400',
 }
 
-const STATUS_BADGE_VARIANTS = {
-  'Confirmed': 'default',
-  'Checked-in': 'default',
-  'Hold': 'secondary',
-  'Tentative': 'secondary',
-  'Cancelled': 'destructive',
-  'Checked-out': 'outline',
-}
+const TOOLTIP_WIDTH = 400
+const TOOLTIP_HEIGHT = 420 // Approximate height
 
 export default function ReservationTooltip({
   reservation,
@@ -47,7 +41,8 @@ export default function ReservationTooltip({
   room,
   agent,
   relatedReservations = [],
-  position,
+  targetRect, // Bounding rect of the reservation bar
+  containerRef, // Ref to the scrollable calendar container
   onClose,
   onNavigateToDetails,
   onQuickEdit,
@@ -61,6 +56,66 @@ export default function ReservationTooltip({
   const { getMasterBill } = useBilling()
   const [activeTab, setActiveTab] = useState('reservation')
   const [billingInfo, setBillingInfo] = useState(null)
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0, showAbove: false })
+  const tooltipRef = useRef(null)
+
+  // Calculate tooltip position based on target rect and available space
+  const calculatePosition = useCallback(() => {
+    if (!targetRect) return
+
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+
+    // Calculate center of the reservation bar
+    const targetCenterX = targetRect.left + targetRect.width / 2
+
+    // Calculate horizontal position (centered on reservation, but constrained to viewport)
+    let left = targetCenterX - TOOLTIP_WIDTH / 2
+    left = Math.max(8, Math.min(left, viewportWidth - TOOLTIP_WIDTH - 8))
+
+    // Calculate if there's more space above or below
+    const spaceAbove = targetRect.top
+    const spaceBelow = viewportHeight - targetRect.bottom
+
+    // Prefer showing below, but show above if not enough space below
+    const showAbove = spaceBelow < TOOLTIP_HEIGHT && spaceAbove > spaceBelow
+
+    let top
+    if (showAbove) {
+      top = targetRect.top - TOOLTIP_HEIGHT - 8
+    } else {
+      top = targetRect.bottom + 8
+    }
+
+    // Constrain to viewport
+    top = Math.max(8, Math.min(top, viewportHeight - TOOLTIP_HEIGHT - 8))
+
+    setTooltipPosition({ top, left, showAbove })
+  }, [targetRect])
+
+  // Update position on mount and when targetRect changes
+  useEffect(() => {
+    calculatePosition()
+  }, [calculatePosition])
+
+  // Update position on scroll
+  useEffect(() => {
+    const container = containerRef?.current
+    if (!container) return
+
+    const handleScroll = () => {
+      // Close tooltip on scroll since the reservation bar moves
+      onClose()
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, true)
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [containerRef, onClose])
 
   // Get billing info for the reservation
   useEffect(() => {
@@ -70,7 +125,7 @@ export default function ReservationTooltip({
     }
   }, [reservation?.id, getMasterBill])
 
-  if (!reservation || !position) return null
+  if (!reservation || !targetRect) return null
 
   const checkInDate = parseISO(reservation.check_in_date)
   const checkOutDate = parseISO(reservation.check_out_date)
@@ -99,15 +154,29 @@ export default function ReservationTooltip({
     return reservation.booking_source || 'Walk-in'
   }
 
+  // Calculate arrow position (centered on reservation bar)
+  const arrowLeft = targetRect ? Math.max(20, Math.min(targetRect.left + targetRect.width / 2 - tooltipPosition.left, TOOLTIP_WIDTH - 20)) : TOOLTIP_WIDTH / 2
+
   return (
     <div
+      ref={tooltipRef}
       className="action-menu fixed z-50 bg-card border rounded-xl shadow-2xl overflow-hidden"
       style={{
-        left: Math.min(position.x - 200, window.innerWidth - 420),
-        top: Math.min(position.y, window.innerHeight - 450),
-        width: '400px'
+        left: tooltipPosition.left,
+        top: tooltipPosition.top,
+        width: `${TOOLTIP_WIDTH}px`
       }}
     >
+      {/* Arrow indicator */}
+      <div
+        className={cn(
+          "absolute w-3 h-3 bg-card border rotate-45",
+          tooltipPosition.showAbove
+            ? "bottom-[-7px] border-t-0 border-l-0"
+            : "top-[-7px] border-b-0 border-r-0"
+        )}
+        style={{ left: arrowLeft - 6 }}
+      />
       {/* Header Section */}
       <div className="bg-muted/50 px-4 py-3 border-b">
         <div className="flex items-start justify-between gap-2">

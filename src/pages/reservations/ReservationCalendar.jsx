@@ -151,6 +151,7 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [actionMenuType, setActionMenuType] = useState(null); // 'empty' or 'reservation'
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [relatedReservations, setRelatedReservations] = useState([]);
+  const [selectedReservationRect, setSelectedReservationRect] = useState(null); // Bounding rect of selected reservation bar
 
   // Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
