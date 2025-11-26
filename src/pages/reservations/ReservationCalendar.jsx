@@ -617,20 +617,30 @@ const ReservationCalendar = ({ onNavigate }) => {
         return;
       }
 
+      // Capture all values BEFORE clearing state (so dialog doesn't affect anything)
+      const capturedReservation = resizeState.reservation;
+      const capturedEdge = resizeState.edge;
+      const capturedNewDate = resizeState.currentDate;
+
       // Calculate the change details for confirmation
-      const checkIn = parseISO(resizeState.reservation.check_in_date);
-      const checkOut = parseISO(resizeState.reservation.check_out_date);
-      const newCheckIn = resizeState.edge === 'left' ? resizeState.currentDate : checkIn;
-      const newCheckOut = resizeState.edge === 'right' ? resizeState.currentDate : checkOut;
+      const checkIn = parseISO(capturedReservation.check_in_date);
+      const checkOut = parseISO(capturedReservation.check_out_date);
+      const newCheckIn = capturedEdge === 'left' ? capturedNewDate : checkIn;
+      const newCheckOut = capturedEdge === 'right' ? capturedNewDate : checkOut;
       const originalNights = differenceInDays(checkOut, checkIn);
       const newNights = differenceInDays(newCheckOut, newCheckIn);
       const nightsDiff = newNights - originalNights;
 
-      const guest = guests.find(g => g.id === resizeState.reservation.guest_id);
+      const guest = guests.find(g => g.id === capturedReservation.guest_id);
       const guestName = guest?.name || 'Guest';
 
+      // Clear resize state BEFORE showing dialog (stops mouse tracking)
+      setResizeModeReservation(null);
+      setResizeState(null);
+      setResizePreview(null);
+
       // Show confirmation dialog
-      const changeDescription = resizeState.edge === 'left'
+      const changeDescription = capturedEdge === 'left'
         ? `Change check-in from ${format(checkIn, 'MMM d')} to ${format(newCheckIn, 'MMM d')}`
         : `Change check-out from ${format(checkOut, 'MMM d')} to ${format(newCheckOut, 'MMM d')}`;
 
@@ -647,18 +657,13 @@ const ReservationCalendar = ({ onNavigate }) => {
       });
 
       if (confirmed) {
-        const updateData = resizeState.edge === 'left'
-          ? { check_in_date: format(resizeState.currentDate, 'yyyy-MM-dd') }
-          : { check_out_date: format(resizeState.currentDate, 'yyyy-MM-dd') };
+        const updateData = capturedEdge === 'left'
+          ? { check_in_date: format(capturedNewDate, 'yyyy-MM-dd') }
+          : { check_out_date: format(capturedNewDate, 'yyyy-MM-dd') };
 
-        await updateReservation(resizeState.reservation.id, updateData);
+        await updateReservation(capturedReservation.id, updateData);
         showSuccess(`Updated ${guestName}: ${format(newCheckIn, 'MMM d')} - ${format(newCheckOut, 'MMM d')} (${newNights} nights)`);
       }
-
-      // Clear all resize state
-      setResizeModeReservation(null);
-      setResizeState(null);
-      setResizePreview(null);
     };
 
     // Handle escape to cancel resize
