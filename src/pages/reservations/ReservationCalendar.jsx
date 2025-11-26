@@ -101,10 +101,14 @@ const ReservationCalendar = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   // Selection state for drag selection
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState(null);
-  const [selectionEnd, setSelectionEnd] = useState(null);
   const [selectedCells, setSelectedCells] = useState([]);
+
+  // Use refs for drag state to avoid async state issues
+  const dragStateRef = useRef({
+    isSelecting: false,
+    startCell: null,
+    currentCell: null
+  });
 
   // Action menu state
   const [actionMenuPosition, setActionMenuPosition] = useState(null);
@@ -155,6 +159,49 @@ const ReservationCalendar = () => {
     });
     return grouped;
   }, [rooms, roomTypes]);
+
+  // Ordered list of selectable rooms (for selection calculations)
+  const selectableRoomIds = useMemo(() => {
+    return rooms
+      .filter(r => r.status !== 'Maintenance' && r.status !== 'Blocked')
+      .map(r => r.id);
+  }, [rooms]);
+
+  // Pre-compute cell availability map for performance
+  const cellAvailabilityMap = useMemo(() => {
+    const map = new Map();
+    const rangeStart = startDate;
+    const rangeEnd = addDays(startDate, viewDays);
+
+    // Build a map of room occupancy by date
+    reservations.forEach(res => {
+      if (res.status === 'Cancelled' || res.status === 'Checked-out') return;
+
+      const checkIn = parseISO(res.check_in_date);
+      const checkOut = parseISO(res.check_out_date);
+
+      // Only process if overlaps with view range
+      if (checkIn >= rangeEnd || checkOut <= rangeStart) return;
+
+      let date = checkIn < rangeStart ? rangeStart : checkIn;
+      while (date < checkOut && date < rangeEnd) {
+        const key = `${res.room_id}_${format(date, 'yyyy-MM-dd')}`;
+        map.set(key, false); // Mark as unavailable
+        date = addDays(date, 1);
+      }
+    });
+
+    return map;
+  }, [reservations, startDate, viewDays]);
+
+  // Fast cell availability check using pre-computed map
+  const isCellAvailableFast = useCallback((roomId, date) => {
+    const room = rooms.find(r => r.id === roomId);
+    if (!room || room.status === 'Maintenance' || room.status === 'Blocked') return false;
+
+    const key = `${roomId}_${format(date, 'yyyy-MM-dd')}`;
+    return !cellAvailabilityMap.has(key);
+  }, [rooms, cellAvailabilityMap]);
 
   // Get reservations for a specific room within the date range
   const getReservationsForRoom = useCallback((roomId) => {
@@ -208,20 +255,6 @@ const ReservationCalendar = () => {
     return typeRooms.length - occupiedRoomIds.size;
   }, [rooms, reservations]);
 
-  // Check if a cell is available for booking
-  const isCellAvailable = useCallback((roomId, date) => {
-    const room = rooms.find(r => r.id === roomId);
-    if (!room || room.status === 'Maintenance' || room.status === 'Blocked') return false;
-
-    return !reservations.some(res => {
-      if (res.room_id !== roomId) return false;
-      if (res.status === 'Cancelled' || res.status === 'Checked-out') return false;
-      const checkIn = parseISO(res.check_in_date);
-      const checkOut = parseISO(res.check_out_date);
-      return date >= checkIn && date < checkOut;
-    });
-  }, [rooms, reservations]);
-
   // Navigation handlers
   const goToPreviousWeek = () => setStartDate(prev => addDays(prev, -7));
   const goToNextWeek = () => setStartDate(prev => addDays(prev, 7));
@@ -247,88 +280,107 @@ const ReservationCalendar = () => {
     }));
   };
 
-  // Selection handlers
-  const handleCellMouseDown = (roomId, date, e) => {
-    if (!isCellAvailable(roomId, date)) return;
-
-    e.preventDefault();
-    setIsSelecting(true);
-    setSelectionStart({ roomId, date });
-    setSelectionEnd({ roomId, date });
-    setSelectedCells([{ roomId, date }]);
-    closeActionMenu();
-  };
-
-  const handleCellMouseEnter = (roomId, date) => {
-    if (!isSelecting || !selectionStart) return;
-
-    setSelectionEnd({ roomId, date });
-
-    // Calculate selected cells between start and end
-    const cells = calculateSelectedCells(selectionStart, { roomId, date });
-    setSelectedCells(cells);
-  };
-
-  const handleCellMouseUp = (e) => {
-    if (!isSelecting || selectedCells.length === 0) {
-      setIsSelecting(false);
-      return;
-    }
-
-    setIsSelecting(false);
-
-    // Filter only available cells
-    const availableCells = selectedCells.filter(cell => isCellAvailable(cell.roomId, cell.date));
-
-    if (availableCells.length > 0) {
-      // Show action menu
-      const rect = e.target.getBoundingClientRect();
-      setActionMenuPosition({ x: rect.left + rect.width / 2, y: rect.bottom + 5 });
-      setActionMenuType('empty');
-    }
-  };
-
-  const calculateSelectedCells = (start, end) => {
-    if (!start || !end) return [];
+  // Optimized selection calculation
+  const calculateSelectedCells = useCallback((startCell, endCell) => {
+    if (!startCell || !endCell) return [];
 
     const cells = [];
-    const startDateObj = start.date;
-    const endDateObj = end.date;
+    const startDateObj = startCell.date;
+    const endDateObj = endCell.date;
 
     // Get date range
     const minDate = startDateObj <= endDateObj ? startDateObj : endDateObj;
     const maxDate = startDateObj <= endDateObj ? endDateObj : startDateObj;
 
-    // Get room range (we'll select all rooms between start and end room in the list)
-    const allRoomIds = rooms
-      .filter(r => r.status !== 'Maintenance' && r.status !== 'Blocked')
-      .map(r => r.id);
-
-    const startRoomIndex = allRoomIds.indexOf(start.roomId);
-    const endRoomIndex = allRoomIds.indexOf(end.roomId);
+    // Get room range
+    const startRoomIndex = selectableRoomIds.indexOf(startCell.roomId);
+    const endRoomIndex = selectableRoomIds.indexOf(endCell.roomId);
     const minRoomIndex = Math.min(startRoomIndex, endRoomIndex);
     const maxRoomIndex = Math.max(startRoomIndex, endRoomIndex);
 
     // Generate all cells in the selection rectangle
-    let currentDate = minDate;
+    let currentDate = new Date(minDate);
     while (currentDate <= maxDate) {
+      const dateStr = format(currentDate, 'yyyy-MM-dd');
       for (let i = minRoomIndex; i <= maxRoomIndex; i++) {
-        const roomId = allRoomIds[i];
-        if (roomId && isCellAvailable(roomId, currentDate)) {
-          cells.push({ roomId, date: new Date(currentDate) });
+        const roomId = selectableRoomIds[i];
+        if (roomId) {
+          const key = `${roomId}_${dateStr}`;
+          // Use pre-computed map - if key exists, cell is occupied
+          if (!cellAvailabilityMap.has(key)) {
+            cells.push({ roomId, date: new Date(currentDate), dateStr });
+          }
         }
       }
       currentDate = addDays(currentDate, 1);
     }
 
     return cells;
-  };
+  }, [selectableRoomIds, cellAvailabilityMap]);
 
-  const isCellSelected = (roomId, date) => {
-    return selectedCells.some(cell =>
-      cell.roomId === roomId && isSameDay(cell.date, date)
-    );
-  };
+  // Selection handlers using refs for immediate state access
+  const handleCellMouseDown = useCallback((roomId, date, e) => {
+    if (!isCellAvailableFast(roomId, date)) return;
+
+    e.preventDefault();
+    closeActionMenu();
+
+    const cell = { roomId, date, dateStr: format(date, 'yyyy-MM-dd') };
+
+    // Use ref for immediate access
+    dragStateRef.current = {
+      isSelecting: true,
+      startCell: cell,
+      currentCell: cell
+    };
+
+    // Set initial selection
+    setSelectedCells([cell]);
+  }, [isCellAvailableFast]);
+
+  const handleCellMouseEnter = useCallback((roomId, date) => {
+    const { isSelecting, startCell } = dragStateRef.current;
+    if (!isSelecting || !startCell) return;
+
+    const currentCell = { roomId, date, dateStr: format(date, 'yyyy-MM-dd') };
+    dragStateRef.current.currentCell = currentCell;
+
+    // Calculate and update selected cells
+    const cells = calculateSelectedCells(startCell, currentCell);
+    setSelectedCells(cells);
+  }, [calculateSelectedCells]);
+
+  const handleCellMouseUp = useCallback((e) => {
+    const { isSelecting, startCell } = dragStateRef.current;
+
+    if (!isSelecting) return;
+
+    // Reset drag state
+    dragStateRef.current.isSelecting = false;
+
+    // Get the current selection from state
+    // For single click, we need to ensure startCell is used
+    const cellsToUse = startCell ? [startCell] : [];
+
+    // Show action menu if we have selected cells
+    setSelectedCells(prev => {
+      const cells = prev.length > 0 ? prev : cellsToUse;
+      if (cells.length > 0) {
+        const rect = e.target?.getBoundingClientRect?.() || { left: e.clientX, bottom: e.clientY, width: 0 };
+        setActionMenuPosition({
+          x: rect.left + (rect.width || 0) / 2,
+          y: rect.bottom + 5
+        });
+        setActionMenuType('empty');
+      }
+      return cells;
+    });
+  }, []);
+
+  // Check if cell is selected (using dateStr for fast comparison)
+  const isCellSelected = useCallback((roomId, dateStr) => {
+    return selectedCells.some(cell => cell.roomId === roomId && cell.dateStr === dateStr);
+  }, [selectedCells]);
 
   // Reservation click handler
   const handleReservationClick = (reservation, e) => {
@@ -970,14 +1022,15 @@ const ReservationCalendar = () => {
                       {/* Date Cells Container */}
                       <div className="relative flex" style={{ height: 40 }}>
                         {dateRange.map((date, idx) => {
-                          const available = isCellAvailable(room.id, date);
-                          const selected = isCellSelected(room.id, date);
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          const available = isCellAvailableFast(room.id, date);
+                          const selected = isCellSelected(room.id, dateStr);
 
                           return (
                             <div
                               key={idx}
                               className={cn(
-                                "flex-shrink-0 border-r transition-colors",
+                                "flex-shrink-0 border-r",
                                 isToday(date) && "bg-blue-50/30 dark:bg-blue-950/30",
                                 isWeekend(date) && "bg-muted/20",
                                 available && !isBlocked && "cursor-pointer hover:bg-accent",
