@@ -1058,16 +1058,23 @@ const ReservationCalendar = ({ onNavigate }) => {
                             <div
                               key={idx}
                               className={cn(
-                                "flex-shrink-0 border-r",
+                                "flex-shrink-0 border-r relative group",
                                 isToday(date) && "bg-blue-50/30 dark:bg-blue-950/30",
                                 isWeekend(date) && "bg-muted/20",
-                                available && !isBlocked && "cursor-pointer hover:bg-accent",
+                                available && !isBlocked && "cursor-pointer",
                                 isBlocked && "bg-red-50/50 dark:bg-red-950/20 cursor-not-allowed"
                               )}
                               style={{ width: CELL_WIDTH, height: '100%' }}
                               onMouseDown={(e) => handleCellMouseDown(room.id, date, e)}
                               onMouseEnter={() => handleCellMouseEnter(room.id, date)}
-                            />
+                            >
+                              {/* Partial hover indicator - shows right half (afternoon check-in) */}
+                              {available && !isBlocked && (
+                                <div
+                                  className="absolute top-0 right-0 h-full w-1/2 bg-accent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                                />
+                              )}
+                            </div>
                           );
                         })}
 
