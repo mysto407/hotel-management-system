@@ -102,12 +102,14 @@ const ReservationCalendar = () => {
 
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
+  const [selectedCellKeys, setSelectedCellKeys] = useState(new Set());
 
-  // Use refs for drag state to avoid async state issues
+  // Use refs for drag state to avoid async state issues and throttling
   const dragStateRef = useRef({
     isSelecting: false,
     startCell: null,
-    currentCell: null
+    currentCell: null,
+    lastUpdateKey: null
   });
 
   // Action menu state
@@ -280,11 +282,12 @@ const ReservationCalendar = () => {
     }));
   };
 
-  // Optimized selection calculation
+  // Optimized selection calculation - returns both cells array and keys Set
   const calculateSelectedCells = useCallback((startCell, endCell) => {
-    if (!startCell || !endCell) return [];
+    if (!startCell || !endCell) return { cells: [], keys: new Set() };
 
     const cells = [];
+    const keys = new Set();
     const startDateObj = startCell.date;
     const endDateObj = endCell.date;
 
@@ -309,13 +312,14 @@ const ReservationCalendar = () => {
           // Use pre-computed map - if key exists, cell is occupied
           if (!cellAvailabilityMap.has(key)) {
             cells.push({ roomId, date: new Date(currentDate), dateStr });
+            keys.add(key);
           }
         }
       }
       currentDate = addDays(currentDate, 1);
     }
 
-    return cells;
+    return { cells, keys };
   }, [selectableRoomIds, cellAvailabilityMap]);
 
   // Selection handlers using refs for immediate state access
@@ -325,29 +329,40 @@ const ReservationCalendar = () => {
     e.preventDefault();
     closeActionMenu();
 
-    const cell = { roomId, date, dateStr: format(date, 'yyyy-MM-dd') };
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const cell = { roomId, date, dateStr };
+    const key = `${roomId}_${dateStr}`;
 
     // Use ref for immediate access
     dragStateRef.current = {
       isSelecting: true,
       startCell: cell,
-      currentCell: cell
+      currentCell: cell,
+      lastUpdateKey: key
     };
 
     // Set initial selection
     setSelectedCells([cell]);
+    setSelectedCellKeys(new Set([key]));
   }, [isCellAvailableFast]);
 
   const handleCellMouseEnter = useCallback((roomId, date) => {
-    const { isSelecting, startCell } = dragStateRef.current;
+    const { isSelecting, startCell, lastUpdateKey } = dragStateRef.current;
     if (!isSelecting || !startCell) return;
 
-    const currentCell = { roomId, date, dateStr: format(date, 'yyyy-MM-dd') };
-    dragStateRef.current.currentCell = currentCell;
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const currentKey = `${roomId}_${dateStr}`;
+
+    // Skip if we're still on the same cell (prevents redundant updates)
+    if (currentKey === lastUpdateKey) return;
+
+    dragStateRef.current.lastUpdateKey = currentKey;
+    dragStateRef.current.currentCell = { roomId, date, dateStr };
 
     // Calculate and update selected cells
-    const cells = calculateSelectedCells(startCell, currentCell);
+    const { cells, keys } = calculateSelectedCells(startCell, { roomId, date, dateStr });
     setSelectedCells(cells);
+    setSelectedCellKeys(keys);
   }, [calculateSelectedCells]);
 
   const handleCellMouseUp = useCallback((e) => {
@@ -377,10 +392,10 @@ const ReservationCalendar = () => {
     });
   }, []);
 
-  // Check if cell is selected (using dateStr for fast comparison)
+  // Check if cell is selected - O(1) lookup using Set
   const isCellSelected = useCallback((roomId, dateStr) => {
-    return selectedCells.some(cell => cell.roomId === roomId && cell.dateStr === dateStr);
-  }, [selectedCells]);
+    return selectedCellKeys.has(`${roomId}_${dateStr}`);
+  }, [selectedCellKeys]);
 
   // Reservation click handler
   const handleReservationClick = (reservation, e) => {
@@ -439,6 +454,7 @@ const ReservationCalendar = () => {
     setSelectedReservation(null);
     setRelatedReservations([]);
     setSelectedCells([]);
+    setSelectedCellKeys(new Set());
   };
 
   // Click outside to close action menu
