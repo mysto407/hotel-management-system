@@ -121,7 +121,9 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [dragOverCell, setDragOverCell] = useState(null); // { roomId, date }
 
   // Resize state for extending/shortening reservations
-  const [resizeState, setResizeState] = useState(null); // { reservation, edge: 'left'|'right', startX, originalDate }
+  // Enhanced to include preview information for visual feedback
+  const [resizeState, setResizeState] = useState(null); // { reservation, edge: 'left'|'right', startX, originalDate, currentDate, daysDelta, isValid }
+  const [resizePreview, setResizePreview] = useState(null); // { newCheckIn, newCheckOut, nights, daysDelta }
 
   // Room swap state
   const [swapMode, setSwapMode] = useState(null); // { reservationA: object }
@@ -488,13 +490,32 @@ const ReservationCalendar = ({ onNavigate }) => {
       ? parseISO(reservation.check_in_date)
       : parseISO(reservation.check_out_date);
 
+    const checkIn = parseISO(reservation.check_in_date);
+    const checkOut = parseISO(reservation.check_out_date);
+    const originalNights = differenceInDays(checkOut, checkIn);
+
     setResizeState({
       reservation,
       edge,
       startX: e.clientX,
       originalDate,
-      currentDate: originalDate
+      currentDate: originalDate,
+      daysDelta: 0,
+      isValid: true,
+      originalNights
     });
+
+    // Initialize preview
+    setResizePreview({
+      newCheckIn: checkIn,
+      newCheckOut: checkOut,
+      nights: originalNights,
+      daysDelta: 0
+    });
+
+    // Add class to body to prevent text selection during resize
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'ew-resize';
   }, []);
 
   // Check if a resize is valid (no conflicts, minimum 1 night)
@@ -522,28 +543,65 @@ const ReservationCalendar = ({ onNavigate }) => {
     return !hasConflict;
   }, [reservations]);
 
-  // Handle mouse move during resize
+  // Handle mouse move during resize - smooth with throttling
   useEffect(() => {
     if (!resizeState) return;
 
+    let animationFrameId = null;
+
     const handleMouseMove = (e) => {
-      const deltaX = e.clientX - resizeState.startX;
-      const daysDelta = Math.round(deltaX / CELL_WIDTH);
+      // Use requestAnimationFrame for smoother updates
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
 
-      if (daysDelta === 0) return;
+      animationFrameId = requestAnimationFrame(() => {
+        const deltaX = e.clientX - resizeState.startX;
+        const daysDelta = Math.round(deltaX / CELL_WIDTH);
 
-      const newDate = addDays(resizeState.originalDate, daysDelta);
+        // Only update if days actually changed
+        if (daysDelta === resizeState.daysDelta) return;
 
-      setResizeState(prev => ({
-        ...prev,
-        currentDate: newDate,
-        isValid: canResize(prev.reservation, prev.edge, newDate)
-      }));
+        const newDate = addDays(resizeState.originalDate, daysDelta);
+        const isValid = canResize(resizeState.reservation, resizeState.edge, newDate);
+
+        // Calculate preview dates
+        const checkIn = parseISO(resizeState.reservation.check_in_date);
+        const checkOut = parseISO(resizeState.reservation.check_out_date);
+        const newCheckIn = resizeState.edge === 'left' ? newDate : checkIn;
+        const newCheckOut = resizeState.edge === 'right' ? newDate : checkOut;
+        const newNights = differenceInDays(newCheckOut, newCheckIn);
+
+        setResizeState(prev => ({
+          ...prev,
+          currentDate: newDate,
+          daysDelta,
+          isValid
+        }));
+
+        setResizePreview({
+          newCheckIn,
+          newCheckOut,
+          nights: newNights,
+          daysDelta
+        });
+      });
     };
 
     const handleMouseUp = async () => {
-      if (!resizeState.currentDate || resizeState.currentDate.getTime() === resizeState.originalDate.getTime()) {
+      // Clean up body styles
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+
+      // Cancel any pending animation frame
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      // No change - just cancel
+      if (!resizeState.currentDate || resizeState.daysDelta === 0) {
         setResizeState(null);
+        setResizePreview(null);
         return;
       }
 
@@ -552,29 +610,78 @@ const ReservationCalendar = ({ onNavigate }) => {
       if (!isValid) {
         showError('Cannot resize - minimum 1 night required or there is a conflict');
         setResizeState(null);
+        setResizePreview(null);
         return;
       }
 
-      const updateData = resizeState.edge === 'left'
-        ? { check_in_date: format(resizeState.currentDate, 'yyyy-MM-dd') }
-        : { check_out_date: format(resizeState.currentDate, 'yyyy-MM-dd') };
-
-      await updateReservation(resizeState.reservation.id, updateData);
+      // Calculate the change details for confirmation
+      const checkIn = parseISO(resizeState.reservation.check_in_date);
+      const checkOut = parseISO(resizeState.reservation.check_out_date);
+      const newCheckIn = resizeState.edge === 'left' ? resizeState.currentDate : checkIn;
+      const newCheckOut = resizeState.edge === 'right' ? resizeState.currentDate : checkOut;
+      const originalNights = differenceInDays(checkOut, checkIn);
+      const newNights = differenceInDays(newCheckOut, newCheckIn);
+      const nightsDiff = newNights - originalNights;
 
       const guest = guests.find(g => g.id === resizeState.reservation.guest_id);
-      showSuccess(`Updated ${guest?.name || 'reservation'} dates`);
+      const guestName = guest?.name || 'Guest';
+
+      // Show confirmation dialog
+      const changeDescription = resizeState.edge === 'left'
+        ? `Change check-in from ${format(checkIn, 'MMM d')} to ${format(newCheckIn, 'MMM d')}`
+        : `Change check-out from ${format(checkOut, 'MMM d')} to ${format(newCheckOut, 'MMM d')}`;
+
+      const nightsChange = nightsDiff > 0
+        ? `+${nightsDiff} night${Math.abs(nightsDiff) !== 1 ? 's' : ''}`
+        : `${nightsDiff} night${Math.abs(nightsDiff) !== 1 ? 's' : ''}`;
+
+      const confirmed = await confirm({
+        title: 'Confirm Date Change',
+        message: `${changeDescription}\n\n${guestName}: ${originalNights} → ${newNights} nights (${nightsChange})`,
+        confirmText: 'Apply Change',
+        cancelText: 'Cancel',
+        variant: 'default'
+      });
+
+      if (confirmed) {
+        const updateData = resizeState.edge === 'left'
+          ? { check_in_date: format(resizeState.currentDate, 'yyyy-MM-dd') }
+          : { check_out_date: format(resizeState.currentDate, 'yyyy-MM-dd') };
+
+        await updateReservation(resizeState.reservation.id, updateData);
+        showSuccess(`Updated ${guestName}: ${format(newCheckIn, 'MMM d')} - ${format(newCheckOut, 'MMM d')} (${newNights} nights)`);
+      }
 
       setResizeState(null);
+      setResizePreview(null);
+    };
+
+    // Handle escape to cancel resize
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        setResizeState(null);
+        setResizePreview(null);
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('keydown', handleKeyDown);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
-  }, [resizeState, canResize, updateReservation, guests, showSuccess, showError]);
+  }, [resizeState, canResize, updateReservation, guests, showSuccess, showError, confirm]);
 
   // Room swap handlers
   const handleStartSwap = useCallback((reservation) => {
