@@ -21,7 +21,9 @@ import {
   Search,
   Filter,
   XCircle,
-  ArrowLeftRight
+  ArrowLeftRight,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
@@ -100,6 +102,7 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [viewDays, setViewDays] = useState(14);
   const [collapsedRoomTypes, setCollapsedRoomTypes] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState('detailed'); // 'detailed' | 'overview'
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -537,6 +540,41 @@ const ReservationCalendar = ({ onNavigate }) => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [swapMode]);
+
+  // View mode toggle
+  const toggleViewMode = () => {
+    if (viewMode === 'detailed') {
+      setViewMode('overview');
+      setViewDays(30); // Default to 30 days for overview
+    } else {
+      setViewMode('detailed');
+    }
+  };
+
+  // Switch from overview to detailed view at a specific date and room type
+  const switchToDetailedView = (date, roomTypeId) => {
+    setStartDate(date);
+    setViewMode('detailed');
+    setRoomTypeFilter(roomTypeId);
+    setViewDays(14);
+  };
+
+  // Get occupancy percentage for a room type on a specific date
+  const getOccupancyByType = useCallback((roomTypeId, date) => {
+    const typeRooms = rooms.filter(r => r.room_type_id === roomTypeId && r.status !== 'Maintenance' && r.status !== 'Blocked');
+    if (typeRooms.length === 0) return 0;
+
+    const occupiedCount = reservations.filter(res => {
+      if (res.status === 'Cancelled' || res.status === 'Checked-out') return false;
+      const room = rooms.find(r => r.id === res.room_id);
+      if (!room || room.room_type_id !== roomTypeId) return false;
+      const checkIn = parseISO(res.check_in_date);
+      const checkOut = parseISO(res.check_out_date);
+      return date >= checkIn && date < checkOut;
+    }).length;
+
+    return Math.round((occupiedCount / typeRooms.length) * 100);
+  }, [rooms, reservations]);
 
   // Navigation handlers
   const goToPreviousWeek = () => setStartDate(prev => addDays(prev, -7));
@@ -1286,6 +1324,27 @@ const ReservationCalendar = ({ onNavigate }) => {
 
           {/* View Controls */}
           <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === 'detailed' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('detailed')}
+                className="rounded-r-none"
+              >
+                <List className="h-4 w-4 mr-1" />
+                Detailed
+              </Button>
+              <Button
+                variant={viewMode === 'overview' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => { setViewMode('overview'); setViewDays(30); }}
+                className="rounded-l-none"
+              >
+                <LayoutGrid className="h-4 w-4 mr-1" />
+                Overview
+              </Button>
+            </div>
             <Select value={String(viewDays)} onValueChange={(v) => setViewDays(parseInt(v))}>
               <SelectTrigger className="w-28">
                 <SelectValue />
@@ -1579,6 +1638,27 @@ const ReservationCalendar = ({ onNavigate }) => {
         </div>
       )}
 
+      {/* Swap Mode Indicator */}
+      {swapMode && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-yellow-100 dark:bg-yellow-900 border border-yellow-400 rounded-lg shadow-lg p-3 z-50">
+          <div className="flex items-center gap-3">
+            <ArrowLeftRight className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              Click another reservation to swap rooms with {guests.find(g => g.id === swapMode.reservationA.guest_id)?.name || 'Guest'}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelSwap}
+              className="text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Action Menu */}
       {actionMenuPosition && (
         <div
@@ -1715,6 +1795,13 @@ const ReservationCalendar = ({ onNavigate }) => {
                   >
                     <Edit2 className="h-4 w-4 text-blue-500" />
                     Edit Reservation
+                  </button>
+                  <button
+                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
+                    onClick={() => handleStartSwap(selectedReservation)}
+                  >
+                    <ArrowLeftRight className="h-4 w-4 text-purple-500" />
+                    Swap Room
                   </button>
                   <button
                     className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2 text-orange-600"
