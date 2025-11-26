@@ -17,16 +17,13 @@ import {
   ArrowLeftToLine,
   ArrowRightToLine
 } from 'lucide-react';
-import { format, addDays, startOfDay, isToday, isWeekend, isSameDay, differenceInDays, parseISO } from 'date-fns';
+import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useGuests } from '../../context/GuestContext';
-import { useAgents } from '../../context/AgentContext';
 import { useConfirm, useAlert } from '@/context/AlertContext';
 import { useReservationFlow } from '../../context/ReservationFlowContext';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
-import { AddGuestModal } from '../../components/guests/AddGuestModal';
-import { AddAgentModal } from '../../components/agents/AddAgentModal';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -85,12 +82,11 @@ const ROOM_COLUMN_WIDTH = 150;
 
 const ReservationCalendar = ({ onNavigate }) => {
   // Contexts
-  const { reservations, addReservation, updateReservation, cancelReservation, deleteReservation, fetchReservations } = useReservations();
+  const { reservations, updateReservation, cancelReservation, deleteReservation, fetchReservations } = useReservations();
   const { rooms, roomTypes, updateRoomStatus } = useRooms();
   const { guests } = useGuests();
-  const { agents } = useAgents();
   const confirm = useConfirm();
-  const { success: showSuccess, error: showError, warning: showWarning } = useAlert();
+  const { success: showSuccess, error: showError } = useAlert();
   const { resetFlow, setFilters, addRoom, assignRoom } = useReservationFlow();
 
   // Calendar state
@@ -118,27 +114,7 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [relatedReservations, setRelatedReservations] = useState([]);
 
   // Modal state
-  const [isQuickBookingOpen, setIsQuickBookingOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isAddGuestOpen, setIsAddGuestOpen] = useState(false);
-  const [isAddAgentOpen, setIsAddAgentOpen] = useState(false);
-  const [pendingBookings, setPendingBookings] = useState([]);
-  const [bookingData, setBookingData] = useState({
-    guest_id: '',
-    room_id: '',
-    check_in_date: '',
-    check_out_date: '',
-    booking_source: 'direct',
-    agent_id: '',
-    direct_source: '',
-    number_of_adults: 1,
-    number_of_children: 0,
-    number_of_infants: 0,
-    meal_plan: 'EP',
-    status: 'Confirmed',
-    special_requests: '',
-    rate_type_id: ''
-  });
   const [editingReservation, setEditingReservation] = useState(null);
   const [editingGroup, setEditingGroup] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
@@ -565,64 +541,6 @@ const ReservationCalendar = ({ onNavigate }) => {
     }
   };
 
-  // Submit booking
-  const handleSubmitBooking = async () => {
-    if (!bookingData.guest_id) {
-      showWarning('Please select a guest');
-      return;
-    }
-
-    try {
-      for (let i = 0; i < pendingBookings.length; i++) {
-        const booking = pendingBookings[i];
-        const room = rooms.find(r => r.id === booking.roomId);
-
-        const reservationData = {
-          guest_id: bookingData.guest_id,
-          room_id: booking.roomId,
-          check_in_date: format(booking.checkIn, 'yyyy-MM-dd'),
-          check_out_date: format(booking.checkOut, 'yyyy-MM-dd'),
-          booking_source: bookingData.booking_source,
-          agent_id: bookingData.booking_source === 'agent' ? bookingData.agent_id : null,
-          direct_source: bookingData.booking_source === 'direct' ? bookingData.direct_source : null,
-          number_of_adults: parseInt(bookingData.number_of_adults) || 1,
-          number_of_children: parseInt(bookingData.number_of_children) || 0,
-          number_of_infants: parseInt(bookingData.number_of_infants) || 0,
-          meal_plan: bookingData.meal_plan,
-          status: bookingData.status,
-          special_requests: pendingBookings.length > 1
-            ? `Multi-room booking (${i + 1} of ${pendingBookings.length}). ${bookingData.special_requests || ''}`
-            : bookingData.special_requests,
-          rate_type_id: bookingData.rate_type_id || null
-        };
-
-        await addReservation(reservationData);
-      }
-
-      showSuccess(`${pendingBookings.length} booking(s) created successfully`);
-      setIsQuickBookingOpen(false);
-      setPendingBookings([]);
-      setBookingData({
-        guest_id: '',
-        room_id: '',
-        check_in_date: '',
-        check_out_date: '',
-        booking_source: 'direct',
-        agent_id: '',
-        direct_source: '',
-        number_of_adults: 1,
-        number_of_children: 0,
-        number_of_infants: 0,
-        meal_plan: 'EP',
-        status: 'Confirmed',
-        special_requests: '',
-        rate_type_id: ''
-      });
-    } catch (error) {
-      showError('Failed to create booking: ' + error.message);
-    }
-  };
-
   // Reservation actions
   const handleEditReservation = (editAll = false) => {
     if (!selectedReservation) return;
@@ -785,17 +703,6 @@ const ReservationCalendar = ({ onNavigate }) => {
     } catch (error) {
       showError('Failed to update reservation: ' + error.message);
     }
-  };
-
-  // Guest/Agent modal handlers
-  const handleGuestAdded = (newGuest) => {
-    setBookingData(prev => ({ ...prev, guest_id: newGuest.id }));
-    setIsAddGuestOpen(false);
-  };
-
-  const handleAgentAdded = (newAgent) => {
-    setBookingData(prev => ({ ...prev, agent_id: newAgent.id }));
-    setIsAddAgentOpen(false);
   };
 
   // Render reservation bar
@@ -1264,24 +1171,6 @@ const ReservationCalendar = ({ onNavigate }) => {
       )}
 
       {/* Modals */}
-      <QuickBookingModal
-        isOpen={isQuickBookingOpen}
-        onClose={() => {
-          setIsQuickBookingOpen(false);
-          setPendingBookings([]);
-        }}
-        onSubmit={handleSubmitBooking}
-        bookingData={bookingData}
-        setBookingData={setBookingData}
-        guests={guests}
-        rooms={rooms}
-        roomTypes={roomTypes}
-        agents={agents}
-        pendingBookings={pendingBookings}
-        onAddGuestClick={() => setIsAddGuestOpen(true)}
-        onAddAgentClick={() => setIsAddAgentOpen(true)}
-      />
-
       <EditBookingModal
         isOpen={isEditModalOpen}
         onClose={() => {
@@ -1294,18 +1183,6 @@ const ReservationCalendar = ({ onNavigate }) => {
         editingGroup={editingGroup}
         initialFormData={editFormData}
         initialRoomDetails={editRoomDetails}
-      />
-
-      <AddGuestModal
-        isOpen={isAddGuestOpen}
-        onClose={() => setIsAddGuestOpen(false)}
-        onGuestAdded={handleGuestAdded}
-      />
-
-      <AddAgentModal
-        isOpen={isAddAgentOpen}
-        onClose={() => setIsAddAgentOpen(false)}
-        onAgentAdded={handleAgentAdded}
       />
     </div>
   );
