@@ -23,7 +23,8 @@ import {
   XCircle,
   ArrowLeftRight,
   LayoutGrid,
-  List
+  List,
+  Wrench
 } from 'lucide-react';
 import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
@@ -92,7 +93,7 @@ const ROOM_COLUMN_WIDTH = 150;
 const ReservationCalendar = ({ onNavigate }) => {
   // Contexts
   const { reservations, updateReservation, cancelReservation, deleteReservation, fetchReservations, checkIn, checkOut } = useReservations();
-  const { rooms, roomTypes, updateRoomStatus } = useRooms();
+  const { rooms, roomTypes, blockings } = useRooms();
   const { guests } = useGuests();
   const confirm = useConfirm();
   const { success: showSuccess, error: showError } = useAlert();
@@ -145,6 +146,13 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [editFormData, setEditFormData] = useState(null);
   const [editRoomDetails, setEditRoomDetails] = useState(null);
 
+  // Blocking modal state
+  const [isBlockingModalOpen, setIsBlockingModalOpen] = useState(false);
+  const [blockingModalRoom, setBlockingModalRoom] = useState(null);
+  const [blockingModalStartDate, setBlockingModalStartDate] = useState(null);
+  const [blockingModalEndDate, setBlockingModalEndDate] = useState(null);
+  const [editingBlocking, setEditingBlocking] = useState(null);
+
   const calendarRef = useRef(null);
 
   // Generate date range for the calendar
@@ -175,7 +183,7 @@ const ReservationCalendar = ({ onNavigate }) => {
     const rangeStart = startDate;
     const rangeEnd = addDays(startDate, viewDays);
 
-    // Build a map of room occupancy by date
+    // Build a map of room occupancy by date from reservations
     reservations.forEach(res => {
       if (res.status === 'Cancelled' || res.status === 'Checked-out') return;
 
@@ -193,8 +201,26 @@ const ReservationCalendar = ({ onNavigate }) => {
       }
     });
 
+    // Also mark blocked dates as unavailable
+    if (blockings) {
+      blockings.forEach(blocking => {
+        const blockStart = parseISO(blocking.start_date);
+        const blockEnd = parseISO(blocking.end_date);
+
+        // Only process if overlaps with view range
+        if (blockStart >= rangeEnd || blockEnd <= rangeStart) return;
+
+        let date = blockStart < rangeStart ? rangeStart : blockStart;
+        while (date < blockEnd && date < rangeEnd) {
+          const key = `${blocking.room_id}_${format(date, 'yyyy-MM-dd')}`;
+          map.set(key, false); // Mark as unavailable
+          date = addDays(date, 1);
+        }
+      });
+    }
+
     return map;
-  }, [reservations, startDate, viewDays]);
+  }, [reservations, blockings, startDate, viewDays]);
 
   // Fast cell availability check using pre-computed map
   const isCellAvailableFast = useCallback((roomId, date) => {
@@ -221,6 +247,23 @@ const ReservationCalendar = ({ onNavigate }) => {
       return checkIn < rangeEnd && checkOut > rangeStart;
     });
   }, [reservations, startDate, viewDays]);
+
+  // Get blockings for a specific room within the date range
+  const getBlockingsForRoom = useCallback((roomId) => {
+    if (!blockings) return [];
+    const rangeStart = startDate;
+    const rangeEnd = addDays(startDate, viewDays);
+
+    return blockings.filter(blocking => {
+      if (blocking.room_id !== roomId) return false;
+
+      const blockStart = parseISO(blocking.start_date);
+      const blockEnd = parseISO(blocking.end_date);
+
+      // Check if blocking overlaps with view range
+      return blockStart < rangeEnd && blockEnd > rangeStart;
+    });
+  }, [blockings, startDate, viewDays]);
 
   // Calculate availability percentage for a date
   const getAvailabilityForDate = useCallback((date) => {
@@ -855,25 +898,42 @@ const ReservationCalendar = ({ onNavigate }) => {
     closeActionMenu();
   };
 
-  const handleBlockAction = async () => {
+  const handleBlockAction = () => {
     if (selectedCells.length === 0) return;
 
+    // Get the first room and date range from selection
     const roomIds = [...new Set(selectedCells.map(c => c.roomId))];
+    const dates = selectedCells.map(c => c.date.getTime());
+    const minDate = new Date(Math.min(...dates));
+    const maxDate = new Date(Math.max(...dates));
+    const endDate = addDays(maxDate, 1); // Blocking end is day after last selected
 
-    const confirmed = await confirm({
-      title: 'Block Rooms',
-      message: `Are you sure you want to block ${roomIds.length} room(s)?`,
-      confirmText: 'Block',
-      variant: 'warning'
-    });
+    // Open blocking modal - if multiple rooms selected, open for first one
+    setBlockingModalRoom(roomIds[0]);
+    setBlockingModalStartDate(minDate);
+    setBlockingModalEndDate(endDate);
+    setEditingBlocking(null);
+    setIsBlockingModalOpen(true);
+    closeActionMenu();
+  };
 
-    if (confirmed) {
-      for (const roomId of roomIds) {
-        await updateRoomStatus(roomId, 'Blocked');
-      }
-      showSuccess(`${roomIds.length} room(s) blocked`);
-      closeActionMenu();
-    }
+  // Handle clicking on a blocking bar to edit it
+  const handleBlockingClick = (blocking, e) => {
+    e.stopPropagation();
+    setEditingBlocking(blocking);
+    setBlockingModalRoom(null);
+    setBlockingModalStartDate(null);
+    setBlockingModalEndDate(null);
+    setIsBlockingModalOpen(true);
+  };
+
+  // Close blocking modal
+  const closeBlockingModal = () => {
+    setIsBlockingModalOpen(false);
+    setBlockingModalRoom(null);
+    setBlockingModalStartDate(null);
+    setBlockingModalEndDate(null);
+    setEditingBlocking(null);
   };
 
   // Reservation actions
@@ -1286,6 +1346,84 @@ const ReservationCalendar = ({ onNavigate }) => {
     );
   }, [selectedCells, startDate, viewDays]);
 
+  // Render blocking bar (gray striped bar for maintenance/blocked dates)
+  const renderBlockingBar = (blocking, roomId) => {
+    const blockStart = parseISO(blocking.start_date);
+    const blockEnd = parseISO(blocking.end_date);
+    const rangeStart = startDate;
+    const rangeEnd = addDays(startDate, viewDays);
+
+    // Calculate visible portion
+    const visibleStart = blockStart < rangeStart ? rangeStart : blockStart;
+    const visibleEnd = blockEnd > rangeEnd ? rangeEnd : blockEnd;
+
+    // Calculate position and width
+    const startOffset = differenceInDays(visibleStart, rangeStart);
+    const daySpan = differenceInDays(visibleEnd, visibleStart);
+
+    if (daySpan <= 0) return null;
+
+    const extendsLeft = blockStart < rangeStart;
+    const extendsRight = blockEnd > rangeEnd;
+
+    // Full cell coverage for blockings (not partial like reservations)
+    const left = startOffset * CELL_WIDTH + 2;
+    const width = daySpan * CELL_WIDTH - 4;
+
+    const duration = differenceInDays(blockEnd, blockStart);
+
+    return (
+      <TooltipProvider key={blocking.id}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={cn(
+                "absolute top-1 h-8 cursor-pointer flex items-center text-gray-700 dark:text-gray-300 text-xs font-medium shadow-sm transition-all z-10",
+                "bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600",
+                "bg-stripes"
+              )}
+              style={{
+                left: `${left}px`,
+                width: `${width}px`,
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.1) 5px, rgba(0,0,0,0.1) 10px)'
+              }}
+              onClick={(e) => handleBlockingClick(blocking, e)}
+            >
+              {/* Content */}
+              <div className="flex items-center px-2 flex-1 min-w-0">
+                {extendsLeft && (
+                  <ArrowLeftToLine className="h-3 w-3 mr-1 flex-shrink-0" />
+                )}
+                <Wrench className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate flex-1">
+                  {blocking.reason || 'Blocked'}
+                </span>
+                {extendsRight && (
+                  <ArrowRightToLine className="h-3 w-3 ml-1 flex-shrink-0" />
+                )}
+              </div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <div className="space-y-1">
+              <p className="font-semibold flex items-center gap-1">
+                <Wrench className="h-4 w-4" />
+                {blocking.reason || 'Room Blocked'}
+              </p>
+              <p className="text-xs">
+                {format(blockStart, 'MMM d')} - {format(blockEnd, 'MMM d, yyyy')}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {duration} day{duration !== 1 ? 's' : ''} blocked
+              </p>
+              <p className="text-xs text-muted-foreground">Click to edit or remove</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Header / Navigation */}
@@ -1651,6 +1789,9 @@ const ReservationCalendar = ({ onNavigate }) => {
                           );
                         })}
 
+                        {/* Blocking Bars */}
+                        {getBlockingsForRoom(room.id).map(blocking => renderBlockingBar(blocking, room.id))}
+
                         {/* Reservation Bars */}
                         {roomReservations.map(res => renderReservationBar(res, room.id))}
 
@@ -1895,6 +2036,16 @@ const ReservationCalendar = ({ onNavigate }) => {
         editingGroup={editingGroup}
         initialFormData={editFormData}
         initialRoomDetails={editRoomDetails}
+      />
+
+      {/* Room Blocking Modal */}
+      <RoomBlockingModal
+        isOpen={isBlockingModalOpen}
+        onClose={closeBlockingModal}
+        initialRoom={blockingModalRoom}
+        initialStartDate={blockingModalStartDate}
+        initialEndDate={blockingModalEndDate}
+        editingBlocking={editingBlocking}
       />
     </div>
   );
