@@ -33,7 +33,8 @@ const STATUS_COLORS = {
 }
 
 const TOOLTIP_WIDTH = 400
-const TOOLTIP_HEIGHT = 420 // Approximate height
+const TOOLTIP_HEIGHT_ESTIMATE = 420 // Approximate height for initial calculation
+const ARROW_GAP = 8 // Gap between arrow tip and reservation bar
 
 export default function ReservationTooltip({
   reservation,
@@ -56,7 +57,7 @@ export default function ReservationTooltip({
   const { getMasterBill } = useBilling()
   const [activeTab, setActiveTab] = useState('reservation')
   const [billingInfo, setBillingInfo] = useState(null)
-  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0, showAbove: false })
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0, showAbove: false, actualHeight: TOOLTIP_HEIGHT_ESTIMATE })
   const tooltipRef = useRef(null)
 
   // Calculate tooltip position based on target rect and available space
@@ -65,6 +66,9 @@ export default function ReservationTooltip({
 
     const viewportHeight = window.innerHeight
     const viewportWidth = window.innerWidth
+
+    // Get actual tooltip height if available
+    const actualHeight = tooltipRef.current?.offsetHeight || TOOLTIP_HEIGHT_ESTIMATE
 
     // Calculate center of the reservation bar
     const targetCenterX = targetRect.left + targetRect.width / 2
@@ -78,24 +82,29 @@ export default function ReservationTooltip({
     const spaceBelow = viewportHeight - targetRect.bottom
 
     // Prefer showing below, but show above if not enough space below
-    const showAbove = spaceBelow < TOOLTIP_HEIGHT && spaceAbove > spaceBelow
+    const showAbove = spaceBelow < actualHeight + ARROW_GAP && spaceAbove > spaceBelow
 
     let top
     if (showAbove) {
-      top = targetRect.top - TOOLTIP_HEIGHT - 4 // 4px gap above
+      // Position so tooltip bottom is ARROW_GAP pixels above the reservation bar
+      // Arrow (8px visible height) will bridge the gap
+      top = targetRect.top - actualHeight - ARROW_GAP
     } else {
-      top = targetRect.bottom + 4 // 4px gap below
+      top = targetRect.bottom + ARROW_GAP // gap below
     }
 
     // Constrain to viewport
-    top = Math.max(4, Math.min(top, viewportHeight - TOOLTIP_HEIGHT - 4))
+    top = Math.max(4, Math.min(top, viewportHeight - actualHeight - 4))
 
-    setTooltipPosition({ top, left, showAbove })
+    setTooltipPosition({ top, left, showAbove, actualHeight })
   }, [targetRect])
 
   // Update position on mount and when targetRect changes
   useEffect(() => {
     calculatePosition()
+    // Recalculate after a brief delay to get actual rendered height
+    const timer = setTimeout(calculatePosition, 10)
+    return () => clearTimeout(timer)
   }, [calculatePosition])
 
   // Update position on scroll
@@ -157,6 +166,10 @@ export default function ReservationTooltip({
   // Calculate arrow position (centered on reservation bar)
   const arrowLeft = targetRect ? Math.max(20, Math.min(targetRect.left + targetRect.width / 2 - tooltipPosition.left, TOOLTIP_WIDTH - 20)) : TOOLTIP_WIDTH / 2
 
+  // Arrow size is 12px (w-3 h-3), rotated 45deg makes it ~8.5px point-to-point
+  // Position arrow so it overlaps tooltip edge by half to eliminate gap
+  const arrowOffset = 4 // Half of arrow's visible height after rotation
+
   return (
     <>
       {/* Arrow indicator - rendered outside main container to avoid clipping */}
@@ -165,16 +178,16 @@ export default function ReservationTooltip({
         style={{
           left: tooltipPosition.left + arrowLeft - 6,
           top: tooltipPosition.showAbove
-            ? tooltipPosition.top + TOOLTIP_HEIGHT - 6
-            : tooltipPosition.top - 6
+            ? tooltipPosition.top + tooltipPosition.actualHeight - arrowOffset
+            : tooltipPosition.top - arrowOffset - 4
         }}
       >
         <div
           className={cn(
-            "w-3 h-3 bg-card border rotate-45 shadow-sm",
+            "w-3 h-3 bg-card border rotate-45",
             tooltipPosition.showAbove
-              ? "border-t-0 border-l-0"
-              : "border-b-0 border-r-0"
+              ? "border-t-0 border-l-0 shadow-[2px_2px_2px_rgba(0,0,0,0.05)]"
+              : "border-b-0 border-r-0 shadow-[-1px_-1px_2px_rgba(0,0,0,0.05)]"
           )}
         />
       </div>
