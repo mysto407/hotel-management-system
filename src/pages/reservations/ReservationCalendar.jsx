@@ -2290,10 +2290,8 @@ const ReservationCalendar = ({ onNavigate }) => {
                     return roomType?.name || 'Unknown';
                   });
 
-                  // Format date range
-                  const dateRangeStr = minDate.getTime() === maxDate.getTime()
-                    ? format(minDate, 'MMM d')
-                    : `${format(minDate, 'MMM d')} - ${format(checkOutDate, 'MMM d')}`;
+                  // Format date range (always show check-in to check-out)
+                  const dateRangeStr = `${format(minDate, 'MMM d')} - ${format(checkOutDate, 'MMM d')}`;
 
                   // Format room type(s)
                   const roomTypeStr = roomTypeNames.length === 1
