@@ -20,11 +20,10 @@ import {
 import { format, addDays, startOfDay, isToday, isWeekend, isSameDay, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
-import { useMealPlans } from '../../context/MealPlanContext';
 import { useGuests } from '../../context/GuestContext';
 import { useAgents } from '../../context/AgentContext';
 import { useConfirm, useAlert } from '@/context/AlertContext';
-import { QuickBookingModal } from '../../components/reservations/QuickBookingModal';
+import { useReservationFlow } from '../../context/ReservationFlowContext';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import { AddGuestModal } from '../../components/guests/AddGuestModal';
 import { AddAgentModal } from '../../components/agents/AddAgentModal';
@@ -84,15 +83,15 @@ const STATUS_TEXT_COLORS = {
 const CELL_WIDTH = 100;
 const ROOM_COLUMN_WIDTH = 150;
 
-const ReservationCalendar = () => {
+const ReservationCalendar = ({ onNavigate }) => {
   // Contexts
   const { reservations, addReservation, updateReservation, cancelReservation, deleteReservation, fetchReservations } = useReservations();
   const { rooms, roomTypes, updateRoomStatus } = useRooms();
-  const { getActivePlans } = useMealPlans();
   const { guests } = useGuests();
   const { agents } = useAgents();
   const confirm = useConfirm();
   const { success: showSuccess, error: showError, warning: showWarning } = useAlert();
+  const { resetFlow, setFilters, addRoom, assignRoom } = useReservationFlow();
 
   // Calendar state
   const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
@@ -492,31 +491,57 @@ const ReservationCalendar = () => {
       };
     });
 
-    setPendingBookings(pending);
+    // Reset the reservation flow and set up new booking
+    resetFlow();
 
-    // Set up booking data for the first room
-    const firstBooking = pending[0];
-    const room = rooms.find(r => r.id === firstBooking.roomId);
+    // Find the overall date range (min checkIn, max checkOut)
+    const allCheckIns = pending.map(p => p.checkIn);
+    const allCheckOuts = pending.map(p => p.checkOut);
+    const overallCheckIn = new Date(Math.min(...allCheckIns));
+    const overallCheckOut = new Date(Math.max(...allCheckOuts));
 
-    setBookingData({
-      guest_id: '',
-      room_id: firstBooking.roomId,
-      check_in_date: format(firstBooking.checkIn, 'yyyy-MM-dd'),
-      check_out_date: format(firstBooking.checkOut, 'yyyy-MM-dd'),
-      booking_source: 'direct',
-      agent_id: '',
-      direct_source: '',
-      number_of_adults: 1,
-      number_of_children: 0,
-      number_of_infants: 0,
-      meal_plan: getActivePlans()[0]?.code || 'EP',
-      status: status,
-      special_requests: '',
-      rate_type_id: ''
+    // Set filters with the selected date range
+    setFilters({
+      checkIn: format(overallCheckIn, 'yyyy-MM-dd'),
+      checkOut: format(overallCheckOut, 'yyyy-MM-dd'),
+      source: 'walk-in',
+      promoCode: '',
+      searchQuery: ''
     });
 
+    // Add each room to the cart with pre-assigned room numbers
+    // We need a small delay to ensure filters are set before adding rooms
+    setTimeout(() => {
+      pending.forEach((booking) => {
+        const room = rooms.find(r => r.id === booking.roomId);
+        if (room) {
+          const roomType = roomTypes.find(rt => rt.id === room.room_type_id);
+          if (roomType) {
+            const checkInStr = format(booking.checkIn, 'yyyy-MM-dd');
+            const checkOutStr = format(booking.checkOut, 'yyyy-MM-dd');
+
+            // Add the room type to the cart
+            const roomWithRate = {
+              ...roomType,
+              ratePrice: roomType.base_price
+            };
+            addRoom(roomWithRate, 1, null, checkInStr, checkOutStr);
+
+            // Pre-assign the specific room
+            // The cartKey format is: `${room.id}_${checkIn}_${checkOut}_${rateTypeId || 'default'}`
+            const cartKey = `${roomType.id}_${checkInStr}_${checkOutStr}_default`;
+            assignRoom(cartKey, booking.roomId, 0);
+          }
+        }
+      });
+
+      // Navigate to new reservation page
+      if (onNavigate) {
+        onNavigate('new-reservation');
+      }
+    }, 0);
+
     closeActionMenu();
-    setIsQuickBookingOpen(true);
   };
 
   const handleBlockAction = async () => {

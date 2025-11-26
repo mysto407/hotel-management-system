@@ -57,7 +57,7 @@ export const Layout = () => {
     'room-types': <RoomTypes />,
     rooms: <Rooms />,
     reservations: <Reservations onNavigate={handleNavigate} />,
-    'reservation-calendar': <ReservationCalendar />,
+    'reservation-calendar': <ReservationCalendar onNavigate={handleNavigate} />,
     'reservation-details': <ReservationDetails onNavigate={handleNavigate} />,
     'new-reservation': <NewReservation onNavigate={handleNavigate} />,
     'guest-details': <GuestDetailsPage onNavigate={handleNavigate} />,
