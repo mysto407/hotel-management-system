@@ -15,7 +15,9 @@ import {
   Ban,
   Users,
   ArrowLeftToLine,
-  ArrowRightToLine
+  ArrowRightToLine,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
@@ -82,7 +84,7 @@ const ROOM_COLUMN_WIDTH = 150;
 
 const ReservationCalendar = ({ onNavigate }) => {
   // Contexts
-  const { reservations, updateReservation, cancelReservation, deleteReservation, fetchReservations } = useReservations();
+  const { reservations, updateReservation, cancelReservation, deleteReservation, fetchReservations, checkIn, checkOut } = useReservations();
   const { rooms, roomTypes, updateRoomStatus } = useRooms();
   const { guests } = useGuests();
   const confirm = useConfirm();
@@ -630,6 +632,40 @@ const ReservationCalendar = ({ onNavigate }) => {
         await deleteReservation(res.id);
       }
       showSuccess(`${reservationsToDelete.length} reservation(s) deleted`);
+      closeActionMenu();
+    }
+  };
+
+  // Quick check-in handler
+  const handleQuickCheckIn = async () => {
+    if (!selectedReservation) return;
+
+    const confirmed = await confirm({
+      title: 'Check-in Guest',
+      message: `Check in ${guests.find(g => g.id === selectedReservation.guest_id)?.name || 'Guest'} to Room ${rooms.find(r => r.id === selectedReservation.room_id)?.room_number || 'N/A'}?`,
+      confirmText: 'Check In',
+      variant: 'default'
+    });
+
+    if (confirmed) {
+      await checkIn(selectedReservation.id);
+      closeActionMenu();
+    }
+  };
+
+  // Quick check-out handler
+  const handleQuickCheckOut = async () => {
+    if (!selectedReservation) return;
+
+    const confirmed = await confirm({
+      title: 'Check-out Guest',
+      message: `Check out ${guests.find(g => g.id === selectedReservation.guest_id)?.name || 'Guest'} from Room ${rooms.find(r => r.id === selectedReservation.room_id)?.room_number || 'N/A'}?`,
+      confirmText: 'Check Out',
+      variant: 'default'
+    });
+
+    if (confirmed) {
+      await checkOut(selectedReservation.id);
       closeActionMenu();
     }
   };
