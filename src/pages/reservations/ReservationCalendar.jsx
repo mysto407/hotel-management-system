@@ -121,7 +121,9 @@ const ReservationCalendar = ({ onNavigate }) => {
   const [dragOverCell, setDragOverCell] = useState(null); // { roomId, date }
 
   // Resize state for extending/shortening reservations
-  // Enhanced to include preview information for visual feedback
+  // resizeModeReservation: the reservation that is in resize mode (shows handles)
+  // resizeState: active resize operation with preview info
+  const [resizeModeReservation, setResizeModeReservation] = useState(null); // reservation being resized
   const [resizeState, setResizeState] = useState(null); // { reservation, edge: 'left'|'right', startX, originalDate, currentDate, daysDelta, isValid }
   const [resizePreview, setResizePreview] = useState(null); // { newCheckIn, newCheckOut, nights, daysDelta }
 
@@ -718,19 +720,36 @@ const ReservationCalendar = ({ onNavigate }) => {
     setSwapMode(null);
   }, [swapMode, guests, rooms, updateReservation, showSuccess]);
 
-  // Cancel swap mode with Escape key
+  // Resize mode handlers - enable resize mode from context menu
+  const handleStartResizeMode = useCallback((reservation) => {
+    setResizeModeReservation(reservation);
+    closeActionMenu();
+  }, []);
+
+  const handleCancelResizeMode = useCallback(() => {
+    setResizeModeReservation(null);
+    setResizeState(null);
+    setResizePreview(null);
+  }, []);
+
+  // Cancel swap mode or resize mode with Escape key
   useEffect(() => {
-    if (!swapMode) return;
+    if (!swapMode && !resizeModeReservation) return;
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setSwapMode(null);
+        if (swapMode) setSwapMode(null);
+        if (resizeModeReservation) {
+          setResizeModeReservation(null);
+          setResizeState(null);
+          setResizePreview(null);
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [swapMode]);
+  }, [swapMode, resizeModeReservation]);
 
   // View mode toggle
   const toggleViewMode = () => {
@@ -1347,6 +1366,9 @@ const ReservationCalendar = ({ onNavigate }) => {
     // Check if swap mode is active (for other reservations to be clickable targets)
     const isSwapTarget = swapMode && !isSwapSelected;
 
+    // Check if this reservation is in resize mode (shows handles)
+    const isInResizeMode = resizeModeReservation?.id === reservation.id;
+
     // Resize validity and change info
     const resizeIsValid = isResizing ? resizeState?.isValid : true;
     const originalNights = differenceInDays(originalCheckOut, originalCheckIn);
@@ -1363,6 +1385,12 @@ const ReservationCalendar = ({ onNavigate }) => {
         // If clicking the selected one, do nothing (or cancel)
         return;
       }
+      // If in resize mode for a different reservation, cancel it
+      if (resizeModeReservation && resizeModeReservation.id !== reservation.id) {
+        setResizeModeReservation(null);
+        setResizeState(null);
+        setResizePreview(null);
+      }
       handleReservationClick(reservation, e);
     };
 
@@ -1371,7 +1399,7 @@ const ReservationCalendar = ({ onNavigate }) => {
         <Tooltip open={isResizing ? true : undefined}>
           <TooltipTrigger asChild>
             <div
-              draggable={!isResizing && !swapMode}
+              draggable={!isResizing && !swapMode && !isInResizeMode}
               onDragStart={(e) => handleReservationDragStart(e, reservation)}
               onDragEnd={handleReservationDragEnd}
               className={cn(
@@ -1381,7 +1409,9 @@ const ReservationCalendar = ({ onNavigate }) => {
                 STATUS_COLORS[reservation.status] || 'bg-gray-500',
                 dimmed && "opacity-25",
                 "active:cursor-grabbing",
-                // Resize visual feedback
+                // Resize mode visual feedback (before dragging)
+                isInResizeMode && !isResizing && "ring-2 ring-blue-400 shadow-lg cursor-ew-resize",
+                // Active resize visual feedback (while dragging)
                 isResizing && "ring-2 shadow-lg",
                 isResizing && resizeIsValid && "ring-blue-400",
                 isResizing && !resizeIsValid && "ring-red-400 opacity-60",
@@ -1394,18 +1424,18 @@ const ReservationCalendar = ({ onNavigate }) => {
               }}
               onClick={handleBarClick}
             >
-              {/* Left resize handle - more prominent on hover */}
-              {!extendsLeft && (
+              {/* Left resize handle - only visible in resize mode */}
+              {isInResizeMode && !extendsLeft && (
                 <div
                   className={cn(
-                    "absolute left-0 top-0 w-3 h-full cursor-ew-resize transition-all flex items-center justify-center",
-                    "hover:bg-white/40 group-hover/bar:bg-white/20",
-                    isResizing && resizeState?.edge === 'left' && "bg-white/50"
+                    "absolute left-0 top-0 w-4 h-full cursor-ew-resize transition-all flex items-center justify-center",
+                    "bg-white/30 hover:bg-white/50",
+                    isResizing && resizeState?.edge === 'left' && "bg-white/60"
                   )}
                   onMouseDown={(e) => handleResizeStart(e, reservation, 'left')}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-0.5 h-4 bg-white/60 rounded group-hover/bar:bg-white/80" />
+                  <div className="w-1 h-5 bg-white rounded-full shadow" />
                 </div>
               )}
 
@@ -1423,18 +1453,18 @@ const ReservationCalendar = ({ onNavigate }) => {
                 )}
               </div>
 
-              {/* Right resize handle - more prominent on hover */}
-              {!extendsRight && (
+              {/* Right resize handle - only visible in resize mode */}
+              {isInResizeMode && !extendsRight && (
                 <div
                   className={cn(
-                    "absolute right-0 top-0 w-3 h-full cursor-ew-resize transition-all flex items-center justify-center",
-                    "hover:bg-white/40 group-hover/bar:bg-white/20",
-                    isResizing && resizeState?.edge === 'right' && "bg-white/50"
+                    "absolute right-0 top-0 w-4 h-full cursor-ew-resize transition-all flex items-center justify-center",
+                    "bg-white/30 hover:bg-white/50",
+                    isResizing && resizeState?.edge === 'right' && "bg-white/60"
                   )}
                   onMouseDown={(e) => handleResizeStart(e, reservation, 'right')}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-0.5 h-4 bg-white/60 rounded group-hover/bar:bg-white/80" />
+                  <div className="w-1 h-5 bg-white rounded-full shadow" />
                 </div>
               )}
 
@@ -2130,6 +2160,27 @@ const ReservationCalendar = ({ onNavigate }) => {
         </div>
       )}
 
+      {/* Resize Mode Indicator */}
+      {resizeModeReservation && !resizeState && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-100 dark:bg-blue-900 border border-blue-400 rounded-lg shadow-lg p-3 z-50">
+          <div className="flex items-center gap-3">
+            <ArrowLeftRight className="h-5 w-5 text-blue-600 dark:text-blue-400 rotate-90" />
+            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              Drag the handles to resize {guests.find(g => g.id === resizeModeReservation.guest_id)?.name || 'Guest'}&apos;s reservation
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelResizeMode}
+              className="text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Done
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Action Menu */}
       {actionMenuPosition && (
         <div
@@ -2266,6 +2317,13 @@ const ReservationCalendar = ({ onNavigate }) => {
                   >
                     <Edit2 className="h-4 w-4 text-blue-500" />
                     Edit Reservation
+                  </button>
+                  <button
+                    className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
+                    onClick={() => handleStartResizeMode(selectedReservation)}
+                  >
+                    <ArrowLeftRight className="h-4 w-4 text-cyan-500 rotate-90" />
+                    Resize Dates
                   </button>
                   <button
                     className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
