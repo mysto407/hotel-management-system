@@ -13,7 +13,10 @@ import {
   createMasterFolio,
   getFoliosByReservation,
   generateDailyRoomCharges,
-  createServiceCharge
+  createServiceCharge,
+  // Room assignment functions
+  assignRoomToReservation as assignRoomAPI,
+  autoAssignRooms as autoAssignRoomsAPI
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
 import { useAuth } from './AuthContext';
@@ -72,13 +75,15 @@ export const ReservationProvider = ({ children }) => {
       // Continue even if folio creation fails - user can create it manually later
     }
 
-    // Update room status for display purposes only
+    // Update room status for display purposes only (only if room is assigned)
     // Note: Actual availability is determined by date-based queries, not status
-    if (reservation.status === 'Checked-in') {
-      await updateRoomStatus(reservation.room_id, 'Occupied');
-    } else if (reservation.status === 'Confirmed') {
-      // Set room to Reserved when a confirmed booking is created
-      await updateRoomStatus(reservation.room_id, 'Reserved');
+    if (reservation.room_id) {
+      if (reservation.status === 'Checked-in') {
+        await updateRoomStatus(reservation.room_id, 'Occupied');
+      } else if (reservation.status === 'Confirmed') {
+        // Set room to Reserved when a confirmed booking is created
+        await updateRoomStatus(reservation.room_id, 'Reserved');
+      }
     }
 
     await loadReservations(); // Reload to get with relations
@@ -116,7 +121,16 @@ export const ReservationProvider = ({ children }) => {
 
   const checkIn = async (id) => {
     const reservation = reservations.find(r => r.id === id);
-    if (!reservation) return;
+    if (!reservation) return { success: false, error: 'Reservation not found' };
+
+    // CRITICAL: Check if room is assigned before check-in
+    if (!reservation.room_id) {
+      return {
+        success: false,
+        needsRoomAssignment: true,
+        error: 'No room assigned. Please assign a room before check-in.'
+      };
+    }
 
     try {
       // Update reservation status to Checked-in
@@ -207,10 +221,68 @@ export const ReservationProvider = ({ children }) => {
       console.log('Room charges generated successfully for', nights, 'nights');
       showSuccess(`Guest checked in successfully! Room charges scheduled for ${nights} night(s) - ${rateTypeName}`);
 
+      return { success: true };
     } catch (error) {
       console.error('Error during check-in:', error);
       showError('Failed to complete check-in: ' + error.message);
+      return { success: false, error: error.message };
     }
+  };
+
+  // Assign a specific room to a reservation
+  const assignRoom = async (reservationId, roomId, forceRoomType = false) => {
+    const { data, error } = await assignRoomAPI(reservationId, roomId, forceRoomType);
+
+    if (error) {
+      // Return specific error for room type mismatch (to show force move dialog)
+      if (error.code === 'ROOM_TYPE_MISMATCH') {
+        return { data: null, error, needsForceMove: true };
+      }
+      console.error('Error assigning room:', error);
+      showError('Failed to assign room: ' + error.message);
+      return { data: null, error };
+    }
+
+    showSuccess('Room assigned successfully');
+    await loadReservations();
+    return { data, error: null };
+  };
+
+  // Unassign room from a reservation (make it unassigned again)
+  const unassignRoom = async (reservationId) => {
+    const { error } = await updateReservationAPI(reservationId, { room_id: null });
+
+    if (error) {
+      console.error('Error unassigning room:', error);
+      showError('Failed to unassign room: ' + error.message);
+      return false;
+    }
+
+    showSuccess('Room unassigned');
+    await loadReservations();
+    return true;
+  };
+
+  // Auto-assign rooms to unassigned reservations
+  const autoAssignRooms = async (reservationIds = null, roomTypeId = null) => {
+    const { data, error } = await autoAssignRoomsAPI(reservationIds, roomTypeId);
+
+    if (error) {
+      console.error('Error auto-assigning rooms:', error);
+      showError('Failed to auto-assign rooms: ' + error.message);
+      return null;
+    }
+
+    const { assigned, failed } = data;
+    if (assigned.length > 0) {
+      showSuccess(`Successfully assigned ${assigned.length} room(s)`);
+    }
+    if (failed.length > 0) {
+      showError(`Failed to assign ${failed.length} reservation(s)`);
+    }
+
+    await loadReservations();
+    return data;
   };
 
   const checkOut = async (id) => {
@@ -218,9 +290,11 @@ export const ReservationProvider = ({ children }) => {
     if (!reservation) return;
 
     await updateReservation(id, { status: 'Checked-out' });
-    // Update room status to Available (for display purposes only)
+    // Update room status to Available (for display purposes only, only if room was assigned)
     // Note: Actual availability is determined by date-based queries
-    await updateRoomStatus(reservation.room_id, 'Available');
+    if (reservation.room_id) {
+      await updateRoomStatus(reservation.room_id, 'Available');
+    }
   };
 
   const cancelReservation = async (id) => {
@@ -231,7 +305,7 @@ export const ReservationProvider = ({ children }) => {
 
     // Update room status to Available if it was occupied/reserved (for display purposes only)
     // Note: Actual availability is determined by date-based queries
-    if (reservation.status === 'Checked-in' || reservation.status === 'Confirmed') {
+    if (reservation.room_id && (reservation.status === 'Checked-in' || reservation.status === 'Confirmed')) {
       await updateRoomStatus(reservation.room_id, 'Available');
     }
   };
@@ -261,6 +335,10 @@ export const ReservationProvider = ({ children }) => {
       checkIn,
       checkOut,
       cancelReservation,
+      // Room assignment functions
+      assignRoom,
+      unassignRoom,
+      autoAssignRooms,
       fetchReservations: loadReservations
     }}>
       {children}

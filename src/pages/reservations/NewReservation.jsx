@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Trash2, ChevronRight, Shuffle, UserPlus, ArrowRight, CalendarPlus } from 'lucide-react'
+import { Search, Plus, Trash2, ChevronRight, Shuffle, UserPlus, ArrowRight, CalendarPlus, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useRooms } from '../../context/RoomContext'
@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Calendar } from '../../components/ui/calendar'
+import { Switch } from '../../components/ui/switch'
 import {
   Popover,
   PopoverContent,
@@ -66,7 +67,9 @@ export default function NewReservation({ onNavigate }) {
     addons,
     addAddon,
     removeAddon,
-    calculateBill
+    calculateBill,
+    assignLater,
+    setAssignLater
   } = useReservationFlow()
 
   // State for available rooms based on date range
@@ -249,7 +252,7 @@ export default function NewReservation({ onNavigate }) {
     }
   }
 
-  // Validate that all rooms have assigned room numbers
+  // Validate that all rooms have assigned room numbers (not needed if assignLater is true)
   const allRoomsAssigned = selectedRooms.every(roomType => {
     const assignedCount = (roomType.assignedRooms || []).filter(Boolean).length
     return assignedCount === roomType.quantity
@@ -258,7 +261,8 @@ export default function NewReservation({ onNavigate }) {
   // Validate that an agent is selected when source is 'agent'
   const agentValid = filters.source !== 'agent' || selectedAgent !== null
 
-  const canProceed = filters.checkIn && filters.checkOut && selectedRooms.length > 0 && allRoomsAssigned && agentValid
+  // Can proceed if dates set, rooms selected, agent valid, and either rooms assigned OR assignLater enabled
+  const canProceed = filters.checkIn && filters.checkOut && selectedRooms.length > 0 && agentValid && (allRoomsAssigned || assignLater)
 
   // Handle agent added from modal
   const handleAgentAdded = (newAgent) => {
@@ -719,15 +723,37 @@ export default function NewReservation({ onNavigate }) {
                 <div className="mb-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Selected Rooms</h2>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleAutoAssignAll}
-                      disabled={selectedRooms.length === 0}
-                    >
-                      <Shuffle className="h-3 w-3 mr-1" />
-                      Auto Assign All
-                    </Button>
+                    {!assignLater && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleAutoAssignAll}
+                        disabled={selectedRooms.length === 0}
+                      >
+                        <Shuffle className="h-3 w-3 mr-1" />
+                        Auto Assign All
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Assign Later Toggle */}
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <Label htmlFor="assign-later" className="cursor-pointer font-medium">
+                          Assign room later
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Book by room type, assign specific room before check-in
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id="assign-later"
+                      checked={assignLater}
+                      onCheckedChange={setAssignLater}
+                    />
                   </div>
 
                   {/* Meal Plan Selection */}
@@ -832,6 +858,27 @@ export default function NewReservation({ onNavigate }) {
 
                           {/* Room Number Assignments */}
                           <div className="space-y-2 border-t pt-3">
+                            {assignLater ? (
+                              /* Show info when assign later is enabled */
+                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                                <div className="flex items-start gap-2">
+                                  <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                                      Room will be assigned later
+                                    </p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                      {(() => {
+                                        const typeAvailable = availableRooms.filter(r => r.room_type_id === room.id).length
+                                        return `${typeAvailable} ${room.name} room${typeAvailable !== 1 ? 's' : ''} available for this period`
+                                      })()}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              /* Show room assignment dropdowns when assign now */
+                              <>
                             <div className="flex items-center justify-between">
                               <Label className="text-sm font-medium">Room Assignments *</Label>
                               <Button
@@ -1015,6 +1062,8 @@ export default function NewReservation({ onNavigate }) {
                                 </div>
                               </div>
                             ))}
+                              </>
+                            )}
                           </div>
                         </div>
                       )
@@ -1210,9 +1259,14 @@ export default function NewReservation({ onNavigate }) {
       <div className="sticky bottom-0 z-10 bg-card border-t px-6 py-4 shadow-lg">
         <div className="flex justify-between items-center">
           <div>
-            {selectedRooms.length > 0 && !allRoomsAssigned && (
+            {selectedRooms.length > 0 && !allRoomsAssigned && !assignLater && (
               <p className="text-sm text-red-600 dark:text-red-400">
                 ⚠ Please assign room numbers to all selected rooms before proceeding
+              </p>
+            )}
+            {selectedRooms.length > 0 && assignLater && (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                ℹ Rooms will be assigned before check-in
               </p>
             )}
             {filters.source === 'agent' && !selectedAgent && (

@@ -385,6 +385,7 @@ export const getReservations = async() => {
       *,
       guests (*),
       rooms (*, room_types (*)),
+      room_types (*),
       agents (*),
       room_rate_types (*),
       booking_id
@@ -394,6 +395,7 @@ export const getReservations = async() => {
 }
 
 // Get available rooms for a specific date range
+// Accounts for both assigned reservations and unassigned reservations (by room type)
 export const getAvailableRooms = async(checkInDate, checkOutDate) => {
     // First, get all rooms with their types
     // Exclude only rooms that are in Maintenance or Blocked status
@@ -409,30 +411,190 @@ export const getAvailableRooms = async(checkInDate, checkOutDate) => {
 
     if (roomsError) return { data: null, error: roomsError }
 
-    // Get all reservations that overlap with the requested date range
-    // A reservation overlaps if:
-    // - Its check-in is before our check-out AND
-    // - Its check-out is after our check-in
-    // AND the reservation is not cancelled or checked-out
-    const { data: overlappingReservations, error: reservationsError } = await supabase
+    // Get all ASSIGNED reservations that overlap with the requested date range
+    const { data: assignedReservations, error: assignedError } = await supabase
         .from('reservations')
         .select('room_id')
         .lt('check_in_date', checkOutDate)
         .gt('check_out_date', checkInDate)
         .not('status', 'in', '("Cancelled","Checked-out")')
+        .not('room_id', 'is', null)
 
-    if (reservationsError) return { data: null, error: reservationsError }
+    if (assignedError) return { data: null, error: assignedError }
 
-    // Extract room IDs that are already booked
-    const bookedRoomIds = overlappingReservations.map(r => r.room_id)
+    // Get all UNASSIGNED reservations that overlap (count per room type)
+    const { data: unassignedReservations, error: unassignedError } = await supabase
+        .from('reservations')
+        .select('room_type_id')
+        .lt('check_in_date', checkOutDate)
+        .gt('check_out_date', checkInDate)
+        .not('status', 'in', '("Cancelled","Checked-out")')
+        .is('room_id', null)
 
-    // Filter out booked rooms based on date overlap
-    // Room status (Occupied/Reserved/Available) is now only for display purposes
-    const availableRooms = allRooms.filter(room =>
-        !bookedRoomIds.includes(room.id)
-    )
+    if (unassignedError) return { data: null, error: unassignedError }
+
+    // Count unassigned reservations per room type
+    const unassignedCountByType = {}
+    unassignedReservations?.forEach(res => {
+        if (res.room_type_id) {
+            unassignedCountByType[res.room_type_id] = (unassignedCountByType[res.room_type_id] || 0) + 1
+        }
+    })
+
+    // Extract room IDs that are already booked (assigned)
+    const bookedRoomIds = assignedReservations?.map(r => r.room_id).filter(Boolean) || []
+
+    // Filter out assigned rooms
+    let availableRooms = allRooms.filter(room => !bookedRoomIds.includes(room.id))
+
+    // For each room type with unassigned reservations, reduce available count
+    // by removing that many rooms from the available list
+    Object.entries(unassignedCountByType).forEach(([typeId, count]) => {
+        const typeRooms = availableRooms.filter(r => r.room_type_id === typeId)
+        // Remove 'count' rooms of this type from available (they're reserved for unassigned bookings)
+        const roomsToRemove = typeRooms.slice(0, count).map(r => r.id)
+        availableRooms = availableRooms.filter(r => !roomsToRemove.includes(r.id))
+    })
 
     return { data: availableRooms, error: null }
+}
+
+// Get unassigned reservations (reservations without a specific room assigned)
+export const getUnassignedReservations = async(startDate = null, endDate = null) => {
+    let query = supabase
+        .from('reservations')
+        .select(`
+            *,
+            guests (*),
+            room_types (*),
+            agents (*),
+            room_rate_types (*)
+        `)
+        .is('room_id', null)
+        .not('status', 'in', '("Cancelled","Checked-out")')
+        .order('check_in_date')
+
+    if (startDate) query = query.gte('check_in_date', startDate)
+    if (endDate) query = query.lte('check_in_date', endDate)
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+// Assign a specific room to a reservation
+export const assignRoomToReservation = async(reservationId, roomId, forceRoomType = false) => {
+    // Get reservation details
+    const { data: reservation, error: resError } = await supabase
+        .from('reservations')
+        .select('check_in_date, check_out_date, room_type_id')
+        .eq('id', reservationId)
+        .single()
+
+    if (resError) return { data: null, error: resError }
+
+    // Get room details
+    const { data: room, error: roomError } = await supabase
+        .from('rooms')
+        .select('room_type_id, status')
+        .eq('id', roomId)
+        .single()
+
+    if (roomError) return { data: null, error: roomError }
+
+    // Validate room status
+    if (room.status === 'Maintenance' || room.status === 'Blocked') {
+        return { data: null, error: { message: `Room is ${room.status}` } }
+    }
+
+    // Validate room type matches (unless force move)
+    if (!forceRoomType && room.room_type_id !== reservation.room_type_id) {
+        return { data: null, error: { message: 'Room type mismatch', code: 'ROOM_TYPE_MISMATCH' } }
+    }
+
+    // Check for overlapping reservations on the target room
+    const { data: conflicts, error: conflictError } = await supabase
+        .from('reservations')
+        .select('id')
+        .eq('room_id', roomId)
+        .lt('check_in_date', reservation.check_out_date)
+        .gt('check_out_date', reservation.check_in_date)
+        .not('status', 'in', '("Cancelled","Checked-out")')
+        .neq('id', reservationId)
+
+    if (conflictError) return { data: null, error: conflictError }
+
+    if (conflicts?.length > 0) {
+        return { data: null, error: { message: 'Room not available for selected dates - overlapping booking exists' } }
+    }
+
+    // Build update data
+    const updateData = { room_id: roomId }
+
+    // If force move, also update room_type_id to match the new room
+    if (forceRoomType && room.room_type_id !== reservation.room_type_id) {
+        updateData.room_type_id = room.room_type_id
+    }
+
+    // Assign room
+    const { data, error } = await supabase
+        .from('reservations')
+        .update(updateData)
+        .eq('id', reservationId)
+        .select(`
+            *,
+            guests (*),
+            rooms (*, room_types (*)),
+            room_types (*),
+            agents (*),
+            room_rate_types (*)
+        `)
+
+    return { data: data?.[0], error }
+}
+
+// Auto-assign rooms to unassigned reservations
+export const autoAssignRooms = async(reservationIds = null, roomTypeId = null) => {
+    // Get unassigned reservations
+    let query = supabase
+        .from('reservations')
+        .select('id, check_in_date, check_out_date, room_type_id')
+        .is('room_id', null)
+        .not('status', 'in', '("Cancelled","Checked-out")')
+        .order('check_in_date')
+
+    if (reservationIds) query = query.in('id', reservationIds)
+    if (roomTypeId) query = query.eq('room_type_id', roomTypeId)
+
+    const { data: reservations, error: fetchError } = await query
+    if (fetchError) return { data: null, error: fetchError }
+
+    const results = { assigned: [], failed: [] }
+
+    for (const res of reservations || []) {
+        // Get available rooms for this reservation's dates
+        const { data: availableRooms, error: availError } = await getAvailableRooms(res.check_in_date, res.check_out_date)
+
+        if (availError) {
+            results.failed.push({ reservationId: res.id, error: availError.message })
+            continue
+        }
+
+        // Find first available room of matching type
+        const matchingRoom = availableRooms?.find(r => r.room_type_id === res.room_type_id)
+
+        if (matchingRoom) {
+            const { data, error } = await assignRoomToReservation(res.id, matchingRoom.id)
+            if (error) {
+                results.failed.push({ reservationId: res.id, error: error.message })
+            } else {
+                results.assigned.push({ reservationId: res.id, roomId: matchingRoom.id, roomNumber: matchingRoom.room_number })
+            }
+        } else {
+            results.failed.push({ reservationId: res.id, error: 'No available rooms of matching type' })
+        }
+    }
+
+    return { data: results, error: null }
 }
 
 export const createReservation = async(reservation) => {

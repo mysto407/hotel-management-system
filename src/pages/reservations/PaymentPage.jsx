@@ -33,7 +33,8 @@ export default function PaymentPage({ onNavigate }) {
     resetFlow,
     applyPromoCode,
     appliedPromoCode,
-    removeDiscount
+    removeDiscount,
+    assignLater
   } = useReservationFlow()
 
   const { addReservation } = useReservations()
@@ -221,10 +222,11 @@ export default function PaymentPage({ onNavigate }) {
 
         // Create one reservation per quantity
         return Array.from({ length: roomType.quantity }, (_, index) => {
-          // Get the assigned room ID, or fall back to any available room
-          const assignedRoomId = roomType.assignedRooms?.[index] || roomType.roomIds?.[index]
+          // Get the assigned room ID (may be null if assignLater is enabled)
+          const assignedRoomId = roomType.assignedRooms?.[index] || roomType.roomIds?.[index] || null
 
-          if (!assignedRoomId) {
+          // If not in assignLater mode and no room is assigned, that's an error
+          if (!assignLater && !assignedRoomId) {
             console.error(`No room assigned for ${roomType.name} slot ${index + 1}`)
             return null
           }
@@ -235,17 +237,20 @@ export default function PaymentPage({ onNavigate }) {
           // Get guest counts for this room (default to 1 adult if not set)
           const guestCount = roomType.guestCounts?.[index] || { adults: 1, children: 0, infants: 0 }
 
-          // Get additional guests assigned to THIS specific room
+          // Get additional guests assigned to THIS specific room (only if room is assigned)
           const guestsForThisRoom = [];
-          guestIdToRoomIdMap.forEach((roomId, guestId) => {
-            if (roomId === assignedRoomId) {
-              guestsForThisRoom.push(guestId);
-            }
-          });
+          if (assignedRoomId) {
+            guestIdToRoomIdMap.forEach((roomId, guestId) => {
+              if (roomId === assignedRoomId) {
+                guestsForThisRoom.push(guestId);
+              }
+            });
+          }
 
           return addReservation({
             guest_id: guestId,
-            room_id: assignedRoomId,
+            room_id: assignedRoomId, // Can be null if assignLater is enabled
+            room_type_id: roomType.id, // Always include room type for unassigned reservations
             rate_type_id: roomType.rateTypeId || null,
             check_in_date: roomType.checkIn, // Use room's specific check-in date
             check_out_date: roomType.checkOut, // Use room's specific check-out date

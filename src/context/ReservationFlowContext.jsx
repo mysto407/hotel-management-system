@@ -32,6 +32,9 @@ export function ReservationFlowProvider({ children }) {
   const [selectedDiscounts, setSelectedDiscounts] = useState([])
   const [appliedPromoCode, setAppliedPromoCode] = useState(null)
 
+  // Assign Later mode - when true, rooms are booked by type only (no specific room assigned)
+  const [assignLater, setAssignLater] = useState(false)
+
   // Step 2: Guest Details
   const [guestDetails, setGuestDetails] = useState({
     firstName: '',
@@ -403,6 +406,7 @@ export function ReservationFlowProvider({ children }) {
     setAddons([])
     setSelectedDiscounts([])
     setAppliedPromoCode(null)
+    setAssignLater(false)
     setGuestDetails({
       firstName: '',
       surname: '',
@@ -435,6 +439,7 @@ export function ReservationFlowProvider({ children }) {
     addons,
     selectedDiscounts,
     appliedPromoCode,
+    assignLater,
     guestDetails,
     allGuestsDetails,
     paymentInfo,
@@ -442,6 +447,7 @@ export function ReservationFlowProvider({ children }) {
     // Setters
     setFilters,
     setSelectedAgent,
+    setAssignLater,
     setGuestDetails,
     setAllGuestsDetails,
     setPaymentInfo,
