@@ -2270,10 +2270,43 @@ const ReservationCalendar = ({ onNavigate }) => {
           {actionMenuType === 'empty' && (
             <>
               <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-b mb-1">
-                {selectedCells.length > 1
-                  ? `${[...new Set(selectedCells.map(c => c.roomId))].length} room(s) × ${[...new Set(selectedCells.map(c => c.date.getTime()))].length} night(s)`
-                  : 'Quick Actions'
-                }
+                {(() => {
+                  if (selectedCells.length === 0) return 'Quick Actions';
+
+                  // Get date range
+                  const dates = selectedCells.map(c => c.date.getTime());
+                  const minDate = new Date(Math.min(...dates));
+                  const maxDate = new Date(Math.max(...dates));
+                  const checkOutDate = addDays(maxDate, 1); // Check-out is day after last night
+
+                  // Get unique room types
+                  const uniqueRoomIds = [...new Set(selectedCells.map(c => c.roomId))];
+                  const uniqueRoomTypeIds = [...new Set(uniqueRoomIds.map(roomId => {
+                    const room = rooms.find(r => r.id === roomId);
+                    return room?.room_type_id;
+                  }).filter(Boolean))];
+                  const roomTypeNames = uniqueRoomTypeIds.map(typeId => {
+                    const roomType = roomTypes.find(rt => rt.id === typeId);
+                    return roomType?.name || 'Unknown';
+                  });
+
+                  // Format date range
+                  const dateRangeStr = minDate.getTime() === maxDate.getTime()
+                    ? format(minDate, 'MMM d')
+                    : `${format(minDate, 'MMM d')} - ${format(checkOutDate, 'MMM d')}`;
+
+                  // Format room type(s)
+                  const roomTypeStr = roomTypeNames.length === 1
+                    ? roomTypeNames[0]
+                    : `${roomTypeNames.length} room types`;
+
+                  return (
+                    <>
+                      <div>{dateRangeStr}</div>
+                      <div className="text-xs font-normal">{roomTypeStr} • {uniqueRoomIds.length} room(s)</div>
+                    </>
+                  );
+                })()}
               </div>
               <button
                 className="w-full px-2 py-1.5 text-sm text-left rounded hover:bg-accent flex items-center gap-2"
