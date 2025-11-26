@@ -2795,3 +2795,95 @@ export const getTransactionByGatewayId = async (gatewayTransactionId) => {
 
     return { data, error }
 }
+
+// ==================== Room Blockings ====================
+
+/**
+ * Get all room blockings
+ */
+export const getRoomBlockings = async () => {
+    const { data, error } = await supabase
+        .from('room_blockings')
+        .select(`
+            *,
+            rooms (
+                id,
+                room_number,
+                room_types (name)
+            )
+        `)
+        .order('start_date', { ascending: true })
+
+    return { data, error }
+}
+
+/**
+ * Get room blockings for a specific room
+ */
+export const getRoomBlockingsByRoom = async (roomId) => {
+    const { data, error } = await supabase
+        .from('room_blockings')
+        .select('*')
+        .eq('room_id', roomId)
+        .order('start_date', { ascending: true })
+
+    return { data, error }
+}
+
+/**
+ * Get room blockings within a date range
+ */
+export const getRoomBlockingsInRange = async (startDate, endDate) => {
+    const { data, error } = await supabase
+        .from('room_blockings')
+        .select(`
+            *,
+            rooms (
+                id,
+                room_number,
+                room_types (name)
+            )
+        `)
+        .lt('start_date', endDate)
+        .gt('end_date', startDate)
+        .order('start_date', { ascending: true })
+
+    return { data, error }
+}
+
+/**
+ * Create a room blocking
+ */
+export const createRoomBlocking = async (blocking) => {
+    const { data, error } = await supabase
+        .from('room_blockings')
+        .insert(blocking)
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Update a room blocking
+ */
+export const updateRoomBlocking = async (id, blocking) => {
+    const { data, error } = await supabase
+        .from('room_blockings')
+        .update(blocking)
+        .eq('id', id)
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Delete a room blocking
+ */
+export const deleteRoomBlocking = async (id) => {
+    const { data, error } = await supabase
+        .from('room_blockings')
+        .delete()
+        .eq('id', id)
+
+    return { data, error }
+}

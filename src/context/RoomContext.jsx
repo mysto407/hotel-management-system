@@ -16,7 +16,14 @@ import {
   createRoomRateType as createRoomRateTypeAPI,
   updateRoomRateType as updateRoomRateTypeAPI,
   deleteRoomRateType as deleteRoomRateTypeAPI,
-  setDefaultRateType as setDefaultRateTypeAPI
+  setDefaultRateType as setDefaultRateTypeAPI,
+  // Room blocking functions
+  getRoomBlockings,
+  getRoomBlockingsByRoom,
+  getRoomBlockingsInRange,
+  createRoomBlocking as createRoomBlockingAPI,
+  updateRoomBlocking as updateRoomBlockingAPI,
+  deleteRoomBlocking as deleteRoomBlockingAPI
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
 
@@ -33,6 +40,7 @@ export const RoomProvider = ({ children }) => {
   const [roomTypes, setRoomTypes] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [rateTypes, setRateTypes] = useState([]);
+  const [blockings, setBlockings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +49,7 @@ export const RoomProvider = ({ children }) => {
 
   const loadInitialData = async () => {
     setLoading(true);
-    await Promise.all([loadRoomTypes(), loadRooms(), loadRateTypes()]);
+    await Promise.all([loadRoomTypes(), loadRooms(), loadRateTypes(), loadBlockings()]);
     setLoading(false);
   };
 
@@ -75,6 +83,17 @@ export const RoomProvider = ({ children }) => {
     } catch (error) {
       console.error('Error loading rate types:', error);
       showError('Failed to load rate types: ' + error.message);
+    }
+  };
+
+  const loadBlockings = async () => {
+    try {
+      const { data, error } = await getRoomBlockings();
+      if (error) throw error;
+      setBlockings(data || []);
+    } catch (error) {
+      console.error('Error loading room blockings:', error);
+      // Don't show error for blockings - not critical
     }
   };
 
@@ -365,6 +384,84 @@ export const RoomProvider = ({ children }) => {
       showError('Failed to set default rate type: ' + error.message);
       return false;
     }
+  };
+
+  // Room Blocking Operations
+  const addBlocking = async (blocking) => {
+    try {
+      const blockingData = {
+        room_id: blocking.room_id,
+        start_date: blocking.start_date,
+        end_date: blocking.end_date,
+        reason: blocking.reason || ''
+      };
+
+      const { data, error } = await createRoomBlockingAPI(blockingData);
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        await loadBlockings();
+        showSuccess('Room blocked successfully');
+        return data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error('Error creating room blocking:', error);
+      showError('Failed to block room: ' + error.message);
+      return null;
+    }
+  };
+
+  const updateBlocking = async (id, updatedBlocking) => {
+    try {
+      const blockingData = {
+        room_id: updatedBlocking.room_id,
+        start_date: updatedBlocking.start_date,
+        end_date: updatedBlocking.end_date,
+        reason: updatedBlocking.reason || ''
+      };
+
+      const { error } = await updateRoomBlockingAPI(id, blockingData);
+      if (error) throw error;
+
+      await loadBlockings();
+      showSuccess('Room blocking updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating room blocking:', error);
+      showError('Failed to update room blocking: ' + error.message);
+      return false;
+    }
+  };
+
+  const removeBlocking = async (id) => {
+    try {
+      const { error } = await deleteRoomBlockingAPI(id);
+      if (error) throw error;
+
+      setBlockings(blockings.filter(b => b.id !== id));
+      showSuccess('Room blocking removed');
+      return true;
+    } catch (error) {
+      console.error('Error removing room blocking:', error);
+      showError('Failed to remove room blocking: ' + error.message);
+      return false;
+    }
+  };
+
+  const getBlockingsForRoom = (roomId) => {
+    return blockings.filter(b => b.room_id === roomId);
+  };
+
+  const getBlockingsInRange = (startDate, endDate) => {
+    return blockings.filter(b => {
+      const blockStart = new Date(b.start_date);
+      const blockEnd = new Date(b.end_date);
+      const rangeStart = new Date(startDate);
+      const rangeEnd = new Date(endDate);
+      // Check if blocking overlaps with range
+      return blockStart < rangeEnd && blockEnd > rangeStart;
+    });
   };
 
   // Helper functions
