@@ -1,8 +1,9 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail } from 'lucide-react';
+import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import ReservationSummary from '../../components/reservations/ReservationSummary';
+import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useMealPlans } from '../../context/MealPlanContext';
@@ -41,7 +42,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Reservations = ({ onNavigate }) => {
-  const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation, deleteReservation } = useReservations();
+  const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation, deleteReservation, assignRoom } = useReservations();
   const { rooms, roomTypes } = useRooms();
   const { getMealPlanName, getActivePlans } = useMealPlans();
   const { guests } = useGuests();
@@ -66,6 +67,10 @@ const Reservations = ({ onNavigate }) => {
   const [filterMealPlan, setFilterMealPlan] = useState('all');
   const [filterGuestCount, setFilterGuestCount] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Room assignment modal state for unassigned reservations
+  const [isRoomAssignmentModalOpen, setIsRoomAssignmentModalOpen] = useState(false);
+  const [roomAssignmentReservation, setRoomAssignmentReservation] = useState(null);
 
   const setDatePreset = (preset) => {
     const today = new Date();
@@ -301,6 +306,14 @@ const Reservations = ({ onNavigate }) => {
   };
 
   const handleCheckIn = async (reservation) => {
+    // Check if reservation has no room assigned
+    if (!reservation.room_id) {
+      // Show room assignment modal
+      setRoomAssignmentReservation(reservation);
+      setIsRoomAssignmentModalOpen(true);
+      return;
+    }
+
     const confirmed = await confirm({
       variant: 'info',
       title: 'Check In',
@@ -310,6 +323,25 @@ const Reservations = ({ onNavigate }) => {
     });
     if (confirmed) {
       checkIn(reservation.id);
+    }
+  };
+
+  // Handle room assignment and check-in for unassigned reservations
+  const handleRoomAssignmentAndCheckIn = async (roomId) => {
+    if (!roomAssignmentReservation) return;
+
+    const result = await assignRoom(roomAssignmentReservation.id, roomId);
+    if (result.success) {
+      // Room assigned, now check in
+      await checkIn(roomAssignmentReservation.id);
+      setIsRoomAssignmentModalOpen(false);
+      setRoomAssignmentReservation(null);
+    } else {
+      await showAlert({
+        variant: 'danger',
+        title: 'Assignment Failed',
+        message: result.error || 'Failed to assign room'
+      });
     }
   };
 
@@ -841,6 +873,16 @@ const Reservations = ({ onNavigate }) => {
                               variant="ghost" size="icon"
                               onClick={async () => {
                                 if (isMultiRoom) {
+                                  // Check if any reservation in the group is unassigned
+                                  const unassignedInGroup = group.filter(r => !r.room_id);
+                                  if (unassignedInGroup.length > 0) {
+                                    await showAlert({
+                                      variant: 'warning',
+                                      title: 'Room Assignment Required',
+                                      message: `${unassignedInGroup.length} room(s) in this group don't have rooms assigned. Please assign rooms before checking in.`
+                                    });
+                                    return;
+                                  }
                                   const confirmed = await confirm({ variant: 'info', title: 'Check In Multiple Rooms', message: `Check in all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check In All'});
                                   if (confirmed) group.forEach(r => checkIn(r.id));
                                 } else handleCheckIn(primaryReservation);
