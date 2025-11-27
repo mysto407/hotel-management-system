@@ -3602,3 +3602,142 @@ export const generateExtraPersonCharges = async (
         error: null
     }
 }
+
+// ============================================
+// FOLIO ROUTING FUNCTIONS
+// ============================================
+
+/**
+ * Get all active folio routing rules
+ */
+export const getFolioRoutingRules = async () => {
+    const { data, error } = await supabase
+        .from('folio_routing_rules')
+        .select('*')
+        .eq('is_active', true)
+        .order('priority', { ascending: false })
+
+    return { data, error }
+}
+
+/**
+ * Get the default folio for a charge based on routing rules
+ *
+ * @param {string} reservationId - The reservation ID
+ * @param {string} chargeType - The transaction type
+ * @param {string} serviceCategory - Optional service category
+ * @returns {Promise<{folio: object, folioType: string, error: Error}>}
+ */
+export const getDefaultFolioForCharge = async (reservationId, chargeType, serviceCategory = null) => {
+    // Get routing rules
+    const { data: rules, error: rulesError } = await getFolioRoutingRules()
+    if (rulesError) return { folio: null, folioType: 'master', error: rulesError }
+
+    // Find the best matching rule (sorted by priority)
+    let matchingRule = null
+    for (const rule of rules || []) {
+        // First try to match both charge type and service category
+        if (rule.charge_type === chargeType && rule.service_category === serviceCategory) {
+            matchingRule = rule
+            break
+        }
+        // Fall back to charge type only match
+        if (rule.charge_type === chargeType && !rule.service_category && !matchingRule) {
+            matchingRule = rule
+        }
+    }
+
+    const targetFolioType = matchingRule?.default_folio_type || 'master'
+
+    // Get folios for this reservation
+    const { data: folios, error: foliosError } = await supabase
+        .from('folios')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .eq('is_active', true)
+
+    if (foliosError) return { folio: null, folioType: targetFolioType, error: foliosError }
+
+    // Find a folio of the target type, or fall back to master
+    let targetFolio = folios?.find(f => f.folio_type === targetFolioType)
+    if (!targetFolio) {
+        targetFolio = folios?.find(f => f.folio_type === 'master')
+    }
+
+    return { folio: targetFolio, folioType: targetFolioType, error: null }
+}
+
+/**
+ * Create a company folio for a reservation
+ *
+ * @param {string} reservationId - The reservation ID
+ * @param {string} companyName - The company name
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const createCompanyFolio = async (reservationId, companyName) => {
+    const folioNumber = `CF-${reservationId.substring(0, 8).toUpperCase()}`
+
+    const { data, error } = await supabase
+        .from('folios')
+        .insert([{
+            reservation_id: reservationId,
+            folio_type: 'company',
+            folio_number: folioNumber,
+            name: `Company Folio - ${companyName}`,
+            company_name: companyName,
+            is_active: true
+        }])
+        .select()
+
+    return { data: data?.[0], error }
+}
+
+/**
+ * Create an incidentals folio for a reservation
+ *
+ * @param {string} reservationId - The reservation ID
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const createIncidentalsFolio = async (reservationId) => {
+    const folioNumber = `IF-${reservationId.substring(0, 8).toUpperCase()}`
+
+    const { data, error } = await supabase
+        .from('folios')
+        .insert([{
+            reservation_id: reservationId,
+            folio_type: 'incidentals',
+            folio_number: folioNumber,
+            name: 'Incidentals Folio',
+            is_active: true
+        }])
+        .select()
+
+    return { data: data?.[0], error }
+}
+
+/**
+ * Get all folio types available
+ */
+export const FOLIO_TYPES = {
+    MASTER: 'master',
+    ROOM: 'room',
+    GUEST: 'guest',
+    COMPANY: 'company',
+    INCIDENTALS: 'incidentals',
+    OTHER: 'other'
+}
+
+/**
+ * Get readable name for folio type
+ */
+export const getFolioTypeName = (folioType) => {
+    const names = {
+        master: 'Master Folio',
+        room: 'Room Folio',
+        guest: 'Guest Folio',
+        company: 'Company Folio',
+        incidentals: 'Incidentals',
+        other: 'Other'
+    }
+    return names[folioType] || folioType
+}
