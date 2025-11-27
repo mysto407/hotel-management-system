@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const RateTypesManager = ({ roomType }) => {
   const {
@@ -55,7 +56,12 @@ const RateTypesManager = ({ roomType }) => {
     is_active: true,
     is_default: false,
     valid_from: '',
-    valid_to: ''
+    valid_to: '',
+    // Extra person fee fields
+    base_occupancy: '2',
+    extra_adult_fee: '0',
+    extra_child_fee: '0',
+    extra_fee_unit: 'per_night'
   });
 
   const rateTypes = getRateTypesByRoomType(roomType.id);
@@ -75,7 +81,12 @@ const RateTypesManager = ({ roomType }) => {
       is_active: formData.is_active,
       is_default: formData.is_default,
       valid_from: formData.valid_from || null,
-      valid_to: formData.valid_to || null
+      valid_to: formData.valid_to || null,
+      // Extra person fee fields
+      base_occupancy: parseInt(formData.base_occupancy) || 2,
+      extra_adult_fee: parseFloat(formData.extra_adult_fee) || 0,
+      extra_child_fee: parseFloat(formData.extra_child_fee) || 0,
+      extra_fee_unit: formData.extra_fee_unit
     };
 
     let success = false;
@@ -105,7 +116,12 @@ const RateTypesManager = ({ roomType }) => {
       is_active: true,
       is_default: false,
       valid_from: '',
-      valid_to: ''
+      valid_to: '',
+      // Extra person fee fields
+      base_occupancy: '2',
+      extra_adult_fee: '0',
+      extra_child_fee: '0',
+      extra_fee_unit: 'per_night'
     });
     setEditingRateType(null);
     setIsModalOpen(false);
@@ -126,7 +142,12 @@ const RateTypesManager = ({ roomType }) => {
       is_active: rateType.is_active,
       is_default: rateType.is_default,
       valid_from: rateType.valid_from || '',
-      valid_to: rateType.valid_to || ''
+      valid_to: rateType.valid_to || '',
+      // Extra person fee fields
+      base_occupancy: rateType.base_occupancy?.toString() || '2',
+      extra_adult_fee: rateType.extra_adult_fee?.toString() || '0',
+      extra_child_fee: rateType.extra_child_fee?.toString() || '0',
+      extra_fee_unit: rateType.extra_fee_unit || 'per_night'
     });
     setIsModalOpen(true);
   };
@@ -366,6 +387,75 @@ const RateTypesManager = ({ roomType }) => {
                 placeholder="e.g., Free cancellation up to 24 hours before check-in"
                 rows="2"
               />
+            </div>
+
+            {/* Extra Person Fees Section */}
+            <div className="col-span-2 border-t pt-4 mt-2">
+              <h4 className="text-sm font-semibold mb-3 text-muted-foreground">Extra Person Fees</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="base_occupancy">Base Occupancy</Label>
+                  <Input
+                    id="base_occupancy"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={formData.base_occupancy}
+                    onChange={(e) => setFormData({...formData, base_occupancy: e.target.value})}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Guests included in base rate (additional guests will be charged)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extra_fee_unit">Fee Calculation</Label>
+                  <Select
+                    value={formData.extra_fee_unit}
+                    onValueChange={(value) => setFormData({...formData, extra_fee_unit: value})}
+                  >
+                    <SelectTrigger id="extra_fee_unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="per_night">Per Night</SelectItem>
+                      <SelectItem value="one_time">One Time (Entire Stay)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    How extra person fees are calculated
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extra_adult_fee">Extra Adult Fee (₹)</Label>
+                  <Input
+                    id="extra_adult_fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.extra_adult_fee}
+                    onChange={(e) => setFormData({...formData, extra_adult_fee: e.target.value})}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Fee per extra adult {formData.extra_fee_unit === 'per_night' ? 'per night' : 'for entire stay'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extra_child_fee">Extra Child Fee (₹)</Label>
+                  <Input
+                    id="extra_child_fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.extra_child_fee}
+                    onChange={(e) => setFormData({...formData, extra_child_fee: e.target.value})}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Fee per child {formData.extra_fee_unit === 'per_night' ? 'per night' : 'for entire stay'}
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Status Switches */}
