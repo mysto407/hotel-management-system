@@ -803,9 +803,9 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Folio Available</h3>
             <p className="text-muted-foreground mb-4 max-w-md">
-              Folios are created automatically when a guest checks in. Please check in the guest first to view their folio and manage transactions.
+              Folios are created automatically when a reservation is made. If no folio exists, it may have been deleted or there was an error during reservation creation.
             </p>
-            {primaryReservation?.status !== 'Checked-in' && (
+            {primaryReservation?.status && (
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 Current reservation status: <strong>{primaryReservation?.status}</strong>
               </p>

@@ -300,156 +300,173 @@ export const ReservationProvider = ({ children }) => {
         return;
       }
 
-      // Generate daily room charges with scheduled posting and automatic tax calculation
-      const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
-      const roomRate = reservation.room_rate_types?.base_price || reservation.rooms?.room_types?.base_price || 0;
-
-      // Generate daily room charges with auto-posting at midnight AND automatic tax calculation
-      const { data: chargeData, error: roomChargeError } = await generateDailyRoomChargesWithTax(
-        id, // reservation_id
-        masterFolio.id, // folio_id
-        roomRate, // room_rate
-        reservation.check_in_date, // check_in_date
-        reservation.check_out_date, // check_out_date
-        reservation.rooms?.room_number || 'N/A', // room_number
-        user?.id || null, // user_id
-        true // applyTaxes - automatically apply configured taxes (GST)
+      // Check if charges already exist (generated at reservation creation)
+      const { data: existingTransactions } = await getTransactionsByReservation(id);
+      const hasExistingRoomCharges = existingTransactions?.some(
+        tx => tx.transaction_type === 'room_charge' && tx.transaction_status !== 'voided' && tx.transaction_status !== 'reversed'
       );
 
-      if (roomChargeError) {
-        console.error('Error generating room charges:', roomChargeError);
-        showError('Guest checked in successfully, but failed to generate room charges. Please add manually.');
-        return;
-      }
+      const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+      const rateTypeName = reservation.room_rate_types?.rate_name || 'Standard Rate';
+      let chargeData = null;
+      let extraPersonData = null;
+      let addonData = null;
 
-      // Log tax information
-      if (chargeData) {
-        console.log(`Room charges: ₹${chargeData.totalRoomCharges}, Taxes: ₹${chargeData.totalTaxCharges}`);
-      }
+      // Only generate charges if they don't already exist
+      if (!hasExistingRoomCharges) {
+        const roomRate = reservation.room_rate_types?.base_price || reservation.rooms?.room_types?.base_price || 0;
 
-      // Add meal plan charges if available (scheduled for each day) WITH automatic tax
-      if (reservation.meal_plan && reservation.meal_plan !== 'EP') {
-        try {
-          const { data: mealPlanData } = await getMealPlanByCode(reservation.meal_plan);
-          if (mealPlanData && mealPlanData.length > 0) {
-            const mealPlanPrice = parseFloat(mealPlanData[0].price_per_person) || 0;
-            if (mealPlanPrice > 0) {
-              const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
-              const mealPlanPerNight = mealPlanPrice * totalGuests;
+        // Generate daily room charges with auto-posting at midnight AND automatic tax calculation
+        const { data: newChargeData, error: roomChargeError } = await generateDailyRoomChargesWithTax(
+          id, // reservation_id
+          masterFolio.id, // folio_id
+          roomRate, // room_rate
+          reservation.check_in_date, // check_in_date
+          reservation.check_out_date, // check_out_date
+          reservation.rooms?.room_number || 'N/A', // room_number
+          user?.id || null, // user_id
+          true // applyTaxes - automatically apply configured taxes (GST)
+        );
 
-              // Create scheduled meal plan charges for each day WITH tax
-              const checkInDate = new Date(reservation.check_in_date);
-              for (let i = 0; i < nights; i++) {
-                const scheduledDate = new Date(checkInDate);
-                scheduledDate.setDate(scheduledDate.getDate() + i);
-                scheduledDate.setHours(0, 0, 0, 0); // Midnight
+        if (roomChargeError) {
+          console.error('Error generating room charges:', roomChargeError);
+          showError('Guest checked in successfully, but failed to generate room charges. Please add manually.');
+          return { success: true };
+        }
 
-                const mealPlanDescription = `Meal Plan (${mealPlanData[0].name}) - Day ${i + 1} - ${totalGuests} guests`;
+        chargeData = newChargeData;
 
-                // Use the new function that auto-applies taxes
-                await createServiceChargeWithTax(
-                  masterFolio.id,
-                  id,
-                  mealPlanPerNight,
-                  mealPlanDescription,
-                  'meal_plan',
-                  user?.id || null,
-                  scheduledDate
-                );
+        // Log tax information
+        if (chargeData) {
+          console.log(`Room charges: ₹${chargeData.totalRoomCharges}, Taxes: ₹${chargeData.totalTaxCharges}`);
+        }
+
+        // Add meal plan charges if available (scheduled for each day) WITH automatic tax
+        if (reservation.meal_plan && reservation.meal_plan !== 'EP' && reservation.meal_plan !== 'NM') {
+          try {
+            const { data: mealPlanData } = await getMealPlanByCode(reservation.meal_plan);
+            if (mealPlanData && mealPlanData.length > 0) {
+              const mealPlanPrice = parseFloat(mealPlanData[0].price_per_person) || 0;
+              if (mealPlanPrice > 0) {
+                const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
+                const mealPlanPerNight = mealPlanPrice * totalGuests;
+
+                // Create scheduled meal plan charges for each day WITH tax
+                const checkInDate = new Date(reservation.check_in_date);
+                for (let i = 0; i < nights; i++) {
+                  const scheduledDate = new Date(checkInDate);
+                  scheduledDate.setDate(scheduledDate.getDate() + i);
+                  scheduledDate.setHours(0, 0, 0, 0); // Midnight
+
+                  const mealPlanDescription = `Meal Plan (${mealPlanData[0].name}) - Day ${i + 1} - ${totalGuests} guests`;
+
+                  // Use the new function that auto-applies taxes
+                  await createServiceChargeWithTax(
+                    masterFolio.id,
+                    id,
+                    mealPlanPerNight,
+                    mealPlanDescription,
+                    'meal_plan',
+                    user?.id || null,
+                    scheduledDate
+                  );
+                }
               }
             }
+          } catch (mealPlanError) {
+            console.error('Error creating meal plan charges:', mealPlanError);
+            // Continue without meal plan if there's an error
           }
-        } catch (mealPlanError) {
-          console.error('Error creating meal plan charges:', mealPlanError);
-          // Continue without meal plan if there's an error
         }
-      }
 
-      // Generate extra person fees if applicable
-      let extraPersonData = null;
-      const baseOccupancy = reservation.room_rate_types?.base_occupancy || 2;
-      const extraAdultFee = reservation.room_rate_types?.extra_adult_fee || 0;
-      const extraChildFee = reservation.room_rate_types?.extra_child_fee || 0;
-      const extraFeeUnit = reservation.room_rate_types?.extra_fee_unit || 'per_night';
+        // Generate extra person fees if applicable
+        const baseOccupancy = reservation.room_rate_types?.base_occupancy || 2;
+        const extraAdultFee = reservation.room_rate_types?.extra_adult_fee || 0;
+        const extraChildFee = reservation.room_rate_types?.extra_child_fee || 0;
+        const extraFeeUnit = reservation.room_rate_types?.extra_fee_unit || 'per_night';
 
-      // Calculate extra guests beyond base occupancy
-      const totalAdults = reservation.number_of_adults || 1;
-      const totalChildren = reservation.number_of_children || 0;
-      const extraAdults = Math.max(0, totalAdults - baseOccupancy);
-      // Children are typically counted as extra regardless of base occupancy
-      const extraChildren = totalChildren;
+        // Calculate extra guests beyond base occupancy
+        const totalAdults = reservation.number_of_adults || 1;
+        const totalChildren = reservation.number_of_children || 0;
+        const extraAdults = Math.max(0, totalAdults - baseOccupancy);
+        // Children are typically counted as extra regardless of base occupancy
+        const extraChildren = totalChildren;
 
-      if ((extraAdults > 0 && extraAdultFee > 0) || (extraChildren > 0 && extraChildFee > 0)) {
-        try {
-          const { data: extraData, error: extraError } = await generateExtraPersonCharges(
-            id,
-            masterFolio.id,
-            extraAdults,
-            extraChildren,
-            extraAdultFee,
-            extraChildFee,
-            nights,
-            extraFeeUnit,
-            user?.id || null,
-            true // applyTaxes
-          );
+        if ((extraAdults > 0 && extraAdultFee > 0) || (extraChildren > 0 && extraChildFee > 0)) {
+          try {
+            const { data: extraData, error: extraError } = await generateExtraPersonCharges(
+              id,
+              masterFolio.id,
+              extraAdults,
+              extraChildren,
+              extraAdultFee,
+              extraChildFee,
+              nights,
+              extraFeeUnit,
+              user?.id || null,
+              true // applyTaxes
+            );
 
-          if (extraError) {
-            console.error('Error generating extra person fees:', extraError);
-          } else {
-            extraPersonData = extraData;
-            console.log(`Extra person fees: ₹${extraData.totalExtraFees}, Taxes: ₹${extraData.totalTaxes}`);
+            if (extraError) {
+              console.error('Error generating extra person fees:', extraError);
+            } else {
+              extraPersonData = extraData;
+              console.log(`Extra person fees: ₹${extraData.totalExtraFees}, Taxes: ₹${extraData.totalTaxes}`);
+            }
+          } catch (extraPersonError) {
+            console.error('Error creating extra person charges:', extraPersonError);
+            // Continue even if extra person fees fail
           }
-        } catch (extraPersonError) {
-          console.error('Error creating extra person charges:', extraPersonError);
-          // Continue even if extra person fees fail
         }
-      }
 
-      // Generate rate plan add-on charges if applicable
-      let addonData = null;
-      if (reservation.rate_type_id) {
-        try {
-          const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
-          const { data: addons, error: addonError } = await generateAllAddonCharges(
-            reservation.rate_type_id,
-            masterFolio.id,
-            id,
-            nights,
-            totalGuests,
-            user?.id || null,
-            true // applyTaxes
-          );
+        // Generate rate plan add-on charges if applicable
+        if (reservation.rate_type_id) {
+          try {
+            const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
+            const { data: addons, error: addonError } = await generateAllAddonCharges(
+              reservation.rate_type_id,
+              masterFolio.id,
+              id,
+              nights,
+              totalGuests,
+              user?.id || null,
+              true // applyTaxes
+            );
 
-          if (addonError) {
-            console.error('Error generating add-on charges:', addonError);
-          } else if (addons && addons.addonsProcessed > 0) {
-            addonData = addons;
-            console.log(`Add-on charges: ₹${addons.totalAddonFees}, Taxes: ₹${addons.totalTaxes} (${addons.addonsProcessed} add-ons)`);
+            if (addonError) {
+              console.error('Error generating add-on charges:', addonError);
+            } else if (addons && addons.addonsProcessed > 0) {
+              addonData = addons;
+              console.log(`Add-on charges: ₹${addons.totalAddonFees}, Taxes: ₹${addons.totalTaxes} (${addons.addonsProcessed} add-ons)`);
+            }
+          } catch (addonError) {
+            console.error('Error creating add-on charges:', addonError);
+            // Continue even if add-on charges fail
           }
-        } catch (addonError) {
-          console.error('Error creating add-on charges:', addonError);
-          // Continue even if add-on charges fail
         }
+      } else {
+        console.log('Charges already exist from reservation creation, skipping charge generation');
       }
-
-      const rateTypeName = reservation.room_rate_types?.rate_name || 'Standard Rate';
-      const totalRoomAndTax = chargeData ? (chargeData.totalRoomCharges + chargeData.totalTaxCharges) : 0;
-      const totalExtraAndTax = extraPersonData ? (extraPersonData.totalExtraFees + extraPersonData.totalTaxes) : 0;
-      const totalAddonAndTax = addonData ? (addonData.totalAddonFees + addonData.totalTaxes) : 0;
-      const totalCharges = totalRoomAndTax + totalExtraAndTax + totalAddonAndTax;
-
-      console.log('All charges generated successfully for', nights, 'nights with taxes');
 
       // Build success message
       let successMsg = `Guest checked in! ${nights} night(s) @ ${rateTypeName}.`;
-      if (extraPersonData && (extraPersonData.extraAdults > 0 || extraPersonData.extraChildren > 0)) {
-        successMsg += ` Extra person fees applied.`;
+
+      if (!hasExistingRoomCharges) {
+        const totalRoomAndTax = chargeData ? (chargeData.totalRoomCharges + chargeData.totalTaxCharges) : 0;
+        const totalExtraAndTax = extraPersonData ? (extraPersonData.totalExtraFees + extraPersonData.totalTaxes) : 0;
+        const totalAddonAndTax = addonData ? (addonData.totalAddonFees + addonData.totalTaxes) : 0;
+        const totalCharges = totalRoomAndTax + totalExtraAndTax + totalAddonAndTax;
+
+        if (extraPersonData && (extraPersonData.extraAdults > 0 || extraPersonData.extraChildren > 0)) {
+          successMsg += ` Extra person fees applied.`;
+        }
+        if (addonData && addonData.addonsProcessed > 0) {
+          successMsg += ` ${addonData.addonsProcessed} add-on(s) charged.`;
+        }
+        successMsg += ` Total: ₹${totalCharges.toLocaleString()}`;
+      } else {
+        successMsg += ` Folio charges already prepared.`;
       }
-      if (addonData && addonData.addonsProcessed > 0) {
-        successMsg += ` ${addonData.addonsProcessed} add-on(s) charged.`;
-      }
-      successMsg += ` Total: ₹${totalCharges.toLocaleString()}`;
       showSuccess(successMsg);
 
       return { success: true };
