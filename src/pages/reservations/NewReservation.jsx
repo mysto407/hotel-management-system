@@ -859,25 +859,8 @@ export default function NewReservation({ onNavigate }) {
                           {/* Room Number Assignments */}
                           <div className="space-y-2 border-t pt-3">
                             {assignLater ? (
-                              /* Show info when assign later is enabled */
+                              /* Show guest counts when assign later is enabled */
                               <>
-                                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3">
-                                  <div className="flex items-start gap-2">
-                                    <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                                        Room will be assigned later
-                                      </p>
-                                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                                        {(() => {
-                                          const typeAvailable = availableRooms.filter(r => r.room_type_id === room.id).length
-                                          return `${typeAvailable} ${room.name} room${typeAvailable !== 1 ? 's' : ''} available for this period`
-                                        })()}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                                {/* Guest counts for each room unit when assigning later */}
                                 {Array.from({ length: room.quantity }).map((_, index) => (
                                   <div key={index} className="space-y-2 pt-2">
                                     <Label className="text-xs font-medium text-muted-foreground">Room #{index + 1}</Label>
