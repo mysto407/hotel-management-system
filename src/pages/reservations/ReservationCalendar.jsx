@@ -106,8 +106,8 @@ const STATUS_TEXT_COLORS = {
 };
 
 // Cell width in pixels
-const CELL_WIDTH = 100;
-const ROOM_COLUMN_WIDTH = 150;
+const CELL_WIDTH = 70;
+const ROOM_COLUMN_WIDTH = 120;
 
 const ReservationCalendar = ({ onNavigate }) => {
   // Contexts
@@ -1769,7 +1769,7 @@ const ReservationCalendar = ({ onNavigate }) => {
               onDragStart={(e) => handleReservationDragStart(e, reservation)}
               onDragEnd={handleReservationDragEnd}
               className={cn(
-                "absolute top-1 h-8 cursor-grab flex items-center text-white text-xs font-medium shadow-sm z-10 group/bar",
+                "absolute top-1 h-5 cursor-grab flex items-center text-white text-[10px] font-medium shadow-sm z-10 group/bar",
                 // Smooth transition only when not resizing (resizing needs instant updates)
                 !isResizing && "transition-all",
                 STATUS_COLORS[reservation.status] || 'bg-gray-500',
@@ -1939,7 +1939,7 @@ const ReservationCalendar = ({ onNavigate }) => {
     return (
       <div
         key={`selection-${roomId}`}
-        className="absolute top-1 h-8 flex items-center justify-center text-blue-800 dark:text-blue-200 text-xs font-medium border-2 border-blue-500 border-dashed bg-blue-100/80 dark:bg-blue-900/50 z-20 pointer-events-none"
+        className="absolute top-1 h-5 flex items-center justify-center text-blue-800 dark:text-blue-200 text-[10px] font-medium border-2 border-blue-500 border-dashed bg-blue-100/80 dark:bg-blue-900/50 z-20 pointer-events-none"
         style={{
           left: `${left}px`,
           width: `${width}px`,
@@ -2327,7 +2327,7 @@ const ReservationCalendar = ({ onNavigate }) => {
                     {/* Room Type Name */}
                     <div
                       className="flex-shrink-0 p-2 border-r flex items-center gap-2 sticky left-0 z-10 bg-card font-medium"
-                      style={{ width: ROOM_COLUMN_WIDTH, height: 36 }}
+                      style={{ width: ROOM_COLUMN_WIDTH, height: 26 }}
                     >
                       <span className="text-sm">{roomType.name}</span>
                       <Badge variant="secondary" className="text-xs">
@@ -2349,7 +2349,7 @@ const ReservationCalendar = ({ onNavigate }) => {
                             available > 20 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300" :
                             "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
                           )}
-                          style={{ width: CELL_WIDTH, height: 36 }}
+                          style={{ width: CELL_WIDTH, height: 26 }}
                           onClick={() => switchToDetailedView(date, roomType.id)}
                           title={`${available}% available - Click to view details`}
                         >
@@ -2455,7 +2455,7 @@ const ReservationCalendar = ({ onNavigate }) => {
                       </div>
 
                       {/* Date Cells Container */}
-                      <div className="relative flex" style={{ height: 40 }}>
+                      <div className="relative flex" style={{ height: 28 }}>
                         {dateRange.map((date, idx) => {
                           const available = isCellAvailableFast(room.id, date);
                           const isDragOver = dragOverCell?.roomId === room.id &&
