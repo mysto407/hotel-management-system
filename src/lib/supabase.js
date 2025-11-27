@@ -3375,3 +3375,230 @@ export const createServiceChargeWithTax = async (
         error: taxError
     }
 }
+
+// ============================================
+// EXTRA PERSON FEE FUNCTIONS
+// ============================================
+
+/**
+ * Generate extra person fee charges for a reservation
+ * Creates fee transactions for extra adults and children beyond base occupancy
+ *
+ * @param {string} reservationId - The reservation ID
+ * @param {string} folioId - The folio ID
+ * @param {number} extraAdults - Number of adults beyond base occupancy
+ * @param {number} extraChildren - Number of children
+ * @param {number} adultFee - Fee per extra adult
+ * @param {number} childFee - Fee per extra child
+ * @param {number} nights - Number of nights
+ * @param {string} feeUnit - 'per_night' or 'one_time'
+ * @param {string} userId - The user ID
+ * @param {boolean} applyTaxes - Whether to auto-apply taxes (default: true)
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const generateExtraPersonCharges = async (
+    reservationId,
+    folioId,
+    extraAdults,
+    extraChildren,
+    adultFee,
+    childFee,
+    nights,
+    feeUnit = 'per_night',
+    userId = null,
+    applyTaxes = true
+) => {
+    const extraPersonCharges = []
+    const taxCharges = []
+    let totalExtraFees = 0
+
+    // Calculate total fees based on unit type
+    const isPerNight = feeUnit === 'per_night'
+
+    // Generate extra adult fees
+    if (extraAdults > 0 && adultFee > 0) {
+        if (isPerNight) {
+            // Create a charge per night for extra adults
+            const checkInDate = new Date()
+            for (let i = 0; i < nights; i++) {
+                const scheduledDate = new Date(checkInDate)
+                scheduledDate.setDate(scheduledDate.getDate() + i)
+                scheduledDate.setHours(0, 0, 0, 0)
+
+                const dailyAdultFee = adultFee * extraAdults
+                const description = `Extra Person Fee (${extraAdults} adult${extraAdults > 1 ? 's' : ''}) - Night ${i + 1}`
+
+                const { data: feeCharge, error: feeError } = await createFee({
+                    folio_id: folioId,
+                    reservation_id: reservationId,
+                    amount: dailyAdultFee,
+                    description: description,
+                    scheduled_post_date: scheduledDate.toISOString(),
+                    auto_posted: true,
+                    created_by: userId,
+                    metadata: {
+                        fee_type: 'extra_person',
+                        extra_adults: extraAdults,
+                        adult_fee: adultFee,
+                        night: i + 1
+                    }
+                })
+
+                if (!feeError && feeCharge?.[0]) {
+                    extraPersonCharges.push(feeCharge[0])
+                    totalExtraFees += dailyAdultFee
+
+                    // Apply taxes if enabled
+                    if (applyTaxes) {
+                        const { data: taxes } = await calculateAndApplyTaxes(
+                            folioId,
+                            reservationId,
+                            dailyAdultFee,
+                            'fee',
+                            feeCharge[0].id,
+                            description,
+                            userId,
+                            scheduledDate
+                        )
+                        if (taxes) taxCharges.push(...taxes)
+                    }
+                }
+            }
+        } else {
+            // One-time charge for all extra adults for entire stay
+            const totalAdultFee = adultFee * extraAdults
+            const description = `Extra Person Fee (${extraAdults} adult${extraAdults > 1 ? 's' : ''}) - Entire Stay`
+
+            const { data: feeCharge, error: feeError } = await createFee({
+                folio_id: folioId,
+                reservation_id: reservationId,
+                amount: totalAdultFee,
+                description: description,
+                created_by: userId,
+                metadata: {
+                    fee_type: 'extra_person',
+                    extra_adults: extraAdults,
+                    adult_fee: adultFee,
+                    one_time: true
+                }
+            })
+
+            if (!feeError && feeCharge?.[0]) {
+                extraPersonCharges.push(feeCharge[0])
+                totalExtraFees += totalAdultFee
+
+                if (applyTaxes) {
+                    const { data: taxes } = await calculateAndApplyTaxes(
+                        folioId,
+                        reservationId,
+                        totalAdultFee,
+                        'fee',
+                        feeCharge[0].id,
+                        description,
+                        userId
+                    )
+                    if (taxes) taxCharges.push(...taxes)
+                }
+            }
+        }
+    }
+
+    // Generate extra child fees
+    if (extraChildren > 0 && childFee > 0) {
+        if (isPerNight) {
+            // Create a charge per night for extra children
+            const checkInDate = new Date()
+            for (let i = 0; i < nights; i++) {
+                const scheduledDate = new Date(checkInDate)
+                scheduledDate.setDate(scheduledDate.getDate() + i)
+                scheduledDate.setHours(0, 0, 0, 0)
+
+                const dailyChildFee = childFee * extraChildren
+                const description = `Extra Child Fee (${extraChildren} child${extraChildren > 1 ? 'ren' : ''}) - Night ${i + 1}`
+
+                const { data: feeCharge, error: feeError } = await createFee({
+                    folio_id: folioId,
+                    reservation_id: reservationId,
+                    amount: dailyChildFee,
+                    description: description,
+                    scheduled_post_date: scheduledDate.toISOString(),
+                    auto_posted: true,
+                    created_by: userId,
+                    metadata: {
+                        fee_type: 'extra_person',
+                        extra_children: extraChildren,
+                        child_fee: childFee,
+                        night: i + 1
+                    }
+                })
+
+                if (!feeError && feeCharge?.[0]) {
+                    extraPersonCharges.push(feeCharge[0])
+                    totalExtraFees += dailyChildFee
+
+                    if (applyTaxes) {
+                        const { data: taxes } = await calculateAndApplyTaxes(
+                            folioId,
+                            reservationId,
+                            dailyChildFee,
+                            'fee',
+                            feeCharge[0].id,
+                            description,
+                            userId,
+                            scheduledDate
+                        )
+                        if (taxes) taxCharges.push(...taxes)
+                    }
+                }
+            }
+        } else {
+            // One-time charge for all extra children for entire stay
+            const totalChildFee = childFee * extraChildren
+            const description = `Extra Child Fee (${extraChildren} child${extraChildren > 1 ? 'ren' : ''}) - Entire Stay`
+
+            const { data: feeCharge, error: feeError } = await createFee({
+                folio_id: folioId,
+                reservation_id: reservationId,
+                amount: totalChildFee,
+                description: description,
+                created_by: userId,
+                metadata: {
+                    fee_type: 'extra_person',
+                    extra_children: extraChildren,
+                    child_fee: childFee,
+                    one_time: true
+                }
+            })
+
+            if (!feeError && feeCharge?.[0]) {
+                extraPersonCharges.push(feeCharge[0])
+                totalExtraFees += totalChildFee
+
+                if (applyTaxes) {
+                    const { data: taxes } = await calculateAndApplyTaxes(
+                        folioId,
+                        reservationId,
+                        totalChildFee,
+                        'fee',
+                        feeCharge[0].id,
+                        description,
+                        userId
+                    )
+                    if (taxes) taxCharges.push(...taxes)
+                }
+            }
+        }
+    }
+
+    return {
+        data: {
+            extraPersonCharges,
+            taxCharges,
+            totalExtraFees,
+            totalTaxes: taxCharges.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0),
+            extraAdults,
+            extraChildren
+        },
+        error: null
+    }
+}

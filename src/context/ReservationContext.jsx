@@ -17,6 +17,7 @@ import {
   createServiceCharge,
   createServiceChargeWithTax,
   calculateAndApplyTaxes,
+  generateExtraPersonCharges,
   // Room assignment functions
   assignRoomToReservation as assignRoomAPI,
   autoAssignRooms as autoAssignRoomsAPI
@@ -225,10 +226,61 @@ export const ReservationProvider = ({ children }) => {
         }
       }
 
+      // Generate extra person fees if applicable
+      let extraPersonData = null;
+      const baseOccupancy = reservation.room_rate_types?.base_occupancy || 2;
+      const extraAdultFee = reservation.room_rate_types?.extra_adult_fee || 0;
+      const extraChildFee = reservation.room_rate_types?.extra_child_fee || 0;
+      const extraFeeUnit = reservation.room_rate_types?.extra_fee_unit || 'per_night';
+
+      // Calculate extra guests beyond base occupancy
+      const totalAdults = reservation.number_of_adults || 1;
+      const totalChildren = reservation.number_of_children || 0;
+      const extraAdults = Math.max(0, totalAdults - baseOccupancy);
+      // Children are typically counted as extra regardless of base occupancy
+      const extraChildren = totalChildren;
+
+      if ((extraAdults > 0 && extraAdultFee > 0) || (extraChildren > 0 && extraChildFee > 0)) {
+        try {
+          const { data: extraData, error: extraError } = await generateExtraPersonCharges(
+            id,
+            masterFolio.id,
+            extraAdults,
+            extraChildren,
+            extraAdultFee,
+            extraChildFee,
+            nights,
+            extraFeeUnit,
+            user?.id || null,
+            true // applyTaxes
+          );
+
+          if (extraError) {
+            console.error('Error generating extra person fees:', extraError);
+          } else {
+            extraPersonData = extraData;
+            console.log(`Extra person fees: ₹${extraData.totalExtraFees}, Taxes: ₹${extraData.totalTaxes}`);
+          }
+        } catch (extraPersonError) {
+          console.error('Error creating extra person charges:', extraPersonError);
+          // Continue even if extra person fees fail
+        }
+      }
+
       const rateTypeName = reservation.room_rate_types?.rate_name || 'Standard Rate';
-      const totalCharges = chargeData ? (chargeData.totalRoomCharges + chargeData.totalTaxCharges) : 0;
-      console.log('Room charges generated successfully for', nights, 'nights with taxes');
-      showSuccess(`Guest checked in! ${nights} night(s) @ ${rateTypeName}. Room + Tax: ₹${totalCharges.toLocaleString()}`);
+      const totalRoomAndTax = chargeData ? (chargeData.totalRoomCharges + chargeData.totalTaxCharges) : 0;
+      const totalExtraAndTax = extraPersonData ? (extraPersonData.totalExtraFees + extraPersonData.totalTaxes) : 0;
+      const totalCharges = totalRoomAndTax + totalExtraAndTax;
+
+      console.log('All charges generated successfully for', nights, 'nights with taxes');
+
+      // Build success message
+      let successMsg = `Guest checked in! ${nights} night(s) @ ${rateTypeName}.`;
+      if (extraPersonData && (extraPersonData.extraAdults > 0 || extraPersonData.extraChildren > 0)) {
+        successMsg += ` Extra person fees applied.`;
+      }
+      successMsg += ` Total: ₹${totalCharges.toLocaleString()}`;
+      showSuccess(successMsg);
 
       return { success: true };
     } catch (error) {
