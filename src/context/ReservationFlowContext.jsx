@@ -33,7 +33,7 @@ export function ReservationFlowProvider({ children }) {
   const [appliedPromoCode, setAppliedPromoCode] = useState(null)
 
   // Assign Later mode - when true, rooms are booked by type only (no specific room assigned)
-  const [assignLater, setAssignLater] = useState(false)
+  const [assignLater, setAssignLater] = useState(true)
 
   // Step 2: Guest Details
   const [guestDetails, setGuestDetails] = useState({

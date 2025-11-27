@@ -736,23 +736,23 @@ export default function NewReservation({ onNavigate }) {
                     )}
                   </div>
 
-                  {/* Assign Later Toggle */}
+                  {/* Assign Rooms Now Toggle */}
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <Label htmlFor="assign-later" className="cursor-pointer font-medium">
-                          Assign room later
+                        <Label htmlFor="assign-now" className="cursor-pointer font-medium">
+                          Assign rooms now
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Book by room type, assign specific room before check-in
+                          Select specific room numbers during booking
                         </p>
                       </div>
                     </div>
                     <Switch
-                      id="assign-later"
-                      checked={assignLater}
-                      onCheckedChange={setAssignLater}
+                      id="assign-now"
+                      checked={!assignLater}
+                      onCheckedChange={(checked) => setAssignLater(!checked)}
                     />
                   </div>
 
