@@ -2048,146 +2048,164 @@ const ReservationCalendar = ({ onNavigate }) => {
     <div className="h-full flex flex-col bg-background">
       {/* Header / Navigation - Compact & Collapsible */}
       <div className="flex-shrink-0 border-b bg-card">
-        {/* Always visible mini bar */}
-        <div className="px-2 py-1 flex items-center justify-between gap-2">
-          {/* Left: Navigation */}
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToPreviousWeek}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToNextWeek}>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={goToToday}>
-              Today
-            </Button>
-            <Input
-              type="date"
-              value={format(startDate, 'yyyy-MM-dd')}
-              onChange={(e) => goToDate(e.target.value)}
-              className="h-7 w-32 text-xs"
-            />
-          </div>
-
-          {/* Center: Date Range */}
-          <div className="text-center">
-            <span className="text-sm font-medium">
+        {/* Collapsed state - minimal bar */}
+        {isToolbarCollapsed ? (
+          <div className="px-2 py-0.5 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
               {format(startDate, 'MMM d')} - {format(addDays(startDate, viewDays - 1), 'MMM d, yyyy')}
             </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsToolbarCollapsed(false)}
+              className="h-6 w-6"
+              title="Expand toolbar"
+            >
+              <ChevronDown className="h-3 w-3" />
+            </Button>
           </div>
-
-          {/* Right: Controls */}
-          <div className="flex items-center gap-1">
-            {/* View Mode Toggle */}
-            <div className="flex border rounded-md">
-              <Button
-                variant={viewMode === 'detailed' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('detailed')}
-                className="h-7 rounded-r-none text-xs px-2"
-              >
-                <List className="h-3 w-3 mr-1" />
-                Detail
+        ) : (
+          /* Expanded toolbar */
+          <div className="px-2 py-1 flex items-center justify-between gap-2">
+            {/* Left: Navigation */}
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToPreviousWeek}>
+                <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
-              <Button
-                variant={viewMode === 'overview' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('overview')}
-                className="h-7 rounded-l-none text-xs px-2"
-              >
-                <LayoutGrid className="h-3 w-3 mr-1" />
-                Overview
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToNextWeek}>
+                <ChevronRight className="h-3.5 w-3.5" />
               </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={goToToday}>
+                Today
+              </Button>
+              <Input
+                type="date"
+                value={format(startDate, 'yyyy-MM-dd')}
+                onChange={(e) => goToDate(e.target.value)}
+                className="h-7 w-36 text-xs px-2"
+              />
             </div>
 
-            <Button
-              variant={showFilters || hasActiveFilters ? "default" : "ghost"}
-              size="icon"
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-7 w-7 relative"
-            >
-              <Filter className="h-3.5 w-3.5" />
-              {hasActiveFilters && (
-                <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 bg-red-500 rounded-full" />
-              )}
-            </Button>
+            {/* Center: Date Range */}
+            <div className="text-center">
+              <span className="text-xs font-medium">
+                {format(startDate, 'MMM d')} - {format(addDays(startDate, viewDays - 1), 'MMM d, yyyy')}
+              </span>
+            </div>
 
-            {/* Unassigned Reservations Sidebar Toggle */}
-            <Button
-              variant={isUnassignedSidebarOpen ? "default" : "ghost"}
-              size="icon"
-              onClick={() => setIsUnassignedSidebarOpen(!isUnassignedSidebarOpen)}
-              className="h-7 w-7 relative"
-              title="Unassigned Reservations"
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {allUnassignedReservations.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center bg-amber-500 text-white text-[8px] font-medium rounded-full px-0.5">
-                  {allUnassignedReservations.length}
-                </span>
-              )}
-            </Button>
-
-            {/* Print Dropdown */}
-            <DropdownMenu open={showPrintMenu} onOpenChange={setShowPrintMenu}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <Printer className="h-3.5 w-3.5" />
+            {/* Right: Controls */}
+            <div className="flex items-center gap-1">
+              {/* View Mode Toggle */}
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === 'detailed' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('detailed')}
+                  className="h-6 rounded-r-none text-[10px] px-1.5"
+                >
+                  <List className="h-2.5 w-2.5 mr-0.5" />
+                  Detail
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuLabel className="text-xs">Print / Export</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handlePrint('calendar')} className="text-xs">
-                  <LayoutGrid className="h-3.5 w-3.5 mr-2" />
-                  Calendar View
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-[10px] text-muted-foreground">List Reports</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'all')} className="text-xs">
-                  <List className="h-3.5 w-3.5 mr-2" />
-                  All Reservations
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'arrivals')} className="text-xs">
-                  <LogIn className="h-3.5 w-3.5 mr-2" />
-                  Arrivals
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'departures')} className="text-xs">
-                  <LogOut className="h-3.5 w-3.5 mr-2" />
-                  Departures
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'in-house')} className="text-xs">
-                  <Users className="h-3.5 w-3.5 mr-2" />
-                  In-House Guests
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <Button
+                  variant={viewMode === 'overview' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('overview')}
+                  className="h-6 rounded-l-none text-[10px] px-1.5"
+                >
+                  <LayoutGrid className="h-2.5 w-2.5 mr-0.5" />
+                  Overview
+                </Button>
+              </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="h-7 w-7"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
-            </Button>
+              <Button
+                variant={showFilters || hasActiveFilters ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setShowFilters(!showFilters)}
+                className="h-7 w-7 relative"
+              >
+                <Filter className="h-3.5 w-3.5" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 bg-red-500 rounded-full" />
+                )}
+              </Button>
 
-            {/* Collapse Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsToolbarCollapsed(!isToolbarCollapsed)}
-              className="h-7 w-7"
-              title={isToolbarCollapsed ? "Show filters" : "Hide filters"}
-            >
-              {isToolbarCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-            </Button>
+              {/* Unassigned Reservations Sidebar Toggle */}
+              <Button
+                variant={isUnassignedSidebarOpen ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setIsUnassignedSidebarOpen(!isUnassignedSidebarOpen)}
+                className="h-7 w-7 relative"
+                title="Unassigned Reservations"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                {allUnassignedReservations.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center bg-amber-500 text-white text-[8px] font-medium rounded-full px-0.5">
+                    {allUnassignedReservations.length}
+                  </span>
+                )}
+              </Button>
+
+              {/* Print Dropdown */}
+              <DropdownMenu open={showPrintMenu} onOpenChange={setShowPrintMenu}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Printer className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-xs">Print / Export</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handlePrint('calendar')} className="text-xs">
+                    <LayoutGrid className="h-3.5 w-3.5 mr-2" />
+                    Calendar View
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] text-muted-foreground">List Reports</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handlePrint('list', 'all')} className="text-xs">
+                    <List className="h-3.5 w-3.5 mr-2" />
+                    All Reservations
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handlePrint('list', 'arrivals')} className="text-xs">
+                    <LogIn className="h-3.5 w-3.5 mr-2" />
+                    Arrivals
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handlePrint('list', 'departures')} className="text-xs">
+                    <LogOut className="h-3.5 w-3.5 mr-2" />
+                    Departures
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handlePrint('list', 'in-house')} className="text-xs">
+                    <Users className="h-3.5 w-3.5 mr-2" />
+                    In-House Guests
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="h-7 w-7"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+              </Button>
+
+              {/* Collapse Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsToolbarCollapsed(true)}
+                className="h-7 w-7"
+                title="Collapse toolbar"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Filter Bar - Collapsible */}
+      {/* Filter Bar - Only shown when toolbar expanded and filters enabled */}
       {showFilters && !isToolbarCollapsed && (
         <div className="flex-shrink-0 px-2 py-1.5 border-b bg-muted/30 flex flex-wrap items-center gap-2">
           {/* Search Input */}
