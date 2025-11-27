@@ -51,15 +51,21 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
   })
 
   const [loading, setLoading] = useState(false)
+  const [applyAutoTax, setApplyAutoTax] = useState(true)
+  const [taxConfigs, setTaxConfigs] = useState([])
   const currencies = getCurrenciesArray()
 
-  // Load base currency from settings
+  // Load base currency from settings and tax configurations
   useEffect(() => {
-    const loadBaseCurrency = async () => {
+    const loadSettings = async () => {
       const { data } = await getBaseCurrency()
       setBaseCurrency(data || DEFAULT_BASE_CURRENCY)
+
+      // Load tax configurations for preview
+      const { data: taxes } = await getTaxConfigurations()
+      setTaxConfigs(taxes || [])
     }
-    loadBaseCurrency()
+    loadSettings()
   }, [])
 
   // Reset form when modal opens
@@ -205,6 +211,25 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
       }
 
       if (result) {
+        // Auto-apply taxes for applicable transaction types
+        const taxableTypes = ['room_charge', 'service_charge', 'fee']
+        if (applyAutoTax && taxableTypes.includes(transactionType) && result.data?.[0]?.id) {
+          try {
+            await calculateAndApplyTaxes(
+              folioId,
+              reservationId,
+              transactionAmount,
+              transactionType,
+              result.data[0].id, // parent transaction ID
+              formData.description,
+              null // userId - will be set by the function if available
+            )
+          } catch (taxError) {
+            console.error('Error applying taxes:', taxError)
+            // Continue even if tax application fails
+          }
+        }
+
         onSuccess?.()
         onOpenChange(false)
       }
@@ -565,6 +590,45 @@ export default function AddTransactionModal({ open, onOpenChange, reservationId,
           </div>
 
           {renderTypeSpecificFields()}
+
+          {/* Auto-apply taxes checkbox - only for taxable transaction types */}
+          {['room_charge', 'service_charge', 'fee'].includes(transactionType) && (
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-3">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="applyAutoTax"
+                  checked={applyAutoTax}
+                  onCheckedChange={setApplyAutoTax}
+                />
+                <Label htmlFor="applyAutoTax" className="cursor-pointer font-medium text-green-900 dark:text-green-100">
+                  Automatically apply taxes
+                </Label>
+              </div>
+              {applyAutoTax && taxConfigs.length > 0 && transactionAmount > 0 && (
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-md border space-y-2">
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tax Preview</div>
+                  {taxConfigs.map((tax) => {
+                    const taxAmount = (transactionAmount * tax.rate / 100).toFixed(2)
+                    return (
+                      <div key={tax.id} className="flex justify-between text-sm">
+                        <span>{tax.name} ({tax.rate}%)</span>
+                        <span className="font-medium">₹{taxAmount}</span>
+                      </div>
+                    )
+                  })}
+                  <div className="border-t pt-2 mt-2 flex justify-between text-sm font-bold">
+                    <span>Total with Tax</span>
+                    <span>₹{(transactionAmount + taxConfigs.reduce((sum, tax) => sum + (transactionAmount * tax.rate / 100), 0)).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+              {!applyAutoTax && (
+                <div className="text-xs text-muted-foreground">
+                  You can manually add tax transactions after creating this charge.
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Notes (Optional)</Label>
