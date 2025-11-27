@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
   getReservations,
+  getReservationById,
   createReservation as createReservationAPI,
   updateReservation as updateReservationAPI,
   deleteReservation as deleteReservationAPI,
