@@ -249,7 +249,7 @@ export default function PaymentPage({ onNavigate }) {
 
           return addReservation({
             guest_id: guestId,
-            room_id: assignedRoomId, // Can be null if assignLater is enabled
+            room_id: assignLater ? null : assignedRoomId, // Explicitly null when assignLater is enabled
             room_type_id: roomType.id, // Always include room type for unassigned reservations
             rate_type_id: roomType.rateTypeId || null,
             check_in_date: roomType.checkIn, // Use room's specific check-in date
