@@ -1794,28 +1794,28 @@ const ReservationCalendar = ({ onNavigate }) => {
               {isInResizeMode && !extendsLeft && (
                 <div
                   className={cn(
-                    "absolute left-0 top-0 w-4 h-full cursor-ew-resize transition-all flex items-center justify-center",
+                    "absolute left-0 top-0 w-3 h-full cursor-ew-resize transition-all flex items-center justify-center",
                     "bg-white/30 hover:bg-white/50",
                     isResizing && resizeState?.edge === 'left' && "bg-white/60"
                   )}
                   onMouseDown={(e) => handleResizeStart(e, reservation, 'left')}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-1 h-5 bg-white rounded-full shadow" />
+                  <div className="w-0.5 h-3 bg-white rounded-full shadow" />
                 </div>
               )}
 
               {/* Content */}
-              <div className="flex items-center px-3 flex-1 min-w-0">
+              <div className="flex items-center px-1.5 flex-1 min-w-0">
                 {extendsLeft && (
-                  <ArrowLeftToLine className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <ArrowLeftToLine className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
                 )}
                 <span className="truncate flex-1">
-                  {reservation.status === 'Hold' && <Lock className="h-3 w-3 inline mr-1" />}
+                  {reservation.status === 'Hold' && <Lock className="h-2.5 w-2.5 inline mr-0.5" />}
                   {guestName}
                 </span>
                 {extendsRight && (
-                  <ArrowRightToLine className="h-3 w-3 ml-1 flex-shrink-0" />
+                  <ArrowRightToLine className="h-2.5 w-2.5 ml-0.5 flex-shrink-0" />
                 )}
               </div>
 
@@ -1823,14 +1823,14 @@ const ReservationCalendar = ({ onNavigate }) => {
               {isInResizeMode && !extendsRight && (
                 <div
                   className={cn(
-                    "absolute right-0 top-0 w-4 h-full cursor-ew-resize transition-all flex items-center justify-center",
+                    "absolute right-0 top-0 w-3 h-full cursor-ew-resize transition-all flex items-center justify-center",
                     "bg-white/30 hover:bg-white/50",
                     isResizing && resizeState?.edge === 'right' && "bg-white/60"
                   )}
                   onMouseDown={(e) => handleResizeStart(e, reservation, 'right')}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-1 h-5 bg-white rounded-full shadow" />
+                  <div className="w-0.5 h-3 bg-white rounded-full shadow" />
                 </div>
               )}
 
@@ -1838,7 +1838,7 @@ const ReservationCalendar = ({ onNavigate }) => {
               {isResizing && nightsDelta !== 0 && (
                 <div
                   className={cn(
-                    "absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-lg",
+                    "absolute -top-5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[10px] font-bold whitespace-nowrap shadow-lg",
                     resizeIsValid
                       ? "bg-blue-600 text-white"
                       : "bg-red-600 text-white"
@@ -1998,7 +1998,7 @@ const ReservationCalendar = ({ onNavigate }) => {
           <TooltipTrigger asChild>
             <div
               className={cn(
-                "absolute top-1 h-8 cursor-pointer flex items-center text-gray-700 dark:text-gray-300 text-xs font-medium shadow-sm transition-all z-10",
+                "absolute top-1 h-5 cursor-pointer flex items-center text-gray-700 dark:text-gray-300 text-[10px] font-medium shadow-sm transition-all z-10",
                 "bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600",
                 "bg-stripes"
               )}
@@ -2010,16 +2010,16 @@ const ReservationCalendar = ({ onNavigate }) => {
               onClick={(e) => handleBlockingClick(blocking, e)}
             >
               {/* Content */}
-              <div className="flex items-center px-2 flex-1 min-w-0">
+              <div className="flex items-center px-1.5 flex-1 min-w-0">
                 {extendsLeft && (
-                  <ArrowLeftToLine className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <ArrowLeftToLine className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
                 )}
-                <Wrench className="h-3 w-3 mr-1 flex-shrink-0" />
+                <Wrench className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
                 <span className="truncate flex-1">
                   {blocking.reason || 'Blocked'}
                 </span>
                 {extendsRight && (
-                  <ArrowRightToLine className="h-3 w-3 ml-1 flex-shrink-0" />
+                  <ArrowRightToLine className="h-2.5 w-2.5 ml-0.5 flex-shrink-0" />
                 )}
               </div>
             </div>
