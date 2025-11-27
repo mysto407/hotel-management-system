@@ -123,9 +123,17 @@ export default function ReservationDetails({ onNavigate }) {
   }
 
   // Helper function to get room info (must be before useMemo)
-  const getRoomInfo = (roomId) => {
+  const getRoomInfo = (roomId, roomTypeId = null) => {
     const room = rooms.find(r => r.id === roomId)
-    if (!room) return { number: 'N/A', type: 'Unknown' }
+    if (!room) {
+      // Room not assigned yet - look up room type directly
+      const roomType = roomTypes.find(rt => rt.id === roomTypeId)
+      return {
+        number: 'Unassigned',
+        type: roomType?.name || 'Unknown',
+        room: null
+      }
+    }
     const roomType = roomTypes.find(rt => rt.id === room.room_type_id)
     return {
       number: room.room_number,
@@ -219,7 +227,7 @@ export default function ReservationDetails({ onNavigate }) {
                          (reservation.number_of_infants || 0)
 
       // Get room rate (use rate type price if available, otherwise room type base price)
-      const roomInfo = getRoomInfo(reservation.room_id)
+      const roomInfo = getRoomInfo(reservation.room_id, reservation.room_type_id)
       const roomRate = reservation.room_rate_types?.base_price || roomInfo.room?.room_types?.base_price || 0
 
       // Calculate room cost
@@ -424,7 +432,7 @@ export default function ReservationDetails({ onNavigate }) {
 
                         {/* Render each reservation in the stay */}
                         {stayRooms.map((reservation) => {
-                          const roomInfo = getRoomInfo(reservation.room_id)
+                          const roomInfo = getRoomInfo(reservation.room_id, reservation.room_type_id)
                           const guestCount = (reservation.number_of_adults || 0) +
                                            (reservation.number_of_children || 0) +
                                            (reservation.number_of_infants || 0)

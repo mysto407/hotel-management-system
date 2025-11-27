@@ -133,7 +133,7 @@ export function groupConsecutiveReservations(reservations, getRoomInfo) {
 
   // Convert reservations to the format expected by groupConsecutiveBookings
   const normalizedRooms = reservations.map(res => {
-    const roomInfo = getRoomInfo ? getRoomInfo(res.room_id) : { type: 'Room' }
+    const roomInfo = getRoomInfo ? getRoomInfo(res.room_id, res.room_type_id) : { type: 'Room' }
     return {
       ...res,
       checkIn: res.check_in_date,
