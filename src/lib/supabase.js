@@ -713,7 +713,11 @@ export const splitReservation = async(originalReservationId, splitData) => {
         const firstCheckOut = new Date(firstSegment.endDate)
         firstCheckOut.setDate(firstCheckOut.getDate() + 1)
 
-        const firstTax = firstSegment.totalPrice * 0.18
+        // Note: This is an estimate. Actual taxes are calculated by the folio system at check-in
+        // using tax_configurations table. This provides an initial total_amount for display.
+        const { rate: taxRatePercent } = await getTotalTaxRate('room_charge')
+        const taxRate = (taxRatePercent || 18) / 100
+        const firstTax = firstSegment.totalPrice * taxRate
         const firstTotal = firstSegment.totalPrice + firstTax
 
         const updateData = {
@@ -749,7 +753,7 @@ export const splitReservation = async(originalReservationId, splitData) => {
             const segmentCheckOut = new Date(segment.endDate)
             segmentCheckOut.setDate(segmentCheckOut.getDate() + 1)
 
-            const segmentTax = segment.totalPrice * 0.18
+            const segmentTax = segment.totalPrice * taxRate
             const segmentTotal = segment.totalPrice + segmentTax
 
             const newReservationData = {

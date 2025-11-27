@@ -29,7 +29,7 @@ import {
 import { Label } from '../ui/label'
 import { useRooms } from '../../context/RoomContext'
 import { formatCurrency } from '../../utils/currency'
-import { getAvailableRooms, getActiveRoomRateTypes } from '../../lib/supabase'
+import { getAvailableRooms, getActiveRoomRateTypes, getTotalTaxRate } from '../../lib/supabase'
 
 export default function QuickEditModal({ open, onOpenChange, reservation, onSave }) {
   const { roomTypes, rooms } = useRooms()
@@ -47,6 +47,16 @@ export default function QuickEditModal({ open, onOpenChange, reservation, onSave
   const [quantity, setQuantity] = useState(1)
   const [availableRoomsForDates, setAvailableRoomsForDates] = useState([])
   const [checkingAvailability, setCheckingAvailability] = useState(false)
+  const [taxRate, setTaxRate] = useState(18) // Default 18%, loaded from tax_configurations
+
+  // Load dynamic tax rate
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      const { rate } = await getTotalTaxRate('room_charge')
+      if (rate > 0) setTaxRate(rate)
+    }
+    loadTaxRate()
+  }, [])
 
   // State for modifications
   const [modifications, setModifications] = useState([])
@@ -399,10 +409,11 @@ export default function QuickEditModal({ open, onOpenChange, reservation, onSave
     bookedDates.forEach(booking => {
       subtotal += booking.price * booking.quantity
     })
-    const tax = subtotal * 0.18
+    const tax = subtotal * (taxRate / 100)
     return {
       subtotal,
       tax,
+      taxRate,
       total: subtotal + tax,
       nights: bookedDates.size,
     }
@@ -764,7 +775,7 @@ export default function QuickEditModal({ open, onOpenChange, reservation, onSave
                     <span className="font-medium">{formatCurrency(totals.subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Tax (18% GST):</span>
+                    <span>Tax ({totals.taxRate}% GST):</span>
                     <span className="font-medium">{formatCurrency(totals.tax)}</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold border-t pt-2">

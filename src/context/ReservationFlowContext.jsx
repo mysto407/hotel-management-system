@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { useMealPlans } from './MealPlanContext'
 import { useDiscounts } from './DiscountContext'
 import { applyMultipleDiscounts } from '../utils/discountCalculations'
+import { getTotalTaxRate } from '../lib/supabase'
 
 const ReservationFlowContext = createContext()
 
@@ -62,6 +63,20 @@ export function ReservationFlowProvider({ children }) {
     amount: 0,
     notes: ''
   })
+
+  // Tax rate from tax_configurations (loaded dynamically)
+  const [taxRate, setTaxRate] = useState(18) // Default 18%
+
+  // Load dynamic tax rate from tax_configurations
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      const { rate } = await getTotalTaxRate('room_charge')
+      if (rate > 0) {
+        setTaxRate(rate)
+      }
+    }
+    loadTaxRate()
+  }, [])
 
   // Room selection handlers
   const addRoom = useCallback((room, quantity = 1, rateTypeId = null, checkIn = null, checkOut = null) => {
@@ -369,7 +384,7 @@ export function ReservationFlowProvider({ children }) {
       addonDiscountResult.totalDiscount +
       totalBillDiscountResult.totalDiscount
 
-    const tax = subtotal * 0.18 // 18% GST
+    const tax = subtotal * (taxRate / 100) // Dynamic tax from tax_configurations
     const total = subtotal + tax
     const suggestedDeposit = total * 0.3 // 30% suggested deposit
     const balanceDue = total - (paymentInfo.amount || 0)
@@ -384,13 +399,14 @@ export function ReservationFlowProvider({ children }) {
         totalBillDiscounts: totalBillDiscountResult.appliedDiscounts
       },
       tax,
+      taxRate, // Include tax rate for display
       total,
       nights: totalNights,
       suggestedDeposit,
       balanceDue,
       mealPlanSubtotal
     }
-  }, [selectedRooms, addons, selectedDiscounts, paymentInfo.amount, getMealPlanPrice])
+  }, [selectedRooms, addons, selectedDiscounts, paymentInfo.amount, getMealPlanPrice, taxRate])
 
   // Reset flow
   const resetFlow = useCallback(() => {

@@ -230,7 +230,7 @@ export default function PaymentPage({ onNavigate }) {
 
         // Calculate total amount for this room type using its specific nights
         const roomSubtotal = roomRate * roomNights
-        const roomTax = roomSubtotal * (taxRate / 100) // 18% GST
+        const roomTax = roomSubtotal * (taxRate / 100) // Dynamic GST from tax_configurations
         const roomTotal = roomSubtotal + roomTax
 
         // Create one reservation per quantity

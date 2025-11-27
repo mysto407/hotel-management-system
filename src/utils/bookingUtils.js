@@ -87,9 +87,10 @@ export function getStayNights(stay) {
 /**
  * Calculates total cost for a stay (all rooms combined)
  * @param {Object} stay - Stay object with rooms array
- * @returns {Object} Object with subtotal, tax, and total
+ * @param {number} taxRatePercent - Tax rate percentage (default: 18)
+ * @returns {Object} Object with subtotal, tax, total, and taxRate
  */
-export function calculateStayCost(stay) {
+export function calculateStayCost(stay, taxRatePercent = 18) {
   let subtotal = 0
 
   stay.rooms.forEach(room => {
@@ -101,10 +102,10 @@ export function calculateStayCost(stay) {
     subtotal += roomRate * nights * room.quantity
   })
 
-  const tax = subtotal * 0.18 // 18% GST
+  const tax = subtotal * (taxRatePercent / 100)
   const total = subtotal + tax
 
-  return { subtotal, tax, total }
+  return { subtotal, tax, total, taxRate: taxRatePercent }
 }
 
 /**

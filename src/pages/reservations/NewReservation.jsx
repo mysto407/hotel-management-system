@@ -1333,7 +1333,7 @@ export default function NewReservation({ onNavigate }) {
             <span className="font-semibold">₹{bill.subtotal.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Taxes (18%):</span>
+            <span className="text-muted-foreground">Taxes ({bill.taxRate || 18}%):</span>
             <span className="font-semibold">₹{bill.tax.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">

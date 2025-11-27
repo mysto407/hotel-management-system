@@ -1,11 +1,12 @@
 // src/pages/billing/Billing.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, DollarSign, FileText, Printer, Receipt } from 'lucide-react';
 import { useBilling } from '../../context/BillingContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useConfirm, useAlert } from '@/context/AlertContext';
 import { cn } from '@/lib/utils';
+import { getTotalTaxRate } from '../../lib/supabase';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,16 @@ const Billing = () => {
   const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [taxRate, setTaxRate] = useState(18); // Default 18%, loaded from tax_configurations
+
+  // Load dynamic tax rate
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      const { rate } = await getTotalTaxRate('room_charge');
+      if (rate > 0) setTaxRate(rate);
+    };
+    loadTaxRate();
+  }, []);
   const [isMasterBillModalOpen, setIsMasterBillModalOpen] = useState(false);
   const [editingBill, setEditingBill] = useState(null);
   const [selectedBill, setSelectedBill] = useState(null);
@@ -113,7 +124,7 @@ const Billing = () => {
 
   const calculateTotals = (items, discount) => {
     const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-    const tax = subtotal * 0.18; // 18% GST
+    const tax = subtotal * (taxRate / 100); // Dynamic tax from tax_configurations
     const total = subtotal + tax - discount;
     const balance = total - formData.paid_amount;
     
@@ -478,7 +489,7 @@ const Billing = () => {
                 <span>₹{formData.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Tax (18% GST):</span>
+                <span className="text-muted-foreground">Tax ({taxRate}% GST):</span>
                 <span>₹{formData.tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
