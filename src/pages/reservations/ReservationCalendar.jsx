@@ -41,6 +41,7 @@ import CalendarPrintView from '../../components/reservations/CalendarPrintView';
 import ReservationListPrintView from '../../components/reservations/ReservationListPrintView';
 import ReservationTooltip from '../../components/reservations/ReservationTooltip';
 import QuickEditModal from '../../components/reservations/QuickEditModal';
+import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useAgents } from '../../context/AgentContext';
 import { cn } from '@/lib/utils';
 
@@ -192,6 +193,10 @@ const ReservationCalendar = ({ onNavigate }) => {
   // QuickEditModal state
   const [isQuickEditModalOpen, setIsQuickEditModalOpen] = useState(false);
   const [quickEditReservation, setQuickEditReservation] = useState(null);
+
+  // RoomAssignmentModal state (for check-in of unassigned reservations)
+  const [isRoomAssignmentModalOpen, setIsRoomAssignmentModalOpen] = useState(false);
+  const [roomAssignmentReservation, setRoomAssignmentReservation] = useState(null);
 
   const calendarRef = useRef(null);
   const calendarPrintRef = useRef(null);
@@ -1414,6 +1419,15 @@ const ReservationCalendar = ({ onNavigate }) => {
   const handleQuickCheckIn = async () => {
     if (!selectedReservation) return;
 
+    // Check if reservation has a room assigned
+    if (!selectedReservation.room_id) {
+      // Show room assignment modal for unassigned reservations
+      setRoomAssignmentReservation(selectedReservation);
+      setIsRoomAssignmentModalOpen(true);
+      closeActionMenu();
+      return;
+    }
+
     const confirmed = await confirm({
       title: 'Check-in Guest',
       message: `Check in ${guests.find(g => g.id === selectedReservation.guest_id)?.name || 'Guest'} to Room ${rooms.find(r => r.id === selectedReservation.room_id)?.room_number || 'N/A'}?`,
@@ -1425,6 +1439,28 @@ const ReservationCalendar = ({ onNavigate }) => {
       await checkIn(selectedReservation.id);
       closeActionMenu();
     }
+  };
+
+  // Handle room assignment and check-in for unassigned reservations
+  const handleRoomAssignmentAndCheckIn = async (roomId) => {
+    if (!roomAssignmentReservation) return;
+
+    // First assign the room
+    const { error } = await assignRoomToReservation(roomAssignmentReservation.id, roomId);
+    if (error) {
+      showError('Failed to assign room: ' + error.message);
+      return;
+    }
+
+    // Then check in
+    const result = await checkIn(roomAssignmentReservation.id);
+    if (result?.success) {
+      showSuccess('Guest checked in successfully!');
+    }
+
+    // Close modal
+    setIsRoomAssignmentModalOpen(false);
+    setRoomAssignmentReservation(null);
   };
 
   // Quick check-out handler
@@ -2746,6 +2782,17 @@ const ReservationCalendar = ({ onNavigate }) => {
         onOpenChange={setIsQuickEditModalOpen}
         reservation={quickEditReservation}
         onSave={handleQuickEditSave}
+      />
+
+      {/* Room Assignment Modal - For check-in of unassigned reservations */}
+      <RoomAssignmentModal
+        open={isRoomAssignmentModalOpen}
+        onOpenChange={(open) => {
+          setIsRoomAssignmentModalOpen(open);
+          if (!open) setRoomAssignmentReservation(null);
+        }}
+        reservation={roomAssignmentReservation}
+        onAssign={handleRoomAssignmentAndCheckIn}
       />
 
       {/* Force Move Dialog - Room Type Mismatch Confirmation */}
