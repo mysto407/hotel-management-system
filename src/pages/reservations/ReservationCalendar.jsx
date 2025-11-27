@@ -69,6 +69,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -1764,6 +1774,111 @@ const ReservationCalendar = ({ onNavigate }) => {
     );
   };
 
+  // Render unassigned reservation bar (amber styling, draggable to assign)
+  const renderUnassignedBar = (reservation) => {
+    const checkIn = parseISO(reservation.check_in_date);
+    const checkOut = parseISO(reservation.check_out_date);
+    const rangeStart = startDate;
+    const rangeEnd = addDays(startDate, viewDays);
+
+    // Calculate visible portion
+    const visibleStart = checkIn < rangeStart ? rangeStart : checkIn;
+    const visibleEnd = checkOut > rangeEnd ? rangeEnd : checkOut;
+
+    const startOffset = differenceInDays(visibleStart, rangeStart);
+    const daySpan = differenceInDays(visibleEnd, visibleStart);
+
+    if (daySpan <= 0) return null;
+
+    const extendsLeft = checkIn < rangeStart;
+    const extendsRight = checkOut > rangeEnd;
+
+    // Use same partial booking positioning as regular reservation bars
+    let barStart;
+    if (extendsLeft) {
+      barStart = 0;
+    } else {
+      barStart = startOffset * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    let barEnd;
+    if (extendsRight) {
+      barEnd = viewDays * CELL_WIDTH;
+    } else {
+      barEnd = (startOffset + daySpan) * CELL_WIDTH + CELL_WIDTH / 2;
+    }
+
+    const left = barStart + 2;
+    const width = barEnd - barStart - 4;
+
+    const guest = guests.find(g => g.id === reservation.guest_id);
+    const guestName = guest?.name || 'Unknown Guest';
+    const nights = differenceInDays(checkOut, checkIn);
+    const isDragging = draggedUnassigned?.id === reservation.id;
+
+    return (
+      <TooltipProvider key={reservation.id}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              draggable
+              onDragStart={(e) => handleUnassignedDragStart(e, reservation)}
+              onDragEnd={handleUnassignedDragEnd}
+              className={cn(
+                "absolute top-1 h-8 cursor-grab flex items-center text-amber-900 dark:text-amber-100 text-xs font-medium shadow-sm z-10",
+                "bg-amber-400 hover:bg-amber-500 dark:bg-amber-600 dark:hover:bg-amber-500",
+                "border-2 border-amber-500 dark:border-amber-400 border-dashed",
+                "active:cursor-grabbing",
+                isDragging && "opacity-50",
+                // Rounded corners based on visibility
+                !extendsLeft && "rounded-l-md",
+                !extendsRight && "rounded-r-md"
+              )}
+              style={{
+                left: `${left}px`,
+                width: `${Math.max(width, 40)}px`,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleReservationClick(reservation, e);
+              }}
+            >
+              {/* Left extend indicator */}
+              {extendsLeft && (
+                <ArrowLeftToLine className="h-3 w-3 flex-shrink-0 ml-1" />
+              )}
+
+              {/* Guest name with Clock icon */}
+              <div className="flex items-center gap-1 px-2 truncate">
+                <Clock className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{guestName}</span>
+              </div>
+
+              {/* Right extend indicator */}
+              {extendsRight && (
+                <ArrowRightToLine className="h-3 w-3 flex-shrink-0 mr-1" />
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <div className="space-y-1">
+              <p className="font-semibold flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {guestName}
+              </p>
+              <p className="text-xs">
+                {format(checkIn, 'MMM d')} - {format(checkOut, 'MMM d, yyyy')}
+              </p>
+              <p className="text-xs">{nights} night{nights !== 1 ? 's' : ''}</p>
+              <Badge className="text-xs bg-amber-500">Unassigned</Badge>
+              <p className="text-xs text-muted-foreground">Drag to assign a room</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   // Render selection bar with partial booking visualization
   // Shows the same mid-day split as reservation bars
   const renderSelectionBar = useCallback((roomId) => {
@@ -2260,7 +2375,58 @@ const ReservationCalendar = ({ onNavigate }) => {
                       </div>
                     );
                   })}
+
+                  {/* Auto-assign button for unassigned reservations */}
+                  {(unassignedByType[roomType.id]?.length > 0) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAutoAssignForType(roomType.id);
+                      }}
+                    >
+                      <Shuffle className="h-3 w-3 mr-1" />
+                      Auto-assign ({unassignedByType[roomType.id].length})
+                    </Button>
+                  )}
                 </div>
+
+                {/* Unassigned Row - shows unassigned reservations for this room type */}
+                {!isCollapsed && (unassignedByType[roomType.id]?.length > 0) && (
+                  <div className="flex border-b relative bg-amber-50/50 dark:bg-amber-950/20">
+                    {/* Unassigned Label */}
+                    <div
+                      className="flex-shrink-0 p-2 border-r flex items-center gap-2 sticky left-0 z-10 bg-amber-50/50 dark:bg-amber-950/20"
+                      style={{ width: ROOM_COLUMN_WIDTH }}
+                    >
+                      <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <span className="font-medium text-sm text-amber-700 dark:text-amber-300">Unassigned</span>
+                      <Badge variant="outline" className="ml-auto text-amber-600 border-amber-400">
+                        {unassignedByType[roomType.id].length}
+                      </Badge>
+                    </div>
+
+                    {/* Date Cells Container */}
+                    <div className="relative flex" style={{ height: 40 }}>
+                      {dateRange.map((date, idx) => (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "flex-shrink-0 border-r",
+                            isToday(date) && "bg-amber-100/50 dark:bg-amber-900/30",
+                            isWeekend(date) && "bg-amber-100/30 dark:bg-amber-900/20"
+                          )}
+                          style={{ width: CELL_WIDTH, height: '100%' }}
+                        />
+                      ))}
+
+                      {/* Unassigned Reservation Bars */}
+                      {unassignedByType[roomType.id].map(res => renderUnassignedBar(res))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Room Rows */}
                 {!isCollapsed && typeRooms.map(room => {
@@ -2327,9 +2493,20 @@ const ReservationCalendar = ({ onNavigate }) => {
                                   setHoveredCell(null);
                                 }
                               }}
-                              onDragOver={(e) => handleCellDragOver(e, room.id, date)}
+                              onDragOver={(e) => {
+                                handleCellDragOver(e, room.id, date);
+                                if (draggedUnassigned) {
+                                  handleUnassignedDragOver(e, room.id);
+                                }
+                              }}
                               onDragLeave={handleCellDragLeave}
-                              onDrop={(e) => handleCellDrop(e, room.id, date)}
+                              onDrop={(e) => {
+                                if (draggedUnassigned) {
+                                  handleUnassignedDrop(e, room.id);
+                                } else {
+                                  handleCellDrop(e, room.id, date);
+                                }
+                              }}
                             >
                               {/* Partial hover indicator - right half (afternoon check-in) on hovered cell */}
                               {available && !isBlocked && !draggedReservation && isHovered && (
@@ -2570,6 +2747,69 @@ const ReservationCalendar = ({ onNavigate }) => {
         reservation={quickEditReservation}
         onSave={handleQuickEditSave}
       />
+
+      {/* Force Move Dialog - Room Type Mismatch Confirmation */}
+      <Dialog open={!!forceMoveDialog} onOpenChange={(open) => !open && setForceMoveDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Room Type Mismatch
+            </DialogTitle>
+            <DialogDescription>
+              The selected room has a different type than the reservation.
+            </DialogDescription>
+          </DialogHeader>
+
+          {forceMoveDialog && (
+            <div className="space-y-4 py-4">
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3 space-y-2">
+                <p className="text-sm">
+                  <span className="font-medium">Reservation:</span>{' '}
+                  {guests.find(g => g.id === forceMoveDialog.reservation?.guest_id)?.name || 'Guest'}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Booked Type:</span>{' '}
+                  {roomTypes.find(rt => rt.id === forceMoveDialog.reservation?.room_type_id)?.name || 'Unknown'}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Target Room:</span>{' '}
+                  Room {forceMoveDialog.targetRoom?.room_number} ({roomTypes.find(rt => rt.id === forceMoveDialog.targetRoom?.room_type_id)?.name || 'Unknown'})
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-muted rounded-md">
+                <Checkbox
+                  id="force-move"
+                  checked={forceMoveDialog.confirmed}
+                  onCheckedChange={(checked) => setForceMoveDialog(prev => ({ ...prev, confirmed: checked }))}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="force-move" className="cursor-pointer font-medium">
+                    Enable force move
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    This will change the reservation's room type to match the new room.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForceMoveDialog(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleForceMove}
+              disabled={!forceMoveDialog?.confirmed}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Assign Room
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Hidden Print Views */}
       <div className="hidden">
