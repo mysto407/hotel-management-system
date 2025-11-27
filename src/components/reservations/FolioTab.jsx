@@ -66,7 +66,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
 
   // View modes
   const [viewMode, setViewMode] = useState('transactions') // 'transactions' or 'audit'
-  const [displayMode, setDisplayMode] = useState('chronological') // 'chronological' or 'grouped'
+  const [displayMode, setDisplayMode] = useState('chronological') // 'chronological', 'grouped', or 'nightly'
   const [showFilters, setShowFilters] = useState(false)
 
   // Filters
@@ -252,6 +252,28 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
     acc[type].push(tx)
     return acc
   }, {})
+
+  // Group transactions by date (nightly breakdown)
+  const groupedByDate = filteredTransactions.reduce((acc, tx) => {
+    const date = tx.scheduled_post_date
+      ? format(new Date(tx.scheduled_post_date), 'yyyy-MM-dd')
+      : format(new Date(tx.transaction_date), 'yyyy-MM-dd')
+    if (!acc[date]) acc[date] = { transactions: [], totals: { charges: 0, taxes: 0, payments: 0 } }
+    acc[date].transactions.push(tx)
+
+    // Calculate daily totals
+    if (tx.transaction_type === 'tax') {
+      acc[date].totals.taxes += Math.abs(tx.amount)
+    } else if (tx.amount < 0) {
+      acc[date].totals.payments += Math.abs(tx.amount)
+    } else {
+      acc[date].totals.charges += tx.amount
+    }
+    return acc
+  }, {})
+
+  // Sort dates chronologically
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(a) - new Date(b))
 
   // Format transaction type for display
   const formatTransactionType = (type) => {
@@ -442,7 +464,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   }
 
   // Render transaction table row
-  const renderTransactionRow = (tx, showCheckbox = false) => {
+  const renderTransactionRow = (tx, showCheckbox = false, showTimeOnly = false) => {
     const isSelected = selectedTransactions.includes(tx.id)
     const isReversedOrVoided = tx.transaction_status === 'reversed' || tx.transaction_status === 'voided'
     const isPayment = tx.transaction_type?.includes('payment')
@@ -463,7 +485,10 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
           </TableCell>
         )}
         <TableCell className="text-sm">
-          {format(new Date(tx.transaction_date), 'MMM dd, yyyy HH:mm')}
+          {showTimeOnly
+            ? format(new Date(tx.transaction_date), 'HH:mm')
+            : format(new Date(tx.transaction_date), 'MMM dd, yyyy HH:mm')
+          }
         </TableCell>
         <TableCell>
           <div>
@@ -919,7 +944,15 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
               onClick={() => setDisplayMode('grouped')}
             >
               <TrendingUp className="h-4 w-4 mr-1" />
-              Grouped
+              By Type
+            </Button>
+            <Button
+              variant={displayMode === 'nightly' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setDisplayMode('nightly')}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              Nightly
             </Button>
           </div>
         )}
@@ -1102,7 +1135,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
       {viewMode === 'transactions' ? (
         <Card>
           <CardContent className="pt-6">
-            {displayMode === 'chronological' ? (
+            {displayMode === 'chronological' && (
               /* Chronological View */
               <div className="rounded-md border">
                 <Table>
@@ -1147,8 +1180,10 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
                   </TableBody>
                 </Table>
               </div>
-            ) : (
-              /* Grouped View */
+            )}
+
+            {displayMode === 'grouped' && (
+              /* Grouped by Type View */
               <div className="space-y-4">
                 {Object.keys(groupedByType).length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
@@ -1180,6 +1215,65 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {displayMode === 'nightly' && (
+              /* Nightly Breakdown View */
+              <div className="space-y-4">
+                {sortedDates.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No transactions found
+                  </div>
+                ) : (
+                  sortedDates.map(date => {
+                    const { transactions: dateTxs, totals } = groupedByDate[date]
+                    const dayTotal = totals.charges + totals.taxes - totals.payments
+                    return (
+                      <div key={date} className="border rounded-lg overflow-hidden">
+                        <div className="bg-muted px-4 py-3 flex items-center justify-between">
+                          <div className="font-semibold">
+                            {format(new Date(date), 'EEEE, MMMM d, yyyy')}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-muted-foreground">
+                              Charges: <span className="font-medium text-foreground">{formatCurrency(totals.charges, baseCurrency)}</span>
+                            </span>
+                            <span className="text-muted-foreground">
+                              Tax: <span className="font-medium text-foreground">{formatCurrency(totals.taxes, baseCurrency)}</span>
+                            </span>
+                            {totals.payments > 0 && (
+                              <span className="text-muted-foreground">
+                                Payments: <span className="font-medium text-emerald-600">{formatCurrency(totals.payments, baseCurrency)}</span>
+                              </span>
+                            )}
+                            <span className="text-muted-foreground border-l pl-4">
+                              Day Total: <span className="font-bold text-foreground">{formatCurrency(dayTotal, baseCurrency)}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="rounded-md">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                {canEdit && <TableHead className="w-12"></TableHead>}
+                                <TableHead>Time</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {dateTxs.map(tx => renderTransactionRow(tx, canEdit, true))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    )
+                  })
                 )}
               </div>
             )}
