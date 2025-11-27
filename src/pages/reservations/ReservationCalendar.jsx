@@ -2279,10 +2279,10 @@ const ReservationCalendar = ({ onNavigate }) => {
         >
           <div className="inline-block min-w-full">
           {/* Header Row - Dates */}
-          <div className="flex sticky top-0 z-20 bg-card border-b">
+          <div className="flex sticky top-0 z-40 bg-card border-b">
             {/* Room Column Header */}
             <div
-              className="flex-shrink-0 px-1.5 py-1 border-r bg-card font-semibold text-xs sticky left-0 z-30 flex items-center"
+              className="flex-shrink-0 px-1.5 py-1 border-r bg-card font-semibold text-xs sticky left-0 z-50 flex items-center"
               style={{ width: ROOM_COLUMN_WIDTH }}
             >
               Rooms
