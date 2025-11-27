@@ -18,6 +18,7 @@ import {
   createServiceChargeWithTax,
   calculateAndApplyTaxes,
   generateExtraPersonCharges,
+  generateAllAddonCharges,
   // Room assignment functions
   assignRoomToReservation as assignRoomAPI,
   autoAssignRooms as autoAssignRoomsAPI
@@ -267,10 +268,38 @@ export const ReservationProvider = ({ children }) => {
         }
       }
 
+      // Generate rate plan add-on charges if applicable
+      let addonData = null;
+      if (reservation.rate_type_id) {
+        try {
+          const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
+          const { data: addons, error: addonError } = await generateAllAddonCharges(
+            reservation.rate_type_id,
+            masterFolio.id,
+            id,
+            nights,
+            totalGuests,
+            user?.id || null,
+            true // applyTaxes
+          );
+
+          if (addonError) {
+            console.error('Error generating add-on charges:', addonError);
+          } else if (addons && addons.addonsProcessed > 0) {
+            addonData = addons;
+            console.log(`Add-on charges: ₹${addons.totalAddonFees}, Taxes: ₹${addons.totalTaxes} (${addons.addonsProcessed} add-ons)`);
+          }
+        } catch (addonError) {
+          console.error('Error creating add-on charges:', addonError);
+          // Continue even if add-on charges fail
+        }
+      }
+
       const rateTypeName = reservation.room_rate_types?.rate_name || 'Standard Rate';
       const totalRoomAndTax = chargeData ? (chargeData.totalRoomCharges + chargeData.totalTaxCharges) : 0;
       const totalExtraAndTax = extraPersonData ? (extraPersonData.totalExtraFees + extraPersonData.totalTaxes) : 0;
-      const totalCharges = totalRoomAndTax + totalExtraAndTax;
+      const totalAddonAndTax = addonData ? (addonData.totalAddonFees + addonData.totalTaxes) : 0;
+      const totalCharges = totalRoomAndTax + totalExtraAndTax + totalAddonAndTax;
 
       console.log('All charges generated successfully for', nights, 'nights with taxes');
 
@@ -278,6 +307,9 @@ export const ReservationProvider = ({ children }) => {
       let successMsg = `Guest checked in! ${nights} night(s) @ ${rateTypeName}.`;
       if (extraPersonData && (extraPersonData.extraAdults > 0 || extraPersonData.extraChildren > 0)) {
         successMsg += ` Extra person fees applied.`;
+      }
+      if (addonData && addonData.addonsProcessed > 0) {
+        successMsg += ` ${addonData.addonsProcessed} add-on(s) charged.`;
       }
       successMsg += ` Total: ₹${totalCharges.toLocaleString()}`;
       showSuccess(successMsg);

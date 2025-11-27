@@ -3741,3 +3741,273 @@ export const getFolioTypeName = (folioType) => {
     }
     return names[folioType] || folioType
 }
+
+// ============================================
+// RATE PLAN ADD-ONS FUNCTIONS
+// ============================================
+
+/**
+ * Get all add-ons for a rate type
+ *
+ * @param {string} rateTypeId - The rate type ID
+ * @returns {Promise<{data: Array, error: Error}>}
+ */
+export const getRatePlanAddons = async (rateTypeId) => {
+    const { data, error } = await supabase
+        .from('rate_plan_addons')
+        .select('*')
+        .eq('rate_type_id', rateTypeId)
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+
+    return { data, error }
+}
+
+/**
+ * Get all add-ons for a rate type (including inactive)
+ *
+ * @param {string} rateTypeId - The rate type ID
+ * @returns {Promise<{data: Array, error: Error}>}
+ */
+export const getAllRatePlanAddons = async (rateTypeId) => {
+    const { data, error } = await supabase
+        .from('rate_plan_addons')
+        .select('*')
+        .eq('rate_type_id', rateTypeId)
+        .order('sort_order', { ascending: true })
+
+    return { data, error }
+}
+
+/**
+ * Create a new rate plan add-on
+ *
+ * @param {object} addonData - The add-on data
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const createRatePlanAddon = async (addonData) => {
+    const { data, error } = await supabase
+        .from('rate_plan_addons')
+        .insert([addonData])
+        .select()
+
+    return { data: data?.[0], error }
+}
+
+/**
+ * Update a rate plan add-on
+ *
+ * @param {string} addonId - The add-on ID
+ * @param {object} updates - The updates to apply
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const updateRatePlanAddon = async (addonId, updates) => {
+    const { data, error } = await supabase
+        .from('rate_plan_addons')
+        .update(updates)
+        .eq('id', addonId)
+        .select()
+
+    return { data: data?.[0], error }
+}
+
+/**
+ * Delete a rate plan add-on
+ *
+ * @param {string} addonId - The add-on ID
+ * @returns {Promise<{error: Error}>}
+ */
+export const deleteRatePlanAddon = async (addonId) => {
+    const { error } = await supabase
+        .from('rate_plan_addons')
+        .delete()
+        .eq('id', addonId)
+
+    return { error }
+}
+
+/**
+ * Generate charges for rate plan add-ons during check-in
+ *
+ * @param {string} folioId - The folio ID
+ * @param {string} reservationId - The reservation ID
+ * @param {object} addon - The add-on configuration
+ * @param {number} nights - Number of nights
+ * @param {number} guestCount - Total number of guests
+ * @param {string} userId - The user ID
+ * @param {boolean} applyTaxes - Whether to apply taxes
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const generateAddonCharges = async (
+    folioId,
+    reservationId,
+    addon,
+    nights,
+    guestCount,
+    userId,
+    applyTaxes = true
+) => {
+    const addonCharges = []
+    const taxCharges = []
+    let totalAddonFees = 0
+
+    if (!addon || addon.charge_type !== 'auto_charge' || !addon.price || addon.price <= 0) {
+        return { data: { addonCharges, taxCharges, totalAddonFees }, error: null }
+    }
+
+    const price = parseFloat(addon.price)
+
+    // Calculate total amount based on unit type
+    let totalAmount = 0
+    let description = ''
+
+    switch (addon.unit) {
+        case 'per_night':
+            totalAmount = price * nights
+            description = `${addon.name} (${nights} night${nights > 1 ? 's' : ''} × ₹${price.toFixed(2)})`
+            break
+
+        case 'per_stay':
+            totalAmount = price
+            description = `${addon.name} (Per Stay)`
+            break
+
+        case 'per_person_per_night':
+            totalAmount = price * nights * guestCount
+            description = `${addon.name} (${guestCount} guest${guestCount > 1 ? 's' : ''} × ${nights} night${nights > 1 ? 's' : ''} × ₹${price.toFixed(2)})`
+            break
+
+        default:
+            totalAmount = price
+            description = addon.name
+    }
+
+    // Create the add-on charge as a service charge
+    const { data: chargeData, error: chargeError } = await supabase
+        .from('folio_transactions')
+        .insert([{
+            folio_id: folioId,
+            reservation_id: reservationId,
+            transaction_type: 'service_charge',
+            transaction_status: 'posted',
+            amount: totalAmount,
+            description: description,
+            notes: addon.description || null,
+            created_by: userId,
+            auto_posted: true,
+            metadata: {
+                addon_id: addon.id,
+                addon_name: addon.name,
+                addon_unit: addon.unit,
+                addon_price: addon.price,
+                nights: nights,
+                guest_count: guestCount
+            }
+        }])
+        .select()
+
+    if (chargeError) {
+        console.error('Error creating add-on charge:', chargeError)
+        return { data: null, error: chargeError }
+    }
+
+    if (chargeData?.[0]) {
+        addonCharges.push(chargeData[0])
+        totalAddonFees += totalAmount
+
+        // Apply taxes if the add-on is taxable and taxes are enabled
+        if (applyTaxes && addon.is_taxable) {
+            const { data: taxes } = await calculateAndApplyTaxes(
+                folioId,
+                reservationId,
+                totalAmount,
+                'service_charge',
+                chargeData[0].id,
+                description,
+                userId
+            )
+            if (taxes) taxCharges.push(...taxes)
+        }
+    }
+
+    return {
+        data: {
+            addonCharges,
+            taxCharges,
+            totalAddonFees,
+            totalTaxes: taxCharges.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+        },
+        error: null
+    }
+}
+
+/**
+ * Generate all auto-charge add-ons for a reservation during check-in
+ *
+ * @param {string} rateTypeId - The rate type ID
+ * @param {string} folioId - The folio ID
+ * @param {string} reservationId - The reservation ID
+ * @param {number} nights - Number of nights
+ * @param {number} guestCount - Total number of guests
+ * @param {string} userId - The user ID
+ * @param {boolean} applyTaxes - Whether to apply taxes
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const generateAllAddonCharges = async (
+    rateTypeId,
+    folioId,
+    reservationId,
+    nights,
+    guestCount,
+    userId,
+    applyTaxes = true
+) => {
+    const allAddonCharges = []
+    const allTaxCharges = []
+    let totalAddonFees = 0
+
+    // Get active add-ons for this rate type
+    const { data: addons, error: addonsError } = await getRatePlanAddons(rateTypeId)
+    if (addonsError) {
+        console.error('Error fetching add-ons:', addonsError)
+        return { data: null, error: addonsError }
+    }
+
+    // Filter to only auto-charge add-ons
+    const autoChargeAddons = (addons || []).filter(a => a.charge_type === 'auto_charge' && a.is_active)
+
+    // Generate charges for each add-on
+    for (const addon of autoChargeAddons) {
+        const { data, error } = await generateAddonCharges(
+            folioId,
+            reservationId,
+            addon,
+            nights,
+            guestCount,
+            userId,
+            applyTaxes
+        )
+
+        if (error) {
+            console.error(`Error generating charges for add-on ${addon.name}:`, error)
+            continue
+        }
+
+        if (data) {
+            allAddonCharges.push(...data.addonCharges)
+            allTaxCharges.push(...data.taxCharges)
+            totalAddonFees += data.totalAddonFees
+        }
+    }
+
+    return {
+        data: {
+            addonCharges: allAddonCharges,
+            taxCharges: allTaxCharges,
+            totalAddonFees,
+            totalTaxes: allTaxCharges.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0),
+            addonsProcessed: autoChargeAddons.length
+        },
+        error: null
+    }
+}
