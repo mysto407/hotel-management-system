@@ -571,19 +571,6 @@ const ReservationCalendar = ({ onNavigate }) => {
     setDragOverCell(null);
   }, [draggedReservation, canMoveReservation, guests, rooms, confirm, updateReservation, showSuccess, showError]);
 
-  // Handlers for assigning unassigned reservations via drag-drop
-  const handleUnassignedDragStart = useCallback((e, reservation) => {
-    e.stopPropagation();
-    setDraggedUnassigned(reservation);
-    e.dataTransfer.setData('text/plain', reservation.id);
-    e.dataTransfer.effectAllowed = 'move';
-  }, []);
-
-  const handleUnassignedDragEnd = useCallback(() => {
-    setDraggedUnassigned(null);
-    setDragOverCell(null);
-  }, []);
-
   // Check if an unassigned reservation can be dropped on a room
   const canAssignToRoom = useCallback((reservation, targetRoomId) => {
     const room = rooms.find(r => r.id === targetRoomId);
