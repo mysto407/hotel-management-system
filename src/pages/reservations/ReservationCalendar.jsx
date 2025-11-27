@@ -523,6 +523,141 @@ const ReservationCalendar = ({ onNavigate }) => {
     setDragOverCell(null);
   }, [draggedReservation, canMoveReservation, guests, rooms, confirm, updateReservation, showSuccess, showError]);
 
+  // Handlers for assigning unassigned reservations via drag-drop
+  const handleUnassignedDragStart = useCallback((e, reservation) => {
+    e.stopPropagation();
+    setDraggedUnassigned(reservation);
+    e.dataTransfer.setData('text/plain', reservation.id);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleUnassignedDragEnd = useCallback(() => {
+    setDraggedUnassigned(null);
+    setDragOverCell(null);
+  }, []);
+
+  // Check if an unassigned reservation can be dropped on a room
+  const canAssignToRoom = useCallback((reservation, targetRoomId) => {
+    const room = rooms.find(r => r.id === targetRoomId);
+    if (!room) return { canDrop: false, reason: 'Room not found' };
+
+    // Check room status
+    if (room.status === 'Maintenance' || room.status === 'Blocked') {
+      return { canDrop: false, reason: `Room is ${room.status}` };
+    }
+
+    // Check for overlapping reservations
+    const checkIn = parseISO(reservation.check_in_date);
+    const checkOut = parseISO(reservation.check_out_date);
+
+    const hasConflict = reservations.some(res => {
+      if (res.id === reservation.id) return false;
+      if (res.room_id !== targetRoomId) return false;
+      if (res.status === 'Cancelled' || res.status === 'Checked-out') return false;
+
+      const resStart = parseISO(res.check_in_date);
+      const resEnd = parseISO(res.check_out_date);
+
+      return checkIn < resEnd && checkOut > resStart;
+    });
+
+    if (hasConflict) {
+      return { canDrop: false, reason: 'Overlapping booking exists' };
+    }
+
+    // Check room type match
+    const roomTypeMismatch = room.room_type_id !== reservation.room_type_id;
+
+    return { canDrop: true, roomTypeMismatch, room };
+  }, [rooms, reservations]);
+
+  // Handle drag over for unassigned reservations
+  const handleUnassignedDragOver = useCallback((e, targetRoomId) => {
+    e.preventDefault();
+    if (!draggedUnassigned) return;
+
+    const result = canAssignToRoom(draggedUnassigned, targetRoomId);
+    setDragOverCell({
+      roomId: targetRoomId,
+      canDrop: result.canDrop,
+      roomTypeMismatch: result.roomTypeMismatch
+    });
+  }, [draggedUnassigned, canAssignToRoom]);
+
+  // Handle drop for assigning unassigned reservation to a room
+  const handleUnassignedDrop = useCallback(async (e, targetRoomId) => {
+    e.preventDefault();
+    if (!draggedUnassigned) return;
+
+    const result = canAssignToRoom(draggedUnassigned, targetRoomId);
+
+    if (!result.canDrop) {
+      showError(`Cannot assign here: ${result.reason}`);
+      setDraggedUnassigned(null);
+      setDragOverCell(null);
+      return;
+    }
+
+    // If room type mismatch, show force move dialog
+    if (result.roomTypeMismatch) {
+      setForceMoveDialog({
+        reservation: draggedUnassigned,
+        targetRoomId,
+        targetRoom: result.room
+      });
+      setDraggedUnassigned(null);
+      setDragOverCell(null);
+      return;
+    }
+
+    // Same room type - proceed with assignment
+    const guest = guests.find(g => g.id === draggedUnassigned.guest_id);
+
+    const { error } = await assignRoomToReservation(draggedUnassigned.id, targetRoomId);
+
+    if (!error) {
+      showSuccess(`Assigned ${guest?.name || 'Guest'} to Room ${result.room?.room_number}`);
+    }
+
+    setDraggedUnassigned(null);
+    setDragOverCell(null);
+  }, [draggedUnassigned, canAssignToRoom, guests, assignRoomToReservation, showSuccess, showError]);
+
+  // Handle force move confirmation (room type mismatch)
+  const handleForceMove = useCallback(async () => {
+    if (!forceMoveDialog) return;
+
+    const { reservation, targetRoomId, targetRoom } = forceMoveDialog;
+    const guest = guests.find(g => g.id === reservation.guest_id);
+
+    const { error } = await assignRoomToReservation(reservation.id, targetRoomId, true); // forceRoomType = true
+
+    if (!error) {
+      showSuccess(`Assigned ${guest?.name || 'Guest'} to Room ${targetRoom?.room_number} (room type changed)`);
+    }
+
+    setForceMoveDialog(null);
+  }, [forceMoveDialog, guests, assignRoomToReservation, showSuccess]);
+
+  // Handle auto-assign for a room type
+  const handleAutoAssignForType = useCallback(async (roomTypeId) => {
+    const unassigned = unassignedByType[roomTypeId] || [];
+    if (unassigned.length === 0) {
+      showError('No unassigned reservations for this room type');
+      return;
+    }
+
+    const result = await autoAssignRooms(null, roomTypeId);
+    if (result) {
+      const { assigned, failed } = result;
+      if (assigned.length > 0 && failed.length === 0) {
+        showSuccess(`Auto-assigned ${assigned.length} reservation(s)`);
+      } else if (assigned.length > 0) {
+        showSuccess(`Auto-assigned ${assigned.length} of ${assigned.length + failed.length} reservation(s)`);
+      }
+    }
+  }, [unassignedByType, autoAssignRooms, showSuccess, showError]);
+
   // Resize handlers for extending/shortening reservations
   const handleResizeStart = useCallback((e, reservation, edge) => {
     e.stopPropagation();
