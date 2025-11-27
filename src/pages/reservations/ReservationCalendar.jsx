@@ -24,7 +24,10 @@ import {
   LayoutGrid,
   List,
   Wrench,
-  Printer
+  Printer,
+  Shuffle,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { format, addDays, startOfDay, isToday, isWeekend, differenceInDays, parseISO } from 'date-fns';
 import { useReservations } from '../../context/ReservationContext';
@@ -97,7 +100,7 @@ const ROOM_COLUMN_WIDTH = 150;
 
 const ReservationCalendar = ({ onNavigate }) => {
   // Contexts
-  const { reservations, updateReservation, cancelReservation, deleteReservation, fetchReservations, checkIn, checkOut } = useReservations();
+  const { reservations, updateReservation, cancelReservation, deleteReservation, fetchReservations, checkIn, checkOut, assignRoom: assignRoomToReservation, autoAssignRooms } = useReservations();
   const { rooms, roomTypes, blockings } = useRooms();
   const { guests } = useGuests();
   const { agents } = useAgents();
@@ -131,6 +134,10 @@ const ReservationCalendar = ({ onNavigate }) => {
 
   // Room swap state
   const [swapMode, setSwapMode] = useState(null); // { reservationA: object }
+
+  // Unassigned room drag state
+  const [draggedUnassigned, setDraggedUnassigned] = useState(null); // reservation being dragged from unassigned row
+  const [forceMoveDialog, setForceMoveDialog] = useState(null); // { reservation, targetRoomId, targetRoom } for room type mismatch confirmation
 
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
@@ -220,6 +227,32 @@ const ReservationCalendar = ({ onNavigate }) => {
     });
     return grouped;
   }, [rooms, roomTypes]);
+
+  // Get unassigned reservations grouped by room type (for unassigned row)
+  const unassignedByType = useMemo(() => {
+    const grouped = {};
+    const rangeStart = startDate;
+    const rangeEnd = addDays(startDate, viewDays);
+
+    reservations.forEach(res => {
+      // Only include unassigned reservations that are active
+      if (res.room_id || !res.room_type_id) return;
+      if (res.status === 'Cancelled' || res.status === 'Checked-out') return;
+
+      const checkIn = parseISO(res.check_in_date);
+      const checkOut = parseISO(res.check_out_date);
+
+      // Only include if overlaps with view range
+      if (checkIn >= rangeEnd || checkOut <= rangeStart) return;
+
+      if (!grouped[res.room_type_id]) {
+        grouped[res.room_type_id] = [];
+      }
+      grouped[res.room_type_id].push(res);
+    });
+
+    return grouped;
+  }, [reservations, startDate, viewDays]);
 
   // Ordered list of selectable rooms (for selection calculations)
   const selectableRoomIds = useMemo(() => {
