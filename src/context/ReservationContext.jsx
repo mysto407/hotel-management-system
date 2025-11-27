@@ -13,7 +13,10 @@ import {
   createMasterFolio,
   getFoliosByReservation,
   generateDailyRoomCharges,
+  generateDailyRoomChargesWithTax,
   createServiceCharge,
+  createServiceChargeWithTax,
+  calculateAndApplyTaxes,
   // Room assignment functions
   assignRoomToReservation as assignRoomAPI,
   autoAssignRooms as autoAssignRoomsAPI
@@ -157,19 +160,20 @@ export const ReservationProvider = ({ children }) => {
         return;
       }
 
-      // Generate daily room charges with scheduled posting
+      // Generate daily room charges with scheduled posting and automatic tax calculation
       const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
       const roomRate = reservation.room_rate_types?.base_price || reservation.rooms?.room_types?.base_price || 0;
 
-      // Generate daily room charges with auto-posting at midnight
-      const { data: roomCharges, error: roomChargeError } = await generateDailyRoomCharges(
+      // Generate daily room charges with auto-posting at midnight AND automatic tax calculation
+      const { data: chargeData, error: roomChargeError } = await generateDailyRoomChargesWithTax(
         id, // reservation_id
         masterFolio.id, // folio_id
         roomRate, // room_rate
         reservation.check_in_date, // check_in_date
         reservation.check_out_date, // check_out_date
         reservation.rooms?.room_number || 'N/A', // room_number
-        user?.id || null // user_id
+        user?.id || null, // user_id
+        true // applyTaxes - automatically apply configured taxes (GST)
       );
 
       if (roomChargeError) {
@@ -178,7 +182,12 @@ export const ReservationProvider = ({ children }) => {
         return;
       }
 
-      // Add meal plan charges if available (scheduled for each day)
+      // Log tax information
+      if (chargeData) {
+        console.log(`Room charges: ₹${chargeData.totalRoomCharges}, Taxes: ₹${chargeData.totalTaxCharges}`);
+      }
+
+      // Add meal plan charges if available (scheduled for each day) WITH automatic tax
       if (reservation.meal_plan && reservation.meal_plan !== 'EP') {
         try {
           const { data: mealPlanData } = await getMealPlanByCode(reservation.meal_plan);
@@ -188,26 +197,25 @@ export const ReservationProvider = ({ children }) => {
               const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
               const mealPlanPerNight = mealPlanPrice * totalGuests;
 
-              // Create scheduled meal plan charges for each day
+              // Create scheduled meal plan charges for each day WITH tax
               const checkInDate = new Date(reservation.check_in_date);
               for (let i = 0; i < nights; i++) {
                 const scheduledDate = new Date(checkInDate);
                 scheduledDate.setDate(scheduledDate.getDate() + i);
                 scheduledDate.setHours(0, 0, 0, 0); // Midnight
 
-                await createServiceCharge({
-                  folio_id: masterFolio.id,
-                  reservation_id: id,
-                  description: `Meal Plan (${mealPlanData[0].name}) - Day ${i + 1} - ${totalGuests} guests`,
-                  service_category: 'meal_plan',
-                  amount: mealPlanPerNight,
-                  quantity: 1,
-                  rate: mealPlanPerNight,
-                  transaction_date: new Date().toISOString(),
-                  scheduled_post_date: scheduledDate.toISOString(),
-                  auto_posted: true,
-                  created_by: user?.id || null
-                });
+                const mealPlanDescription = `Meal Plan (${mealPlanData[0].name}) - Day ${i + 1} - ${totalGuests} guests`;
+
+                // Use the new function that auto-applies taxes
+                await createServiceChargeWithTax(
+                  masterFolio.id,
+                  id,
+                  mealPlanPerNight,
+                  mealPlanDescription,
+                  'meal_plan',
+                  user?.id || null,
+                  scheduledDate
+                );
               }
             }
           }
@@ -218,8 +226,9 @@ export const ReservationProvider = ({ children }) => {
       }
 
       const rateTypeName = reservation.room_rate_types?.rate_name || 'Standard Rate';
-      console.log('Room charges generated successfully for', nights, 'nights');
-      showSuccess(`Guest checked in successfully! Room charges scheduled for ${nights} night(s) - ${rateTypeName}`);
+      const totalCharges = chargeData ? (chargeData.totalRoomCharges + chargeData.totalTaxCharges) : 0;
+      console.log('Room charges generated successfully for', nights, 'nights with taxes');
+      showSuccess(`Guest checked in! ${nights} night(s) @ ${rateTypeName}. Room + Tax: ₹${totalCharges.toLocaleString()}`);
 
       return { success: true };
     } catch (error) {

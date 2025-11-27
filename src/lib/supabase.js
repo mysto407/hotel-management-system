@@ -3049,3 +3049,329 @@ export const deleteRoomBlocking = async (id) => {
 
     return { data, error }
 }
+
+// ============================================
+// TAX CONFIGURATION FUNCTIONS
+// ============================================
+
+/**
+ * Get all active tax configurations
+ */
+export const getTaxConfigurations = async () => {
+    const { data, error } = await supabase
+        .from('tax_configurations')
+        .select('*')
+        .eq('is_active', true)
+        .order('name')
+
+    return { data, error }
+}
+
+/**
+ * Get tax configurations that apply to a specific charge type
+ * @param {string} chargeType - The transaction type (e.g., 'room_charge', 'service_charge', 'fee')
+ */
+export const getTaxesForChargeType = async (chargeType) => {
+    const { data, error } = await supabase
+        .from('tax_configurations')
+        .select('*')
+        .eq('is_active', true)
+        .contains('applies_to', [chargeType])
+        .order('is_compound') // Non-compound taxes first
+        .order('name')
+
+    return { data, error }
+}
+
+/**
+ * Create a tax configuration
+ */
+export const createTaxConfiguration = async (taxConfig) => {
+    const { data, error } = await supabase
+        .from('tax_configurations')
+        .insert(taxConfig)
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Update a tax configuration
+ */
+export const updateTaxConfiguration = async (id, taxConfig) => {
+    const { data, error } = await supabase
+        .from('tax_configurations')
+        .update({ ...taxConfig, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Delete a tax configuration (soft delete by setting is_active = false)
+ */
+export const deleteTaxConfiguration = async (id) => {
+    const { data, error } = await supabase
+        .from('tax_configurations')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+
+    return { data, error }
+}
+
+/**
+ * Calculate and apply taxes to a charge transaction
+ * Creates tax transactions linked to the parent charge
+ *
+ * @param {string} folioId - The folio ID
+ * @param {string} reservationId - The reservation ID
+ * @param {number} chargeAmount - The base amount to calculate tax on
+ * @param {string} chargeType - The type of charge ('room_charge', 'service_charge', 'fee')
+ * @param {string} parentTransactionId - Optional ID of the parent transaction for linking
+ * @param {string} chargeDescription - Description of the charge for tax line item
+ * @param {string} userId - The user creating the tax
+ * @param {Date} scheduledPostDate - Optional scheduled post date for pending taxes
+ * @returns {Promise<{data: Array, error: Error, totalTax: number}>}
+ */
+export const calculateAndApplyTaxes = async (
+    folioId,
+    reservationId,
+    chargeAmount,
+    chargeType,
+    parentTransactionId = null,
+    chargeDescription = '',
+    userId = null,
+    scheduledPostDate = null
+) => {
+    // Get applicable taxes
+    const { data: taxes, error: taxError } = await getTaxesForChargeType(chargeType)
+
+    if (taxError) {
+        console.error('Error fetching tax configurations:', taxError)
+        return { data: null, error: taxError, totalTax: 0 }
+    }
+
+    if (!taxes || taxes.length === 0) {
+        return { data: [], error: null, totalTax: 0 }
+    }
+
+    const taxTransactions = []
+    let runningTotal = chargeAmount
+    let totalTax = 0
+
+    // Process non-compound taxes first, then compound
+    const sortedTaxes = [...taxes].sort((a, b) => {
+        if (a.is_compound === b.is_compound) return 0
+        return a.is_compound ? 1 : -1
+    })
+
+    for (const tax of sortedTaxes) {
+        // Check validity dates
+        const today = new Date()
+        if (tax.valid_from && new Date(tax.valid_from) > today) continue
+        if (tax.valid_to && new Date(tax.valid_to) < today) continue
+
+        // Calculate tax amount
+        const baseAmount = tax.is_compound ? runningTotal : chargeAmount
+        const taxAmount = Math.round((baseAmount * tax.rate / 100) * 100) / 100 // Round to 2 decimal places
+
+        // Determine status
+        const status = scheduledPostDate ? TRANSACTION_STATUS.PENDING : TRANSACTION_STATUS.POSTED
+
+        // Create tax transaction
+        const { data: taxTx, error: createError } = await supabase
+            .from('folio_transactions')
+            .insert([{
+                folio_id: folioId,
+                reservation_id: reservationId,
+                transaction_type: TRANSACTION_TYPES.TAX,
+                transaction_status: status,
+                transaction_date: new Date().toISOString(),
+                scheduled_post_date: scheduledPostDate?.toISOString() || null,
+                amount: taxAmount,
+                description: `${tax.name} (${tax.rate}%)${chargeDescription ? ` on ${chargeDescription}` : ''}`,
+                tax_rate: tax.rate,
+                tax_name: tax.name,
+                reference_number: parentTransactionId,
+                notes: `Tax applied to ${chargeType}`,
+                created_by: userId,
+                auto_posted: !!scheduledPostDate,
+                metadata: {
+                    tax_config_id: tax.id,
+                    tax_code: tax.code,
+                    parent_transaction_id: parentTransactionId,
+                    base_amount: baseAmount,
+                    is_compound: tax.is_compound
+                }
+            }])
+            .select()
+
+        if (createError) {
+            console.error('Error creating tax transaction:', createError)
+            continue
+        }
+
+        if (taxTx && taxTx[0]) {
+            taxTransactions.push(taxTx[0])
+            totalTax += taxAmount
+            runningTotal += taxAmount // Add to running total for compound taxes
+        }
+    }
+
+    return { data: taxTransactions, error: null, totalTax }
+}
+
+/**
+ * Generate daily room charges with automatic tax calculation
+ * Enhanced version that also creates tax transactions
+ *
+ * @param {string} reservationId - The reservation ID
+ * @param {string} folioId - The folio ID
+ * @param {number} roomRate - The nightly room rate
+ * @param {string} checkInDate - Check-in date
+ * @param {string} checkOutDate - Check-out date
+ * @param {string} roomNumber - Room number for description
+ * @param {string} userId - The user ID
+ * @param {boolean} applyTaxes - Whether to automatically apply taxes (default: true)
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const generateDailyRoomChargesWithTax = async (
+    reservationId,
+    folioId,
+    roomRate,
+    checkInDate,
+    checkOutDate,
+    roomNumber,
+    userId,
+    applyTaxes = true
+) => {
+    const roomCharges = []
+    const taxCharges = []
+
+    const startDate = new Date(checkInDate)
+    const endDate = new Date(checkOutDate)
+
+    // Calculate number of nights
+    const nights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+
+    for (let i = 0; i < nights; i++) {
+        const chargeDate = new Date(startDate)
+        chargeDate.setDate(chargeDate.getDate() + i)
+
+        // Set scheduled post date to midnight of the charge date
+        const scheduledPostDate = new Date(chargeDate)
+        scheduledPostDate.setHours(0, 0, 0, 0)
+
+        const description = `Room ${roomNumber} - Night ${i + 1} of ${nights}`
+
+        // Create room charge
+        const { data: roomCharge, error: chargeError } = await createRoomCharge({
+            folio_id: folioId,
+            reservation_id: reservationId,
+            amount: roomRate,
+            quantity: 1,
+            rate: roomRate,
+            description: description,
+            scheduled_post_date: scheduledPostDate.toISOString(),
+            auto_posted: true,
+            created_by: userId
+        })
+
+        if (chargeError) {
+            console.error('Error creating room charge:', chargeError)
+            continue
+        }
+
+        if (roomCharge && roomCharge[0]) {
+            roomCharges.push(roomCharge[0])
+
+            // Apply taxes if enabled
+            if (applyTaxes) {
+                const { data: taxes, totalTax } = await calculateAndApplyTaxes(
+                    folioId,
+                    reservationId,
+                    roomRate,
+                    'room_charge',
+                    roomCharge[0].id,
+                    description,
+                    userId,
+                    scheduledPostDate
+                )
+                if (taxes) {
+                    taxCharges.push(...taxes)
+                }
+            }
+        }
+    }
+
+    return {
+        data: {
+            roomCharges,
+            taxCharges,
+            totalNights: nights,
+            totalRoomCharges: roomCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0),
+            totalTaxCharges: taxCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0)
+        },
+        error: null
+    }
+}
+
+/**
+ * Apply taxes to a service charge (meal plan, etc.)
+ *
+ * @param {string} folioId - The folio ID
+ * @param {string} reservationId - The reservation ID
+ * @param {number} amount - The service charge amount
+ * @param {string} description - Description of the service
+ * @param {string} serviceCategory - Category of service (meal_plan, laundry, etc.)
+ * @param {string} userId - The user ID
+ * @param {Date} scheduledPostDate - Optional scheduled post date
+ * @returns {Promise<{serviceCharge: object, taxCharges: Array, error: Error}>}
+ */
+export const createServiceChargeWithTax = async (
+    folioId,
+    reservationId,
+    amount,
+    description,
+    serviceCategory,
+    userId,
+    scheduledPostDate = null
+) => {
+    // Create the service charge
+    const { data: serviceCharge, error: chargeError } = await createServiceCharge({
+        folio_id: folioId,
+        reservation_id: reservationId,
+        amount: amount,
+        quantity: 1,
+        rate: amount,
+        description: description,
+        service_category: serviceCategory,
+        scheduled_post_date: scheduledPostDate?.toISOString() || null,
+        auto_posted: !!scheduledPostDate,
+        created_by: userId
+    })
+
+    if (chargeError) {
+        return { serviceCharge: null, taxCharges: [], error: chargeError }
+    }
+
+    // Apply taxes
+    const { data: taxCharges, error: taxError } = await calculateAndApplyTaxes(
+        folioId,
+        reservationId,
+        amount,
+        'service_charge',
+        serviceCharge?.[0]?.id,
+        description,
+        userId,
+        scheduledPostDate
+    )
+
+    return {
+        serviceCharge: serviceCharge?.[0],
+        taxCharges: taxCharges || [],
+        error: taxError
+    }
+}

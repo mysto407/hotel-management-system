@@ -5,8 +5,10 @@ import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Textarea } from '../ui/textarea'
+import { Checkbox } from '../ui/checkbox'
 import { useBilling } from '../../context/BillingContext'
 import { getCurrenciesArray, formatCurrency, calculateBaseCurrencyAmount, DEFAULT_BASE_CURRENCY, getApproximateExchangeRate } from '../../utils/currency'
+import { calculateAndApplyTaxes, getTaxConfigurations } from '../../lib/supabase'
 
 export default function AddTransactionModal({ open, onOpenChange, reservationId, folioId, billId, onSuccess }) {
   const {
