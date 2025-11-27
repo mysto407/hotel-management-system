@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Download, Filter, RotateCcw, Ban, X, ArrowRightLeft, FileText, History, TrendingUp, Calendar, RefreshCw, AlertCircle } from 'lucide-react'
+import { Plus, Download, Filter, RotateCcw, Ban, X, ArrowRightLeft, FileText, History, TrendingUp, Calendar, RefreshCw, AlertCircle, Split, Building2, ShoppingBag } from 'lucide-react'
 import { useBilling } from '../../context/BillingContext'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -14,6 +14,8 @@ import { Checkbox } from '../ui/checkbox'
 import { getCurrencySymbol, DEFAULT_BASE_CURRENCY, formatCurrency } from '../../utils/currency'
 import AddTransactionModal from './AddTransactionModal'
 import InvoiceReceipt from './InvoiceReceipt'
+import SplitTransactionModal from './SplitTransactionModal'
+import { FOLIO_TYPES, getFolioTypeName } from '../../lib/supabase'
 import { format } from 'date-fns'
 import { useReactToPrint } from 'react-to-print'
 
@@ -54,6 +56,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showCheckoutModal, setShowCheckoutModal] = useState(false)
   const [showNewFolioModal, setShowNewFolioModal] = useState(false)
+  const [showSplitModal, setShowSplitModal] = useState(false)
 
   // Selected items
   const [selectedTransaction, setSelectedTransaction] = useState(null)
@@ -94,6 +97,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   const [newFolioData, setNewFolioData] = useState({
     folio_type: 'room',
     folio_name: '',
+    company_name: '',
     notes: ''
   })
 
@@ -387,10 +391,22 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
     if (!primaryReservation?.id) return
 
     try {
-      const { data, error } = await createFolio({
+      // Build folio data, setting folio_name from company_name if type is company
+      const folioPayload = {
         reservation_id: primaryReservation.id,
-        ...newFolioData
-      })
+        folio_type: newFolioData.folio_type,
+        folio_name: newFolioData.folio_type === 'company' && newFolioData.company_name
+          ? `${newFolioData.company_name} Folio`
+          : newFolioData.folio_name || getFolioTypeName(newFolioData.folio_type),
+        notes: newFolioData.notes
+      }
+
+      // Add company metadata if it's a company folio
+      if (newFolioData.folio_type === 'company' && newFolioData.company_name) {
+        folioPayload.metadata = { company_name: newFolioData.company_name }
+      }
+
+      const { data, error } = await createFolio(folioPayload)
 
       if (error) {
         console.error('Error creating folio:', error)
@@ -398,7 +414,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
       }
 
       setShowNewFolioModal(false)
-      setNewFolioData({ folio_type: 'room', folio_name: '', notes: '' })
+      setNewFolioData({ folio_type: 'room', folio_name: '', company_name: '', notes: '' })
       await loadFolios()
       if (data) {
         setSelectedFolioId(data.id)
@@ -778,25 +794,44 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   return (
     <div className="space-y-4">
       {/* Folio Tabs */}
-      <div className="flex items-center gap-2 border-b">
-        {folios.map(folio => (
-          <button
-            key={folio.id}
-            onClick={() => setSelectedFolioId(folio.id)}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              selectedFolioId === folio.id
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {folio.folio_name || `Folio #${folio.folio_number}`}
-            {!folio.is_active && <span className="ml-1 text-xs">(Closed)</span>}
-          </button>
-        ))}
+      <div className="flex items-center gap-2 border-b overflow-x-auto">
+        {folios.map(folio => {
+          // Get icon based on folio type
+          const getFolioIcon = (type) => {
+            switch (type) {
+              case 'company': return <Building2 className="h-3 w-3" />
+              case 'incidentals': return <ShoppingBag className="h-3 w-3" />
+              default: return null
+            }
+          }
+          const icon = getFolioIcon(folio.folio_type)
+
+          return (
+            <button
+              key={folio.id}
+              onClick={() => setSelectedFolioId(folio.id)}
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                selectedFolioId === folio.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {icon}
+              {folio.folio_name || `Folio #${folio.folio_number}`}
+              {folio.folio_type && folio.folio_type !== 'master' && folio.folio_type !== 'room' && (
+                <Badge variant="outline" className="text-xs py-0 px-1 ml-1">
+                  {getFolioTypeName(folio.folio_type)}
+                </Badge>
+              )}
+              {!folio.is_active && <span className="ml-1 text-xs text-muted-foreground">(Closed)</span>}
+            </button>
+          )
+        })}
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowNewFolioModal(true)}
+          className="whitespace-nowrap"
         >
           <Plus className="h-4 w-4 mr-1" />
           New Folio
@@ -902,14 +937,32 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
               Add Transaction
             </Button>
             {selectedTransactions.length > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowTransferModal(true)}
-              >
-                <ArrowRightLeft className="h-4 w-4 mr-1" />
-                Transfer ({selectedTransactions.length})
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowTransferModal(true)}
+                >
+                  <ArrowRightLeft className="h-4 w-4 mr-1" />
+                  Transfer ({selectedTransactions.length})
+                </Button>
+                {selectedTransactions.length === 1 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const tx = transactions.find(t => t.id === selectedTransactions[0])
+                      if (tx) {
+                        setSelectedTransaction(tx)
+                        setShowSplitModal(true)
+                      }
+                    }}
+                  >
+                    <Split className="h-4 w-4 mr-1" />
+                    Split
+                  </Button>
+                )}
+              </>
             )}
           </>
         )}
@@ -1360,7 +1413,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
           <DialogHeader>
             <DialogTitle>Create New Folio</DialogTitle>
             <DialogDescription>
-              Add a new folio to this reservation
+              Add a new folio to this reservation for split billing or separate charges
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1368,48 +1421,146 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
               <Label>Folio Type *</Label>
               <Select
                 value={newFolioData.folio_type}
-                onValueChange={(val) => setNewFolioData({ ...newFolioData, folio_type: val })}
+                onValueChange={(val) => setNewFolioData({
+                  ...newFolioData,
+                  folio_type: val,
+                  folio_name: '',
+                  company_name: ''
+                })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="room">Room Folio</SelectItem>
-                  <SelectItem value="guest">Guest Folio</SelectItem>
-                  <SelectItem value="master">Master Folio</SelectItem>
-                  <SelectItem value="split">Split Folio</SelectItem>
-                  <SelectItem value="group">Group Folio</SelectItem>
+                  <SelectItem value="room">
+                    <div className="flex items-center gap-2">
+                      <span>Room Folio</span>
+                      <span className="text-xs text-muted-foreground">- Room charges</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="guest">
+                    <div className="flex items-center gap-2">
+                      <span>Guest Folio</span>
+                      <span className="text-xs text-muted-foreground">- Personal expenses</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="company">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      <span>Company Folio</span>
+                      <span className="text-xs text-muted-foreground">- Direct billing</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="incidentals">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="h-4 w-4" />
+                      <span>Incidentals Folio</span>
+                      <span className="text-xs text-muted-foreground">- Extras & services</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="master">
+                    <div className="flex items-center gap-2">
+                      <span>Master Folio</span>
+                      <span className="text-xs text-muted-foreground">- Primary account</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="other">
+                    <div className="flex items-center gap-2">
+                      <span>Other Folio</span>
+                      <span className="text-xs text-muted-foreground">- Custom purpose</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Folio Name</Label>
-              <Input
-                value={newFolioData.folio_name}
-                onChange={(e) => setNewFolioData({ ...newFolioData, folio_name: e.target.value })}
-                placeholder="e.g., Guest 2, Incidentals, etc."
-              />
-            </div>
+
+            {/* Company Name Field - shown only for company folios */}
+            {newFolioData.folio_type === 'company' && (
+              <div className="space-y-2">
+                <Label>Company Name *</Label>
+                <Input
+                  value={newFolioData.company_name}
+                  onChange={(e) => setNewFolioData({ ...newFolioData, company_name: e.target.value })}
+                  placeholder="Enter company name for billing"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This company will be billed directly for charges on this folio
+                </p>
+              </div>
+            )}
+
+            {/* Folio Name Field - shown for non-company folios */}
+            {newFolioData.folio_type !== 'company' && (
+              <div className="space-y-2">
+                <Label>Folio Name</Label>
+                <Input
+                  value={newFolioData.folio_name}
+                  onChange={(e) => setNewFolioData({ ...newFolioData, folio_name: e.target.value })}
+                  placeholder={`e.g., ${getFolioTypeName(newFolioData.folio_type)} - Guest 2`}
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Notes (Optional)</Label>
               <Textarea
                 value={newFolioData.notes}
                 onChange={(e) => setNewFolioData({ ...newFolioData, notes: e.target.value })}
-                placeholder="Add notes..."
+                placeholder="Add notes about this folio..."
                 rows={2}
               />
+            </div>
+
+            {/* Folio Type Descriptions */}
+            <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+              {newFolioData.folio_type === 'company' && (
+                <p>Company folios are used for direct corporate billing. All charges posted to this folio will be invoiced to the specified company.</p>
+              )}
+              {newFolioData.folio_type === 'incidentals' && (
+                <p>Incidentals folios are for extra services like minibar, laundry, room service, and other miscellaneous charges.</p>
+              )}
+              {newFolioData.folio_type === 'guest' && (
+                <p>Guest folios are for personal expenses that the guest will pay directly, separate from the main room charges.</p>
+              )}
+              {newFolioData.folio_type === 'room' && (
+                <p>Room folios are for room-related charges like accommodation, room service, and in-room amenities.</p>
+              )}
+              {newFolioData.folio_type === 'master' && (
+                <p>Master folios are the primary account for a reservation. Most reservations have one master folio by default.</p>
+              )}
+              {newFolioData.folio_type === 'other' && (
+                <p>Use this for any other billing purpose not covered by the standard folio types.</p>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewFolioModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateFolio}>
+            <Button
+              onClick={handleCreateFolio}
+              disabled={newFolioData.folio_type === 'company' && !newFolioData.company_name}
+            >
               Create Folio
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Split Transaction Modal */}
+      <SplitTransactionModal
+        open={showSplitModal}
+        onOpenChange={setShowSplitModal}
+        transaction={selectedTransaction}
+        folios={folios}
+        currentFolioId={selectedFolioId}
+        reservationId={primaryReservation?.id}
+        onSuccess={() => {
+          loadFolioData()
+          setSelectedTransactions([])
+          setSelectedTransaction(null)
+        }}
+      />
     </div>
   )
 }
