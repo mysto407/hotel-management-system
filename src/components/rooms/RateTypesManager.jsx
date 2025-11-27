@@ -1,6 +1,6 @@
 // src/components/rooms/RateTypesManager.jsx
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, XCircle, Star, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Save, XCircle, Star, Check, Package, Gift, Zap } from 'lucide-react';
 import { useRooms } from '../../context/RoomContext';
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  getAllRatePlanAddons,
+  createRatePlanAddon,
+  updateRatePlanAddon,
+  deleteRatePlanAddon
+} from '../../lib/supabase';
 
 const RateTypesManager = ({ roomType }) => {
   const {
@@ -43,6 +51,7 @@ const RateTypesManager = ({ roomType }) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRateType, setEditingRateType] = useState(null);
+  const [activeTab, setActiveTab] = useState('details');
   const [formData, setFormData] = useState({
     rate_name: '',
     rate_code: '',
@@ -64,7 +73,47 @@ const RateTypesManager = ({ roomType }) => {
     extra_fee_unit: 'per_night'
   });
 
+  // Add-ons state
+  const [addons, setAddons] = useState([]);
+  const [loadingAddons, setLoadingAddons] = useState(false);
+  const [addonFormData, setAddonFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    charge_type: 'informational',
+    unit: 'per_stay',
+    is_taxable: true,
+    is_active: true
+  });
+  const [editingAddon, setEditingAddon] = useState(null);
+  const [showAddonForm, setShowAddonForm] = useState(false);
+
   const rateTypes = getRateTypesByRoomType(roomType.id);
+
+  // Load add-ons when editing a rate type
+  useEffect(() => {
+    if (editingRateType?.id && isModalOpen) {
+      loadAddons(editingRateType.id);
+    } else {
+      setAddons([]);
+    }
+  }, [editingRateType?.id, isModalOpen]);
+
+  const loadAddons = async (rateTypeId) => {
+    setLoadingAddons(true);
+    try {
+      const { data, error } = await getAllRatePlanAddons(rateTypeId);
+      if (error) {
+        console.error('Error loading add-ons:', error);
+      } else {
+        setAddons(data || []);
+      }
+    } catch (err) {
+      console.error('Error loading add-ons:', err);
+    } finally {
+      setLoadingAddons(false);
+    }
+  };
 
   const handleSubmit = async () => {
     const rateTypeData = {
@@ -125,6 +174,102 @@ const RateTypesManager = ({ roomType }) => {
     });
     setEditingRateType(null);
     setIsModalOpen(false);
+    setActiveTab('details');
+    setAddons([]);
+    resetAddonForm();
+  };
+
+  // Add-on form functions
+  const resetAddonForm = () => {
+    setAddonFormData({
+      name: '',
+      description: '',
+      price: '',
+      charge_type: 'informational',
+      unit: 'per_stay',
+      is_taxable: true,
+      is_active: true
+    });
+    setEditingAddon(null);
+    setShowAddonForm(false);
+  };
+
+  const handleAddonSubmit = async () => {
+    if (!editingRateType?.id) return;
+
+    const addonData = {
+      rate_type_id: editingRateType.id,
+      name: addonFormData.name,
+      description: addonFormData.description || null,
+      price: parseFloat(addonFormData.price) || 0,
+      charge_type: addonFormData.charge_type,
+      unit: addonFormData.unit,
+      is_taxable: addonFormData.is_taxable,
+      is_active: addonFormData.is_active,
+      sort_order: addons.length
+    };
+
+    try {
+      if (editingAddon) {
+        const { error } = await updateRatePlanAddon(editingAddon.id, addonData);
+        if (error) {
+          console.error('Error updating add-on:', error);
+          return;
+        }
+      } else {
+        const { error } = await createRatePlanAddon(addonData);
+        if (error) {
+          console.error('Error creating add-on:', error);
+          return;
+        }
+      }
+      await loadAddons(editingRateType.id);
+      resetAddonForm();
+    } catch (err) {
+      console.error('Error saving add-on:', err);
+    }
+  };
+
+  const handleEditAddon = (addon) => {
+    setEditingAddon(addon);
+    setAddonFormData({
+      name: addon.name,
+      description: addon.description || '',
+      price: addon.price?.toString() || '',
+      charge_type: addon.charge_type,
+      unit: addon.unit,
+      is_taxable: addon.is_taxable,
+      is_active: addon.is_active
+    });
+    setShowAddonForm(true);
+  };
+
+  const handleDeleteAddon = async (addonId) => {
+    if (!confirm('Are you sure you want to delete this add-on?')) return;
+
+    try {
+      const { error } = await deleteRatePlanAddon(addonId);
+      if (error) {
+        console.error('Error deleting add-on:', error);
+        return;
+      }
+      await loadAddons(editingRateType.id);
+    } catch (err) {
+      console.error('Error deleting add-on:', err);
+    }
+  };
+
+  const toggleAddonActive = async (addon) => {
+    try {
+      const { error } = await updateRatePlanAddon(addon.id, { is_active: !addon.is_active });
+      if (error) {
+        console.error('Error toggling add-on:', error);
+        return;
+      }
+      await loadAddons(editingRateType.id);
+    } catch (err) {
+      console.error('Error toggling add-on:', err);
+    }
   };
 
   const handleEdit = (rateType) => {
@@ -269,6 +414,17 @@ const RateTypesManager = ({ roomType }) => {
               {editingRateType ? 'Edit Rate Type' : 'Add Rate Type'}
             </DialogTitle>
           </DialogHeader>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details">Rate Details</TabsTrigger>
+              <TabsTrigger value="addons" disabled={!editingRateType}>
+                <Package className="h-4 w-4 mr-2" />
+                Add-ons {addons.length > 0 && `(${addons.length})`}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details" className="mt-4">
           <div className="grid grid-cols-2 gap-4 py-4">
             {/* Basic Information */}
             <div className="space-y-2">
