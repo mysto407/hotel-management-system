@@ -786,13 +786,30 @@ const Reservations = ({ onNavigate }) => {
                                   Extended
                                 </Badge>
                               )}
+                              {/* Show count of unassigned rooms in group */}
+                              {group.filter(r => !r.room_id).length > 0 && (
+                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200">
+                                  <Clock size={10} className="mr-0.5" />
+                                  {group.filter(r => !r.room_id).length} Unassigned
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground max-w-xs truncate">
-                              {group.map(r => r.rooms?.room_number).filter(Boolean).join(', ')}
+                              {group.map(r => r.rooms?.room_number || 'TBA').join(', ')}
                             </div>
                           </div>
-                        ) : (
+                        ) : primaryReservation.room_id ? (
                           getRoomInfo(primaryReservation.rooms)
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={14} className="text-amber-600" />
+                            <span className="text-amber-700 font-medium">Unassigned</span>
+                            {primaryReservation.room_types?.name && (
+                              <span className="text-xs text-muted-foreground">
+                                ({primaryReservation.room_types.name})
+                              </span>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
@@ -1019,6 +1036,17 @@ const Reservations = ({ onNavigate }) => {
         editingGroup={editingGroup}
         initialFormData={initialFormData}
         initialRoomDetails={initialRoomDetails}
+      />
+
+      {/* Room Assignment Modal for unassigned reservations during check-in */}
+      <RoomAssignmentModal
+        open={isRoomAssignmentModalOpen}
+        onOpenChange={(open) => {
+          setIsRoomAssignmentModalOpen(open);
+          if (!open) setRoomAssignmentReservation(null);
+        }}
+        reservation={roomAssignmentReservation}
+        onAssign={handleRoomAssignmentAndCheckIn}
       />
     </div>
   );
