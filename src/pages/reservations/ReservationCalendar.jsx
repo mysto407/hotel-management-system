@@ -2266,7 +2266,7 @@ const ReservationCalendar = ({ onNavigate }) => {
           <div className="flex sticky top-0 z-20 bg-card border-b">
             {/* Room Column Header */}
             <div
-              className="flex-shrink-0 p-2 border-r bg-card font-semibold text-sm sticky left-0 z-30"
+              className="flex-shrink-0 px-1.5 py-1 border-r bg-card font-semibold text-xs sticky left-0 z-30 flex items-center"
               style={{ width: ROOM_COLUMN_WIDTH }}
             >
               Rooms
@@ -2281,7 +2281,7 @@ const ReservationCalendar = ({ onNavigate }) => {
                 <div
                   key={idx}
                   className={cn(
-                    "flex-shrink-0 p-2 border-r text-center relative",
+                    "flex-shrink-0 px-1 py-0.5 border-r text-center relative",
                     isToday(date) && "bg-blue-50 dark:bg-blue-950",
                     isWeekend(date) && "bg-muted/50"
                   )}
@@ -2291,23 +2291,23 @@ const ReservationCalendar = ({ onNavigate }) => {
                   {unassignedCount > 0 && (
                     <button
                       onClick={() => setIsUnassignedSidebarOpen(true)}
-                      className="absolute top-1 right-1 min-w-[16px] h-[16px] flex items-center justify-center bg-amber-500 text-white text-[9px] font-bold rounded-full hover:bg-amber-600 transition-colors"
+                      className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] flex items-center justify-center bg-amber-500 text-white text-[8px] font-bold rounded-full hover:bg-amber-600 transition-colors"
                       title={`${unassignedCount} unassigned reservation(s)`}
                     >
                       {unassignedCount}
                     </button>
                   )}
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-[10px] text-muted-foreground leading-tight">
                     {format(date, 'EEE')}
                   </div>
                   <div className={cn(
-                    "text-sm font-semibold",
+                    "text-xs font-semibold leading-tight",
                     isToday(date) && "text-blue-600 dark:text-blue-400"
                   )}>
                     {format(date, 'd')}
                   </div>
                   <div className={cn(
-                    "text-xs",
+                    "text-[10px] leading-tight",
                     availability > 50 ? "text-green-600" : availability > 20 ? "text-yellow-600" : "text-red-600"
                   )}>
                     {availability}%
@@ -2326,11 +2326,11 @@ const ReservationCalendar = ({ onNavigate }) => {
                   <div key={roomType.id} className="flex border-b">
                     {/* Room Type Name */}
                     <div
-                      className="flex-shrink-0 p-2 border-r flex items-center gap-2 sticky left-0 z-10 bg-card font-medium"
-                      style={{ width: ROOM_COLUMN_WIDTH, height: 26 }}
+                      className="flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-10 bg-card font-medium"
+                      style={{ width: ROOM_COLUMN_WIDTH, height: 22 }}
                     >
-                      <span className="text-sm">{roomType.name}</span>
-                      <Badge variant="secondary" className="text-xs">
+                      <span className="text-xs">{roomType.name}</span>
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1">
                         {typeRooms.length}
                       </Badge>
                     </div>
@@ -2349,11 +2349,11 @@ const ReservationCalendar = ({ onNavigate }) => {
                             available > 20 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300" :
                             "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
                           )}
-                          style={{ width: CELL_WIDTH, height: 26 }}
+                          style={{ width: CELL_WIDTH, height: 22 }}
                           onClick={() => switchToDetailedView(date, roomType.id)}
                           title={`${available}% available - Click to view details`}
                         >
-                          <span className="text-xs font-medium">{occupancy}%</span>
+                          <span className="text-[10px] font-medium">{occupancy}%</span>
                         </div>
                       );
                     })}
@@ -2376,16 +2376,16 @@ const ReservationCalendar = ({ onNavigate }) => {
                   onClick={() => toggleRoomType(roomType.id)}
                 >
                   <div
-                    className="flex-shrink-0 p-2 border-r flex items-center gap-2 sticky left-0 z-20 bg-muted/70"
+                    className="flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-20 bg-muted/70"
                     style={{ width: ROOM_COLUMN_WIDTH }}
                   >
                     {isCollapsed ? (
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-3 w-3" />
                     ) : (
-                      <ChevronDown className="h-4 w-4" />
+                      <ChevronDown className="h-3 w-3" />
                     )}
-                    <span className="font-semibold text-sm">{roomType.name}</span>
-                    <Badge variant="secondary" className="ml-auto">
+                    <span className="font-semibold text-xs">{roomType.name}</span>
+                    <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">
                       {typeRooms.length}
                     </Badge>
                   </div>
@@ -2397,7 +2397,7 @@ const ReservationCalendar = ({ onNavigate }) => {
                       <div
                         key={idx}
                         className={cn(
-                          "flex-shrink-0 p-2 border-r text-center text-xs",
+                          "flex-shrink-0 px-1 py-0.5 border-r text-center text-[10px]",
                           isToday(date) && "bg-blue-50/50 dark:bg-blue-950/50",
                           isWeekend(date) && "bg-muted/30"
                         )}
@@ -2417,14 +2417,14 @@ const ReservationCalendar = ({ onNavigate }) => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 text-xs"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-5 text-[10px] px-1.5"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAutoAssignForType(roomType.id);
                       }}
                     >
-                      <Shuffle className="h-3 w-3 mr-1" />
-                      Auto-assign ({unassignedByType[roomType.id].length})
+                      <Shuffle className="h-2.5 w-2.5 mr-0.5" />
+                      Auto ({unassignedByType[roomType.id].length})
                     </Button>
                   )}
                 </div>
@@ -2439,16 +2439,16 @@ const ReservationCalendar = ({ onNavigate }) => {
                       {/* Room Number */}
                       <div
                         className={cn(
-                          "flex-shrink-0 p-2 border-r flex items-center gap-2 sticky left-0 z-10 bg-card",
+                          "flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-10 bg-card",
                           isBlocked && "bg-red-50 dark:bg-red-950/30"
                         )}
                         style={{ width: ROOM_COLUMN_WIDTH }}
                       >
-                        <span className="font-medium text-sm">
+                        <span className="font-medium text-xs">
                           {room.room_number}
                         </span>
                         {isBlocked && (
-                          <Badge variant="destructive" className="text-xs">
+                          <Badge variant="destructive" className="text-[10px] h-4 px-1">
                             {room.status}
                           </Badge>
                         )}
