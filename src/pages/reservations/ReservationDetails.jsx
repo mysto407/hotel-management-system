@@ -5,7 +5,7 @@ import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
 import { useAgents } from '../../context/AgentContext'
 import { useMealPlans } from '../../context/MealPlanContext'
-import { getActiveReservationNotes } from '../../lib/supabase'
+import { getActiveReservationNotes, getTotalTaxRate } from '../../lib/supabase'
 import { groupConsecutiveReservations, formatRoomChangeSequence } from '../../utils/bookingUtils'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
@@ -236,9 +236,10 @@ export default function ReservationDetails({ onNavigate }) {
       // Calculate meal plan cost
       const mealPlanCost = mealPlan ? calculateMealPlanCost(mealPlan, totalGuests, nights) : 0
 
-      // Calculate subtotal and total with 18% GST
+      // Calculate subtotal and total with dynamic tax rate from tax_configurations
       const subtotal = roomCost + mealPlanCost
-      const tax = subtotal * 0.18
+      const { rate: taxRate } = await getTotalTaxRate('room_charge')
+      const tax = subtotal * (taxRate / 100)
       const totalAmount = subtotal + tax
 
       // Update reservation with new meal plan and total amount
