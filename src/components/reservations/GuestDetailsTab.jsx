@@ -32,7 +32,7 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
     let placeholderId = 1
 
     groupedReservations.forEach((reservation) => {
-      const roomInfo = getRoomInfo(reservation.room_id)
+      const roomInfo = getRoomInfo(reservation.room_id, reservation.room_type_id)
 
       // Calculate expected guest count for this reservation
       const expectedGuestCount =
@@ -674,9 +674,9 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                           <SelectContent>
                             <SelectItem value="unassigned">No room assigned</SelectItem>
                             {groupedReservations.map((reservation) => {
-                              const roomInfo = getRoomInfo(reservation.room_id)
+                              const roomInfo = getRoomInfo(reservation.room_id, reservation.room_type_id)
                               return (
-                                <SelectItem key={reservation.room_id} value={reservation.room_id}>
+                                <SelectItem key={reservation.room_id || reservation.id} value={reservation.room_id || reservation.id}>
                                   {roomInfo.type} - Room {roomInfo.number}
                                 </SelectItem>
                               )
