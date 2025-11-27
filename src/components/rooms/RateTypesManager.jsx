@@ -644,6 +644,245 @@ const RateTypesManager = ({ roomType }) => {
               </div>
             </div>
           </div>
+            </TabsContent>
+
+            {/* Add-ons Tab */}
+            <TabsContent value="addons" className="mt-4 space-y-4">
+              {/* Add-on Form */}
+              {showAddonForm ? (
+                <Card>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-sm">
+                      {editingAddon ? 'Edit Add-on' : 'New Add-on'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="addon_name">Add-on Name *</Label>
+                        <Input
+                          id="addon_name"
+                          value={addonFormData.name}
+                          onChange={(e) => setAddonFormData({...addonFormData, name: e.target.value})}
+                          placeholder="e.g., Airport Pickup, Late Checkout"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="addon_price">Price (₹)</Label>
+                        <Input
+                          id="addon_price"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={addonFormData.price}
+                          onChange={(e) => setAddonFormData({...addonFormData, price: e.target.value})}
+                          placeholder="0 for included items"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="addon_charge_type">Charge Type</Label>
+                        <Select
+                          value={addonFormData.charge_type}
+                          onValueChange={(value) => setAddonFormData({...addonFormData, charge_type: value})}
+                        >
+                          <SelectTrigger id="addon_charge_type">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="informational">
+                              <div className="flex items-center gap-2">
+                                <Gift className="h-4 w-4 text-green-600" />
+                                <span>Included (Informational)</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="auto_charge">
+                              <div className="flex items-center gap-2">
+                                <Zap className="h-4 w-4 text-amber-600" />
+                                <span>Auto-Charge at Check-in</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          {addonFormData.charge_type === 'informational'
+                            ? 'Shown as included in the rate (no extra charge)'
+                            : 'Automatically charged to folio during check-in'}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="addon_unit">Pricing Unit</Label>
+                        <Select
+                          value={addonFormData.unit}
+                          onValueChange={(value) => setAddonFormData({...addonFormData, unit: value})}
+                          disabled={addonFormData.charge_type === 'informational'}
+                        >
+                          <SelectTrigger id="addon_unit">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="per_stay">Per Stay (One-time)</SelectItem>
+                            <SelectItem value="per_night">Per Night</SelectItem>
+                            <SelectItem value="per_person_per_night">Per Person Per Night</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2 space-y-2">
+                        <Label htmlFor="addon_description">Description</Label>
+                        <Textarea
+                          id="addon_description"
+                          value={addonFormData.description}
+                          onChange={(e) => setAddonFormData({...addonFormData, description: e.target.value})}
+                          placeholder="Optional description of this add-on"
+                          rows={2}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="addon_is_taxable"
+                          checked={addonFormData.is_taxable}
+                          onCheckedChange={(checked) => setAddonFormData({...addonFormData, is_taxable: checked})}
+                          disabled={addonFormData.charge_type === 'informational'}
+                        />
+                        <Label htmlFor="addon_is_taxable" className="text-sm">
+                          Apply taxes to this add-on
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="addon_is_active"
+                          checked={addonFormData.is_active}
+                          onCheckedChange={(checked) => setAddonFormData({...addonFormData, is_active: checked})}
+                        />
+                        <Label htmlFor="addon_is_active" className="text-sm">
+                          Active
+                        </Label>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={resetAddonForm}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleAddonSubmit} disabled={!addonFormData.name}>
+                        {editingAddon ? 'Update Add-on' : 'Add Add-on'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Button variant="outline" onClick={() => setShowAddonForm(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New Add-on
+                </Button>
+              )}
+
+              {/* Add-ons List */}
+              {loadingAddons ? (
+                <div className="text-center py-4 text-muted-foreground">Loading add-ons...</div>
+              ) : addons.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                  <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No add-ons configured for this rate type.</p>
+                  <p className="text-sm mt-1">Add-ons can be informational (included) or auto-charged at check-in.</p>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Add-on</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Unit</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {addons.map((addon) => (
+                          <TableRow key={addon.id} className={!addon.is_active ? 'opacity-50' : ''}>
+                            <TableCell>
+                              <div className="font-medium">{addon.name}</div>
+                              {addon.description && (
+                                <div className="text-xs text-muted-foreground">{addon.description}</div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {addon.charge_type === 'informational' ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400">
+                                  <Gift className="h-3 w-3 mr-1" />
+                                  Included
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                                  <Zap className="h-3 w-3 mr-1" />
+                                  Auto-Charge
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {addon.charge_type === 'informational' ? (
+                                <span className="text-muted-foreground">—</span>
+                              ) : (
+                                `₹${parseFloat(addon.price || 0).toFixed(2)}`
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {addon.charge_type === 'auto_charge' && (
+                                <span className="text-xs">
+                                  {addon.unit === 'per_stay' && 'Per Stay'}
+                                  {addon.unit === 'per_night' && 'Per Night'}
+                                  {addon.unit === 'per_person_per_night' && 'Per Person/Night'}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={addon.is_active}
+                                onCheckedChange={() => toggleAddonActive(addon)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => handleEditAddon(addon)}
+                                >
+                                  <Edit2 size={14} className="text-blue-600 dark:text-blue-400" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => handleDeleteAddon(addon.id)}
+                                >
+                                  <Trash2 size={14} className="text-red-600 dark:text-red-400" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Add-ons Info */}
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+                <p className="font-medium mb-1">About Add-ons:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li><strong>Included (Informational)</strong>: Displayed as part of the rate but not charged separately</li>
+                  <li><strong>Auto-Charge</strong>: Automatically added to the guest's folio during check-in</li>
+                  <li>Per Night add-ons multiply by stay duration</li>
+                  <li>Per Person/Night add-ons multiply by guest count and stay duration</li>
+                </ul>
+              </div>
+            </TabsContent>
+          </Tabs>
+
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={resetForm}>
