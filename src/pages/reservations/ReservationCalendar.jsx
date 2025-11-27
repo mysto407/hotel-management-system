@@ -146,9 +146,11 @@ const ReservationCalendar = ({ onNavigate }) => {
   // Room swap state
   const [swapMode, setSwapMode] = useState(null); // { reservationA: object }
 
-  // Unassigned room drag state
+  // Unassigned room assignment state
   const [draggedUnassigned, setDraggedUnassigned] = useState(null); // reservation being dragged from unassigned row
   const [forceMoveDialog, setForceMoveDialog] = useState(null); // { reservation, targetRoomId, targetRoom } for room type mismatch confirmation
+  const [isUnassignedSidebarOpen, setIsUnassignedSidebarOpen] = useState(false); // sidebar visibility
+  const [selectedUnassignedReservation, setSelectedUnassignedReservation] = useState(null); // selected reservation for click-to-assign
 
   // Selection state for drag selection
   const [selectedCells, setSelectedCells] = useState([]);
@@ -268,6 +270,37 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     return grouped;
   }, [reservations, startDate, viewDays]);
+
+  // All unassigned reservations (flat list for sidebar)
+  const allUnassignedReservations = useMemo(() => {
+    return reservations.filter(res => {
+      if (res.room_id || !res.room_type_id) return false;
+      if (res.status === 'Cancelled' || res.status === 'Checked-out') return false;
+      return true;
+    });
+  }, [reservations]);
+
+  // Map of dates with unassigned reservation counts (for header indicators)
+  const unassignedByDate = useMemo(() => {
+    const map = new Map(); // dateStr -> count
+
+    allUnassignedReservations.forEach(res => {
+      const checkIn = parseISO(res.check_in_date);
+      const checkOut = parseISO(res.check_out_date);
+      const rangeStart = startDate;
+      const rangeEnd = addDays(startDate, viewDays);
+
+      // Only count dates in view range
+      let date = checkIn < rangeStart ? rangeStart : checkIn;
+      while (date < checkOut && date < rangeEnd) {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        map.set(dateStr, (map.get(dateStr) || 0) + 1);
+        date = addDays(date, 1);
+      }
+    });
+
+    return map;
+  }, [allUnassignedReservations, startDate, viewDays]);
 
   // Ordered list of selectable rooms (for selection calculations)
   const selectableRoomIds = useMemo(() => {
@@ -1049,7 +1082,62 @@ const ReservationCalendar = ({ onNavigate }) => {
   }, [selectableRoomIds, cellAvailabilityMap]);
 
   // Selection handlers using refs for immediate state access
-  const handleCellMouseDown = useCallback((roomId, date, e) => {
+  const handleCellMouseDown = useCallback(async (roomId, date, e) => {
+    // If an unassigned reservation is selected, try to assign it to this room
+    if (selectedUnassignedReservation) {
+      e.preventDefault();
+
+      const room = rooms.find(r => r.id === roomId);
+      if (!room) return;
+
+      // Check if room is blocked/maintenance
+      if (room.status === 'Blocked' || room.status === 'Maintenance') {
+        showError(`Cannot assign to room ${room.room_number} - it is ${room.status}`);
+        return;
+      }
+
+      // Check if room type matches
+      const roomTypeMatches = room.room_type_id === selectedUnassignedReservation.room_type_id;
+
+      // Check if cell is available for the reservation dates
+      const checkIn = parseISO(selectedUnassignedReservation.check_in_date);
+      const checkOut = parseISO(selectedUnassignedReservation.check_out_date);
+      let isAvailable = true;
+      let currentDate = checkIn;
+      while (currentDate < checkOut) {
+        if (!isCellAvailableFast(roomId, currentDate)) {
+          isAvailable = false;
+          break;
+        }
+        currentDate = addDays(currentDate, 1);
+      }
+
+      if (!isAvailable) {
+        showError(`Room ${room.room_number} is not available for the entire reservation period`);
+        return;
+      }
+
+      // If room type doesn't match, show force move dialog
+      if (!roomTypeMatches) {
+        setForceMoveDialog({
+          reservation: selectedUnassignedReservation,
+          targetRoomId: roomId,
+          targetRoom: room
+        });
+        return;
+      }
+
+      // Assign the room
+      const result = await assignRoomToReservation(selectedUnassignedReservation.id, roomId);
+      if (result.error) {
+        showError('Failed to assign room: ' + result.error.message);
+      } else {
+        showSuccess(`Assigned room ${room.room_number} successfully`);
+        setSelectedUnassignedReservation(null);
+      }
+      return;
+    }
+
     if (!isCellAvailableFast(roomId, date)) return;
 
     e.preventDefault();
@@ -1069,7 +1157,7 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     // Set initial selection
     setSelectedCells([cell]);
-  }, [isCellAvailableFast]);
+  }, [isCellAvailableFast, selectedUnassignedReservation, rooms, assignRoomToReservation, showError, showSuccess]);
 
   const handleCellMouseEnter = useCallback((roomId, date) => {
     const { isSelecting, startCell, lastUpdateKey } = dragStateRef.current;
@@ -2153,6 +2241,22 @@ const ReservationCalendar = ({ onNavigate }) => {
               <Filter className="h-4 w-4" />
               {hasActiveFilters && (
                 <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+              )}
+            </Button>
+
+            {/* Unassigned Reservations Sidebar Toggle */}
+            <Button
+              variant={isUnassignedSidebarOpen ? "default" : "outline"}
+              size="icon"
+              onClick={() => setIsUnassignedSidebarOpen(!isUnassignedSidebarOpen)}
+              className="relative"
+              title="Unassigned Reservations"
+            >
+              <Clock className="h-4 w-4" />
+              {allUnassignedReservations.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-amber-500 text-white text-[10px] font-medium rounded-full px-1">
+                  {allUnassignedReservations.length}
+                </span>
               )}
             </Button>
 
