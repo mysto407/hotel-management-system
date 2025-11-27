@@ -4,7 +4,6 @@ import { useReactToPrint } from 'react-to-print';
 import {
   ChevronLeft,
   ChevronRight,
-  Calendar,
   RefreshCw,
   ChevronDown,
   ChevronUp,
@@ -121,7 +120,8 @@ const ReservationCalendar = ({ onNavigate }) => {
 
   // Calendar state
   const [startDate, setStartDate] = useState(() => startOfDay(new Date()));
-  const [viewDays, setViewDays] = useState(14);
+  const [viewDays, setViewDays] = useState(30);
+  const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
   const [collapsedRoomTypes, setCollapsedRoomTypes] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('detailed'); // 'detailed' | 'overview'
@@ -2046,97 +2046,83 @@ const ReservationCalendar = ({ onNavigate }) => {
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header / Navigation */}
-      <div className="flex-shrink-0 p-4 border-b bg-card">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Navigation Controls */}
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
-              <ChevronLeft className="h-4 w-4" />
+      {/* Header / Navigation - Compact & Collapsible */}
+      <div className="flex-shrink-0 border-b bg-card">
+        {/* Always visible mini bar */}
+        <div className="px-2 py-1 flex items-center justify-between gap-2">
+          {/* Left: Navigation */}
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToPreviousWeek}>
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="outline" size="icon" onClick={goToNextWeek}>
-              <ChevronRight className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToNextWeek}>
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="outline" onClick={goToToday}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={goToToday}>
               Today
             </Button>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                value={format(startDate, 'yyyy-MM-dd')}
-                onChange={(e) => goToDate(e.target.value)}
-                className="w-40"
-              />
-            </div>
+            <Input
+              type="date"
+              value={format(startDate, 'yyyy-MM-dd')}
+              onChange={(e) => goToDate(e.target.value)}
+              className="h-7 w-32 text-xs"
+            />
           </div>
 
-          {/* Title */}
+          {/* Center: Date Range */}
           <div className="text-center">
-            <h1 className="text-xl font-semibold">
-              {format(startDate, 'MMMM yyyy')}
-            </h1>
-            <p className="text-sm text-muted-foreground">
+            <span className="text-sm font-medium">
               {format(startDate, 'MMM d')} - {format(addDays(startDate, viewDays - 1), 'MMM d, yyyy')}
-            </p>
+            </span>
           </div>
 
-          {/* View Controls */}
-          <div className="flex items-center gap-2">
+          {/* Right: Controls */}
+          <div className="flex items-center gap-1">
             {/* View Mode Toggle */}
             <div className="flex border rounded-md">
               <Button
                 variant={viewMode === 'detailed' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('detailed')}
-                className="rounded-r-none"
+                className="h-7 rounded-r-none text-xs px-2"
               >
-                <List className="h-4 w-4 mr-1" />
-                Detailed
+                <List className="h-3 w-3 mr-1" />
+                Detail
               </Button>
               <Button
                 variant={viewMode === 'overview' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => { setViewMode('overview'); setViewDays(30); }}
-                className="rounded-l-none"
+                onClick={() => setViewMode('overview')}
+                className="h-7 rounded-l-none text-xs px-2"
               >
-                <LayoutGrid className="h-4 w-4 mr-1" />
+                <LayoutGrid className="h-3 w-3 mr-1" />
                 Overview
               </Button>
             </div>
-            <Select value={String(viewDays)} onValueChange={(v) => setViewDays(parseInt(v))}>
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">7 Days</SelectItem>
-                <SelectItem value="14">14 Days</SelectItem>
-                <SelectItem value="30">30 Days</SelectItem>
-              </SelectContent>
-            </Select>
+
             <Button
-              variant={showFilters || hasActiveFilters ? "default" : "outline"}
+              variant={showFilters || hasActiveFilters ? "default" : "ghost"}
               size="icon"
               onClick={() => setShowFilters(!showFilters)}
-              className="relative"
+              className="h-7 w-7 relative"
             >
-              <Filter className="h-4 w-4" />
+              <Filter className="h-3.5 w-3.5" />
               {hasActiveFilters && (
-                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+                <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 bg-red-500 rounded-full" />
               )}
             </Button>
 
             {/* Unassigned Reservations Sidebar Toggle */}
             <Button
-              variant={isUnassignedSidebarOpen ? "default" : "outline"}
+              variant={isUnassignedSidebarOpen ? "default" : "ghost"}
               size="icon"
               onClick={() => setIsUnassignedSidebarOpen(!isUnassignedSidebarOpen)}
-              className="relative"
+              className="h-7 w-7 relative"
               title="Unassigned Reservations"
             >
-              <Clock className="h-4 w-4" />
+              <Clock className="h-3.5 w-3.5" />
               {allUnassignedReservations.length > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-amber-500 text-white text-[10px] font-medium rounded-full px-1">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center bg-amber-500 text-white text-[8px] font-medium rounded-full px-0.5">
                   {allUnassignedReservations.length}
                 </span>
               )}
@@ -2145,104 +2131,116 @@ const ReservationCalendar = ({ onNavigate }) => {
             {/* Print Dropdown */}
             <DropdownMenu open={showPrintMenu} onOpenChange={setShowPrintMenu}>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Printer className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Printer className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Print / Export</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel className="text-xs">Print / Export</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handlePrint('calendar')}>
-                  <LayoutGrid className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => handlePrint('calendar')} className="text-xs">
+                  <LayoutGrid className="h-3.5 w-3.5 mr-2" />
                   Calendar View
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">List Reports</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'all')}>
-                  <List className="h-4 w-4 mr-2" />
+                <DropdownMenuLabel className="text-[10px] text-muted-foreground">List Reports</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handlePrint('list', 'all')} className="text-xs">
+                  <List className="h-3.5 w-3.5 mr-2" />
                   All Reservations
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'arrivals')}>
-                  <LogIn className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => handlePrint('list', 'arrivals')} className="text-xs">
+                  <LogIn className="h-3.5 w-3.5 mr-2" />
                   Arrivals
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'departures')}>
-                  <LogOut className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => handlePrint('list', 'departures')} className="text-xs">
+                  <LogOut className="h-3.5 w-3.5 mr-2" />
                   Departures
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handlePrint('list', 'in-house')}>
-                  <Users className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => handlePrint('list', 'in-house')} className="text-xs">
+                  <Users className="h-3.5 w-3.5 mr-2" />
                   In-House Guests
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={handleRefresh}
               disabled={refreshing}
+              className="h-7 w-7"
             >
-              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+              <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            </Button>
+
+            {/* Collapse Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsToolbarCollapsed(!isToolbarCollapsed)}
+              className="h-7 w-7"
+              title={isToolbarCollapsed ? "Show filters" : "Hide filters"}
+            >
+              {isToolbarCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      {showFilters && (
-        <div className="flex-shrink-0 px-4 py-3 border-b bg-muted/30 flex flex-wrap items-center gap-3">
+      {/* Filter Bar - Collapsible */}
+      {showFilters && !isToolbarCollapsed && (
+        <div className="flex-shrink-0 px-2 py-1.5 border-b bg-muted/30 flex flex-wrap items-center gap-2">
           {/* Search Input */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search guest name..."
+              placeholder="Search guest..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-48"
+              className="pl-7 h-7 w-36 text-xs"
             />
           </div>
 
           {/* Status Filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-28 h-7 text-xs">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Confirmed">Confirmed</SelectItem>
-              <SelectItem value="Checked-in">Checked-in</SelectItem>
-              <SelectItem value="Hold">Hold</SelectItem>
-              <SelectItem value="Tentative">Tentative</SelectItem>
+              <SelectItem value="all" className="text-xs">All Statuses</SelectItem>
+              <SelectItem value="Confirmed" className="text-xs">Confirmed</SelectItem>
+              <SelectItem value="Checked-in" className="text-xs">Checked-in</SelectItem>
+              <SelectItem value="Hold" className="text-xs">Hold</SelectItem>
+              <SelectItem value="Tentative" className="text-xs">Tentative</SelectItem>
             </SelectContent>
           </Select>
 
           {/* Room Type Filter */}
           <Select value={roomTypeFilter} onValueChange={setRoomTypeFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-32 h-7 text-xs">
               <SelectValue placeholder="Room Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Room Types</SelectItem>
+              <SelectItem value="all" className="text-xs">All Room Types</SelectItem>
               {roomTypes.map(rt => (
-                <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                <SelectItem key={rt.id} value={rt.id} className="text-xs">{rt.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           {/* Clear Filters */}
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
-              <XCircle className="h-4 w-4 mr-1" />
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs text-muted-foreground px-2">
+              <XCircle className="h-3 w-3 mr-1" />
               Clear
             </Button>
           )}
 
           {/* Active filter count */}
           {hasActiveFilters && (
-            <Badge variant="secondary" className="ml-auto">
-              {[searchQuery, statusFilter !== 'all', roomTypeFilter !== 'all'].filter(Boolean).length} filter(s) active
+            <Badge variant="secondary" className="ml-auto text-[10px] h-5">
+              {[searchQuery, statusFilter !== 'all', roomTypeFilter !== 'all'].filter(Boolean).length} active
             </Badge>
           )}
         </div>
