@@ -3084,6 +3084,79 @@ export const getTaxesForChargeType = async (chargeType) => {
 }
 
 /**
+ * Get total tax rate percentage for a charge type (for display purposes)
+ * @param {string} chargeType - The transaction type (e.g., 'room_charge', 'service_charge', 'fee')
+ * @returns {Promise<{rate: number, taxes: Array, error: Error}>}
+ */
+export const getTotalTaxRate = async (chargeType = 'room_charge') => {
+    const { data: taxes, error } = await getTaxesForChargeType(chargeType)
+
+    if (error || !taxes || taxes.length === 0) {
+        return { rate: 0, taxes: [], error }
+    }
+
+    // Calculate total rate (simple sum for non-compound taxes)
+    const totalRate = taxes.reduce((sum, tax) => {
+        // Check validity dates
+        const today = new Date()
+        if (tax.valid_from && new Date(tax.valid_from) > today) return sum
+        if (tax.valid_to && new Date(tax.valid_to) < today) return sum
+        return sum + parseFloat(tax.rate || 0)
+    }, 0)
+
+    return { rate: totalRate, taxes, error: null }
+}
+
+/**
+ * Calculate tax amount for a given base amount using configured taxes
+ * @param {number} baseAmount - The base amount to calculate tax on
+ * @param {string} chargeType - The charge type for fetching applicable taxes
+ * @returns {Promise<{taxAmount: number, rate: number, breakdown: Array}>}
+ */
+export const calculateTaxAmount = async (baseAmount, chargeType = 'room_charge') => {
+    const { data: taxes, error } = await getTaxesForChargeType(chargeType)
+
+    if (error || !taxes || taxes.length === 0) {
+        return { taxAmount: 0, rate: 0, breakdown: [] }
+    }
+
+    let runningTotal = baseAmount
+    let totalTax = 0
+    const breakdown = []
+
+    // Sort: non-compound first, then compound
+    const sortedTaxes = [...taxes].sort((a, b) => {
+        if (a.is_compound === b.is_compound) return 0
+        return a.is_compound ? 1 : -1
+    })
+
+    for (const tax of sortedTaxes) {
+        // Check validity dates
+        const today = new Date()
+        if (tax.valid_from && new Date(tax.valid_from) > today) continue
+        if (tax.valid_to && new Date(tax.valid_to) < today) continue
+
+        const taxBase = tax.is_compound ? runningTotal : baseAmount
+        const taxAmount = Math.round((taxBase * tax.rate / 100) * 100) / 100
+
+        breakdown.push({
+            name: tax.name,
+            code: tax.code,
+            rate: parseFloat(tax.rate),
+            amount: taxAmount,
+            isCompound: tax.is_compound
+        })
+
+        totalTax += taxAmount
+        runningTotal += taxAmount
+    }
+
+    const totalRate = breakdown.reduce((sum, t) => sum + t.rate, 0)
+
+    return { taxAmount: totalTax, rate: totalRate, breakdown }
+}
+
+/**
  * Create a tax configuration
  */
 export const createTaxConfiguration = async (taxConfig) => {
