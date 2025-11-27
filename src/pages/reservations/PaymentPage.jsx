@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { ChevronLeft, Check, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useReservations } from '../../context/ReservationContext'
 import { useGuests } from '../../context/GuestContext'
 import { useMealPlans } from '../../context/MealPlanContext'
 import { useAlert } from '@/context/AlertContext'
+import { getTotalTaxRate } from '../../lib/supabase'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -46,6 +47,18 @@ export default function PaymentPage({ onNavigate }) {
   const [promoCodeInput, setPromoCodeInput] = useState('')
   const [applyingPromo, setApplyingPromo] = useState(false)
   const [showAllGuests, setShowAllGuests] = useState(false)
+  const [taxRate, setTaxRate] = useState(18) // Default to 18%, will be updated from tax_configurations
+
+  // Load dynamic tax rate from tax_configurations
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      const { rate } = await getTotalTaxRate('room_charge')
+      if (rate > 0) {
+        setTaxRate(rate)
+      }
+    }
+    loadTaxRate()
+  }, [])
 
   // Get primary guest (first guest or fallback to guestDetails)
   const primaryGuest = allGuestsDetails.length > 0 ? allGuestsDetails[0] : guestDetails
@@ -217,7 +230,7 @@ export default function PaymentPage({ onNavigate }) {
 
         // Calculate total amount for this room type using its specific nights
         const roomSubtotal = roomRate * roomNights
-        const roomTax = roomSubtotal * 0.18 // 18% GST
+        const roomTax = roomSubtotal * (taxRate / 100) // 18% GST
         const roomTotal = roomSubtotal + roomTax
 
         // Create one reservation per quantity
@@ -698,7 +711,7 @@ export default function PaymentPage({ onNavigate }) {
                         return Array.from({ length: room.quantity }, (_, index) => {
                           const roomRate = room.ratePrice || room.base_price
                           const roomSubtotal = roomRate * roomNights
-                          const roomTax = roomSubtotal * 0.18
+                          const roomTax = roomSubtotal * (taxRate / 100)
                           const roomTotal = roomSubtotal + roomTax
 
                           return (
@@ -727,7 +740,7 @@ export default function PaymentPage({ onNavigate }) {
                                   <span>₹{roomSubtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">GST (18%)</span>
+                                  <span className="text-muted-foreground">GST ({taxRate}%)</span>
                                   <span>₹{roomTax.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-xs font-medium pt-1 border-t border-border">
@@ -753,7 +766,7 @@ export default function PaymentPage({ onNavigate }) {
                             : 0
                           const roomRate = room.ratePrice || room.base_price
                           const roomSubtotal = roomRate * roomNights * room.quantity
-                          const roomTax = roomSubtotal * 0.18
+                          const roomTax = roomSubtotal * (taxRate / 100)
                           return sum + roomSubtotal + roomTax
                         }, 0).toFixed(2)}</span>
                       </div>
@@ -780,7 +793,7 @@ export default function PaymentPage({ onNavigate }) {
                             const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
 
                             const mealPlanSubtotal = pricePerPerson * totalGuests * roomNights
-                            const mealPlanTax = mealPlanSubtotal * 0.18
+                            const mealPlanTax = mealPlanSubtotal * (taxRate / 100)
                             const mealPlanTotal = mealPlanSubtotal + mealPlanTax
 
                             // Skip if no meal plan cost
@@ -816,7 +829,7 @@ export default function PaymentPage({ onNavigate }) {
                                     <span>₹{mealPlanSubtotal.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">GST (18%)</span>
+                                    <span className="text-muted-foreground">GST ({taxRate}%)</span>
                                     <span>₹{mealPlanTax.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-xs font-medium pt-1 border-t border-border">
@@ -848,7 +861,7 @@ export default function PaymentPage({ onNavigate }) {
                               const guestCount = room.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
                               const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
                               const mealPlanSubtotal = pricePerPerson * totalGuests * roomNights
-                              const mealPlanTax = mealPlanSubtotal * 0.18
+                              const mealPlanTax = mealPlanSubtotal * (taxRate / 100)
                               roomMealPlanTotal += mealPlanSubtotal + mealPlanTax
                             }
                             return sum + roomMealPlanTotal
@@ -865,7 +878,7 @@ export default function PaymentPage({ onNavigate }) {
                       <div className="space-y-2">
                         {addons.map(addon => {
                           const addonSubtotal = addon.price * addon.quantity
-                          const addonTax = addonSubtotal * 0.18
+                          const addonTax = addonSubtotal * (taxRate / 100)
                           const addonTotal = addonSubtotal + addonTax
 
                           return (
@@ -884,7 +897,7 @@ export default function PaymentPage({ onNavigate }) {
                                   <span>₹{addonSubtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">GST (18%)</span>
+                                  <span className="text-muted-foreground">GST ({taxRate}%)</span>
                                   <span>₹{addonTax.toFixed(2)}</span>
                                 </div>
                               </div>
@@ -899,7 +912,7 @@ export default function PaymentPage({ onNavigate }) {
                           <span>Total Add-ons</span>
                           <span>₹{addons.reduce((sum, addon) => {
                             const addonSubtotal = addon.price * addon.quantity
-                            const addonTax = addonSubtotal * 0.18
+                            const addonTax = addonSubtotal * (taxRate / 100)
                             return sum + addonSubtotal + addonTax
                           }, 0).toFixed(2)}</span>
                         </div>
@@ -985,7 +998,7 @@ export default function PaymentPage({ onNavigate }) {
                       <span className="font-medium">₹{bill.subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total GST (18%)</span>
+                      <span className="text-muted-foreground">Total GST ({taxRate}%)</span>
                       <span className="font-medium">₹{bill.tax.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-3 border-t-2">
