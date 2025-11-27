@@ -860,22 +860,135 @@ export default function NewReservation({ onNavigate }) {
                           <div className="space-y-2 border-t pt-3">
                             {assignLater ? (
                               /* Show info when assign later is enabled */
-                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3">
-                                <div className="flex items-start gap-2">
-                                  <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                                  <div>
-                                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                                      Room will be assigned later
-                                    </p>
-                                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                                      {(() => {
-                                        const typeAvailable = availableRooms.filter(r => r.room_type_id === room.id).length
-                                        return `${typeAvailable} ${room.name} room${typeAvailable !== 1 ? 's' : ''} available for this period`
-                                      })()}
-                                    </p>
+                              <>
+                                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                                  <div className="flex items-start gap-2">
+                                    <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                                        Room will be assigned later
+                                      </p>
+                                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                        {(() => {
+                                          const typeAvailable = availableRooms.filter(r => r.room_type_id === room.id).length
+                                          return `${typeAvailable} ${room.name} room${typeAvailable !== 1 ? 's' : ''} available for this period`
+                                        })()}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
+                                {/* Guest counts for each room unit when assigning later */}
+                                {Array.from({ length: room.quantity }).map((_, index) => (
+                                  <div key={index} className="space-y-2 pt-2">
+                                    <Label className="text-xs font-medium text-muted-foreground">Room #{index + 1}</Label>
+                                    {/* Individual Meal Plan if not using same for all */}
+                                    {!sameMealPlanForAll && (
+                                      <div className="flex items-center gap-2">
+                                        <Label className="text-xs text-muted-foreground w-20">Meal Plan:</Label>
+                                        <Select
+                                          value={room.mealPlans?.[index] || 'none'}
+                                          onValueChange={(value) => setMealPlan(room.cartKey, index, value)}
+                                        >
+                                          <SelectTrigger className="h-7 text-xs flex-1">
+                                            <SelectValue placeholder="No meal plan" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">No Meal Plan</SelectItem>
+                                            {getActivePlans().map(plan => (
+                                              <SelectItem key={plan.code} value={plan.code}>
+                                                {plan.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+                                    {/* Guest Count */}
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs text-muted-foreground">Adults</Label>
+                                        <Input
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9]*"
+                                          value={room.guestCounts?.[index]?.adults ?? 1}
+                                          onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '')
+                                            if (val === '') {
+                                              setGuestCount(room.cartKey, index, { adults: '' })
+                                            } else {
+                                              const numVal = parseInt(val)
+                                              if (numVal >= 0 && numVal <= 99) {
+                                                setGuestCount(room.cartKey, index, { adults: numVal })
+                                              }
+                                            }
+                                          }}
+                                          onFocus={(e) => e.target.select()}
+                                          onBlur={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '')
+                                            if (!val || parseInt(val) < 1) {
+                                              setGuestCount(room.cartKey, index, { adults: 1 })
+                                            }
+                                          }}
+                                          className="h-7 text-xs text-center"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs text-muted-foreground">Children</Label>
+                                        <Input
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9]*"
+                                          value={room.guestCounts?.[index]?.children ?? 0}
+                                          onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '')
+                                            if (val === '') {
+                                              setGuestCount(room.cartKey, index, { children: '' })
+                                            } else {
+                                              const numVal = parseInt(val)
+                                              if (numVal >= 0 && numVal <= 99) {
+                                                setGuestCount(room.cartKey, index, { children: numVal })
+                                              }
+                                            }
+                                          }}
+                                          onFocus={(e) => e.target.select()}
+                                          onBlur={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '')
+                                            setGuestCount(room.cartKey, index, { children: val ? parseInt(val) : 0 })
+                                          }}
+                                          className="h-7 text-xs text-center"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs text-muted-foreground">Infants</Label>
+                                        <Input
+                                          type="text"
+                                          inputMode="numeric"
+                                          pattern="[0-9]*"
+                                          value={room.guestCounts?.[index]?.infants ?? 0}
+                                          onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '')
+                                            if (val === '') {
+                                              setGuestCount(room.cartKey, index, { infants: '' })
+                                            } else {
+                                              const numVal = parseInt(val)
+                                              if (numVal >= 0 && numVal <= 99) {
+                                                setGuestCount(room.cartKey, index, { infants: numVal })
+                                              }
+                                            }
+                                          }}
+                                          onFocus={(e) => e.target.select()}
+                                          onBlur={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '')
+                                            setGuestCount(room.cartKey, index, { infants: val ? parseInt(val) : 0 })
+                                          }}
+                                          className="h-7 text-xs text-center"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </>
                             ) : (
                               /* Show room assignment dropdowns when assign now */
                               <>
