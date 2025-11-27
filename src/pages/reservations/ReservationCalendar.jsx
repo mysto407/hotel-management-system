@@ -2342,7 +2342,7 @@ const ReservationCalendar = ({ onNavigate }) => {
                   <div key={roomType.id} className="flex border-b">
                     {/* Room Type Name */}
                     <div
-                      className="flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-10 bg-card font-medium"
+                      className="flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-20 bg-card font-medium"
                       style={{ width: ROOM_COLUMN_WIDTH, height: 22 }}
                     >
                       <span className="text-xs">{roomType.name}</span>
@@ -2388,11 +2388,11 @@ const ReservationCalendar = ({ onNavigate }) => {
               <div key={roomType.id}>
                 {/* Room Type Header */}
                 <div
-                  className="flex sticky left-0 z-10 bg-muted/70 border-b cursor-pointer hover:bg-muted"
+                  className="flex sticky left-0 z-30 bg-muted border-b cursor-pointer hover:bg-muted/80"
                   onClick={() => toggleRoomType(roomType.id)}
                 >
                   <div
-                    className="flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-20 bg-muted/70"
+                    className="flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-30 bg-muted"
                     style={{ width: ROOM_COLUMN_WIDTH }}
                   >
                     {isCollapsed ? (
@@ -2455,8 +2455,8 @@ const ReservationCalendar = ({ onNavigate }) => {
                       {/* Room Number */}
                       <div
                         className={cn(
-                          "flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-10 bg-card",
-                          isBlocked && "bg-red-50 dark:bg-red-950/30"
+                          "flex-shrink-0 px-1.5 py-0.5 border-r flex items-center gap-1 sticky left-0 z-20 bg-card",
+                          isBlocked && "bg-red-50 dark:bg-red-950"
                         )}
                         style={{ width: ROOM_COLUMN_WIDTH }}
                       >
