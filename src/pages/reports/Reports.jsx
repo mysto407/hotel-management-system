@@ -427,6 +427,8 @@ const Reports = () => {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
