@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import { format, isAfter, startOfDay } from 'date-fns'
-import { Loader2, Plus, Calculator } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -209,24 +207,21 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[450px] max-h-[90vh] flex flex-col">
+        <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             Add Charge
           </DialogTitle>
-          <DialogDescription>
-            Add a new charge to the guest's folio
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 overflow-y-auto flex-1 pr-1">
           {/* Folio Selector (only show if multiple folios) */}
           {folios.length > 1 && (
-            <div className="space-y-2">
-              <Label htmlFor="folio">Add to Folio</Label>
+            <div className="space-y-1">
+              <Label htmlFor="folio" className="text-sm">Folio</Label>
               <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="Select folio" />
                 </SelectTrigger>
                 <SelectContent>
@@ -240,61 +235,65 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
             </div>
           )}
 
-          {/* Charge Type */}
-          <div className="space-y-2">
-            <Label htmlFor="chargeType">Charge Type</Label>
-            <Select value={chargeType} onValueChange={setChargeType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select charge type" />
-              </SelectTrigger>
-              <SelectContent>
-                {CHARGE_TYPES.map(type => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Service Category (for service charges) */}
-          {chargeType === 'service_charge' && (
-            <div className="space-y-2">
-              <Label htmlFor="serviceCategory">Category</Label>
-              <Select value={serviceCategory} onValueChange={setServiceCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+          {/* Charge Type and Category Row */}
+          <div className={`grid gap-3 ${chargeType === 'service_charge' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className="space-y-1">
+              <Label htmlFor="chargeType" className="text-sm">Type</Label>
+              <Select value={chargeType} onValueChange={setChargeType}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(SERVICE_CATEGORIES).map(([key, value]) => (
-                    <SelectItem key={key} value={value}>
-                      {value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')}
+                  {CHARGE_TYPES.map(type => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
+
+            {/* Service Category (for service charges) */}
+            {chargeType === 'service_charge' && (
+              <div className="space-y-1">
+                <Label htmlFor="serviceCategory" className="text-sm">Category</Label>
+                <Select value={serviceCategory} onValueChange={setServiceCategory}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SERVICE_CATEGORIES).map(([key, value]) => (
+                      <SelectItem key={key} value={value}>
+                        {value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
 
           {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-1">
+            <Label htmlFor="description" className="text-sm">Description</Label>
             <Input
               id="description"
+              className="h-9"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={chargeType === 'tax' ? 'Tax name (e.g., GST 18%)' : 'Enter description'}
+              placeholder={chargeType === 'tax' ? 'Tax name' : 'Description'}
             />
           </div>
 
-          {/* Amount and Quantity Row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">
-                {chargeType === 'tax' ? 'Tax Rate (%)' : 'Amount (₹)'}
+          {/* Amount, Quantity, Date Row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="amount" className="text-sm">
+                {chargeType === 'tax' ? 'Rate %' : 'Amount ₹'}
               </Label>
               <Input
                 id="amount"
+                className="h-9"
                 type="number"
                 step="0.01"
                 min="0"
@@ -303,11 +302,12 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
                 placeholder="0.00"
               />
             </div>
-            {chargeType !== 'tax' && chargeType !== 'discount' && (
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
+            {chargeType !== 'tax' && chargeType !== 'discount' ? (
+              <div className="space-y-1">
+                <Label htmlFor="quantity" className="text-sm">Qty</Label>
                 <Input
                   id="quantity"
+                  className="h-9"
                   type="number"
                   step="1"
                   min="1"
@@ -316,21 +316,17 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
                   placeholder="1"
                 />
               </div>
-            )}
-          </div>
-
-          {/* Transaction Date */}
-          <div className="space-y-2">
-            <Label htmlFor="transactionDate">Transaction Date</Label>
-            <Input
-              id="transactionDate"
-              type="date"
-              value={transactionDate}
-              onChange={(e) => setTransactionDate(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Status: {getStatusForDate(transactionDate) === 'pending' ? 'Pending (future date)' : 'Posted (today/past)'}
-            </p>
+            ) : <div />}
+            <div className="space-y-1">
+              <Label htmlFor="transactionDate" className="text-sm">Date</Label>
+              <Input
+                id="transactionDate"
+                className="h-9"
+                type="date"
+                value={transactionDate}
+                onChange={(e) => setTransactionDate(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Apply Tax Checkbox */}
@@ -348,26 +344,26 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
           )}
 
           {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Textarea
+          <div className="space-y-1">
+            <Label htmlFor="notes" className="text-sm">Notes (optional)</Label>
+            <Input
               id="notes"
+              className="h-9"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional notes..."
-              rows={2}
             />
           </div>
 
           {/* Summary */}
           {amount && (
-            <div className="bg-muted p-3 rounded-lg space-y-1">
-              <div className="flex justify-between text-sm">
+            <div className="bg-muted p-2 rounded-lg text-sm">
+              <div className="flex justify-between">
                 <span>Subtotal:</span>
                 <span>{formatCurrency(parseFloat(amount || 0) * parseFloat(quantity || 1))}</span>
               </div>
               {applyTax && (
-                <div className="flex justify-between text-sm text-muted-foreground">
+                <div className="flex justify-between text-muted-foreground">
                   <span>GST ({taxRate}%):</span>
                   <span>{formatCurrency(calculateTaxAmount())}</span>
                 </div>
@@ -379,11 +375,11 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
             </div>
           )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !amount}>
+            <Button type="submit" size="sm" disabled={loading || !amount}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Add Charge
             </Button>
