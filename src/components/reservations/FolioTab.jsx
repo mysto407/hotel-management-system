@@ -77,8 +77,16 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         }
       }
 
-      // Sort by created_at for running balance calculation
-      allTransactions.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      // Sort by transaction_date for running balance calculation
+      // Use created_at as tiebreaker for same-date transactions
+      allTransactions.sort((a, b) => {
+        const dateA = new Date(a.transaction_date || a.created_at)
+        const dateB = new Date(b.transaction_date || b.created_at)
+        if (dateA.getTime() === dateB.getTime()) {
+          return new Date(a.created_at) - new Date(b.created_at)
+        }
+        return dateA - dateB
+      })
       setTransactions(allTransactions)
     } catch (err) {
       console.error('Error fetching transactions:', err)
