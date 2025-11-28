@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   getTransactionsByReservation,
-  voidTransaction,
+  voidTransactionWithChildren,
   reverseTransaction,
   TRANSACTION_TYPES,
   TRANSACTION_STATUS
@@ -188,12 +188,21 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
 
     setActionLoading(true)
     try {
-      const { error } = await voidTransaction(selectedTransaction.id, 'User voided', null)
+      const { error, childrenVoided } = await voidTransactionWithChildren(
+        selectedTransaction.id,
+        'User voided',
+        null
+      )
       if (error) throw error
 
       await fetchTransactions()
       setVoidConfirmOpen(false)
       setSelectedTransaction(null)
+
+      // Show message if child transactions were also voided
+      if (childrenVoided > 0) {
+        console.log(`Voided transaction and ${childrenVoided} related tax entries`)
+      }
     } catch (err) {
       console.error('Error voiding transaction:', err)
       alert('Failed to void transaction: ' + err.message)

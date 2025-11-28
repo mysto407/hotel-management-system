@@ -1883,6 +1883,52 @@ export const voidTransaction = async(transactionId, reason, userId) => {
     return { data, error }
 }
 
+// Get child transactions (e.g., taxes linked to a charge)
+export const getChildTransactions = async(parentTransactionId) => {
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('parent_transaction_id', parentTransactionId)
+        .not('transaction_status', 'in', '("voided","reversed")')
+
+    return { data, error }
+}
+
+// Void a transaction and all its children (cascading void)
+export const voidTransactionWithChildren = async(transactionId, reason, userId) => {
+    const voidedTransactions = []
+
+    // 1. Get all child transactions first
+    const { data: children } = await getChildTransactions(transactionId)
+
+    // 2. Void child transactions first (taxes, fees linked to this charge)
+    if (children && children.length > 0) {
+        for (const child of children) {
+            const { data: childVoid, error: childError } = await voidTransaction(
+                child.id,
+                `${reason} (parent voided)`,
+                userId
+            )
+            if (!childError) {
+                voidedTransactions.push(child.id)
+            }
+        }
+    }
+
+    // 3. Void the parent transaction
+    const { data, error } = await voidTransaction(transactionId, reason, userId)
+
+    if (!error) {
+        voidedTransactions.push(transactionId)
+    }
+
+    return {
+        data: { voidedTransactions, parentVoided: !error },
+        error,
+        childrenVoided: children?.length || 0
+    }
+}
+
 // Update a transaction
 export const updateTransaction = async(transactionId, updates) => {
     const { data, error } = await supabase
