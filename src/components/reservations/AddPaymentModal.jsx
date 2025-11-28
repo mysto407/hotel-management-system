@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { Loader2, CreditCard, Banknote, Smartphone, Building2, CircleDollarSign } from 'lucide-react'
+import { Loader2, CreditCard, Banknote, Smartphone, Building2, CircleDollarSign, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,36 +20,65 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { createPaymentTransaction } from '@/lib/supabase'
+import { createPaymentTransaction, getPaymentMethods } from '@/lib/supabase'
 import { formatCurrency } from '@/utils/currency'
 
-const PAYMENT_METHODS = [
-  { value: 'cash', label: 'Cash', icon: Banknote },
-  { value: 'card', label: 'Credit/Debit Card', icon: CreditCard },
-  { value: 'upi', label: 'UPI', icon: Smartphone },
-  { value: 'bank_transfer', label: 'Bank Transfer', icon: Building2 },
-  { value: 'other', label: 'Other', icon: CircleDollarSign }
+// Default payment methods (fallback if DB is empty)
+const DEFAULT_PAYMENT_METHODS = [
+  { code: 'cash', name: 'Cash' },
+  { code: 'card', name: 'Credit/Debit Card' },
+  { code: 'upi', name: 'UPI' },
+  { code: 'bank_transfer', name: 'Bank Transfer' },
+  { code: 'other', name: 'Other' }
 ]
+
+// Map payment method codes to icons
+const PAYMENT_ICONS = {
+  cash: Banknote,
+  card: CreditCard,
+  upi: Smartphone,
+  bank_transfer: Building2,
+  other: CircleDollarSign,
+  default: Wallet
+}
 
 export default function AddPaymentModal({ open, onOpenChange, reservationId, balanceDue = 0, onSuccess }) {
   const [loading, setLoading] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState(DEFAULT_PAYMENT_METHODS)
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [amount, setAmount] = useState('')
   const [referenceNumber, setReferenceNumber] = useState('')
   const [notes, setNotes] = useState('')
   const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'))
 
+  // Load payment methods from database
+  useEffect(() => {
+    const loadPaymentMethods = async () => {
+      try {
+        const { data, error } = await getPaymentMethods(true) // Only active methods
+        if (!error && data && data.length > 0) {
+          setPaymentMethods(data)
+        }
+      } catch (err) {
+        console.error('Error loading payment methods:', err)
+        // Keep default methods on error
+      }
+    }
+    loadPaymentMethods()
+  }, [])
+
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      setPaymentMethod('cash')
+      // Set to first available payment method
+      setPaymentMethod(paymentMethods[0]?.code || 'cash')
       // Pre-fill with balance due if positive
       setAmount(balanceDue > 0 ? balanceDue.toFixed(2) : '')
       setReferenceNumber('')
       setNotes('')
       setTransactionDate(format(new Date(), 'yyyy-MM-dd'))
     }
-  }, [open, balanceDue])
+  }, [open, balanceDue, paymentMethods])
 
   // Handle full payment button
   const handlePayFull = () => {
@@ -76,8 +105,8 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, bal
       const paymentAmount = parseFloat(amount)
 
       // Get payment method display name
-      const methodInfo = PAYMENT_METHODS.find(m => m.value === paymentMethod)
-      const description = `${methodInfo?.label || 'Payment'}${referenceNumber ? ` (Ref: ${referenceNumber})` : ''}`
+      const methodInfo = paymentMethods.find(m => m.code === paymentMethod)
+      const description = `${methodInfo?.name || 'Payment'}${referenceNumber ? ` (Ref: ${referenceNumber})` : ''}`
 
       const result = await createPaymentTransaction({
         reservationId,
@@ -102,8 +131,9 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, bal
     }
   }
 
-  // Get selected method icon
-  const SelectedIcon = PAYMENT_METHODS.find(m => m.value === paymentMethod)?.icon || CircleDollarSign
+  // Get icon for a payment method code
+  const getIcon = (code) => PAYMENT_ICONS[code] || PAYMENT_ICONS.default
+  const SelectedIcon = getIcon(paymentMethod)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,13 +175,13 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, bal
                 </div>
               </SelectTrigger>
               <SelectContent>
-                {PAYMENT_METHODS.map(method => {
-                  const Icon = method.icon
+                {paymentMethods.map(method => {
+                  const Icon = getIcon(method.code)
                   return (
-                    <SelectItem key={method.value} value={method.value}>
+                    <SelectItem key={method.code} value={method.code}>
                       <div className="flex items-center gap-2">
                         <Icon className="h-4 w-4" />
-                        {method.label}
+                        {method.name}
                       </div>
                     </SelectItem>
                   )

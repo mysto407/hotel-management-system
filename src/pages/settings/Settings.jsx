@@ -1,10 +1,10 @@
 // src/pages/settings/Settings.jsx
 import { useState, useEffect } from 'react';
-import { Save, Building2, DollarSign, Clock, Globe, Download, Calendar, Utensils, Plus, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Save, Building2, DollarSign, Clock, Globe, Download, Calendar, Utensils, Plus, Edit2, Trash2, Eye, EyeOff, CreditCard, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useMealPlans } from '../../context/MealPlanContext';
 import { useConfirm, useAlert } from '@/context/AlertContext';
-import { supabase, getHotelSettings, updateHotelSetting } from '../../lib/supabase';
+import { supabase, getHotelSettings, updateHotelSetting, getPaymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod, reorderPaymentMethods } from '../../lib/supabase';
 import { cn } from '@/lib/utils';
 
 // Import shadcn components
@@ -93,24 +93,33 @@ const Settings = () => {
     minimum_advance_percent: '30'
   });
 
+  // Payment Methods State
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState(null);
+  const [paymentMethodForm, setPaymentMethodForm] = useState({
+    name: '',
+    code: ''
+  });
+
   // Load settings from Supabase
   useEffect(() => {
     loadSettings();
+    loadPaymentMethods();
   }, []);
 
   const loadSettings = async () => {
     setLoading(true);
     try {
       const { data, error } = await getHotelSettings();
-      
+
       if (error) throw error;
-      
+
       if (data && data.length > 0) {
         const settingsObj = {};
         data.forEach(setting => {
           settingsObj[setting.setting_key] = setting.setting_value;
         });
-        
+
         setHotelSettings(prev => ({ ...prev, ...settingsObj }));
         setTaxSettings(prev => ({ ...prev, ...settingsObj }));
         setRoomSettings(prev => ({ ...prev, ...settingsObj }));
@@ -120,6 +129,16 @@ const Settings = () => {
       console.error('Error loading settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPaymentMethods = async () => {
+    try {
+      const { data, error } = await getPaymentMethods(false); // Get all including inactive
+      if (error) throw error;
+      setPaymentMethods(data || []);
+    } catch (error) {
+      console.error('Error loading payment methods:', error);
     }
   };
   
@@ -233,6 +252,122 @@ const Settings = () => {
     setMealPlanForm(prev => ({ ...prev, [id]: value }));
   };
 
+  // Payment Method Handlers
+  const resetPaymentMethodForm = () => {
+    setPaymentMethodForm({ name: '', code: '' });
+    setEditingPaymentMethod(null);
+  };
+
+  const handleEditPaymentMethod = (method) => {
+    setPaymentMethodForm({ name: method.name, code: method.code });
+    setEditingPaymentMethod(method.id);
+  };
+
+  const handleSavePaymentMethod = async () => {
+    if (!paymentMethodForm.name || !paymentMethodForm.code) {
+      showError('Please fill in both Name and Code fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (editingPaymentMethod) {
+        const { error } = await updatePaymentMethod(editingPaymentMethod, {
+          name: paymentMethodForm.name,
+          code: paymentMethodForm.code
+        });
+        if (error) throw error;
+      } else {
+        const maxOrder = Math.max(...paymentMethods.map(m => m.display_order || 0), 0);
+        const { error } = await createPaymentMethod(
+          paymentMethodForm.name,
+          paymentMethodForm.code,
+          maxOrder + 1
+        );
+        if (error) throw error;
+      }
+      resetPaymentMethodForm();
+      await loadPaymentMethods();
+      showSuccessMessage();
+    } catch (error) {
+      console.error('Error saving payment method:', error);
+      showError('Failed to save payment method: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id) => {
+    const confirmed = await confirmDialog({
+      title: 'Delete Payment Method',
+      message: 'Are you sure you want to deactivate this payment method? It will no longer appear in payment forms.',
+      variant: 'danger',
+      confirmText: 'Deactivate',
+      cancelText: 'Cancel'
+    });
+
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      const { error } = await deletePaymentMethod(id);
+      if (error) throw error;
+      await loadPaymentMethods();
+      showSuccessMessage();
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+      showError('Failed to delete payment method: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTogglePaymentMethodStatus = async (id, currentStatus) => {
+    setLoading(true);
+    try {
+      const { error } = await updatePaymentMethod(id, { is_active: !currentStatus });
+      if (error) throw error;
+      await loadPaymentMethods();
+      showSuccessMessage();
+    } catch (error) {
+      console.error('Error toggling payment method status:', error);
+      showError('Failed to update payment method: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMovePaymentMethod = async (id, direction) => {
+    const currentIndex = paymentMethods.findIndex(m => m.id === id);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= paymentMethods.length) return;
+
+    const reordered = [...paymentMethods];
+    [reordered[currentIndex], reordered[newIndex]] = [reordered[newIndex], reordered[currentIndex]];
+
+    // Update display_order for affected items
+    const orderUpdates = reordered.map((m, idx) => ({ id: m.id, display_order: idx + 1 }));
+
+    setLoading(true);
+    try {
+      const { error } = await reorderPaymentMethods(orderUpdates);
+      if (error) throw error;
+      await loadPaymentMethods();
+    } catch (error) {
+      console.error('Error reordering payment methods:', error);
+      showError('Failed to reorder payment methods: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentMethodFormChange = (e) => {
+    const { id, value } = e.target;
+    setPaymentMethodForm(prev => ({ ...prev, [id]: value }));
+  };
+
   const handleBackup = async () => {
     try {
       const { data: rooms } = await supabase.from('rooms').select('*');
@@ -298,6 +433,9 @@ const Settings = () => {
           </TabsTrigger>
           <TabsTrigger value="mealplans" className="w-full justify-start gap-2">
             <Utensils size={18} /> Meal Plans
+          </TabsTrigger>
+          <TabsTrigger value="paymentmethods" className="w-full justify-start gap-2">
+            <CreditCard size={18} /> Payment Methods
           </TabsTrigger>
           <TabsTrigger value="system" className="w-full justify-start gap-2">
             <Globe size={18} /> System
@@ -643,6 +781,141 @@ const Settings = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDeleteMealPlan(plan.id)}
+                              disabled={loading}
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-accent"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Payment Methods Tab */}
+          <TabsContent value="paymentmethods">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{editingPaymentMethod ? 'Edit Payment Method' : 'Add New Payment Method'}</CardTitle>
+                  <CardDescription>Configure payment options available in the system</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Display Name *</Label>
+                      <Input
+                        id="name"
+                        placeholder="e.g., Cash, Credit Card, UPI"
+                        value={paymentMethodForm.name}
+                        onChange={handlePaymentMethodFormChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Code *</Label>
+                      <Input
+                        id="code"
+                        placeholder="e.g., cash, card, upi"
+                        value={paymentMethodForm.code}
+                        onChange={handlePaymentMethodFormChange}
+                        disabled={!!editingPaymentMethod}
+                      />
+                      <p className="text-xs text-muted-foreground">Unique identifier (lowercase, no spaces)</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSavePaymentMethod} disabled={loading}>
+                      <Save size={18} className="mr-2" />
+                      {editingPaymentMethod ? 'Update Method' : 'Add Method'}
+                    </Button>
+                    {editingPaymentMethod && (
+                      <Button variant="outline" onClick={resetPaymentMethodForm} disabled={loading}>
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Payment Methods</CardTitle>
+                  <CardDescription>Drag to reorder or use arrows. Active methods appear in payment forms.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {paymentMethods.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No payment methods configured</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {paymentMethods.map((method, index) => (
+                        <div
+                          key={method.id}
+                          className={cn(
+                            "flex items-center justify-between p-4 border rounded-lg",
+                            !method.is_active && "bg-muted/30 opacity-60"
+                          )}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex flex-col gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleMovePaymentMethod(method.id, 'up')}
+                                disabled={loading || index === 0}
+                              >
+                                <ArrowUp size={14} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleMovePaymentMethod(method.id, 'down')}
+                                disabled={loading || index === paymentMethods.length - 1}
+                              >
+                                <ArrowDown size={14} />
+                              </Button>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{method.name}</span>
+                                <span className="font-mono text-xs bg-accent px-2 py-1 rounded">
+                                  {method.code}
+                                </span>
+                                {!method.is_active && (
+                                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTogglePaymentMethodStatus(method.id, method.is_active)}
+                              disabled={loading}
+                              title={method.is_active ? 'Deactivate' : 'Activate'}
+                            >
+                              {method.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditPaymentMethod(method)}
+                              disabled={loading}
+                            >
+                              <Edit2 size={16} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeletePaymentMethod(method.id)}
                               disabled={loading}
                               className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-accent"
                             >
