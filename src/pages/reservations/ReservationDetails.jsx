@@ -37,7 +37,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu'
-import FolioTab from '../../components/reservations/FolioTab'
 import NotesTab from '../../components/reservations/NotesTab'
 import QuickEditModal from '../../components/reservations/QuickEditModal'
 import MealPlanEditModal from '../../components/reservations/MealPlanEditModal'
@@ -377,9 +376,8 @@ export default function ReservationDetails({ onNavigate }) {
 
       {/* Tabs Section */}
       <Tabs defaultValue="accommodations" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="accommodations">Accommodations</TabsTrigger>
-          <TabsTrigger value="folio">Folio</TabsTrigger>
           <TabsTrigger value="guest-details">Guest Details</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notesCount})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -549,13 +547,6 @@ export default function ReservationDetails({ onNavigate }) {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="folio">
-          <FolioTab
-            reservationIds={groupedReservations.map(r => r.id)}
-            primaryReservation={primaryReservation}
-          />
         </TabsContent>
 
         <TabsContent value="guest-details">
