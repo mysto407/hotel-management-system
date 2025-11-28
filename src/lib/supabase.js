@@ -505,13 +505,13 @@ export const generateDailyMealChargesWithTax = async (
         if (mealCharge && mealCharge[0]) {
             mealCharges.push(mealCharge[0])
 
-            // Apply taxes if enabled
+            // Apply taxes if enabled (food uses 5% GST, not standard 18%)
             if (applyTaxes) {
                 const { data: taxes } = await calculateAndApplyTaxes(
                     folioId,
                     reservationId,
                     dailyTotalForAllGuests,
-                    'service_charge',
+                    'food',
                     mealCharge[0].id,
                     description,
                     userId,
