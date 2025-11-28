@@ -40,7 +40,7 @@ const CHARGE_TYPES = [
   { value: 'discount', label: 'Discount' }
 ]
 
-export default function AddChargeModal({ open, onOpenChange, reservationId, onSuccess }) {
+export default function AddChargeModal({ open, onOpenChange, reservationId, folios = [], activeFolioId = null, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [chargeType, setChargeType] = useState('service_charge')
   const [description, setDescription] = useState('')
@@ -51,6 +51,7 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, onSu
   const [applyTax, setApplyTax] = useState(false)
   const [taxRate, setTaxRate] = useState(18)
   const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [selectedFolioId, setSelectedFolioId] = useState(activeFolioId)
 
   // Load tax rate
   useEffect(() => {
@@ -76,8 +77,9 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, onSu
       setNotes('')
       setApplyTax(false)
       setTransactionDate(format(new Date(), 'yyyy-MM-dd'))
+      setSelectedFolioId(activeFolioId || (folios.length > 0 ? folios[0].id : null))
     }
-  }, [open])
+  }, [open, activeFolioId, folios])
 
   // Calculate total
   const calculateTotal = () => {
@@ -125,12 +127,13 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, onSu
       const status = getStatusForDate(transactionDate)
 
       const baseData = {
-        reservationId,
+        reservation_id: reservationId,
+        folio_id: selectedFolioId,
         amount: chargeType === 'discount' ? -Math.abs(baseAmount) : baseAmount,
         description: description || CHARGE_TYPES.find(t => t.value === chargeType)?.label,
         notes,
-        status,
-        transactionDate: new Date(transactionDate).toISOString()
+        transaction_status: status,
+        transaction_date: new Date(transactionDate).toISOString()
       }
 
       let result
@@ -180,15 +183,16 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, onSu
         const taxAmount = calculateTaxAmount()
         if (taxAmount > 0) {
           await createTax({
-            reservationId,
+            reservation_id: reservationId,
+            folio_id: selectedFolioId,
             amount: taxAmount,
             description: `GST ${taxRate}% on ${description || chargeType}`,
-            taxRate,
-            taxName: 'GST',
+            tax_rate: taxRate,
+            tax_name: 'GST',
             notes: `Tax on charge: ${description}`,
-            status,
-            transactionDate: new Date(transactionDate).toISOString(),
-            parentTransactionId: result.data?.id // Link to parent charge
+            transaction_status: status,
+            transaction_date: new Date(transactionDate).toISOString(),
+            parent_transaction_id: result.data?.[0]?.id // Link to parent charge
           })
         }
       }
@@ -217,6 +221,25 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, onSu
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Folio Selector (only show if multiple folios) */}
+          {folios.length > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor="folio">Add to Folio</Label>
+              <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select folio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {folios.map(folio => (
+                    <SelectItem key={folio.id} value={folio.id}>
+                      {folio.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Charge Type */}
           <div className="space-y-2">
             <Label htmlFor="chargeType">Charge Type</Label>

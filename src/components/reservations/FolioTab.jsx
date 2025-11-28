@@ -587,7 +587,12 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         open={addChargeOpen}
         onOpenChange={setAddChargeOpen}
         reservationId={primaryReservation?.id}
-        onSuccess={fetchTransactions}
+        folios={folios}
+        activeFolioId={activeFolioId}
+        onSuccess={() => {
+          fetchTransactions()
+          fetchFolios()
+        }}
       />
 
       {/* Add Payment Modal */}
@@ -595,8 +600,13 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         open={addPaymentOpen}
         onOpenChange={setAddPaymentOpen}
         reservationId={primaryReservation?.id}
-        balanceDue={summary.balance}
-        onSuccess={fetchTransactions}
+        folios={folios}
+        activeFolioId={activeFolioId}
+        balanceDue={activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance}
+        onSuccess={() => {
+          fetchTransactions()
+          fetchFolios()
+        }}
       />
 
       {/* Void Confirmation Dialog */}

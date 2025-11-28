@@ -42,7 +42,7 @@ const PAYMENT_ICONS = {
   default: Wallet
 }
 
-export default function AddPaymentModal({ open, onOpenChange, reservationId, balanceDue = 0, onSuccess }) {
+export default function AddPaymentModal({ open, onOpenChange, reservationId, folios = [], activeFolioId = null, balanceDue = 0, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState(DEFAULT_PAYMENT_METHODS)
   const [paymentMethod, setPaymentMethod] = useState('cash')
@@ -50,6 +50,7 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, bal
   const [referenceNumber, setReferenceNumber] = useState('')
   const [notes, setNotes] = useState('')
   const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [selectedFolioId, setSelectedFolioId] = useState(activeFolioId)
 
   // Load payment methods from database
   useEffect(() => {
@@ -77,8 +78,9 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, bal
       setReferenceNumber('')
       setNotes('')
       setTransactionDate(format(new Date(), 'yyyy-MM-dd'))
+      setSelectedFolioId(activeFolioId || (folios.length > 0 ? folios[0].id : null))
     }
-  }, [open, balanceDue, paymentMethods])
+  }, [open, balanceDue, paymentMethods, activeFolioId, folios])
 
   // Handle full payment button
   const handlePayFull = () => {
@@ -109,14 +111,15 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, bal
       const description = `${methodInfo?.name || 'Payment'}${referenceNumber ? ` (Ref: ${referenceNumber})` : ''}`
 
       const result = await createPaymentTransaction({
-        reservationId,
+        reservation_id: reservationId,
+        folio_id: selectedFolioId,
         amount: paymentAmount, // Will be stored as negative in the function
-        paymentMethod,
+        payment_method: paymentMethod,
         description,
-        referenceNumber,
+        reference_number: referenceNumber,
         notes,
-        status: 'posted', // Payments are always posted immediately
-        transactionDate: new Date(transactionDate).toISOString()
+        transaction_status: 'posted', // Payments are always posted immediately
+        transaction_date: new Date(transactionDate).toISOString()
       })
 
       if (result.error) throw result.error
@@ -149,6 +152,25 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, bal
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Folio Selector (only show if multiple folios) */}
+          {folios.length > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor="folio">Apply to Folio</Label>
+              <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select folio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {folios.map(folio => (
+                    <SelectItem key={folio.id} value={folio.id}>
+                      {folio.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Balance Due Summary */}
           {balanceDue > 0 && (
             <div className="bg-muted p-3 rounded-lg flex justify-between items-center">
