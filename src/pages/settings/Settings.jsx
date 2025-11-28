@@ -44,7 +44,14 @@ const Settings = () => {
     code: '',
     name: '',
     description: '',
-    price_per_person: '0.00',
+    is_meal_plan: true,
+    includes_breakfast: false,
+    includes_lunch: false,
+    includes_dinner: false,
+    breakfast_price: '0.00',
+    lunch_price: '0.00',
+    dinner_price: '0.00',
+    price_per_person: '0.00', // Auto-calculated, read-only
     is_active: true,
     sort_order: 0
   });

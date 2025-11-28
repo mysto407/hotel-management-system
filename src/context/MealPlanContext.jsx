@@ -127,6 +127,63 @@ export const MealPlanProvider = ({ children }) => {
     return pricePerPerson * numberOfGuests * numberOfNights;
   };
 
+  // Calculate meal plan cost with breakdown by meal type
+  const calculateMealPlanCostDetailed = (code, numberOfGuests, numberOfNights) => {
+    const plan = getMealPlanByCode(code);
+    if (!plan || plan.is_meal_plan === false) {
+      return {
+        breakfast: 0,
+        lunch: 0,
+        dinner: 0,
+        dailyTotal: 0,
+        totalPerGuest: 0,
+        grandTotal: 0
+      };
+    }
+
+    const breakfastDaily = plan.includes_breakfast ? parseFloat(plan.breakfast_price || 0) : 0;
+    const lunchDaily = plan.includes_lunch ? parseFloat(plan.lunch_price || 0) : 0;
+    const dinnerDaily = plan.includes_dinner ? parseFloat(plan.dinner_price || 0) : 0;
+    const dailyTotal = breakfastDaily + lunchDaily + dinnerDaily;
+
+    return {
+      breakfast: breakfastDaily * numberOfGuests * numberOfNights,
+      lunch: lunchDaily * numberOfGuests * numberOfNights,
+      dinner: dinnerDaily * numberOfGuests * numberOfNights,
+      dailyTotal,
+      totalPerGuest: dailyTotal * numberOfNights,
+      grandTotal: dailyTotal * numberOfGuests * numberOfNights
+    };
+  };
+
+  // Get array of included meals for a plan
+  const getMealsIncluded = (code) => {
+    const plan = getMealPlanByCode(code);
+    if (!plan || plan.is_meal_plan === false) return [];
+
+    const meals = [];
+    if (plan.includes_breakfast) meals.push('Breakfast');
+    if (plan.includes_lunch) meals.push('Lunch');
+    if (plan.includes_dinner) meals.push('Dinner');
+    return meals;
+  };
+
+  // Check if a plan is a "real" meal plan (not Room Only)
+  const isMealPlan = (code) => {
+    const plan = getMealPlanByCode(code);
+    return plan?.is_meal_plan !== false;
+  };
+
+  // Get meal plan with full details (async, for fresh data)
+  const getMealPlanWithDetails = async (code) => {
+    const { data, error } = await getMealPlanWithMeals(code);
+    if (error) {
+      console.error('Error fetching meal plan with details:', error);
+      return null;
+    }
+    return data;
+  };
+
   // Update sort order for multiple plans
   const updateSortOrder = async (reorderedPlans) => {
     try {
@@ -155,6 +212,10 @@ export const MealPlanProvider = ({ children }) => {
     getMealPlanName,
     getMealPlanPrice,
     calculateMealPlanCost,
+    calculateMealPlanCostDetailed,
+    getMealsIncluded,
+    isMealPlan,
+    getMealPlanWithDetails,
     updateSortOrder
   };
 

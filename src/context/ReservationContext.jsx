@@ -10,6 +10,7 @@ import {
   updateRoomStatus,
   createBill,
   getMealPlanByCode,
+  getMealPlanWithMeals,
   // Room assignment functions
   assignRoomToReservation as assignRoomAPI,
   autoAssignRooms as autoAssignRoomsAPI,
@@ -17,10 +18,12 @@ import {
   getOrCreateMasterFolio,
   getFolioByReservation,
   generateDailyRoomChargesWithTax,
+  generateDailyMealChargesWithTax,
   createServiceChargeWithTax,
   generateExtraPersonCharges,
   voidTransaction,
   voidTransactionWithChildren,
+  voidPendingMealCharges,
   getTransactionsByReservation
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
@@ -135,23 +138,27 @@ export const ReservationProvider = ({ children }) => {
       true // Apply taxes
     );
 
-    // 3. Generate meal plan charges if applicable
-    if (reservation.meal_plan && reservation.meal_plan !== 'NM') {
+    // 3. Generate meal plan charges if applicable (Cloudbeds-style daily posting)
+    if (reservation.meal_plan) {
       try {
-        const mealPlanData = await getMealPlanByCode(reservation.meal_plan);
-        if (mealPlanData?.data && mealPlanData.data.price_per_person > 0) {
-          const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
-          const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
-          const mealPlanTotal = mealPlanData.data.price_per_person * totalGuests * nights;
+        // Use enhanced meal plan fetch with daily_total calculation
+        const mealPlanData = await getMealPlanWithMeals(reservation.meal_plan);
 
-          await createServiceChargeWithTax(
-            folio.id,
+        // Skip if not a real meal plan (Room Only, etc.) or no price
+        if (mealPlanData?.data && mealPlanData.data.is_meal_plan !== false) {
+          const totalGuests = (reservation.number_of_adults || 1) + (reservation.number_of_children || 0);
+
+          // Generate daily meal charges (one per night) instead of lump sum
+          await generateDailyMealChargesWithTax(
             reservation.id,
-            mealPlanTotal,
-            `${mealPlanData.data.name} - ${totalGuests} guests x ${nights} nights`,
-            'food',
+            folio.id,
+            mealPlanData.data,
+            totalGuests,
+            reservation.check_in_date,
+            reservation.check_out_date,
+            roomNumber || 'TBD',
             userId,
-            new Date(reservation.check_in_date)
+            true // Apply taxes
           );
         }
       } catch (mealError) {
@@ -179,19 +186,36 @@ export const ReservationProvider = ({ children }) => {
       return;
     }
 
-    // Check if dates changed and reconcile charges if needed
+    // Reconcile charges if needed
     if (!skipChargeReconciliation && currentReservation) {
       const datesChanged = (
         (updatedReservation.check_in_date && updatedReservation.check_in_date !== currentReservation.check_in_date) ||
         (updatedReservation.check_out_date && updatedReservation.check_out_date !== currentReservation.check_out_date)
       );
 
+      const mealPlanChanged = updatedReservation.meal_plan !== undefined &&
+        updatedReservation.meal_plan !== currentReservation.meal_plan;
+
+      const guestCountChanged = (
+        (updatedReservation.number_of_adults !== undefined && updatedReservation.number_of_adults !== currentReservation.number_of_adults) ||
+        (updatedReservation.number_of_children !== undefined && updatedReservation.number_of_children !== currentReservation.number_of_children)
+      );
+
+      // Reconcile room charges on date changes
       if (datesChanged) {
         try {
           await reconcileRoomCharges(id, currentReservation, updatedReservation);
         } catch (reconcileError) {
-          console.error('Error reconciling charges:', reconcileError);
-          // Don't fail the update, just log the error
+          console.error('Error reconciling room charges:', reconcileError);
+        }
+      }
+
+      // Reconcile meal charges on date, meal plan, or guest count changes
+      if (datesChanged || mealPlanChanged || guestCountChanged) {
+        try {
+          await reconcileMealCharges(id, currentReservation, updatedReservation);
+        } catch (reconcileError) {
+          console.error('Error reconciling meal charges:', reconcileError);
         }
       }
     }
@@ -259,6 +283,88 @@ export const ReservationProvider = ({ children }) => {
     );
 
     console.log(`Regenerated ${nights} room charges for new date range`);
+  };
+
+  // Reconcile meal plan charges when dates, meal plan, or guest count changes
+  const reconcileMealCharges = async (reservationId, oldReservation, newData) => {
+    const userId = user?.id || null;
+
+    // Determine what changed
+    const datesChanged = (
+      (newData.check_in_date && newData.check_in_date !== oldReservation.check_in_date) ||
+      (newData.check_out_date && newData.check_out_date !== oldReservation.check_out_date)
+    );
+    const mealPlanChanged = newData.meal_plan !== undefined && newData.meal_plan !== oldReservation.meal_plan;
+    const guestCountChanged = (
+      (newData.number_of_adults !== undefined && newData.number_of_adults !== oldReservation.number_of_adults) ||
+      (newData.number_of_children !== undefined && newData.number_of_children !== oldReservation.number_of_children)
+    );
+
+    // Only reconcile if relevant fields changed
+    if (!datesChanged && !mealPlanChanged && !guestCountChanged) {
+      return;
+    }
+
+    console.log('Reconciling meal charges due to:', { datesChanged, mealPlanChanged, guestCountChanged });
+
+    // 1. Void all pending meal charges (only pending, never posted)
+    const { voidedCount, error: voidError } = await voidPendingMealCharges(
+      reservationId,
+      'Reservation modified - charges regenerated',
+      userId
+    );
+
+    if (voidError) {
+      console.error('Error voiding pending meal charges:', voidError);
+      return;
+    }
+
+    console.log(`Voided ${voidedCount} pending meal charges due to reservation change`);
+
+    // 2. Get the folio for this reservation
+    const { data: folio } = await getFolioByReservation(reservationId);
+    if (!folio) {
+      console.error('No folio found for reservation');
+      return;
+    }
+
+    // 3. Get new values (use new if provided, else keep old)
+    const newCheckIn = newData.check_in_date || oldReservation.check_in_date;
+    const newCheckOut = newData.check_out_date || oldReservation.check_out_date;
+    const newMealPlanCode = newData.meal_plan !== undefined ? newData.meal_plan : oldReservation.meal_plan;
+    const newAdults = newData.number_of_adults !== undefined ? newData.number_of_adults : oldReservation.number_of_adults;
+    const newChildren = newData.number_of_children !== undefined ? newData.number_of_children : oldReservation.number_of_children;
+    const totalGuests = (newAdults || 1) + (newChildren || 0);
+
+    // 4. Skip if no meal plan or Room Only
+    if (!newMealPlanCode) {
+      console.log('No meal plan selected, skipping meal charge regeneration');
+      return;
+    }
+
+    // 5. Fetch the meal plan with details
+    const mealPlanData = await getMealPlanWithMeals(newMealPlanCode);
+    if (!mealPlanData?.data || mealPlanData.data.is_meal_plan === false) {
+      console.log('Meal plan is Room Only or not found, skipping meal charge regeneration');
+      return;
+    }
+
+    // 6. Regenerate daily meal charges
+    const roomNumber = oldReservation.rooms?.room_number || 'Room';
+    await generateDailyMealChargesWithTax(
+      reservationId,
+      folio.id,
+      mealPlanData.data,
+      totalGuests,
+      newCheckIn,
+      newCheckOut,
+      roomNumber,
+      userId,
+      true
+    );
+
+    const nights = calculateNights(newCheckIn, newCheckOut);
+    console.log(`Regenerated ${nights} daily meal charges for modified reservation`);
   };
 
   const deleteReservation = async (id) => {
@@ -373,6 +479,47 @@ export const ReservationProvider = ({ children }) => {
   const checkOut = async (id) => {
     const reservation = reservations.find(r => r.id === id);
     if (!reservation) return;
+
+    // Check for early checkout - void pending meal charges if checking out before scheduled date
+    const today = new Date().toISOString().split('T')[0];
+    const scheduledCheckout = reservation.check_out_date;
+    const isEarlyCheckout = today < scheduledCheckout;
+
+    if (isEarlyCheckout) {
+      try {
+        // Void all pending meal charges (for nights not yet stayed)
+        const { voidedCount, error: voidError } = await voidPendingMealCharges(
+          id,
+          'Early checkout',
+          user?.id
+        );
+
+        if (voidError) {
+          console.error('Error voiding pending meal charges:', voidError);
+        } else if (voidedCount > 0) {
+          console.log(`Voided ${voidedCount} pending meal charges for early checkout`);
+        }
+
+        // Also void pending room charges for nights not stayed
+        const { data: transactions } = await getTransactionsByReservation(id);
+        if (transactions) {
+          const pendingRoomCharges = transactions.filter(
+            t => t.transaction_type === 'room_charge' && t.transaction_status === 'pending'
+          );
+
+          for (const charge of pendingRoomCharges) {
+            await voidTransactionWithChildren(charge.id, 'Early checkout', user?.id);
+          }
+
+          if (pendingRoomCharges.length > 0) {
+            console.log(`Voided ${pendingRoomCharges.length} pending room charges for early checkout`);
+          }
+        }
+      } catch (error) {
+        console.error('Error handling early checkout:', error);
+        // Continue with checkout even if voiding fails
+      }
+    }
 
     await updateReservation(id, { status: 'Checked-out' });
     // Update room status to Available (for display purposes only, only if room was assigned)
