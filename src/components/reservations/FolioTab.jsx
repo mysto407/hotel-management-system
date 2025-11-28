@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft } from 'lucide-react'
+import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -49,6 +49,7 @@ import AddChargeModal from './AddChargeModal'
 import AddPaymentModal from './AddPaymentModal'
 import CreateFolioModal from './CreateFolioModal'
 import TransferTransactionModal from './TransferTransactionModal'
+import SplitTransactionModal from './SplitTransactionModal'
 
 export default function FolioTab({ reservationIds, primaryReservation }) {
   const [transactions, setTransactions] = useState([])
@@ -67,6 +68,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   const [folioBalances, setFolioBalances] = useState({})
   const [createFolioOpen, setCreateFolioOpen] = useState(false)
   const [transferModalOpen, setTransferModalOpen] = useState(false)
+  const [splitModalOpen, setSplitModalOpen] = useState(false)
 
   // Fetch folios for the primary reservation
   const fetchFolios = async () => {
@@ -542,15 +544,26 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
                               )}
                               {/* Transfer to another room (only for charges) */}
                               {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedTransaction(txn)
-                                    setTransferModalOpen(true)
-                                  }}
-                                >
-                                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                  Transfer to Another Room
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedTransaction(txn)
+                                      setTransferModalOpen(true)
+                                    }}
+                                  >
+                                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                    Transfer to Another Room
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedTransaction(txn)
+                                      setSplitModalOpen(true)
+                                    }}
+                                  >
+                                    <Scissors className="h-4 w-4 mr-2" />
+                                    Split Transaction
+                                  </DropdownMenuItem>
+                                </>
                               )}
                               <DropdownMenuSeparator />
                               {canVoid(txn) && (
@@ -695,6 +708,19 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         onOpenChange={setTransferModalOpen}
         transaction={selectedTransaction}
         currentReservationId={primaryReservation?.id}
+        onSuccess={() => {
+          fetchTransactions()
+          fetchFolios()
+          setSelectedTransaction(null)
+        }}
+      />
+
+      {/* Split Transaction Modal */}
+      <SplitTransactionModal
+        open={splitModalOpen}
+        onOpenChange={setSplitModalOpen}
+        transaction={selectedTransaction}
+        folios={folios}
         onSuccess={() => {
           fetchTransactions()
           fetchFolios()
