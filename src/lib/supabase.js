@@ -637,8 +637,8 @@ export const getKitchenForecast = async (reportDate) => {
         for (const res of breakfastReservations || []) {
             const mealPlan = res.meal_plans
             if (mealPlan?.includes_breakfast && mealPlan?.is_meal_plan !== false) {
-                const adults = res.adults || 1
-                const children = res.children || 0
+                const adults = res.number_of_adults || 1
+                const children = res.number_of_children || 0
                 breakfastCount.adults += adults
                 breakfastCount.children += children
                 breakfastCount.total += adults + children
@@ -657,8 +657,8 @@ export const getKitchenForecast = async (reportDate) => {
             const mealPlan = res.meal_plans
             if (!mealPlan || mealPlan.is_meal_plan === false) continue
 
-            const adults = res.adults || 1
-            const children = res.children || 0
+            const adults = res.number_of_adults || 1
+            const children = res.number_of_children || 0
             const roomInfo = {
                 room_number: res.rooms?.room_number || res.room_id,
                 guest_name: res.guests?.name || 'Guest',
