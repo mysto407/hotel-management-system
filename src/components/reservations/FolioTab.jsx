@@ -68,7 +68,6 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   const [activeFolioId, setActiveFolioId] = useState(null)
   const [folioBalances, setFolioBalances] = useState({})
   const [createFolioOpen, setCreateFolioOpen] = useState(false)
-  const [moveToFolioOpen, setMoveToFolioOpen] = useState(false)
 
   // Fetch folios for the primary reservation
   const fetchFolios = async () => {
@@ -186,25 +185,35 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
     })
   }, [transactions])
 
-  // Filter transactions
+  // Filter transactions by folio and type
   const filteredTransactions = useMemo(() => {
-    if (filter === 'all') return transactionsWithBalance
+    let result = transactionsWithBalance
 
-    return transactionsWithBalance.filter(txn => {
-      switch (filter) {
-        case 'charges':
-          return parseFloat(txn.amount) > 0 && !txn.transaction_type.startsWith('payment')
-        case 'payments':
-          return parseFloat(txn.amount) < 0 || txn.transaction_type.startsWith('payment')
-        case 'pending':
-          return txn.transaction_status === 'pending'
-        case 'posted':
-          return txn.transaction_status === 'posted'
-        default:
-          return true
-      }
-    })
-  }, [transactionsWithBalance, filter])
+    // Filter by active folio if selected
+    if (activeFolioId) {
+      result = result.filter(txn => txn.folio_id === activeFolioId)
+    }
+
+    // Filter by type
+    if (filter !== 'all') {
+      result = result.filter(txn => {
+        switch (filter) {
+          case 'charges':
+            return parseFloat(txn.amount) > 0 && !txn.transaction_type.startsWith('payment')
+          case 'payments':
+            return parseFloat(txn.amount) < 0 || txn.transaction_type.startsWith('payment')
+          case 'pending':
+            return txn.transaction_status === 'pending'
+          case 'posted':
+            return txn.transaction_status === 'posted'
+          default:
+            return true
+        }
+      })
+    }
+
+    return result
+  }, [transactionsWithBalance, filter, activeFolioId])
 
   // Calculate summary
   const summary = useMemo(() => {
@@ -336,6 +345,49 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
 
   return (
     <div className="space-y-4">
+      {/* Folio Tabs Bar */}
+      {folios.length > 0 && (
+        <Card>
+          <CardContent className="py-2 px-2">
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {folios.map((folio) => {
+                const balance = folioBalances[folio.id]?.balance || 0
+                const isActive = activeFolioId === folio.id
+                return (
+                  <button
+                    key={folio.id}
+                    onClick={() => setActiveFolioId(folio.id)}
+                    className={`
+                      flex flex-col items-start px-4 py-2 rounded-lg border transition-colors min-w-[120px]
+                      ${isActive
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card hover:bg-muted border-border'
+                      }
+                    `}
+                  >
+                    <span className="font-medium text-sm truncate max-w-[150px]">
+                      {folio.name}
+                    </span>
+                    <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                      {formatCurrency(balance)}
+                    </span>
+                  </button>
+                )
+              })}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateFolioOpen(true)}
+                className="h-auto py-2 px-3 min-w-[100px]"
+              >
+                <FolderPlus className="h-4 w-4 mr-1" />
+                New Folio
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Bar */}
       <Card>
         <CardContent className="py-4">
@@ -343,19 +395,19 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
             <div>
               <p className="text-sm text-muted-foreground">Total Charges</p>
               <p className="text-2xl font-bold text-foreground">
-                {formatCurrency(summary.totalCharges)}
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.totalCharges || 0) : summary.totalCharges)}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Payments</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(summary.totalPayments)}
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.totalPayments || 0) : summary.totalPayments)}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Balance Due</p>
-              <p className={`text-2xl font-bold ${summary.balance > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {formatCurrency(summary.balance)}
+              <p className={`text-2xl font-bold ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
               </p>
             </div>
           </div>
@@ -471,6 +523,27 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
+                              {/* Move to Folio options */}
+                              {folios.length > 1 && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  {folios
+                                    .filter(f => f.id !== txn.folio_id)
+                                    .map(targetFolio => (
+                                      <DropdownMenuItem
+                                        key={targetFolio.id}
+                                        onClick={() => {
+                                          setSelectedTransaction(txn)
+                                          handleMoveToFolio(targetFolio.id)
+                                        }}
+                                      >
+                                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                        Move to {targetFolio.name}
+                                      </DropdownMenuItem>
+                                    ))
+                                  }
+                                </>
+                              )}
                               <DropdownMenuSeparator />
                               {canVoid(txn) && (
                                 <DropdownMenuItem
@@ -589,6 +662,14 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Folio Modal */}
+      <CreateFolioModal
+        open={createFolioOpen}
+        onOpenChange={setCreateFolioOpen}
+        reservationId={primaryReservation?.id}
+        onSuccess={handleFolioCreated}
+      />
     </div>
   )
 }
