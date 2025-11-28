@@ -108,10 +108,21 @@ export const ReservationProvider = ({ children }) => {
     }
 
     // 2. Generate room charges with tax (per night, all as 'pending')
-    const roomRate = parseFloat(reservation.total_amount) / calculateNights(
-      reservation.check_in_date,
-      reservation.check_out_date
-    );
+    const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+
+    // FIX: Use room_subtotal (pre-tax) if available, otherwise estimate from total_amount
+    // This fixes the double-taxation bug where tax was applied twice
+    let roomRate;
+    if (reservation.room_subtotal) {
+      // New approach: room_subtotal is the pre-tax amount
+      roomRate = parseFloat(reservation.room_subtotal) / nights;
+    } else {
+      // Legacy fallback: estimate pre-tax rate from total_amount
+      // Assumes 18% tax rate for historical data
+      const estimatedTaxRate = 0.18;
+      roomRate = parseFloat(reservation.total_amount) / (1 + estimatedTaxRate) / nights;
+      console.log('Using legacy fallback for room rate calculation (no room_subtotal)');
+    }
 
     await generateDailyRoomChargesWithTax(
       reservation.id,
@@ -219,9 +230,21 @@ export const ReservationProvider = ({ children }) => {
     const newCheckOut = newDates.check_out_date || oldReservation.check_out_date;
     const nights = calculateNights(newCheckIn, newCheckOut);
 
-    // Try to use the new total_amount if provided, otherwise recalculate
-    const totalAmount = newDates.total_amount || oldReservation.total_amount;
-    const roomRate = parseFloat(totalAmount) / nights;
+    // FIX: Use room_subtotal (pre-tax) if available, otherwise estimate from total_amount
+    // This fixes the double-taxation bug where tax was applied twice
+    let roomRate;
+    const roomSubtotal = newDates.room_subtotal || oldReservation.room_subtotal;
+
+    if (roomSubtotal) {
+      // New approach: room_subtotal is the pre-tax amount
+      roomRate = parseFloat(roomSubtotal) / nights;
+    } else {
+      // Legacy fallback: estimate pre-tax rate from total_amount
+      const totalAmount = newDates.total_amount || oldReservation.total_amount;
+      const estimatedTaxRate = 0.18;
+      roomRate = parseFloat(totalAmount) / (1 + estimatedTaxRate) / nights;
+      console.log('Using legacy fallback for room rate calculation in reconciliation');
+    }
 
     // 5. Regenerate room charges with tax
     await generateDailyRoomChargesWithTax(

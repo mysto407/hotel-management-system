@@ -5,7 +5,7 @@ import { useReservations } from '../../context/ReservationContext'
 import { useGuests } from '../../context/GuestContext'
 import { useMealPlans } from '../../context/MealPlanContext'
 import { useAlert } from '@/context/AlertContext'
-import { getTotalTaxRate } from '../../lib/supabase'
+import { getTotalTaxRate, validateRoomAvailability, validateRoomTypeAvailability } from '../../lib/supabase'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -148,6 +148,68 @@ export default function PaymentPage({ onNavigate }) {
   const handleConfirmReservation = async () => {
     setLoading(true)
     try {
+      // === AVAILABILITY RE-VALIDATION ===
+      // Re-check room availability before final submission to prevent race conditions
+      // (Another user might have booked the same room while this form was open)
+      const validationErrors = []
+
+      for (const roomType of selectedRooms) {
+        if (assignLater) {
+          // Validate room type availability for unassigned bookings
+          const { available, availableCount, requiredCount, error } =
+            await validateRoomTypeAvailability(
+              roomType.id,
+              roomType.quantity,
+              roomType.checkIn,
+              roomType.checkOut
+            )
+
+          if (error) {
+            throw new Error('Failed to validate availability. Please try again.')
+          }
+
+          if (!available) {
+            validationErrors.push(
+              `${roomType.name}: Only ${availableCount} room(s) available, but ${requiredCount} requested`
+            )
+          }
+        } else {
+          // Validate specific room assignments
+          const assignedRoomIds = roomType.assignedRooms?.filter(Boolean) || []
+          if (assignedRoomIds.length > 0) {
+            const { available, unavailableRooms, error } =
+              await validateRoomAvailability(
+                assignedRoomIds,
+                roomType.checkIn,
+                roomType.checkOut
+              )
+
+            if (error) {
+              throw new Error('Failed to validate availability. Please try again.')
+            }
+
+            if (!available) {
+              validationErrors.push(
+                `Room(s) ${unavailableRooms.join(', ')} no longer available for ${roomType.name}`
+              )
+            }
+          }
+        }
+      }
+
+      // If any rooms are unavailable, show error and navigate back to room selection
+      if (validationErrors.length > 0) {
+        showError(
+          "Just missed it! One or more rooms you selected were just booked by another guest.\n\n" +
+          validationErrors.join('\n') +
+          "\n\nPlease go back and select different rooms."
+        )
+        setLoading(false)
+        // Navigate back to room selection page
+        onNavigate('new-reservation')
+        return
+      }
+
       // First, create or update the PRIMARY guest (first guest in allGuestsDetails)
       let guestId = null;
 
@@ -216,8 +278,10 @@ export default function PaymentPage({ onNavigate }) {
       // This allows multiple reservations (different rooms, room changes, etc.) to be grouped as one booking
       const bookingId = crypto.randomUUID();
 
-      // Create reservations for each selected room
-      const reservationPromises = selectedRooms.flatMap(roomType => {
+      // Create reservations SEQUENTIALLY for each selected room (enables proper error handling)
+      const createdReservations = []
+
+      for (const roomType of selectedRooms) {
         // Use the selected rate price, or fall back to base price
         const roomRate = roomType.ratePrice || roomType.base_price
 
@@ -234,14 +298,13 @@ export default function PaymentPage({ onNavigate }) {
         const roomTotal = roomSubtotal + roomTax
 
         // Create one reservation per quantity
-        return Array.from({ length: roomType.quantity }, (_, index) => {
+        for (let index = 0; index < roomType.quantity; index++) {
           // Get the assigned room ID (may be null if assignLater is enabled)
           const assignedRoomId = roomType.assignedRooms?.[index] || roomType.roomIds?.[index] || null
 
           // If not in assignLater mode and no room is assigned, that's an error
           if (!assignLater && !assignedRoomId) {
-            console.error(`No room assigned for ${roomType.name} slot ${index + 1}`)
-            return null
+            throw new Error(`No room assigned for ${roomType.name} slot ${index + 1}`)
           }
 
           // Get meal plan for this room (default to 'none' if not set)
@@ -260,7 +323,7 @@ export default function PaymentPage({ onNavigate }) {
             });
           }
 
-          return addReservation({
+          const reservation = await addReservation({
             guest_id: guestId,
             room_id: assignLater ? null : assignedRoomId, // Explicitly null when assignLater is enabled
             room_type_id: roomType.id, // Always include room type for unassigned reservations
@@ -277,19 +340,18 @@ export default function PaymentPage({ onNavigate }) {
             meal_plan: mealPlan === 'none' ? null : mealPlan,
             special_requests: '',
             total_amount: roomTotal,
+            room_subtotal: roomSubtotal, // Pre-tax amount for folio generation (fixes double-taxation)
             booking_id: bookingId, // Link all reservations from this booking together
             // Include additional guest IDs only for guests assigned to THIS room
             ...(guestsForThisRoom.length > 0 && { additional_guest_ids: guestsForThisRoom })
           })
-        }).filter(Boolean) // Remove null entries
-      })
 
-      const reservationResults = await Promise.all(reservationPromises)
+          if (!reservation) {
+            throw new Error(`Failed to create reservation for ${roomType.name}. Please try again.`)
+          }
 
-      // Check if any reservations failed (returned null)
-      const failedReservations = reservationResults.filter(r => r === null)
-      if (failedReservations.length > 0) {
-        throw new Error(`Failed to create ${failedReservations.length} reservation(s). Please check the details and try again.`)
+          createdReservations.push(reservation)
+        }
       }
 
       // Update the guest's stats (total spent, total bookings, etc.)
@@ -307,8 +369,8 @@ export default function PaymentPage({ onNavigate }) {
 
       showSuccess('Reservation created successfully!')
 
-      // Extract reservation IDs from successful results
-      const createdReservationIds = reservationResults.filter(r => r && r.id).map(r => r.id)
+      // Extract reservation IDs from created reservations
+      const createdReservationIds = createdReservations.filter(r => r && r.id).map(r => r.id)
 
       // Store reservation IDs in sessionStorage for the details page
       sessionStorage.setItem('reservationDetailsIds', JSON.stringify(createdReservationIds))

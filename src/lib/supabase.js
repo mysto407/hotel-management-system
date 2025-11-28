@@ -476,6 +476,74 @@ export const getAvailableRooms = async(checkInDate, checkOutDate) => {
     return { data: availableRooms, error: null }
 }
 
+/**
+ * Validates that specific rooms are still available for the given date range
+ * Used for re-validation before final booking submission (prevents race conditions)
+ * @param {string[]} roomIds - Array of room IDs to validate
+ * @param {string} checkInDate - Check-in date (YYYY-MM-DD format)
+ * @param {string} checkOutDate - Check-out date (YYYY-MM-DD format)
+ * @returns {Promise<{available: boolean, unavailableRooms: string[]}>}
+ */
+export const validateRoomAvailability = async (roomIds, checkInDate, checkOutDate) => {
+  // Filter out null/undefined room IDs
+  const validRoomIds = roomIds?.filter(Boolean) || [];
+
+  // If no room IDs to check, return available
+  if (validRoomIds.length === 0) {
+    return { available: true, unavailableRooms: [] };
+  }
+
+  // Check for conflicting reservations
+  const { data: conflicts, error } = await supabase
+    .from('reservations')
+    .select('room_id, rooms(room_number)')
+    .in('room_id', validRoomIds)
+    .lt('check_in_date', checkOutDate)  // Reservation starts before requested checkout
+    .gt('check_out_date', checkInDate)  // Reservation ends after requested checkin
+    .not('status', 'in', '("Cancelled","Checked-out")');
+
+  if (error) {
+    console.error('Error validating room availability:', error);
+    return { available: false, unavailableRooms: [], error };
+  }
+
+  if (conflicts && conflicts.length > 0) {
+    // Extract room numbers from conflicting reservations
+    const unavailableRooms = conflicts.map(r => r.rooms?.room_number || r.room_id);
+    return { available: false, unavailableRooms };
+  }
+
+  return { available: true, unavailableRooms: [] };
+};
+
+/**
+ * Validates room type availability for unassigned (assignLater) bookings
+ * @param {string} roomTypeId - Room type ID
+ * @param {number} quantity - Number of rooms needed
+ * @param {string} checkInDate - Check-in date (YYYY-MM-DD format)
+ * @param {string} checkOutDate - Check-out date (YYYY-MM-DD format)
+ * @returns {Promise<{available: boolean, availableCount: number, requiredCount: number}>}
+ */
+export const validateRoomTypeAvailability = async (roomTypeId, quantity, checkInDate, checkOutDate) => {
+  // Get available rooms for the date range
+  const { data: availableRooms, error } = await getAvailableRooms(checkInDate, checkOutDate);
+
+  if (error) {
+    console.error('Error validating room type availability:', error);
+    return { available: false, availableCount: 0, requiredCount: quantity, error };
+  }
+
+  // Filter to only rooms of the requested type
+  const typeRooms = availableRooms?.filter(r => r.room_type_id === roomTypeId) || [];
+  const availableCount = typeRooms.length;
+
+  return {
+    available: availableCount >= quantity,
+    availableCount,
+    requiredCount: quantity
+  };
+};
+
 // Get unassigned reservations (reservations without a specific room assigned)
 export const getUnassignedReservations = async(startDate = null, endDate = null) => {
     let query = supabase
