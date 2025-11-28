@@ -906,7 +906,7 @@ const Settings = () => {
                           )}
                         >
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-semibold text-sm bg-accent px-2 py-1 rounded">
                                 {plan.code}
                               </span>
@@ -916,13 +916,38 @@ const Settings = () => {
                                   Inactive
                                 </span>
                               )}
+                              {plan.is_meal_plan === false && (
+                                <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">
+                                  Room Only
+                                </span>
+                              )}
                             </div>
+                            {/* Included meals badges */}
+                            {plan.is_meal_plan !== false && (plan.includes_breakfast || plan.includes_lunch || plan.includes_dinner) && (
+                              <div className="flex gap-1 mt-2">
+                                {plan.includes_breakfast && (
+                                  <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded">
+                                    Breakfast (₹{parseFloat(plan.breakfast_price || 0).toFixed(0)})
+                                  </span>
+                                )}
+                                {plan.includes_lunch && (
+                                  <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded">
+                                    Lunch (₹{parseFloat(plan.lunch_price || 0).toFixed(0)})
+                                  </span>
+                                )}
+                                {plan.includes_dinner && (
+                                  <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
+                                    Dinner (₹{parseFloat(plan.dinner_price || 0).toFixed(0)})
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             {plan.description && (
                               <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
                             )}
                             <p className="text-sm text-muted-foreground mt-1">
-                              Price: ₹{parseFloat(plan.price_per_person).toFixed(2)} per person per night
-                              {parseFloat(plan.price_per_person) === 0 && ' (Free)'}
+                              Total: ₹{parseFloat(plan.price_per_person).toFixed(2)} per person per night
+                              {parseFloat(plan.price_per_person) === 0 && ' (No charge)'}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
