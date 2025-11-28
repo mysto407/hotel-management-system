@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -213,21 +212,18 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] max-h-[85vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+      <DialogContent className="sm:max-w-[520px] p-0 gap-0 flex flex-col" style={{ maxHeight: 'calc(100vh - 48px)' }}>
+        <DialogHeader className="px-6 pt-5 pb-3 border-b bg-muted/30 shrink-0">
           <DialogTitle className="flex items-center gap-3 text-lg">
             <div className={cn("p-2 rounded-lg", selectedType?.color || "bg-gray-100")}>
               <TypeIcon className="h-5 w-5" />
             </div>
             Add New Charge
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Add a charge to the guest's folio
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-          <div className="px-6 py-5 space-y-5 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1 min-h-0">
+          <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
             {/* Charge Type Selection - Visual Buttons */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Charge Type</Label>
@@ -406,9 +402,9 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
           </div>
 
           {/* Summary Footer */}
-          <div className="border-t bg-muted/30 px-6 py-4 space-y-4">
+          <div className="border-t bg-muted/30 px-6 py-3 space-y-3 shrink-0">
             {amount && parseFloat(amount) > 0 && (
-              <div className="bg-background rounded-lg border p-4 space-y-2">
+              <div className="bg-background rounded-lg border p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{formatCurrency(parseFloat(amount || 0) * parseFloat(quantity || 1))}</span>
@@ -419,7 +415,7 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
                     <span>{formatCurrency(calculateTaxAmount())}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-semibold text-base pt-2 border-t">
+                <div className="flex justify-between font-semibold pt-1.5 border-t">
                   <span>Total</span>
                   <span className={chargeType === 'discount' ? 'text-red-600' : 'text-green-600'}>
                     {chargeType === 'discount' ? '-' : ''}{formatCurrency(Math.abs(calculateTotal()))}
@@ -428,19 +424,17 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
               </div>
             )}
 
-            <DialogFooter className="sm:justify-between gap-3">
+            <DialogFooter className="gap-2 sm:gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="flex-1 sm:flex-none"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={loading || !amount || parseFloat(amount) <= 0}
-                className="flex-1 sm:flex-none"
               >
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Add Charge

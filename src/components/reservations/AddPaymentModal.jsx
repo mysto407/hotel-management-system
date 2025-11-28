@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -20,26 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { createPaymentTransaction, getPaymentMethods } from '@/lib/supabase'
 import { formatCurrency } from '@/utils/currency'
 
-// Default payment methods (fallback if DB is empty)
+// Default payment methods with icons and colors
 const DEFAULT_PAYMENT_METHODS = [
-  { code: 'cash', name: 'Cash' },
-  { code: 'card', name: 'Credit/Debit Card' },
-  { code: 'upi', name: 'UPI' },
-  { code: 'bank_transfer', name: 'Bank Transfer' },
-  { code: 'other', name: 'Other' }
+  { code: 'cash', name: 'Cash', icon: Banknote, color: 'text-green-600 bg-green-50' },
+  { code: 'card', name: 'Card', icon: CreditCard, color: 'text-blue-600 bg-blue-50' },
+  { code: 'upi', name: 'UPI', icon: Smartphone, color: 'text-purple-600 bg-purple-50' },
+  { code: 'bank_transfer', name: 'Bank', icon: Building2, color: 'text-orange-600 bg-orange-50' },
+  { code: 'other', name: 'Other', icon: CircleDollarSign, color: 'text-gray-600 bg-gray-50' }
 ]
 
-// Map payment method codes to icons
-const PAYMENT_ICONS = {
-  cash: Banknote,
-  card: CreditCard,
-  upi: Smartphone,
-  bank_transfer: Building2,
-  other: CircleDollarSign,
-  default: Wallet
+// Map payment method codes to icons and colors
+const PAYMENT_CONFIG = {
+  cash: { icon: Banknote, color: 'text-green-600 bg-green-50' },
+  card: { icon: CreditCard, color: 'text-blue-600 bg-blue-50' },
+  upi: { icon: Smartphone, color: 'text-purple-600 bg-purple-50' },
+  bank_transfer: { icon: Building2, color: 'text-orange-600 bg-orange-50' },
+  other: { icon: CircleDollarSign, color: 'text-gray-600 bg-gray-50' },
+  default: { icon: Wallet, color: 'text-gray-600 bg-gray-50' }
 }
 
 export default function AddPaymentModal({ open, onOpenChange, reservationId, folios = [], activeFolioId = null, balanceDue = 0, onSuccess }) {
