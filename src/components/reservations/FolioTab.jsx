@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -69,6 +69,9 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   const [createFolioOpen, setCreateFolioOpen] = useState(false)
   const [transferModalOpen, setTransferModalOpen] = useState(false)
   const [splitModalOpen, setSplitModalOpen] = useState(false)
+
+  // View mode state
+  const [groupByDate, setGroupByDate] = useState(false)
 
   // Fetch folios for the primary reservation
   const fetchFolios = async () => {
@@ -212,6 +215,32 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
 
     return result
   }, [transactionsWithBalance, filter, activeFolioId])
+
+  // Group transactions by date for grouped view
+  const groupedTransactions = useMemo(() => {
+    if (!groupByDate) return null
+
+    const groups = {}
+    filteredTransactions.forEach(txn => {
+      const dateKey = format(new Date(txn.transaction_date || txn.created_at), 'yyyy-MM-dd')
+      if (!groups[dateKey]) {
+        groups[dateKey] = {
+          date: dateKey,
+          displayDate: format(new Date(txn.transaction_date || txn.created_at), 'EEEE, MMM dd, yyyy'),
+          transactions: [],
+          dayTotal: 0
+        }
+      }
+      groups[dateKey].transactions.push(txn)
+      // Calculate day total (charges - payments, excluding voided/reversed)
+      if (txn.transaction_status !== 'voided' && txn.transaction_status !== 'reversed') {
+        groups[dateKey].dayTotal += parseFloat(txn.amount || 0)
+      }
+    })
+
+    // Sort by date descending (most recent first)
+    return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date))
+  }, [filteredTransactions, groupByDate])
 
   // Calculate summary
   const summary = useMemo(() => {
@@ -440,6 +469,16 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
             </SelectContent>
           </Select>
 
+          <Button
+            variant={groupByDate ? "default" : "outline"}
+            size="sm"
+            onClick={() => setGroupByDate(!groupByDate)}
+            title={groupByDate ? "Switch to list view" : "Group by date"}
+          >
+            {groupByDate ? <List className="h-4 w-4 mr-1" /> : <CalendarDays className="h-4 w-4 mr-1" />}
+            {groupByDate ? "List" : "By Date"}
+          </Button>
+
           <Button variant="outline" size="sm" disabled>
             <Printer className="h-4 w-4 mr-1" />
             Print
@@ -456,7 +495,154 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
               <p className="text-lg font-medium">No transactions yet</p>
               <p className="text-sm">Add charges or payments to see them here</p>
             </div>
+          ) : groupByDate && groupedTransactions ? (
+            /* Grouped by Date View */
+            <div className="divide-y">
+              {groupedTransactions.map((group) => (
+                <div key={group.date} className="py-2">
+                  {/* Date Header */}
+                  <div className="flex items-center justify-between px-4 py-2 bg-muted/50 sticky top-0">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold text-sm">{group.displayDate}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {group.transactions.length} item{group.transactions.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    <span className={`font-semibold text-sm ${group.dayTotal >= 0 ? 'text-foreground' : 'text-green-600 dark:text-green-400'}`}>
+                      {group.dayTotal >= 0 ? '+' : ''}{formatCurrency(group.dayTotal)}
+                    </span>
+                  </div>
+                  {/* Transactions for this date */}
+                  <Table>
+                    <TableBody>
+                      {group.transactions.map((txn) => {
+                        const amount = parseFloat(txn.amount || 0)
+                        const isCharge = amount > 0
+                        const isVoidedOrReversed = txn.transaction_status === 'voided' || txn.transaction_status === 'reversed'
+
+                        return (
+                          <TableRow
+                            key={txn.id}
+                            className={isVoidedOrReversed ? 'opacity-50' : ''}
+                          >
+                            <TableCell className="w-[60px]"></TableCell>
+                            <TableCell>
+                              <div className={isVoidedOrReversed ? 'line-through' : ''}>
+                                <span className="font-medium">{txn.description || getTransactionTypeDisplay(txn.transaction_type)}</span>
+                                {txn.service_category && (
+                                  <span className="text-muted-foreground ml-2 text-xs">
+                                    ({txn.service_category})
+                                  </span>
+                                )}
+                              </div>
+                              {txn.notes && (
+                                <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
+                              )}
+                            </TableCell>
+                            <TableCell className="w-[100px]">
+                              {getStatusBadge(txn.transaction_status)}
+                            </TableCell>
+                            <TableCell className={`text-right w-[120px] ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                              {isCharge ? formatCurrency(amount) : ''}
+                            </TableCell>
+                            <TableCell className={`text-right w-[120px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                              {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
+                            </TableCell>
+                            <TableCell className="w-[50px]">
+                              {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem disabled>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    {folios.length > 1 && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        {folios
+                                          .filter(f => f.id !== txn.folio_id)
+                                          .map(targetFolio => (
+                                            <DropdownMenuItem
+                                              key={targetFolio.id}
+                                              onClick={() => {
+                                                setSelectedTransaction(txn)
+                                                handleMoveToFolio(targetFolio.id)
+                                              }}
+                                            >
+                                              <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                              Move to {targetFolio.name}
+                                            </DropdownMenuItem>
+                                          ))
+                                        }
+                                      </>
+                                    )}
+                                    {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
+                                      <>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedTransaction(txn)
+                                            setTransferModalOpen(true)
+                                          }}
+                                        >
+                                          <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                          Transfer to Another Room
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedTransaction(txn)
+                                            setSplitModalOpen(true)
+                                          }}
+                                        >
+                                          <Scissors className="h-4 w-4 mr-2" />
+                                          Split Transaction
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    {canVoid(txn) && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedTransaction(txn)
+                                          setVoidConfirmOpen(true)
+                                        }}
+                                        className="text-destructive"
+                                      >
+                                        <XCircle className="h-4 w-4 mr-2" />
+                                        Void
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canReverse(txn) && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedTransaction(txn)
+                                          setReverseConfirmOpen(true)
+                                        }}
+                                        className="text-orange-600"
+                                      >
+                                        <RotateCcw className="h-4 w-4 mr-2" />
+                                        Reverse
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))}
+            </div>
           ) : (
+            /* Standard List View */
             <Table>
               <TableHeader>
                 <TableRow>
