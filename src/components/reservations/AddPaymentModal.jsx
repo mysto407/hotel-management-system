@@ -134,172 +134,200 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
     }
   }
 
-  // Get icon for a payment method code
-  const getIcon = (code) => PAYMENT_ICONS[code] || PAYMENT_ICONS.default
-  const SelectedIcon = getIcon(paymentMethod)
+  // Get config for a payment method code
+  const getConfig = (code) => PAYMENT_CONFIG[code] || PAYMENT_CONFIG.default
+  const selectedConfig = getConfig(paymentMethod)
+  const SelectedIcon = selectedConfig.icon
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
+      <DialogContent className="sm:max-w-[520px] p-0 gap-0 flex flex-col" style={{ maxHeight: 'calc(100vh - 48px)' }}>
+        <DialogHeader className="px-6 pt-5 pb-3 border-b bg-muted/30 shrink-0">
+          <DialogTitle className="flex items-center gap-3 text-lg">
+            <div className={cn("p-2 rounded-lg", selectedConfig.color)}>
+              <SelectedIcon className="h-5 w-5" />
+            </div>
             Record Payment
           </DialogTitle>
-          <DialogDescription>
-            Record a payment from the guest
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Folio Selector (only show if multiple folios) */}
-          {folios.length > 1 && (
-            <div className="space-y-2">
-              <Label htmlFor="folio">Apply to Folio</Label>
-              <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select folio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {folios.map(folio => (
-                    <SelectItem key={folio.id} value={folio.id}>
-                      {folio.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Balance Due Summary */}
-          {balanceDue > 0 && (
-            <div className="bg-muted p-3 rounded-lg flex justify-between items-center">
-              <div>
-                <p className="text-sm text-muted-foreground">Balance Due</p>
-                <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                  {formatCurrency(balanceDue)}
-                </p>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={handlePayFull}>
-                Pay Full
-              </Button>
-            </div>
-          )}
-
-          {/* Payment Method */}
-          <div className="space-y-2">
-            <Label htmlFor="paymentMethod">Payment Method</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger>
-                <div className="flex items-center gap-2">
-                  <SelectedIcon className="h-4 w-4" />
-                  <SelectValue placeholder="Select payment method" />
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1 min-h-0">
+          <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+            {/* Balance Due Summary */}
+            {balanceDue > 0 && (
+              <div className="bg-red-50 dark:bg-red-950/30 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">Balance Due</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                      {formatCurrency(balanceDue)}
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={handlePayFull} className="border-red-300 text-red-600 hover:bg-red-50">
+                    Pay Full Amount
+                  </Button>
                 </div>
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map(method => {
-                  const Icon = getIcon(method.code)
+              </div>
+            )}
+
+            {/* Payment Method Selection - Visual Buttons */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Payment Method</Label>
+              <div className="grid grid-cols-5 gap-2">
+                {DEFAULT_PAYMENT_METHODS.map(method => {
+                  const Icon = method.icon
+                  const isSelected = paymentMethod === method.code
                   return (
-                    <SelectItem key={method.code} value={method.code}>
-                      <div className="flex items-center gap-2">
+                    <button
+                      key={method.code}
+                      type="button"
+                      onClick={() => setPaymentMethod(method.code)}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all",
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "border-transparent bg-muted/50 hover:bg-muted"
+                      )}
+                    >
+                      <div className={cn("p-1.5 rounded-md", method.color)}>
                         <Icon className="h-4 w-4" />
-                        {method.name}
                       </div>
-                    </SelectItem>
+                      <span className={cn(
+                        "text-xs font-medium",
+                        isSelected ? "text-primary" : "text-muted-foreground"
+                      )}>
+                        {method.name}
+                      </span>
+                    </button>
                   )
                 })}
-              </SelectContent>
-            </Select>
-          </div>
+              </div>
+            </div>
 
-          {/* Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount (₹)</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="text-lg"
-            />
-          </div>
+            {/* Folio Selector (only show if multiple folios) */}
+            {folios.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="folio">Apply to Folio</Label>
+                <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select folio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {folios.map(folio => (
+                      <SelectItem key={folio.id} value={folio.id}>
+                        {folio.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-          {/* Reference Number (for card, UPI, bank transfer) */}
-          {['card', 'upi', 'bank_transfer'].includes(paymentMethod) && (
+            {/* Amount */}
             <div className="space-y-2">
-              <Label htmlFor="referenceNumber">
-                {paymentMethod === 'card' ? 'Last 4 Digits / Auth Code' :
-                 paymentMethod === 'upi' ? 'UPI Transaction ID' :
-                 'Transaction Reference'}
-              </Label>
+              <Label htmlFor="amount">Amount (₹)</Label>
               <Input
-                id="referenceNumber"
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-                placeholder={
-                  paymentMethod === 'card' ? 'XXXX / Auth code' :
-                  paymentMethod === 'upi' ? 'UPI123456789' :
-                  'Reference number'
-                }
+                id="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="text-lg h-12"
               />
             </div>
-          )}
 
-          {/* Transaction Date */}
-          <div className="space-y-2">
-            <Label htmlFor="transactionDate">Payment Date</Label>
-            <Input
-              id="transactionDate"
-              type="date"
-              value={transactionDate}
-              onChange={(e) => setTransactionDate(e.target.value)}
-            />
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes..."
-              rows={2}
-            />
-          </div>
-
-          {/* Payment Summary */}
-          {amount && parseFloat(amount) > 0 && (
-            <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex justify-between items-center">
-                <span className="text-green-800 dark:text-green-200">Payment Amount:</span>
-                <span className="text-xl font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(parseFloat(amount))}
-                </span>
+            {/* Reference Number (for card, UPI, bank transfer) */}
+            {['card', 'upi', 'bank_transfer'].includes(paymentMethod) && (
+              <div className="space-y-2">
+                <Label htmlFor="referenceNumber">
+                  {paymentMethod === 'card' ? 'Last 4 Digits / Auth Code' :
+                   paymentMethod === 'upi' ? 'UPI Transaction ID' :
+                   'Transaction Reference'}
+                </Label>
+                <Input
+                  id="referenceNumber"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder={
+                    paymentMethod === 'card' ? 'XXXX / Auth code' :
+                    paymentMethod === 'upi' ? 'UPI123456789' :
+                    'Reference number'
+                  }
+                />
               </div>
-              {balanceDue > 0 && (
-                <div className="flex justify-between items-center mt-2 pt-2 border-t border-green-200 dark:border-green-800 text-sm">
-                  <span className="text-green-700 dark:text-green-300">Remaining Balance:</span>
-                  <span className={`font-medium ${(balanceDue - parseFloat(amount)) <= 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                    {formatCurrency(Math.max(0, balanceDue - parseFloat(amount)))}
+            )}
+
+            {/* Transaction Date */}
+            <div className="space-y-2">
+              <Label htmlFor="transactionDate">Payment Date</Label>
+              <Input
+                id="transactionDate"
+                type="date"
+                value={transactionDate}
+                onChange={(e) => setTransactionDate(e.target.value)}
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any additional notes..."
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Summary Footer */}
+          <div className="border-t bg-muted/30 px-6 py-3 space-y-3 shrink-0">
+            {amount && parseFloat(amount) > 0 && (
+              <div className="bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800 p-3 space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-700 dark:text-green-300">Payment Amount</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">
+                    {formatCurrency(parseFloat(amount))}
                   </span>
                 </div>
-              )}
-            </div>
-          )}
+                {balanceDue > 0 && (
+                  <div className="flex justify-between pt-1.5 border-t border-green-200 dark:border-green-800">
+                    <span className="text-sm text-muted-foreground">Remaining Balance</span>
+                    <span className={cn(
+                      "font-semibold",
+                      (balanceDue - parseFloat(amount)) <= 0
+                        ? "text-green-600"
+                        : "text-orange-600"
+                    )}>
+                      {formatCurrency(Math.max(0, balanceDue - parseFloat(amount)))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading || !amount || parseFloat(amount) <= 0}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Record Payment
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || !amount || parseFloat(amount) <= 0}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Record Payment
+              </Button>
+            </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
