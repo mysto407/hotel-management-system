@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle } from 'lucide-react'
+import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +38,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   getTransactionsByReservation,
+  getFoliosByReservation,
+  getTransactionsByFolio,
+  getFolioBalance,
+  moveTransactionToFolio,
   voidTransactionWithChildren,
   reverseTransaction,
   TRANSACTION_TYPES,
@@ -46,6 +50,7 @@ import {
 import { formatCurrency } from '@/utils/currency'
 import AddChargeModal from './AddChargeModal'
 import AddPaymentModal from './AddPaymentModal'
+import CreateFolioModal from './CreateFolioModal'
 
 export default function FolioTab({ reservationIds, primaryReservation }) {
   const [transactions, setTransactions] = useState([])
@@ -57,6 +62,45 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   const [reverseConfirmOpen, setReverseConfirmOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  // Multi-folio state
+  const [folios, setFolios] = useState([])
+  const [activeFolioId, setActiveFolioId] = useState(null)
+  const [folioBalances, setFolioBalances] = useState({})
+  const [createFolioOpen, setCreateFolioOpen] = useState(false)
+  const [moveToFolioOpen, setMoveToFolioOpen] = useState(false)
+
+  // Fetch folios for the primary reservation
+  const fetchFolios = async () => {
+    if (!primaryReservation?.id) return
+
+    try {
+      const { data, error } = await getFoliosByReservation(primaryReservation.id)
+      if (error) {
+        console.error('Error fetching folios:', error)
+        return
+      }
+
+      setFolios(data || [])
+
+      // Set active folio to first one (master) if not already set
+      if (data && data.length > 0 && !activeFolioId) {
+        setActiveFolioId(data[0].id)
+      }
+
+      // Fetch balances for all folios
+      const balances = {}
+      for (const folio of (data || [])) {
+        const { data: balanceData } = await getFolioBalance(folio.id)
+        if (balanceData) {
+          balances[folio.id] = balanceData
+        }
+      }
+      setFolioBalances(balances)
+    } catch (err) {
+      console.error('Error fetching folios:', err)
+    }
+  }
 
   // Fetch transactions for all reservations in the group
   const fetchTransactions = async () => {
@@ -96,8 +140,39 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   }
 
   useEffect(() => {
+    fetchFolios()
     fetchTransactions()
-  }, [reservationIds])
+  }, [reservationIds, primaryReservation?.id])
+
+  // Handle folio creation success
+  const handleFolioCreated = async (newFolio) => {
+    await fetchFolios()
+    setActiveFolioId(newFolio.id)
+  }
+
+  // Handle moving transaction to another folio
+  const handleMoveToFolio = async (targetFolioId) => {
+    if (!selectedTransaction || !targetFolioId) return
+
+    setActionLoading(true)
+    try {
+      const { error } = await moveTransactionToFolio(selectedTransaction.id, targetFolioId)
+      if (error) throw error
+
+      await fetchTransactions()
+      await fetchFolios()
+      setMoveToFolioOpen(false)
+      setSelectedTransaction(null)
+    } catch (err) {
+      console.error('Error moving transaction:', err)
+      alert('Failed to move transaction: ' + err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Get active folio object
+  const activeFolio = folios.find(f => f.id === activeFolioId)
 
   // Calculate transactions with running balance
   const transactionsWithBalance = useMemo(() => {

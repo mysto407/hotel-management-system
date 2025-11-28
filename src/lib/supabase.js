@@ -1538,6 +1538,232 @@ export const getOrCreateMasterFolio = async (reservationId, guestName = 'Guest')
     return await createMasterFolio(reservationId, guestName)
 }
 
+/**
+ * Get ALL active folios for a reservation (not just master)
+ * @param {string} reservationId - The reservation ID
+ * @returns {Promise<{data: Array, error: object}>}
+ */
+export const getFoliosByReservation = async (reservationId) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+
+    return { data, error }
+}
+
+/**
+ * Create an additional folio for a reservation
+ * @param {string} reservationId - The reservation ID
+ * @param {string} folioType - Type of folio ('incidentals', 'split', 'custom')
+ * @param {string} name - Display name for the folio
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const createFolio = async (reservationId, folioType, name) => {
+    const timestamp = Date.now().toString(36).toUpperCase()
+    const folioNumber = `F-${timestamp}`
+
+    const { data, error } = await supabase
+        .from('folios')
+        .insert({
+            reservation_id: reservationId,
+            folio_type: folioType,
+            folio_number: folioNumber,
+            name: name,
+            is_active: true,
+            checkout_status: 'open'
+        })
+        .select()
+
+    return { data: data?.[0], error }
+}
+
+/**
+ * Get transactions by folio ID (instead of reservation ID)
+ * @param {string} folioId - The folio ID
+ * @param {object} options - Query options
+ * @returns {Promise<{data: Array, error: object}>}
+ */
+export const getTransactionsByFolio = async (folioId, options = {}) => {
+    const { includeVoided = false, status, type, startDate, endDate } = options
+
+    let query = supabase
+        .from('folio_transactions')
+        .select(`
+            *,
+            created_by_user:users!created_by (id, name, email),
+            reversed_transaction:folio_transactions!reversed_transaction_id (
+                id, transaction_type, amount, description
+            )
+        `)
+        .eq('folio_id', folioId)
+
+    if (!includeVoided) {
+        query = query.not('transaction_status', 'in', '("voided","reversed")')
+    }
+
+    if (status) {
+        query = query.eq('transaction_status', status)
+    }
+
+    if (type) {
+        query = query.eq('transaction_type', type)
+    }
+
+    if (startDate) {
+        query = query.gte('transaction_date', startDate)
+    }
+
+    if (endDate) {
+        query = query.lte('transaction_date', endDate)
+    }
+
+    query = query.order('transaction_date', { ascending: true })
+        .order('created_at', { ascending: true })
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+/**
+ * Move a transaction to a different folio (within same reservation)
+ * @param {string} transactionId - The transaction ID
+ * @param {string} targetFolioId - The target folio ID
+ * @param {string} userId - The user performing the action
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const moveTransactionToFolio = async (transactionId, targetFolioId, userId = null) => {
+    // Get original transaction
+    const { data: original, error: fetchError } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('id', transactionId)
+        .single()
+
+    if (fetchError) return { data: null, error: fetchError }
+
+    const sourceFolioId = original.folio_id
+
+    // Update folio_id on the transaction
+    const { data, error } = await supabase
+        .from('folio_transactions')
+        .update({ folio_id: targetFolioId })
+        .eq('id', transactionId)
+        .select()
+
+    if (error) return { data: null, error }
+
+    // Also move child transactions (e.g., taxes linked to charges)
+    const { data: children } = await supabase
+        .from('folio_transactions')
+        .select('id')
+        .eq('parent_transaction_id', transactionId)
+
+    let childrenMoved = 0
+    if (children && children.length > 0) {
+        const { error: childError } = await supabase
+            .from('folio_transactions')
+            .update({ folio_id: targetFolioId })
+            .eq('parent_transaction_id', transactionId)
+
+        if (!childError) {
+            childrenMoved = children.length
+        }
+    }
+
+    // Log audit entry
+    if (userId) {
+        await logTransactionAudit({
+            transactionId,
+            folioId: targetFolioId,
+            actionType: 'move',
+            performedBy: userId,
+            previousValues: { folio_id: sourceFolioId },
+            newValues: { folio_id: targetFolioId },
+            changesSummary: `Moved transaction from folio ${sourceFolioId} to ${targetFolioId}`
+        })
+    }
+
+    return {
+        data: {
+            transaction: data?.[0],
+            childrenMoved,
+            sourceFolioId,
+            targetFolioId
+        },
+        error: null
+    }
+}
+
+/**
+ * Get balance for a specific folio
+ * @param {string} folioId - The folio ID
+ * @returns {Promise<{data: {charges: number, payments: number, balance: number}, error: object}>}
+ */
+export const getFolioBalance = async (folioId) => {
+    const { data: transactions, error } = await supabase
+        .from('folio_transactions')
+        .select('amount, transaction_status')
+        .eq('folio_id', folioId)
+        .not('transaction_status', 'in', '("voided","reversed")')
+
+    if (error) return { data: null, error }
+
+    let charges = 0
+    let payments = 0
+
+    transactions?.forEach(txn => {
+        const amount = parseFloat(txn.amount || 0)
+        if (amount > 0) {
+            charges += amount
+        } else {
+            payments += Math.abs(amount)
+        }
+    })
+
+    return {
+        data: {
+            charges,
+            payments,
+            balance: charges - payments
+        },
+        error: null
+    }
+}
+
+/**
+ * Delete a folio (soft delete by setting is_active = false)
+ * Only allowed if folio has no active transactions
+ * @param {string} folioId - The folio ID
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const deleteFolio = async (folioId) => {
+    // Check if folio has any active transactions
+    const { data: transactions } = await supabase
+        .from('folio_transactions')
+        .select('id')
+        .eq('folio_id', folioId)
+        .not('transaction_status', 'in', '("voided","reversed")')
+        .limit(1)
+
+    if (transactions && transactions.length > 0) {
+        return {
+            data: null,
+            error: { message: 'Cannot delete folio with active transactions. Move or void transactions first.' }
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('folios')
+        .update({ is_active: false })
+        .eq('id', folioId)
+        .select()
+
+    return { data: data?.[0], error }
+}
+
 // Transaction Types
 export const TRANSACTION_TYPES = {
     ROOM_CHARGE: 'room_charge',
