@@ -323,15 +323,15 @@ const Reports = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              <TableRow className="font-bold bg-accent hover:bg-accent">
+                <TableCell>TOTAL</TableCell>
+                <TableCell>{filteredBills.length}</TableCell>
+                <TableCell>₹{totals.total.toFixed(2)}</TableCell>
+                <TableCell className="text-emerald-600 dark:text-emerald-400">₹{totals.paid.toFixed(2)}</TableCell>
+                <TableCell className="text-destructive">₹{totals.outstanding.toFixed(2)}</TableCell>
+                <TableCell>{((totals.paid / totals.total * 100) || 0).toFixed(1)}%</TableCell>
+              </TableRow>
             </TableBody>
-            <TableRow className="font-bold bg-accent hover:bg-accent">
-              <TableCell>TOTAL</TableCell>
-              <TableCell>{filteredBills.length}</TableCell>
-              <TableCell>₹{totals.total.toFixed(2)}</TableCell>
-              <TableCell className="text-emerald-600 dark:text-emerald-400">₹{totals.paid.toFixed(2)}</TableCell>
-              <TableCell className="text-destructive">₹{totals.outstanding.toFixed(2)}</TableCell>
-              <TableCell>{((totals.paid / totals.total * 100) || 0).toFixed(1)}%</TableCell>
-            </TableRow>
           </Table>
         </CardContent>
       </Card>

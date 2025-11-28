@@ -590,6 +590,21 @@ export const voidPendingMealCharges = async (reservationId, reason, userId) => {
  */
 export const getKitchenForecast = async (reportDate) => {
     try {
+        // First, fetch all meal plans to create a lookup map
+        const { data: mealPlansData, error: mealPlansError } = await supabase
+            .from('meal_plans')
+            .select('*')
+
+        if (mealPlansError) {
+            return { data: null, error: mealPlansError }
+        }
+
+        // Create a lookup map by code
+        const mealPlanMap = {}
+        for (const mp of mealPlansData || []) {
+            mealPlanMap[mp.code] = mp
+        }
+
         // Get all checked-in reservations with meal plans for breakfast eligibility
         // Breakfast: slept last night = check_in < reportDate AND check_out >= reportDate
         const { data: breakfastReservations, error: breakfastError } = await supabase
@@ -597,8 +612,7 @@ export const getKitchenForecast = async (reportDate) => {
             .select(`
                 *,
                 guests (*),
-                rooms (room_number),
-                meal_plans!meal_plan (*)
+                rooms (room_number)
             `)
             .lt('check_in_date', reportDate)
             .gte('check_out_date', reportDate)
@@ -616,8 +630,7 @@ export const getKitchenForecast = async (reportDate) => {
             .select(`
                 *,
                 guests (*),
-                rooms (room_number),
-                meal_plans!meal_plan (*)
+                rooms (room_number)
             `)
             .lte('check_in_date', reportDate)
             .gt('check_out_date', reportDate)
@@ -635,7 +648,7 @@ export const getKitchenForecast = async (reportDate) => {
 
         // Process breakfast eligible reservations
         for (const res of breakfastReservations || []) {
-            const mealPlan = res.meal_plans
+            const mealPlan = mealPlanMap[res.meal_plan]
             if (mealPlan?.includes_breakfast && mealPlan?.is_meal_plan !== false) {
                 const adults = res.number_of_adults || 1
                 const children = res.number_of_children || 0
@@ -654,7 +667,7 @@ export const getKitchenForecast = async (reportDate) => {
 
         // Process lunch/dinner eligible reservations
         for (const res of lunchDinnerReservations || []) {
-            const mealPlan = res.meal_plans
+            const mealPlan = mealPlanMap[res.meal_plan]
             if (!mealPlan || mealPlan.is_meal_plan === false) continue
 
             const adults = res.number_of_adults || 1
