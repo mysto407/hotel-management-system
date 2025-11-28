@@ -3534,3 +3534,94 @@ export const generateAllAddonCharges = async (
         error: null
     }
 }
+
+// ===============================================
+// Payment Methods - Configurable Payment Options
+// ===============================================
+
+/**
+ * Get all payment methods
+ * @param {boolean} activeOnly - If true, only return active methods
+ * @returns {Promise<{data: Array, error: object}>}
+ */
+export const getPaymentMethods = async (activeOnly = true) => {
+    let query = supabase
+        .from('payment_methods')
+        .select('*')
+        .order('display_order', { ascending: true })
+
+    if (activeOnly) {
+        query = query.eq('is_active', true)
+    }
+
+    const { data, error } = await query
+    return { data, error }
+}
+
+/**
+ * Create a new payment method
+ * @param {string} name - Display name for the payment method
+ * @param {string} code - Unique code identifier
+ * @param {number} displayOrder - Display order (optional)
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const createPaymentMethod = async (name, code, displayOrder = 99) => {
+    const { data, error } = await supabase
+        .from('payment_methods')
+        .insert({
+            name,
+            code,
+            display_order: displayOrder,
+            is_active: true
+        })
+        .select()
+        .single()
+
+    return { data, error }
+}
+
+/**
+ * Update a payment method
+ * @param {string} id - Payment method ID
+ * @param {object} updates - Fields to update (name, code, is_active, display_order)
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const updatePaymentMethod = async (id, updates) => {
+    const { data, error } = await supabase
+        .from('payment_methods')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+    return { data, error }
+}
+
+/**
+ * Delete a payment method (soft delete by setting is_active = false)
+ * @param {string} id - Payment method ID
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const deletePaymentMethod = async (id) => {
+    // Soft delete - just deactivate
+    return await updatePaymentMethod(id, { is_active: false })
+}
+
+/**
+ * Reorder payment methods
+ * @param {Array<{id: string, display_order: number}>} orderUpdates - Array of id and new order
+ * @returns {Promise<{error: object}>}
+ */
+export const reorderPaymentMethods = async (orderUpdates) => {
+    const updates = orderUpdates.map(({ id, display_order }) =>
+        supabase
+            .from('payment_methods')
+            .update({ display_order })
+            .eq('id', id)
+    )
+
+    const results = await Promise.all(updates)
+    const errors = results.filter(r => r.error)
+
+    return { error: errors.length > 0 ? errors[0].error : null }
+}
