@@ -181,6 +181,13 @@ const Settings = () => {
       code: '',
       name: '',
       description: '',
+      is_meal_plan: true,
+      includes_breakfast: false,
+      includes_lunch: false,
+      includes_dinner: false,
+      breakfast_price: '0.00',
+      lunch_price: '0.00',
+      dinner_price: '0.00',
       price_per_person: '0.00',
       is_active: true,
       sort_order: mealPlans.length
@@ -193,11 +200,26 @@ const Settings = () => {
       code: plan.code,
       name: plan.name,
       description: plan.description || '',
-      price_per_person: plan.price_per_person.toString(),
+      is_meal_plan: plan.is_meal_plan !== false,
+      includes_breakfast: plan.includes_breakfast || false,
+      includes_lunch: plan.includes_lunch || false,
+      includes_dinner: plan.includes_dinner || false,
+      breakfast_price: (plan.breakfast_price || 0).toString(),
+      lunch_price: (plan.lunch_price || 0).toString(),
+      dinner_price: (plan.dinner_price || 0).toString(),
+      price_per_person: (plan.price_per_person || 0).toString(),
       is_active: plan.is_active,
       sort_order: plan.sort_order
     });
     setEditingMealPlan(plan.id);
+  };
+
+  // Calculate auto-calculated price_per_person from meal prices
+  const calculateTotalDailyRate = () => {
+    const breakfast = mealPlanForm.includes_breakfast ? parseFloat(mealPlanForm.breakfast_price || 0) : 0;
+    const lunch = mealPlanForm.includes_lunch ? parseFloat(mealPlanForm.lunch_price || 0) : 0;
+    const dinner = mealPlanForm.includes_dinner ? parseFloat(mealPlanForm.dinner_price || 0) : 0;
+    return (breakfast + lunch + dinner).toFixed(2);
   };
 
   const handleSaveMealPlan = async () => {
@@ -206,12 +228,21 @@ const Settings = () => {
       return;
     }
 
+    // Auto-calculate price_per_person from individual meal prices
+    const formData = {
+      ...mealPlanForm,
+      price_per_person: calculateTotalDailyRate(),
+      breakfast_price: parseFloat(mealPlanForm.breakfast_price || 0),
+      lunch_price: parseFloat(mealPlanForm.lunch_price || 0),
+      dinner_price: parseFloat(mealPlanForm.dinner_price || 0)
+    };
+
     setLoading(true);
     try {
       if (editingMealPlan) {
-        await updateMealPlan(editingMealPlan, mealPlanForm);
+        await updateMealPlan(editingMealPlan, formData);
       } else {
-        await addMealPlan(mealPlanForm);
+        await addMealPlan(formData);
       }
       resetMealPlanForm();
       showSuccessMessage();
@@ -672,18 +703,155 @@ const Settings = () => {
                         onChange={handleMealPlanFormChange}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="price_per_person">Price Per Person Per Night (₹)</Label>
-                      <Input
-                        id="price_per_person"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={mealPlanForm.price_per_person}
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        placeholder="e.g., Includes breakfast, lunch, and dinner"
+                        value={mealPlanForm.description}
                         onChange={handleMealPlanFormChange}
+                        rows="2"
                       />
-                      <p className="text-xs text-muted-foreground">Additional charge per guest per night</p>
                     </div>
+
+                    {/* Is Meal Plan Toggle */}
+                    <div className="flex items-center space-x-2 col-span-2 pb-2 border-b">
+                      <Checkbox
+                        id="is_meal_plan"
+                        checked={mealPlanForm.is_meal_plan}
+                        onCheckedChange={(checked) => setMealPlanForm(prev => ({
+                          ...prev,
+                          is_meal_plan: checked,
+                          // Reset meal inclusions if not a meal plan
+                          ...(checked ? {} : {
+                            includes_breakfast: false,
+                            includes_lunch: false,
+                            includes_dinner: false,
+                            breakfast_price: '0.00',
+                            lunch_price: '0.00',
+                            dinner_price: '0.00'
+                          })
+                        }))}
+                      />
+                      <Label htmlFor="is_meal_plan" className="font-normal">
+                        This is a meal plan (includes meals)
+                      </Label>
+                      <p className="text-xs text-muted-foreground ml-2">
+                        Uncheck for "Room Only" type plans
+                      </p>
+                    </div>
+
+                    {/* Meal Inclusions */}
+                    {mealPlanForm.is_meal_plan && (
+                      <>
+                        <div className="col-span-2">
+                          <Label className="text-sm font-medium mb-3 block">Included Meals</Label>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Breakfast */}
+                            <div className="border rounded-lg p-4 space-y-3">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="includes_breakfast"
+                                  checked={mealPlanForm.includes_breakfast}
+                                  onCheckedChange={(checked) => setMealPlanForm(prev => ({
+                                    ...prev,
+                                    includes_breakfast: checked,
+                                    breakfast_price: checked ? prev.breakfast_price : '0.00'
+                                  }))}
+                                />
+                                <Label htmlFor="includes_breakfast" className="font-medium">Breakfast</Label>
+                              </div>
+                              {mealPlanForm.includes_breakfast && (
+                                <div className="space-y-1">
+                                  <Label htmlFor="breakfast_price" className="text-xs text-muted-foreground">Price per person (₹)</Label>
+                                  <Input
+                                    id="breakfast_price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={mealPlanForm.breakfast_price}
+                                    onChange={handleMealPlanFormChange}
+                                    className="h-8"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Lunch */}
+                            <div className="border rounded-lg p-4 space-y-3">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="includes_lunch"
+                                  checked={mealPlanForm.includes_lunch}
+                                  onCheckedChange={(checked) => setMealPlanForm(prev => ({
+                                    ...prev,
+                                    includes_lunch: checked,
+                                    lunch_price: checked ? prev.lunch_price : '0.00'
+                                  }))}
+                                />
+                                <Label htmlFor="includes_lunch" className="font-medium">Lunch</Label>
+                              </div>
+                              {mealPlanForm.includes_lunch && (
+                                <div className="space-y-1">
+                                  <Label htmlFor="lunch_price" className="text-xs text-muted-foreground">Price per person (₹)</Label>
+                                  <Input
+                                    id="lunch_price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={mealPlanForm.lunch_price}
+                                    onChange={handleMealPlanFormChange}
+                                    className="h-8"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Dinner */}
+                            <div className="border rounded-lg p-4 space-y-3">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="includes_dinner"
+                                  checked={mealPlanForm.includes_dinner}
+                                  onCheckedChange={(checked) => setMealPlanForm(prev => ({
+                                    ...prev,
+                                    includes_dinner: checked,
+                                    dinner_price: checked ? prev.dinner_price : '0.00'
+                                  }))}
+                                />
+                                <Label htmlFor="includes_dinner" className="font-medium">Dinner</Label>
+                              </div>
+                              {mealPlanForm.includes_dinner && (
+                                <div className="space-y-1">
+                                  <Label htmlFor="dinner_price" className="text-xs text-muted-foreground">Price per person (₹)</Label>
+                                  <Input
+                                    id="dinner_price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={mealPlanForm.dinner_price}
+                                    onChange={handleMealPlanFormChange}
+                                    className="h-8"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Total Daily Rate (Read-only) */}
+                        <div className="col-span-2 bg-accent/50 rounded-lg p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <Label className="font-medium">Total Daily Rate (auto-calculated)</Label>
+                              <p className="text-xs text-muted-foreground">Sum of all included meal prices per person per night</p>
+                            </div>
+                            <span className="text-2xl font-bold">₹{calculateTotalDailyRate()}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
                     <div className="space-y-2">
                       <Label htmlFor="sort_order">Display Order</Label>
                       <Input
@@ -695,17 +863,8 @@ const Settings = () => {
                       />
                       <p className="text-xs text-muted-foreground">Lower numbers appear first</p>
                     </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="e.g., Includes breakfast, lunch, and dinner"
-                        value={mealPlanForm.description}
-                        onChange={handleMealPlanFormChange}
-                        rows="2"
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2 col-span-2">
+
+                    <div className="flex items-center space-x-2">
                       <Checkbox
                         id="is_active"
                         checked={mealPlanForm.is_active}
