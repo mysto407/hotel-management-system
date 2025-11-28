@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { format, isAfter, startOfDay } from 'date-fns'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, Plus, Receipt, Percent, Tag, CreditCard, BadgeMinus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -19,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
 import {
   createRoomCharge,
   createServiceCharge,
@@ -31,11 +34,11 @@ import {
 import { formatCurrency } from '@/utils/currency'
 
 const CHARGE_TYPES = [
-  { value: 'room_charge', label: 'Room Charge' },
-  { value: 'service_charge', label: 'Service Charge' },
-  { value: 'tax', label: 'Tax' },
-  { value: 'fee', label: 'Fee' },
-  { value: 'discount', label: 'Discount' }
+  { value: 'room_charge', label: 'Room Charge', icon: Receipt, color: 'text-blue-600 bg-blue-50' },
+  { value: 'service_charge', label: 'Service', icon: Tag, color: 'text-purple-600 bg-purple-50' },
+  { value: 'fee', label: 'Fee', icon: CreditCard, color: 'text-orange-600 bg-orange-50' },
+  { value: 'tax', label: 'Tax', icon: Percent, color: 'text-green-600 bg-green-50' },
+  { value: 'discount', label: 'Discount', icon: BadgeMinus, color: 'text-red-600 bg-red-50' }
 ]
 
 export default function AddChargeModal({ open, onOpenChange, reservationId, folios = [], activeFolioId = null, onSuccess }) {
@@ -205,61 +208,86 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
     }
   }
 
+  const selectedType = CHARGE_TYPES.find(t => t.value === chargeType)
+  const TypeIcon = selectedType?.icon || Plus
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] max-h-[90vh] flex flex-col">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Charge
+      <DialogContent className="sm:max-w-[520px] max-h-[85vh] p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-muted/30">
+          <DialogTitle className="flex items-center gap-3 text-lg">
+            <div className={cn("p-2 rounded-lg", selectedType?.color || "bg-gray-100")}>
+              <TypeIcon className="h-5 w-5" />
+            </div>
+            Add New Charge
           </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Add a charge to the guest's folio
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-3 overflow-y-auto flex-1 pr-1">
-          {/* Folio Selector (only show if multiple folios) */}
-          {folios.length > 1 && (
-            <div className="space-y-1">
-              <Label htmlFor="folio" className="text-sm">Folio</Label>
-              <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select folio" />
-                </SelectTrigger>
-                <SelectContent>
-                  {folios.map(folio => (
-                    <SelectItem key={folio.id} value={folio.id}>
-                      {folio.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+          <div className="px-6 py-5 space-y-5 overflow-y-auto">
+            {/* Charge Type Selection - Visual Buttons */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Charge Type</Label>
+              <div className="grid grid-cols-5 gap-2">
+                {CHARGE_TYPES.map(type => {
+                  const Icon = type.icon
+                  const isSelected = chargeType === type.value
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setChargeType(type.value)}
+                      className={cn(
+                        "flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all",
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "border-transparent bg-muted/50 hover:bg-muted"
+                      )}
+                    >
+                      <div className={cn("p-1.5 rounded-md", type.color)}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className={cn(
+                        "text-xs font-medium",
+                        isSelected ? "text-primary" : "text-muted-foreground"
+                      )}>
+                        {type.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          )}
 
-          {/* Charge Type and Category Row */}
-          <div className={`grid gap-3 ${chargeType === 'service_charge' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            <div className="space-y-1">
-              <Label htmlFor="chargeType" className="text-sm">Type</Label>
-              <Select value={chargeType} onValueChange={setChargeType}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CHARGE_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Folio Selector (only show if multiple folios) */}
+            {folios.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="folio">Target Folio</Label>
+                <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select folio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {folios.map(folio => (
+                      <SelectItem key={folio.id} value={folio.id}>
+                        {folio.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Service Category (for service charges) */}
             {chargeType === 'service_charge' && (
-              <div className="space-y-1">
-                <Label htmlFor="serviceCategory" className="text-sm">Category</Label>
+              <div className="space-y-2">
+                <Label htmlFor="serviceCategory">Service Category</Label>
                 <Select value={serviceCategory} onValueChange={setServiceCategory}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(SERVICE_CATEGORIES).map(([key, value]) => (
@@ -271,119 +299,154 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
                 </Select>
               </div>
             )}
-          </div>
 
-          {/* Description */}
-          <div className="space-y-1">
-            <Label htmlFor="description" className="text-sm">Description</Label>
-            <Input
-              id="description"
-              className="h-9"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={chargeType === 'tax' ? 'Tax name' : 'Description'}
-            />
-          </div>
-
-          {/* Amount, Quantity, Date Row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="amount" className="text-sm">
-                {chargeType === 'tax' ? 'Rate %' : 'Amount ₹'}
-              </Label>
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
               <Input
-                id="amount"
-                className="h-9"
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={chargeType === 'tax' ? 'e.g., GST 18%' : 'Enter charge description'}
               />
             </div>
-            {chargeType !== 'tax' && chargeType !== 'discount' ? (
-              <div className="space-y-1">
-                <Label htmlFor="quantity" className="text-sm">Qty</Label>
+
+            {/* Amount and Quantity Row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">
+                  {chargeType === 'tax' ? 'Tax Rate (%)' : 'Amount (₹)'}
+                </Label>
                 <Input
-                  id="quantity"
-                  className="h-9"
+                  id="amount"
                   type="number"
-                  step="1"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  placeholder="1"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
                 />
               </div>
-            ) : <div />}
-            <div className="space-y-1">
-              <Label htmlFor="transactionDate" className="text-sm">Date</Label>
-              <Input
-                id="transactionDate"
-                className="h-9"
-                type="date"
-                value={transactionDate}
-                onChange={(e) => setTransactionDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Apply Tax Checkbox */}
-          {['room_charge', 'service_charge', 'fee'].includes(chargeType) && (
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="applyTax"
-                checked={applyTax}
-                onCheckedChange={setApplyTax}
-              />
-              <Label htmlFor="applyTax" className="text-sm font-normal cursor-pointer">
-                Apply GST ({taxRate}%)
-              </Label>
-            </div>
-          )}
-
-          {/* Notes */}
-          <div className="space-y-1">
-            <Label htmlFor="notes" className="text-sm">Notes (optional)</Label>
-            <Input
-              id="notes"
-              className="h-9"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes..."
-            />
-          </div>
-
-          {/* Summary */}
-          {amount && (
-            <div className="bg-muted p-2 rounded-lg text-sm">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span>{formatCurrency(parseFloat(amount || 0) * parseFloat(quantity || 1))}</span>
-              </div>
-              {applyTax && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>GST ({taxRate}%):</span>
-                  <span>{formatCurrency(calculateTaxAmount())}</span>
+              {chargeType !== 'tax' && chargeType !== 'discount' && (
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    placeholder="1"
+                  />
                 </div>
               )}
-              <div className="flex justify-between font-medium border-t pt-1 mt-1">
-                <span>Total:</span>
-                <span>{formatCurrency(calculateTotal())}</span>
-              </div>
+              {(chargeType === 'tax' || chargeType === 'discount') && (
+                <div className="space-y-2">
+                  <Label htmlFor="transactionDate">Date</Label>
+                  <Input
+                    id="transactionDate"
+                    type="date"
+                    value={transactionDate}
+                    onChange={(e) => setTransactionDate(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
-          )}
 
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" disabled={loading || !amount}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add Charge
-            </Button>
-          </DialogFooter>
+            {/* Transaction Date (for other types) */}
+            {chargeType !== 'tax' && chargeType !== 'discount' && (
+              <div className="space-y-2">
+                <Label htmlFor="transactionDate">Transaction Date</Label>
+                <Input
+                  id="transactionDate"
+                  type="date"
+                  value={transactionDate}
+                  onChange={(e) => setTransactionDate(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {getStatusForDate(transactionDate) === 'pending'
+                    ? '📅 Future date - will be marked as Pending'
+                    : '✓ Will be Posted immediately'}
+                </p>
+              </div>
+            )}
+
+            {/* Apply Tax Checkbox */}
+            {['room_charge', 'service_charge', 'fee'].includes(chargeType) && (
+              <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                <Checkbox
+                  id="applyTax"
+                  checked={applyTax}
+                  onCheckedChange={setApplyTax}
+                />
+                <div className="flex-1">
+                  <Label htmlFor="applyTax" className="font-medium cursor-pointer">
+                    Apply GST ({taxRate}%)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Tax will be added as a separate line item
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any additional notes..."
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Summary Footer */}
+          <div className="border-t bg-muted/30 px-6 py-4 space-y-4">
+            {amount && parseFloat(amount) > 0 && (
+              <div className="bg-background rounded-lg border p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatCurrency(parseFloat(amount || 0) * parseFloat(quantity || 1))}</span>
+                </div>
+                {applyTax && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">GST ({taxRate}%)</span>
+                    <span>{formatCurrency(calculateTaxAmount())}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-base pt-2 border-t">
+                  <span>Total</span>
+                  <span className={chargeType === 'discount' ? 'text-red-600' : 'text-green-600'}>
+                    {chargeType === 'discount' ? '-' : ''}{formatCurrency(Math.abs(calculateTotal()))}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="sm:justify-between gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="flex-1 sm:flex-none"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || !amount || parseFloat(amount) <= 0}
+                className="flex-1 sm:flex-none"
+              >
+                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Add Charge
+              </Button>
+            </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
