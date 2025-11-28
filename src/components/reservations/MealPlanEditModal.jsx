@@ -15,10 +15,12 @@ import {
   SelectValue,
 } from '../ui/select'
 import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
+import { Coffee, Utensils, UtensilsCrossed } from 'lucide-react'
 import { useMealPlans } from '../../context/MealPlanContext'
 
 export default function MealPlanEditModal({ open, onOpenChange, reservation, onSave }) {
-  const { getMealPlanName, getActivePlans } = useMealPlans()
+  const { getMealPlanName, getActivePlans, getMealPlanByCode, getMealsIncluded } = useMealPlans()
   const [selectedMealPlan, setSelectedMealPlan] = useState('')
 
   // Initialize meal plan when modal opens
@@ -51,11 +53,23 @@ export default function MealPlanEditModal({ open, onOpenChange, reservation, onS
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="mb-2 text-sm text-muted-foreground">
+        <div className="py-4 space-y-4">
+          <div className="text-sm text-muted-foreground">
             Current: <span className="font-medium text-foreground">
               {getMealPlanName(reservation.meal_plan) || 'None'}
             </span>
+            {reservation.meal_plan && (
+              <div className="flex gap-1 mt-1">
+                {getMealsIncluded(reservation.meal_plan).map(meal => (
+                  <Badge key={meal} variant="secondary" className="text-xs">
+                    {meal === 'Breakfast' && <Coffee className="h-3 w-3 mr-1" />}
+                    {meal === 'Lunch' && <Utensils className="h-3 w-3 mr-1" />}
+                    {meal === 'Dinner' && <UtensilsCrossed className="h-3 w-3 mr-1" />}
+                    {meal}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <Select
@@ -66,14 +80,68 @@ export default function MealPlanEditModal({ open, onOpenChange, reservation, onS
               <SelectValue placeholder="Select meal plan" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="none">
+                <span className="text-muted-foreground">No Meal Plan</span>
+              </SelectItem>
               {getActivePlans().map((plan) => (
                 <SelectItem key={plan.code} value={plan.code}>
-                  {plan.name}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{plan.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ₹{parseFloat(plan.price_per_person || 0).toFixed(0)}/person/day
+                      </span>
+                    </div>
+                    {plan.is_meal_plan !== false && (
+                      <div className="flex gap-1">
+                        {plan.includes_breakfast && (
+                          <Badge variant="outline" className="text-xs py-0 px-1.5 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+                            <Coffee className="h-3 w-3 mr-0.5" />B
+                          </Badge>
+                        )}
+                        {plan.includes_lunch && (
+                          <Badge variant="outline" className="text-xs py-0 px-1.5 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                            <Utensils className="h-3 w-3 mr-0.5" />L
+                          </Badge>
+                        )}
+                        {plan.includes_dinner && (
+                          <Badge variant="outline" className="text-xs py-0 px-1.5 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
+                            <UtensilsCrossed className="h-3 w-3 mr-0.5" />D
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
+          {/* Show selected plan details */}
+          {selectedMealPlan && selectedMealPlan !== reservation.meal_plan && (
+            <div className="p-3 rounded-lg bg-muted/50 text-sm">
+              <div className="font-medium text-foreground">
+                New Plan: {getMealPlanName(selectedMealPlan)}
+              </div>
+              {getMealsIncluded(selectedMealPlan).length > 0 ? (
+                <div className="flex gap-1 mt-2">
+                  {getMealsIncluded(selectedMealPlan).map(meal => (
+                    <Badge key={meal} variant="secondary" className="text-xs">
+                      {meal === 'Breakfast' && <Coffee className="h-3 w-3 mr-1" />}
+                      {meal === 'Lunch' && <Utensils className="h-3 w-3 mr-1" />}
+                      {meal === 'Dinner' && <UtensilsCrossed className="h-3 w-3 mr-1" />}
+                      {meal}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground mt-1">Room only - no meals included</p>
+              )}
+              <p className="text-muted-foreground mt-2 text-xs">
+                Note: Pending meal charges will be reconciled after saving.
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
