@@ -57,7 +57,7 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
   useEffect(() => {
     const loadTaxRate = async () => {
       try {
-        const rate = await getTotalTaxRate(chargeType)
+        const { rate } = await getTotalTaxRate(chargeType)
         setTaxRate(rate || 18)
       } catch (err) {
         console.error('Error loading tax rate:', err)
