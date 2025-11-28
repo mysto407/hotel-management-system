@@ -377,6 +377,330 @@ export const deleteMealPlan = async(id) => {
     return { error }
 }
 
+/**
+ * Get meal plan with calculated daily total from individual meal prices
+ * @param {string} code - The meal plan code
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const getMealPlanWithMeals = async (code) => {
+    const { data, error } = await supabase
+        .from('meal_plans')
+        .select('*')
+        .eq('code', code)
+        .single()
+
+    if (data) {
+        // Calculate daily total from individual meal prices
+        data.daily_total = (
+            (data.includes_breakfast ? parseFloat(data.breakfast_price || 0) : 0) +
+            (data.includes_lunch ? parseFloat(data.lunch_price || 0) : 0) +
+            (data.includes_dinner ? parseFloat(data.dinner_price || 0) : 0)
+        )
+
+        // Get included meals as array
+        data.included_meals = []
+        if (data.includes_breakfast) data.included_meals.push('Breakfast')
+        if (data.includes_lunch) data.included_meals.push('Lunch')
+        if (data.includes_dinner) data.included_meals.push('Dinner')
+    }
+
+    return { data, error }
+}
+
+/**
+ * Generate daily meal plan charges with tax (Cloudbeds-style daily posting)
+ * Creates one meal charge per night instead of lump sum
+ *
+ * @param {string} reservationId - The reservation ID
+ * @param {string} folioId - The folio ID
+ * @param {object} mealPlan - The meal plan object with is_meal_plan, daily_total, etc.
+ * @param {number} totalGuests - Total number of guests (adults + children)
+ * @param {string} checkInDate - Check-in date
+ * @param {string} checkOutDate - Check-out date
+ * @param {string} roomNumber - Room number for description
+ * @param {string} userId - User ID who created the charge
+ * @param {boolean} applyTaxes - Whether to apply taxes (default true)
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const generateDailyMealChargesWithTax = async (
+    reservationId,
+    folioId,
+    mealPlan,
+    totalGuests,
+    checkInDate,
+    checkOutDate,
+    roomNumber,
+    userId,
+    applyTaxes = true
+) => {
+    // Skip if not a meal plan (Room Only, etc.)
+    if (!mealPlan || mealPlan.is_meal_plan === false) {
+        return {
+            data: {
+                mealCharges: [],
+                taxCharges: [],
+                totalNights: 0,
+                totalMealCharges: 0,
+                totalTaxCharges: 0
+            },
+            error: null
+        }
+    }
+
+    const mealCharges = []
+    const taxCharges = []
+
+    const startDate = new Date(checkInDate)
+    const endDate = new Date(checkOutDate)
+
+    // Calculate number of nights
+    const nights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+
+    // Calculate daily meal cost per guest
+    const dailyMealCost = mealPlan.daily_total || parseFloat(mealPlan.price_per_person || 0)
+    const dailyTotalForAllGuests = dailyMealCost * totalGuests
+
+    // Build included meals string for description
+    const includedMeals = mealPlan.included_meals?.join(' + ') || mealPlan.name
+
+    for (let i = 0; i < nights; i++) {
+        const chargeDate = new Date(startDate)
+        chargeDate.setDate(chargeDate.getDate() + i)
+
+        // Set scheduled post date to midnight of the charge date
+        const scheduledPostDate = new Date(chargeDate)
+        scheduledPostDate.setHours(0, 0, 0, 0)
+
+        const description = `${mealPlan.name} (${includedMeals}) - Room ${roomNumber} - Day ${i + 1} of ${nights} (${totalGuests} guests)`
+
+        // Create service charge for this day's meals
+        const { data: mealCharge, error: chargeError } = await createServiceCharge({
+            folio_id: folioId,
+            reservation_id: reservationId,
+            amount: dailyTotalForAllGuests,
+            quantity: totalGuests,
+            rate: dailyMealCost,
+            description: description,
+            service_category: 'food',
+            scheduled_post_date: scheduledPostDate.toISOString(),
+            auto_posted: true,
+            created_by: userId,
+            metadata: {
+                meal_plan_code: mealPlan.code,
+                meal_plan_name: mealPlan.name,
+                includes_breakfast: mealPlan.includes_breakfast,
+                includes_lunch: mealPlan.includes_lunch,
+                includes_dinner: mealPlan.includes_dinner,
+                guests: totalGuests,
+                day_number: i + 1,
+                total_nights: nights
+            }
+        })
+
+        if (chargeError) {
+            console.error('Error creating meal charge:', chargeError)
+            continue
+        }
+
+        if (mealCharge && mealCharge[0]) {
+            mealCharges.push(mealCharge[0])
+
+            // Apply taxes if enabled
+            if (applyTaxes) {
+                const { data: taxes } = await calculateAndApplyTaxes(
+                    folioId,
+                    reservationId,
+                    dailyTotalForAllGuests,
+                    'service_charge',
+                    mealCharge[0].id,
+                    description,
+                    userId,
+                    scheduledPostDate
+                )
+                if (taxes) {
+                    taxCharges.push(...taxes)
+                }
+            }
+        }
+    }
+
+    return {
+        data: {
+            mealCharges,
+            taxCharges,
+            totalNights: nights,
+            totalMealCharges: mealCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0),
+            totalTaxCharges: taxCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0)
+        },
+        error: null
+    }
+}
+
+/**
+ * Void all pending meal charges for a reservation (for early checkout or date changes)
+ * Only voids charges with status 'pending', never touches posted/paid
+ *
+ * @param {string} reservationId - The reservation ID
+ * @param {string} reason - Reason for voiding
+ * @param {string} userId - User ID who voided
+ * @returns {Promise<{voidedCount: number, error: Error}>}
+ */
+export const voidPendingMealCharges = async (reservationId, reason, userId) => {
+    try {
+        // Get all pending meal-related service charges
+        const { data: transactions, error: fetchError } = await supabase
+            .from('folio_transactions')
+            .select('*')
+            .eq('reservation_id', reservationId)
+            .eq('transaction_type', 'service_charge')
+            .eq('service_category', 'food')
+            .eq('transaction_status', 'pending')
+
+        if (fetchError) {
+            return { voidedCount: 0, error: fetchError }
+        }
+
+        let voidedCount = 0
+        for (const charge of transactions || []) {
+            // Void the charge and its child tax transactions
+            const { error: voidError } = await voidTransactionWithChildren(
+                charge.id,
+                reason,
+                userId
+            )
+            if (!voidError) {
+                voidedCount++
+            }
+        }
+
+        return { voidedCount, error: null }
+    } catch (error) {
+        return { voidedCount: 0, error }
+    }
+}
+
+/**
+ * Get kitchen forecast for a specific date
+ * Uses meal-specific date logic:
+ * - Breakfast: Guests who slept last night (check_in < date AND check_out >= date)
+ * - Lunch/Dinner: Guests staying tonight (check_in <= date AND check_out > date)
+ *
+ * @param {string} reportDate - The date to get forecast for (YYYY-MM-DD)
+ * @returns {Promise<{data: object, error: Error}>}
+ */
+export const getKitchenForecast = async (reportDate) => {
+    try {
+        // Get all checked-in reservations with meal plans for breakfast eligibility
+        // Breakfast: slept last night = check_in < reportDate AND check_out >= reportDate
+        const { data: breakfastReservations, error: breakfastError } = await supabase
+            .from('reservations')
+            .select(`
+                *,
+                guests (*),
+                rooms (room_number),
+                meal_plans!meal_plan (*)
+            `)
+            .lt('check_in_date', reportDate)
+            .gte('check_out_date', reportDate)
+            .in('status', ['Checked-in', 'Confirmed'])
+            .not('meal_plan', 'is', null)
+
+        if (breakfastError) {
+            return { data: null, error: breakfastError }
+        }
+
+        // Get all checked-in reservations for lunch/dinner eligibility
+        // Lunch/Dinner: staying tonight = check_in <= reportDate AND check_out > reportDate
+        const { data: lunchDinnerReservations, error: ldError } = await supabase
+            .from('reservations')
+            .select(`
+                *,
+                guests (*),
+                rooms (room_number),
+                meal_plans!meal_plan (*)
+            `)
+            .lte('check_in_date', reportDate)
+            .gt('check_out_date', reportDate)
+            .in('status', ['Checked-in', 'Confirmed'])
+            .not('meal_plan', 'is', null)
+
+        if (ldError) {
+            return { data: null, error: ldError }
+        }
+
+        // Build counts
+        let breakfastCount = { adults: 0, children: 0, total: 0, rooms: [] }
+        let lunchCount = { adults: 0, children: 0, total: 0, rooms: [] }
+        let dinnerCount = { adults: 0, children: 0, total: 0, rooms: [] }
+
+        // Process breakfast eligible reservations
+        for (const res of breakfastReservations || []) {
+            const mealPlan = res.meal_plans
+            if (mealPlan?.includes_breakfast && mealPlan?.is_meal_plan !== false) {
+                const adults = res.adults || 1
+                const children = res.children || 0
+                breakfastCount.adults += adults
+                breakfastCount.children += children
+                breakfastCount.total += adults + children
+                breakfastCount.rooms.push({
+                    room_number: res.rooms?.room_number || res.room_id,
+                    guest_name: res.guests?.name || 'Guest',
+                    adults,
+                    children,
+                    meal_plan: mealPlan.code
+                })
+            }
+        }
+
+        // Process lunch/dinner eligible reservations
+        for (const res of lunchDinnerReservations || []) {
+            const mealPlan = res.meal_plans
+            if (!mealPlan || mealPlan.is_meal_plan === false) continue
+
+            const adults = res.adults || 1
+            const children = res.children || 0
+            const roomInfo = {
+                room_number: res.rooms?.room_number || res.room_id,
+                guest_name: res.guests?.name || 'Guest',
+                adults,
+                children,
+                meal_plan: mealPlan.code
+            }
+
+            if (mealPlan.includes_lunch) {
+                lunchCount.adults += adults
+                lunchCount.children += children
+                lunchCount.total += adults + children
+                lunchCount.rooms.push(roomInfo)
+            }
+
+            if (mealPlan.includes_dinner) {
+                dinnerCount.adults += adults
+                dinnerCount.children += children
+                dinnerCount.total += adults + children
+                dinnerCount.rooms.push(roomInfo)
+            }
+        }
+
+        return {
+            data: {
+                date: reportDate,
+                breakfast: breakfastCount,
+                lunch: lunchCount,
+                dinner: dinnerCount,
+                summary: {
+                    total_breakfast: breakfastCount.total,
+                    total_lunch: lunchCount.total,
+                    total_dinner: dinnerCount.total
+                }
+            },
+            error: null
+        }
+    } catch (error) {
+        return { data: null, error }
+    }
+}
+
 // Reservations
 export const getReservations = async() => {
     const { data, error } = await supabase

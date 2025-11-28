@@ -4,6 +4,7 @@ import {
   getMealPlans,
   getActiveMealPlans,
   getMealPlanByCode as getMealPlanByCodeAPI,
+  getMealPlanWithMeals,
   createMealPlan as createMealPlanAPI,
   updateMealPlan as updateMealPlanAPI,
   deleteMealPlan as deleteMealPlanAPI
