@@ -1971,6 +1971,185 @@ export const transferTransactionToReservation = async (transactionId, targetRese
     }
 }
 
+// Split a transaction into multiple parts
+export const splitTransaction = async (transactionId, splits, userId = null) => {
+    // splits is an array of { amount, description (optional), folioId (optional) }
+    // e.g., [{ amount: 50, folioId: 'folio-1' }, { amount: 50, folioId: 'folio-2' }]
+
+    if (!splits || splits.length < 2) {
+        return { data: null, error: { message: 'Must provide at least 2 splits' } }
+    }
+
+    // Fetch the original transaction
+    const { data: original, error: fetchError } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('id', transactionId)
+        .single()
+
+    if (fetchError) return { data: null, error: fetchError }
+
+    // Can only split posted transactions
+    if (original.transaction_status !== 'posted') {
+        return { data: null, error: { message: 'Can only split posted transactions' } }
+    }
+
+    // Cannot split payments (only charges)
+    if (original.amount < 0) {
+        return { data: null, error: { message: 'Cannot split payments, only charges' } }
+    }
+
+    // Validate split amounts total matches original
+    const splitTotal = splits.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0)
+    const originalAmount = Math.abs(original.amount)
+
+    // Allow small rounding differences (0.01)
+    if (Math.abs(splitTotal - originalAmount) > 0.01) {
+        return {
+            data: null,
+            error: { message: `Split amounts (${splitTotal}) must equal original amount (${originalAmount})` }
+        }
+    }
+
+    // Reverse the original transaction
+    const reversalData = {
+        folio_id: original.folio_id,
+        reservation_id: original.reservation_id,
+        transaction_type: 'reversal',
+        transaction_category: original.transaction_category,
+        amount: -Math.abs(original.amount),
+        description: `Split: ${original.description}`,
+        notes: `Original transaction split into ${splits.length} parts`,
+        transaction_status: 'posted',
+        transaction_date: new Date().toISOString(),
+        parent_transaction_id: original.id
+    }
+
+    const { data: reversalTx, error: reversalError } = await supabase
+        .from('folio_transactions')
+        .insert([reversalData])
+        .select()
+
+    if (reversalError) return { data: null, error: reversalError }
+
+    // Mark the original transaction as reversed
+    await supabase
+        .from('folio_transactions')
+        .update({ transaction_status: 'reversed' })
+        .eq('id', transactionId)
+
+    // Create new transactions for each split
+    const newTransactions = []
+    for (let i = 0; i < splits.length; i++) {
+        const split = splits[i]
+        const splitAmount = parseFloat(split.amount)
+
+        const splitData = {
+            folio_id: split.folioId || original.folio_id,
+            reservation_id: original.reservation_id,
+            transaction_type: original.transaction_type,
+            transaction_category: original.transaction_category,
+            amount: splitAmount,
+            description: split.description || `${original.description} (Part ${i + 1}/${splits.length})`,
+            notes: `Split from original transaction`,
+            transaction_status: 'posted',
+            transaction_date: new Date().toISOString(),
+            service_category: original.service_category
+        }
+
+        const { data: splitTx, error: splitError } = await supabase
+            .from('folio_transactions')
+            .insert([splitData])
+            .select()
+
+        if (splitError) {
+            console.error('Error creating split transaction:', splitError)
+            continue
+        }
+
+        newTransactions.push(splitTx?.[0])
+    }
+
+    // Handle child transactions (taxes) - distribute proportionally
+    const { data: children } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('parent_transaction_id', transactionId)
+        .not('transaction_status', 'in', '("voided","reversed")')
+
+    if (children && children.length > 0) {
+        for (const child of children) {
+            // Reverse the original child
+            await supabase
+                .from('folio_transactions')
+                .insert([{
+                    folio_id: child.folio_id,
+                    reservation_id: child.reservation_id,
+                    transaction_type: 'reversal',
+                    transaction_category: child.transaction_category,
+                    amount: -Math.abs(child.amount),
+                    description: `Split: ${child.description}`,
+                    notes: `Tax split proportionally`,
+                    transaction_status: 'posted',
+                    transaction_date: new Date().toISOString(),
+                    parent_transaction_id: child.id
+                }])
+
+            // Mark original child as reversed
+            await supabase
+                .from('folio_transactions')
+                .update({ transaction_status: 'reversed' })
+                .eq('id', child.id)
+
+            // Create proportional tax for each split
+            for (let i = 0; i < splits.length; i++) {
+                const split = splits[i]
+                const proportion = parseFloat(split.amount) / originalAmount
+                const proportionalTax = Math.abs(child.amount) * proportion
+
+                await supabase
+                    .from('folio_transactions')
+                    .insert([{
+                        folio_id: split.folioId || child.folio_id,
+                        reservation_id: child.reservation_id,
+                        transaction_type: child.transaction_type,
+                        transaction_category: child.transaction_category,
+                        amount: proportionalTax,
+                        description: `${child.description} (Part ${i + 1}/${splits.length})`,
+                        notes: `Proportional tax from split`,
+                        transaction_status: 'posted',
+                        transaction_date: new Date().toISOString(),
+                        parent_transaction_id: newTransactions[i]?.id,
+                        tax_rate: child.tax_rate,
+                        tax_name: child.tax_name
+                    }])
+            }
+        }
+    }
+
+    // Log the split action
+    if (userId) {
+        await logTransactionAction({
+            transactionId,
+            folioId: original.folio_id,
+            actionType: 'split',
+            performedBy: userId,
+            previousValues: { amount: original.amount },
+            newValues: { splits: splits.map(s => s.amount) },
+            changesSummary: `Split transaction into ${splits.length} parts`
+        })
+    }
+
+    return {
+        data: {
+            reversalTransaction: reversalTx?.[0],
+            newTransactions,
+            splitCount: splits.length
+        },
+        error: null
+    }
+}
+
 // Transaction Types
 export const TRANSACTION_TYPES = {
     ROOM_CHARGE: 'room_charge',

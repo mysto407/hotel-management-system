@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -39,18 +39,16 @@ import {
 import {
   getTransactionsByReservation,
   getFoliosByReservation,
-  getTransactionsByFolio,
   getFolioBalance,
   moveTransactionToFolio,
   voidTransactionWithChildren,
-  reverseTransaction,
-  TRANSACTION_TYPES,
-  TRANSACTION_STATUS
+  reverseTransaction
 } from '@/lib/supabase'
 import { formatCurrency } from '@/utils/currency'
 import AddChargeModal from './AddChargeModal'
 import AddPaymentModal from './AddPaymentModal'
 import CreateFolioModal from './CreateFolioModal'
+import TransferTransactionModal from './TransferTransactionModal'
 
 export default function FolioTab({ reservationIds, primaryReservation }) {
   const [transactions, setTransactions] = useState([])
@@ -68,6 +66,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
   const [activeFolioId, setActiveFolioId] = useState(null)
   const [folioBalances, setFolioBalances] = useState({})
   const [createFolioOpen, setCreateFolioOpen] = useState(false)
+  const [transferModalOpen, setTransferModalOpen] = useState(false)
 
   // Fetch folios for the primary reservation
   const fetchFolios = async () => {
@@ -169,9 +168,6 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
       setActionLoading(false)
     }
   }
-
-  // Get active folio object
-  const activeFolio = folios.find(f => f.id === activeFolioId)
 
   // Calculate transactions with running balance
   const transactionsWithBalance = useMemo(() => {
@@ -544,6 +540,18 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
                                   }
                                 </>
                               )}
+                              {/* Transfer to another room (only for charges) */}
+                              {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedTransaction(txn)
+                                    setTransferModalOpen(true)
+                                  }}
+                                >
+                                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                  Transfer to Another Room
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               {canVoid(txn) && (
                                 <DropdownMenuItem
@@ -679,6 +687,19 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         onOpenChange={setCreateFolioOpen}
         reservationId={primaryReservation?.id}
         onSuccess={handleFolioCreated}
+      />
+
+      {/* Transfer Transaction Modal */}
+      <TransferTransactionModal
+        open={transferModalOpen}
+        onOpenChange={setTransferModalOpen}
+        transaction={selectedTransaction}
+        currentReservationId={primaryReservation?.id}
+        onSuccess={() => {
+          fetchTransactions()
+          fetchFolios()
+          setSelectedTransaction(null)
+        }}
       />
     </div>
   )
