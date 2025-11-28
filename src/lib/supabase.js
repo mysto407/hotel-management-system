@@ -1764,6 +1764,213 @@ export const deleteFolio = async (folioId) => {
     return { data: data?.[0], error }
 }
 
+// Search for active reservations (for transfer target selection)
+export const searchActiveReservations = async (searchTerm = '', excludeReservationId = null) => {
+    let query = supabase
+        .from('reservations')
+        .select(`
+            id,
+            confirmation_number,
+            check_in_date,
+            check_out_date,
+            status,
+            guest:guests (id, name, phone),
+            room:rooms (id, room_number)
+        `)
+        .in('status', ['Confirmed', 'Checked-in'])
+        .order('check_in_date', { ascending: false })
+        .limit(20)
+
+    if (excludeReservationId) {
+        query = query.neq('id', excludeReservationId)
+    }
+
+    // Search by room number, guest name, or confirmation number
+    if (searchTerm && searchTerm.trim()) {
+        const term = searchTerm.trim().toLowerCase()
+        // Use ilike for partial matching
+        query = query.or(`confirmation_number.ilike.%${term}%,guests.name.ilike.%${term}%,rooms.room_number.ilike.%${term}%`)
+    }
+
+    const { data, error } = await query
+
+    return { data, error }
+}
+
+// Transfer a transaction to another reservation (creates reversal on source, charge on target)
+export const transferTransactionToReservation = async (transactionId, targetReservationId, reason = '', userId = null) => {
+    // Fetch the original transaction
+    const { data: original, error: fetchError } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('id', transactionId)
+        .single()
+
+    if (fetchError) return { data: null, error: fetchError }
+
+    // Can only transfer posted transactions
+    if (original.transaction_status !== 'posted') {
+        return { data: null, error: { message: 'Can only transfer posted transactions' } }
+    }
+
+    // Cannot transfer payments (only charges)
+    if (original.amount < 0) {
+        return { data: null, error: { message: 'Cannot transfer payments, only charges' } }
+    }
+
+    const sourceReservationId = original.reservation_id
+
+    // Get the master folio for the target reservation
+    const { data: targetFolios, error: folioError } = await supabase
+        .from('folios')
+        .select('id')
+        .eq('reservation_id', targetReservationId)
+        .eq('folio_type', 'master')
+        .eq('is_active', true)
+        .limit(1)
+
+    if (folioError) return { data: null, error: folioError }
+
+    if (!targetFolios || targetFolios.length === 0) {
+        return { data: null, error: { message: 'Target reservation has no active master folio' } }
+    }
+
+    const targetFolioId = targetFolios[0].id
+
+    // Create a reversal transaction on the source (negative of original amount)
+    const reversalData = {
+        folio_id: original.folio_id,
+        reservation_id: sourceReservationId,
+        transaction_type: 'reversal',
+        transaction_category: original.transaction_category,
+        amount: -Math.abs(original.amount),
+        description: `Transfer out: ${original.description}`,
+        notes: reason || `Transferred to another reservation`,
+        transaction_status: 'posted',
+        transaction_date: new Date().toISOString(),
+        parent_transaction_id: original.id
+    }
+
+    const { data: reversalTx, error: reversalError } = await supabase
+        .from('folio_transactions')
+        .insert([reversalData])
+        .select()
+
+    if (reversalError) return { data: null, error: reversalError }
+
+    // Create a charge transaction on the target (positive amount)
+    const chargeData = {
+        folio_id: targetFolioId,
+        reservation_id: targetReservationId,
+        transaction_type: original.transaction_type,
+        transaction_category: original.transaction_category,
+        amount: Math.abs(original.amount),
+        description: `Transfer in: ${original.description}`,
+        notes: reason || `Transferred from another reservation`,
+        transaction_status: 'posted',
+        transaction_date: new Date().toISOString(),
+        service_category: original.service_category,
+        quantity: original.quantity,
+        unit_price: original.unit_price
+    }
+
+    const { data: chargeTx, error: chargeError } = await supabase
+        .from('folio_transactions')
+        .insert([chargeData])
+        .select()
+
+    if (chargeError) {
+        // Rollback: void the reversal we just created
+        await supabase
+            .from('folio_transactions')
+            .update({ transaction_status: 'voided' })
+            .eq('id', reversalTx[0].id)
+        return { data: null, error: chargeError }
+    }
+
+    // Mark the original transaction as reversed
+    await supabase
+        .from('folio_transactions')
+        .update({ transaction_status: 'reversed' })
+        .eq('id', transactionId)
+
+    // Transfer child transactions (e.g., taxes) too
+    const { data: children } = await supabase
+        .from('folio_transactions')
+        .select('*')
+        .eq('parent_transaction_id', transactionId)
+        .not('transaction_status', 'in', '("voided","reversed")')
+
+    let childrenTransferred = 0
+    if (children && children.length > 0) {
+        for (const child of children) {
+            // Create reversal for child
+            await supabase
+                .from('folio_transactions')
+                .insert([{
+                    folio_id: child.folio_id,
+                    reservation_id: sourceReservationId,
+                    transaction_type: 'reversal',
+                    transaction_category: child.transaction_category,
+                    amount: -Math.abs(child.amount),
+                    description: `Transfer out: ${child.description}`,
+                    notes: reason || `Transferred to another reservation`,
+                    transaction_status: 'posted',
+                    transaction_date: new Date().toISOString(),
+                    parent_transaction_id: child.id
+                }])
+
+            // Create charge for child on target
+            await supabase
+                .from('folio_transactions')
+                .insert([{
+                    folio_id: targetFolioId,
+                    reservation_id: targetReservationId,
+                    transaction_type: child.transaction_type,
+                    transaction_category: child.transaction_category,
+                    amount: Math.abs(child.amount),
+                    description: `Transfer in: ${child.description}`,
+                    notes: reason || `Transferred from another reservation`,
+                    transaction_status: 'posted',
+                    transaction_date: new Date().toISOString(),
+                    parent_transaction_id: chargeTx[0].id, // Link to new parent
+                    tax_rate: child.tax_rate,
+                    tax_name: child.tax_name
+                }])
+
+            // Mark child as reversed
+            await supabase
+                .from('folio_transactions')
+                .update({ transaction_status: 'reversed' })
+                .eq('id', child.id)
+
+            childrenTransferred++
+        }
+    }
+
+    // Log the transfer action
+    if (userId) {
+        await logTransactionAction({
+            transactionId,
+            folioId: original.folio_id,
+            actionType: 'transfer',
+            performedBy: userId,
+            previousValues: { reservation_id: sourceReservationId },
+            newValues: { reservation_id: targetReservationId },
+            changesSummary: `Transferred transaction from reservation ${sourceReservationId} to ${targetReservationId}`
+        })
+    }
+
+    return {
+        data: {
+            reversalTransaction: reversalTx?.[0],
+            newTransaction: chargeTx?.[0],
+            childrenTransferred
+        },
+        error: null
+    }
+}
+
 // Transaction Types
 export const TRANSACTION_TYPES = {
     ROOM_CHARGE: 'room_charge',
