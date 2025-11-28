@@ -15,10 +15,12 @@ import {
   autoAssignRooms as autoAssignRoomsAPI,
   // Folio and charge generation functions
   getOrCreateMasterFolio,
+  getFolioByReservation,
   generateDailyRoomChargesWithTax,
   createServiceChargeWithTax,
   generateExtraPersonCharges,
   voidTransaction,
+  voidTransactionWithChildren,
   getTransactionsByReservation
 } from '../lib/supabase';
 import { useAlert } from './AlertContext';
@@ -153,14 +155,87 @@ export const ReservationProvider = ({ children }) => {
     console.log('Folio charges generated successfully for reservation:', reservation.id);
   };
 
-  const updateReservation = async (id, updatedReservation) => {
+  const updateReservation = async (id, updatedReservation, options = {}) => {
+    const { skipChargeReconciliation = false } = options;
+
+    // Get current reservation to detect date changes
+    const currentReservation = reservations.find(r => r.id === id);
+
     const { error } = await updateReservationAPI(id, updatedReservation);
     if (error) {
       console.error('Error updating reservation:', error);
       showError('Failed to update reservation: ' + error.message);
       return;
     }
+
+    // Check if dates changed and reconcile charges if needed
+    if (!skipChargeReconciliation && currentReservation) {
+      const datesChanged = (
+        (updatedReservation.check_in_date && updatedReservation.check_in_date !== currentReservation.check_in_date) ||
+        (updatedReservation.check_out_date && updatedReservation.check_out_date !== currentReservation.check_out_date)
+      );
+
+      if (datesChanged) {
+        try {
+          await reconcileRoomCharges(id, currentReservation, updatedReservation);
+        } catch (reconcileError) {
+          console.error('Error reconciling charges:', reconcileError);
+          // Don't fail the update, just log the error
+        }
+      }
+    }
+
     await loadReservations();
+  };
+
+  // Reconcile room charges when reservation dates change
+  const reconcileRoomCharges = async (reservationId, oldReservation, newDates) => {
+    const userId = user?.id || null;
+
+    // 1. Get all transactions for this reservation
+    const { data: transactions } = await getTransactionsByReservation(reservationId);
+    if (!transactions) return;
+
+    // 2. Void all pending room_charge transactions (and their child taxes)
+    const pendingRoomCharges = transactions.filter(
+      t => t.transaction_type === 'room_charge' && t.transaction_status === 'pending'
+    );
+
+    for (const charge of pendingRoomCharges) {
+      await voidTransactionWithChildren(charge.id, 'Date change - charges regenerated', userId);
+    }
+
+    console.log(`Voided ${pendingRoomCharges.length} pending room charges due to date change`);
+
+    // 3. Get the folio for this reservation
+    const { data: folio } = await getFolioByReservation(reservationId);
+    if (!folio) {
+      console.error('No folio found for reservation');
+      return;
+    }
+
+    // 4. Calculate new room rate
+    const newCheckIn = newDates.check_in_date || oldReservation.check_in_date;
+    const newCheckOut = newDates.check_out_date || oldReservation.check_out_date;
+    const nights = calculateNights(newCheckIn, newCheckOut);
+
+    // Try to use the new total_amount if provided, otherwise recalculate
+    const totalAmount = newDates.total_amount || oldReservation.total_amount;
+    const roomRate = parseFloat(totalAmount) / nights;
+
+    // 5. Regenerate room charges with tax
+    await generateDailyRoomChargesWithTax(
+      reservationId,
+      folio.id,
+      roomRate,
+      newCheckIn,
+      newCheckOut,
+      'Room', // Room number may not be available here
+      userId,
+      true
+    );
+
+    console.log(`Regenerated ${nights} room charges for new date range`);
   };
 
   const deleteReservation = async (id) => {
