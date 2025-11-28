@@ -1,6 +1,6 @@
 // src/pages/reports/Reports.jsx
 import { useState, useMemo } from 'react';
-import { Calendar, DollarSign, TrendingUp, FileText, Download, Printer, Filter } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, FileText, Download, Printer, Filter, Utensils } from 'lucide-react';
 import { useBilling } from '../../context/BillingContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
@@ -22,10 +22,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import KitchenForecastReport from '../../components/reports/KitchenForecastReport';
 
 const Reports = () => {
   const { bills } = useBilling();
@@ -173,15 +175,31 @@ const Reports = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center print:hidden">
         <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-        <div className="flex gap-2">
-          <Button onClick={handleExport} variant="outline">
-            <Download size={18} className="mr-2" /> Export CSV
-          </Button>
-          <Button onClick={handlePrint}>
-            <Printer size={18} className="mr-2" /> Print Report
-          </Button>
-        </div>
       </div>
+
+      <Tabs defaultValue="financial" className="space-y-4">
+        <TabsList className="print:hidden">
+          <TabsTrigger value="financial" className="gap-2">
+            <DollarSign size={16} /> Financial Reports
+          </TabsTrigger>
+          <TabsTrigger value="kitchen" className="gap-2">
+            <Utensils size={16} /> Kitchen Forecast
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kitchen" className="space-y-4">
+          <KitchenForecastReport />
+        </TabsContent>
+
+        <TabsContent value="financial" className="space-y-6">
+          <div className="flex justify-end gap-2 print:hidden">
+            <Button onClick={handleExport} variant="outline">
+              <Download size={18} className="mr-2" /> Export CSV
+            </Button>
+            <Button onClick={handlePrint}>
+              <Printer size={18} className="mr-2" /> Print Report
+            </Button>
+          </div>
 
       {/* Date Range Filters */}
       <Card className="print:hidden">
