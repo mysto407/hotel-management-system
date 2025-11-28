@@ -1495,6 +1495,49 @@ export const deleteDiscountApplication = async(id) => {
 // Folio Transactions - Enhanced Transaction System
 // ============================================================================
 
+// Folio Management Functions
+export const createMasterFolio = async (reservationId, guestName = 'Guest') => {
+    // Generate folio number
+    const timestamp = Date.now().toString(36).toUpperCase()
+    const folioNumber = `F-${timestamp}`
+
+    const { data, error } = await supabase
+        .from('folios')
+        .insert({
+            reservation_id: reservationId,
+            folio_type: 'master',
+            folio_number: folioNumber,
+            name: `${guestName} - Main Folio`,
+            is_active: true,
+            checkout_status: 'open'
+        })
+        .select()
+
+    return { data: data?.[0], error }
+}
+
+export const getFolioByReservation = async (reservationId) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .eq('folio_type', 'master')
+        .single()
+
+    return { data, error }
+}
+
+export const getOrCreateMasterFolio = async (reservationId, guestName = 'Guest') => {
+    // First try to get existing folio
+    const { data: existing } = await getFolioByReservation(reservationId)
+    if (existing) {
+        return { data: existing, error: null }
+    }
+
+    // Create new master folio
+    return await createMasterFolio(reservationId, guestName)
+}
+
 // Transaction Types
 export const TRANSACTION_TYPES = {
     ROOM_CHARGE: 'room_charge',
