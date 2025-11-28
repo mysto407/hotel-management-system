@@ -10,7 +10,6 @@ import ReservationDetails from '../../pages/reservations/ReservationDetails';
 import NewReservation from '../../pages/reservations/NewReservation';
 import GuestDetailsPage from '../../pages/reservations/GuestDetailsPage';
 import PaymentPage from '../../pages/reservations/PaymentPage';
-import Billing from '../../pages/billing/Billing';
 import Discounts from '../../pages/Discounts';
 import Reports from '../../pages/reports/Reports';
 import Inventory from '../../pages/inventory/Inventory';
@@ -62,7 +61,6 @@ export const Layout = () => {
     'new-reservation': <NewReservation onNavigate={handleNavigate} />,
     'guest-details': <GuestDetailsPage onNavigate={handleNavigate} />,
     'payment': <PaymentPage onNavigate={handleNavigate} />,
-    billing: <Billing />,
     discounts: <Discounts />,
     reports: <Reports />,
     inventory: <Inventory />,

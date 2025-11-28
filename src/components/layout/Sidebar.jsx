@@ -1,6 +1,6 @@
 // src/components/layout/Sidebar.jsx
 import { useState, useEffect } from 'react';
-import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, Building2, DoorOpen, UserCog, CreditCard, FileText, CalendarDays, ChevronDown, Menu } from 'lucide-react';
+import { Home, Calendar, Receipt, Package, Users, BarChart3, Settings, Hotel, Building2, DoorOpen, UserCog, FileText, CalendarDays, ChevronDown, Menu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,6 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     { id: 'room-status', label: 'Room Status', icon: Hotel, roles: ['Admin', 'Front Desk'] },
     { id: 'reservations', label: 'Reservations', icon: Calendar, roles: ['Admin', 'Front Desk'] },
     { id: 'reservation-calendar', label: 'Booking Calendar', icon: CalendarDays, roles: ['Admin', 'Front Desk'] },
-    { id: 'billing', label: 'Billing', icon: CreditCard, roles: ['Admin', 'Front Desk', 'Accounts'] },
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'Accounts'] },
     { id: 'inventory', label: 'Inventory', icon: Package, roles: ['Admin', 'Store'] },
     { id: 'guests', label: 'Guests', icon: Users, roles: ['Admin', 'Front Desk'] },
@@ -84,7 +83,6 @@ export const Sidebar = ({ currentPage, onNavigate, isOpen, onClose }) => {
     {
       category: 'Financial',
       items: [
-        { id: 'billing', label: 'Billing', icon: CreditCard, roles: ['Admin', 'Front Desk', 'Accounts'] },
         { id: 'expenses', label: 'Expenses', icon: FileText, roles: ['Admin', 'Accounts'] },
         { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'Accounts'] }
       ]
