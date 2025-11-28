@@ -376,8 +376,9 @@ export default function ReservationDetails({ onNavigate }) {
 
       {/* Tabs Section */}
       <Tabs defaultValue="accommodations" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="accommodations">Accommodations</TabsTrigger>
+          <TabsTrigger value="folio">Folio</TabsTrigger>
           <TabsTrigger value="guest-details">Guest Details</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notesCount})</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -547,6 +548,10 @@ export default function ReservationDetails({ onNavigate }) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="folio">
+          {/* Folio tab - to be implemented */}
         </TabsContent>
 
         <TabsContent value="guest-details">
