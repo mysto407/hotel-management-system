@@ -41,6 +41,7 @@ import NotesTab from '../../components/reservations/NotesTab'
 import QuickEditModal from '../../components/reservations/QuickEditModal'
 import MealPlanEditModal from '../../components/reservations/MealPlanEditModal'
 import GuestDetailsTab from '../../components/reservations/GuestDetailsTab'
+import FolioTab from '../../components/reservations/FolioTab'
 
 export default function ReservationDetails({ onNavigate }) {
   const { reservations, updateReservation, splitReservation } = useReservations()
@@ -551,7 +552,10 @@ export default function ReservationDetails({ onNavigate }) {
         </TabsContent>
 
         <TabsContent value="folio">
-          {/* Folio tab - to be implemented */}
+          <FolioTab
+            reservationIds={groupedReservations.map(r => r.id)}
+            primaryReservation={primaryReservation}
+          />
         </TabsContent>
 
         <TabsContent value="guest-details">
