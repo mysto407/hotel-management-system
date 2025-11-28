@@ -2856,14 +2856,14 @@ export const calculateAndApplyTaxes = async (
                 description: `${tax.name} (${tax.rate}%)${chargeDescription ? ` on ${chargeDescription}` : ''}`,
                 tax_rate: tax.rate,
                 tax_name: tax.name,
-                reference_number: parentTransactionId,
+                parent_transaction_id: parentTransactionId, // Link tax to parent charge for cascading void
+                reference_number: null,
                 notes: `Tax applied to ${chargeType}`,
                 created_by: userId,
                 auto_posted: !!scheduledPostDate,
                 metadata: {
                     tax_config_id: tax.id,
                     tax_code: tax.code,
-                    parent_transaction_id: parentTransactionId,
                     base_amount: baseAmount,
                     is_compound: tax.is_compound
                 }
