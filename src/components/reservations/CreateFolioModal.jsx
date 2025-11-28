@@ -22,20 +22,20 @@ import { createFolio } from '@/lib/supabase'
 
 const FOLIO_TYPES = [
   { value: 'incidentals', label: 'Incidentals', description: 'For minibar, spa, room service charges' },
-  { value: 'split', label: 'Split / Guest B', description: 'For splitting charges between guests' },
+  { value: 'guest', label: 'Split / Guest B', description: 'For splitting charges between guests' },
   { value: 'company', label: 'Company', description: 'For corporate billing' },
-  { value: 'custom', label: 'Custom', description: 'Custom folio type' }
+  { value: 'other', label: 'Other', description: 'Custom folio type' }
 ]
 
 export default function CreateFolioModal({ open, onOpenChange, reservationId, onSuccess }) {
   const [loading, setLoading] = useState(false)
-  const [folioType, setFolioType] = useState('split')
+  const [folioType, setFolioType] = useState('guest')
   const [name, setName] = useState('')
 
   // Reset form when modal opens
   const handleOpenChange = (newOpen) => {
     if (newOpen) {
-      setFolioType('split')
+      setFolioType('guest')
       setName('')
     }
     onOpenChange(newOpen)
