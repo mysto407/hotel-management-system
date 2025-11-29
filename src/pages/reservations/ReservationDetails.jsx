@@ -60,7 +60,11 @@ export default function ReservationDetails({ onNavigate }) {
   const [selectedReservationForEdit, setSelectedReservationForEdit] = useState(null)
   const [mealPlanModalOpen, setMealPlanModalOpen] = useState(false)
   const [selectedReservationForMealPlan, setSelectedReservationForMealPlan] = useState(null)
-  const [realTimeBalance, setRealTimeBalance] = useState(null)
+  const [folioTotals, setFolioTotals] = useState({
+    totalCharges: null,
+    totalPayments: null,
+    balance: null
+  })
 
   // Load reservation details when component mounts
   useEffect(() => {
@@ -123,14 +127,15 @@ export default function ReservationDetails({ onNavigate }) {
     }
   }
 
-  // Fetch real-time folio balance for all reservations in the group
+  // Fetch real-time folio totals for all reservations in the group
   useEffect(() => {
-    const fetchRealTimeBalance = async () => {
+    const fetchFolioTotals = async () => {
       if (!groupedReservations.length) return
 
       try {
-        let totalBalance = 0
-        // Get folios for each reservation and sum their balances
+        let totalCharges = 0
+        let totalPayments = 0
+        // Get folios for each reservation and sum their totals
         for (const reservation of groupedReservations) {
           const { data: folios, error: folioError } = await getFoliosByReservation(reservation.id)
           if (folioError) {
@@ -144,17 +149,22 @@ export default function ReservationDetails({ onNavigate }) {
               continue
             }
             if (balanceData) {
-              totalBalance += balanceData.balance
+              totalCharges += balanceData.totalCharges || 0
+              totalPayments += balanceData.totalPayments || 0
             }
           }
         }
-        setRealTimeBalance(totalBalance)
+        setFolioTotals({
+          totalCharges,
+          totalPayments,
+          balance: totalCharges - totalPayments
+        })
       } catch (error) {
-        console.error('Error fetching real-time balance:', error)
+        console.error('Error fetching folio totals:', error)
       }
     }
 
-    fetchRealTimeBalance()
+    fetchFolioTotals()
   }, [groupedReservations])
 
   // Helper function to get room info (must be before useMemo)
@@ -395,8 +405,8 @@ export default function ReservationDetails({ onNavigate }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
-              <p className={`font-bold text-lg ${(realTimeBalance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                ₹{(realTimeBalance ?? balanceDue).toFixed(2)}
+              <p className={`font-bold text-lg ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                ₹{(folioTotals.balance ?? balanceDue).toFixed(2)}
               </p>
             </div>
           </div>
@@ -561,23 +571,23 @@ export default function ReservationDetails({ onNavigate }) {
                 <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
                   <DollarSign className="h-8 w-8 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Amount</p>
-                    <p className="text-xl font-bold">₹{totalAmount.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Total Charges</p>
+                    <p className="text-xl font-bold">₹{(folioTotals.totalCharges ?? totalAmount).toFixed(2)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
                   <DollarSign className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Paid</p>
-                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">₹{totalPaid.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">Payments</p>
+                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">₹{(folioTotals.totalPayments ?? totalPaid).toFixed(2)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                  <DollarSign className={`h-8 w-8 ${(realTimeBalance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                  <DollarSign className={`h-8 w-8 ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
                   <div>
                     <p className="text-sm text-muted-foreground">Balance Due</p>
-                    <p className={`text-xl font-bold ${(realTimeBalance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                      ₹{(realTimeBalance ?? balanceDue).toFixed(2)}
+                    <p className={`text-xl font-bold ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                      ₹{(folioTotals.balance ?? balanceDue).toFixed(2)}
                     </p>
                   </div>
                 </div>
