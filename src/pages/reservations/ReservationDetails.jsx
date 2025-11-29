@@ -149,8 +149,8 @@ export default function ReservationDetails({ onNavigate }) {
               continue
             }
             if (balanceData) {
-              totalCharges += balanceData.totalCharges || 0
-              totalPayments += balanceData.totalPayments || 0
+              totalCharges += balanceData.charges || 0
+              totalPayments += balanceData.payments || 0
             }
           }
         }
