@@ -5,7 +5,7 @@ import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
 import { useAgents } from '../../context/AgentContext'
 import { useMealPlans } from '../../context/MealPlanContext'
-import { getActiveReservationNotes, getTotalTaxRate } from '../../lib/supabase'
+import { getActiveReservationNotes, getTotalTaxRate, getFoliosByReservation, getFolioBalance } from '../../lib/supabase'
 import { groupConsecutiveReservations, formatRoomChangeSequence } from '../../utils/bookingUtils'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
@@ -60,6 +60,7 @@ export default function ReservationDetails({ onNavigate }) {
   const [selectedReservationForEdit, setSelectedReservationForEdit] = useState(null)
   const [mealPlanModalOpen, setMealPlanModalOpen] = useState(false)
   const [selectedReservationForMealPlan, setSelectedReservationForMealPlan] = useState(null)
+  const [realTimeBalance, setRealTimeBalance] = useState(null)
 
   // Load reservation details when component mounts
   useEffect(() => {
@@ -121,6 +122,40 @@ export default function ReservationDetails({ onNavigate }) {
       console.error('Error loading notes count:', error)
     }
   }
+
+  // Fetch real-time folio balance for all reservations in the group
+  useEffect(() => {
+    const fetchRealTimeBalance = async () => {
+      if (!groupedReservations.length) return
+
+      try {
+        let totalBalance = 0
+        // Get folios for each reservation and sum their balances
+        for (const reservation of groupedReservations) {
+          const { data: folios, error: folioError } = await getFoliosByReservation(reservation.id)
+          if (folioError) {
+            console.error('Error fetching folios:', folioError)
+            continue
+          }
+          for (const folio of (folios || [])) {
+            const { data: balanceData, error: balanceError } = await getFolioBalance(folio.id)
+            if (balanceError) {
+              console.error('Error fetching folio balance:', balanceError)
+              continue
+            }
+            if (balanceData) {
+              totalBalance += balanceData.balance
+            }
+          }
+        }
+        setRealTimeBalance(totalBalance)
+      } catch (error) {
+        console.error('Error fetching real-time balance:', error)
+      }
+    }
+
+    fetchRealTimeBalance()
+  }, [groupedReservations])
 
   // Helper function to get room info (must be before useMemo)
   const getRoomInfo = (roomId, roomTypeId = null) => {
@@ -360,8 +395,8 @@ export default function ReservationDetails({ onNavigate }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
-              <p className={`font-bold text-lg ${balanceDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                ₹{balanceDue.toFixed(2)}
+              <p className={`font-bold text-lg ${(realTimeBalance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                ₹{(realTimeBalance ?? balanceDue).toFixed(2)}
               </p>
             </div>
           </div>
@@ -538,11 +573,11 @@ export default function ReservationDetails({ onNavigate }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                  <DollarSign className="h-8 w-8 text-red-600 dark:text-red-400" />
+                  <DollarSign className={`h-8 w-8 ${(realTimeBalance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
                   <div>
                     <p className="text-sm text-muted-foreground">Balance Due</p>
-                    <p className={`text-xl font-bold ${balanceDue > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                      ₹{balanceDue.toFixed(2)}
+                    <p className={`text-xl font-bold ${(realTimeBalance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                      ₹{(realTimeBalance ?? balanceDue).toFixed(2)}
                     </p>
                   </div>
                 </div>

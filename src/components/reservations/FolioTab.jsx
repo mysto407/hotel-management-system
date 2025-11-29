@@ -174,23 +174,11 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
     }
   }
 
-  // Calculate transactions with running balance
-  const transactionsWithBalance = useMemo(() => {
-    let runningBalance = 0
-    return transactions.map(txn => {
-      // Only include in balance if not voided/reversed
-      if (txn.transaction_status !== 'voided' && txn.transaction_status !== 'reversed') {
-        runningBalance += parseFloat(txn.amount || 0)
-      }
-      return { ...txn, runningBalance }
-    })
-  }, [transactions])
-
-  // Filter transactions by folio and type
+  // Filter transactions by folio and type, then compute running balance
   const filteredTransactions = useMemo(() => {
-    let result = transactionsWithBalance
+    let result = transactions
 
-    // Filter by active folio if selected
+    // Filter by active folio FIRST (before computing running balance)
     if (activeFolioId) {
       result = result.filter(txn => txn.folio_id === activeFolioId)
     }
@@ -213,8 +201,16 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
       })
     }
 
-    return result
-  }, [transactionsWithBalance, filter, activeFolioId])
+    // Now compute running balance on the FILTERED set
+    let runningBalance = 0
+    return result.map(txn => {
+      // Only include in balance if not voided/reversed
+      if (txn.transaction_status !== 'voided' && txn.transaction_status !== 'reversed') {
+        runningBalance += parseFloat(txn.amount || 0)
+      }
+      return { ...txn, runningBalance }
+    })
+  }, [transactions, filter, activeFolioId])
 
   // Group transactions by date for grouped view
   const groupedTransactions = useMemo(() => {
