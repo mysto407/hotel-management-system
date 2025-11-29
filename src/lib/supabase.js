@@ -2790,11 +2790,11 @@ export const createPaymentTransaction = async(transactionData) => {
     const { data, error } = await supabase
         .from('folio_transactions')
         .insert([{
+            ...transactionData, // Spread first so overrides below take effect
             transaction_type: transactionType,
             transaction_status: transactionStatus,
-            amount: -Math.abs(transactionData.amount), // Ensure negative (credit)
+            amount: -Math.abs(transactionData.amount), // Ensure negative (credit) - MUST come after spread
             description: transactionData.description || `Payment via ${transactionData.payment_method}`,
-            ...transactionData
         }])
         .select()
 
