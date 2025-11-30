@@ -125,11 +125,20 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
       }
 
       // Sort by transaction_date for running balance calculation
-      // Use created_at as tiebreaker for same-date transactions
+      // Charges before payments on same date, then by created_at
       allTransactions.sort((a, b) => {
         const dateA = new Date(a.transaction_date || a.created_at)
         const dateB = new Date(b.transaction_date || b.created_at)
         if (dateA.getTime() === dateB.getTime()) {
+          // On same date: charges (positive amounts) before payments (negative amounts)
+          const amountA = parseFloat(a.amount || 0)
+          const amountB = parseFloat(b.amount || 0)
+          const isChargeA = amountA > 0
+          const isChargeB = amountB > 0
+          if (isChargeA !== isChargeB) {
+            return isChargeA ? -1 : 1  // Charges first
+          }
+          // Same type: sort by created_at
           return new Date(a.created_at) - new Date(b.created_at)
         }
         return dateA - dateB
@@ -418,13 +427,13 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
             <div>
               <p className="text-sm text-muted-foreground">Total Charges</p>
               <p className="text-2xl font-bold text-foreground">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.totalCharges || 0) : summary.totalCharges)}
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Payments</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.totalPayments || 0) : summary.totalPayments)}
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
               </p>
             </div>
             <div>
