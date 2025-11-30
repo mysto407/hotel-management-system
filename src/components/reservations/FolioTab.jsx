@@ -51,7 +51,7 @@ import CreateFolioModal from './CreateFolioModal'
 import TransferTransactionModal from './TransferTransactionModal'
 import SplitTransactionModal from './SplitTransactionModal'
 
-export default function FolioTab({ reservationIds, primaryReservation }) {
+export default function FolioTab({ reservationIds, primaryReservation, onFolioChange }) {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -305,6 +305,8 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
       if (error) throw error
 
       await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
       setVoidConfirmOpen(false)
       setSelectedTransaction(null)
 
@@ -330,6 +332,8 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
       if (error) throw error
 
       await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
       setReverseConfirmOpen(false)
       setSelectedTransaction(null)
     } catch (err) {
@@ -789,6 +793,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         onSuccess={() => {
           fetchTransactions()
           fetchFolios()
+          onFolioChange?.()
         }}
       />
 
@@ -803,6 +808,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         onSuccess={() => {
           fetchTransactions()
           fetchFolios()
+          onFolioChange?.()
         }}
       />
 
@@ -887,6 +893,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         onSuccess={() => {
           fetchTransactions()
           fetchFolios()
+          onFolioChange?.()
           setSelectedTransaction(null)
         }}
       />
@@ -900,6 +907,7 @@ export default function FolioTab({ reservationIds, primaryReservation }) {
         onSuccess={() => {
           fetchTransactions()
           fetchFolios()
+          onFolioChange?.()
           setSelectedTransaction(null)
         }}
       />

@@ -128,42 +128,42 @@ export default function ReservationDetails({ onNavigate }) {
   }
 
   // Fetch real-time folio totals for all reservations in the group
-  useEffect(() => {
-    const fetchFolioTotals = async () => {
-      if (!groupedReservations.length) return
+  const fetchFolioTotals = async () => {
+    if (!groupedReservations.length) return
 
-      try {
-        let totalCharges = 0
-        let totalPayments = 0
-        // Get folios for each reservation and sum their totals
-        for (const reservation of groupedReservations) {
-          const { data: folios, error: folioError } = await getFoliosByReservation(reservation.id)
-          if (folioError) {
-            console.error('Error fetching folios:', folioError)
+    try {
+      let totalCharges = 0
+      let totalPayments = 0
+      // Get folios for each reservation and sum their totals
+      for (const reservation of groupedReservations) {
+        const { data: folios, error: folioError } = await getFoliosByReservation(reservation.id)
+        if (folioError) {
+          console.error('Error fetching folios:', folioError)
+          continue
+        }
+        for (const folio of (folios || [])) {
+          const { data: balanceData, error: balanceError } = await getFolioBalance(folio.id)
+          if (balanceError) {
+            console.error('Error fetching folio balance:', balanceError)
             continue
           }
-          for (const folio of (folios || [])) {
-            const { data: balanceData, error: balanceError } = await getFolioBalance(folio.id)
-            if (balanceError) {
-              console.error('Error fetching folio balance:', balanceError)
-              continue
-            }
-            if (balanceData) {
-              totalCharges += balanceData.charges || 0
-              totalPayments += balanceData.payments || 0
-            }
+          if (balanceData) {
+            totalCharges += balanceData.charges || 0
+            totalPayments += balanceData.payments || 0
           }
         }
-        setFolioTotals({
-          totalCharges,
-          totalPayments,
-          balance: totalCharges - totalPayments
-        })
-      } catch (error) {
-        console.error('Error fetching folio totals:', error)
       }
+      setFolioTotals({
+        totalCharges,
+        totalPayments,
+        balance: totalCharges - totalPayments
+      })
+    } catch (error) {
+      console.error('Error fetching folio totals:', error)
     }
+  }
 
+  useEffect(() => {
     fetchFolioTotals()
   }, [groupedReservations])
 
@@ -600,6 +600,7 @@ export default function ReservationDetails({ onNavigate }) {
           <FolioTab
             reservationIds={groupedReservations.map(r => r.id)}
             primaryReservation={primaryReservation}
+            onFolioChange={fetchFolioTotals}
           />
         </TabsContent>
 
