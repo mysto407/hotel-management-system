@@ -65,6 +65,7 @@ export default function ReservationDetails({ onNavigate }) {
     totalPayments: null,
     balance: null
   })
+  const [roomTaxRate, setRoomTaxRate] = useState(0)
 
   // Load reservation details when component mounts
   useEffect(() => {
@@ -126,6 +127,19 @@ export default function ReservationDetails({ onNavigate }) {
       console.error('Error loading notes count:', error)
     }
   }
+
+  // Fetch tax rate for room charges
+  useEffect(() => {
+    const fetchTaxRate = async () => {
+      try {
+        const { rate } = await getTotalTaxRate('room_charge')
+        setRoomTaxRate(rate)
+      } catch (error) {
+        console.error('Error fetching tax rate:', error)
+      }
+    }
+    fetchTaxRate()
+  }, [])
 
   // Fetch real-time folio totals for all reservations in the group
   const fetchFolioTotals = async () => {
@@ -491,6 +505,11 @@ export default function ReservationDetails({ onNavigate }) {
                           const resCheckOut = new Date(reservation.check_out_date)
                           const resNights = Math.ceil((resCheckOut - resCheckIn) / (1000 * 60 * 60 * 24))
 
+                          // Calculate room-only total (excluding meal plan)
+                          const roomCost = roomRate * resNights
+                          const roomTax = roomCost * (roomTaxRate / 100)
+                          const roomOnlyTotal = roomCost + roomTax
+
                           return (
                             <TableRow key={reservation.id}>
                         <TableCell className="font-mono text-xs">
@@ -528,7 +547,7 @@ export default function ReservationDetails({ onNavigate }) {
                         </TableCell>
                         <TableCell className="text-center">{resNights}</TableCell>
                         <TableCell className="text-right font-semibold">
-                          ₹{reservation.total_amount?.toFixed(2) || '0.00'}
+                          ₹{roomOnlyTotal.toFixed(2)}
                         </TableCell>
                         <TableCell className="text-center">
                           <DropdownMenu>
