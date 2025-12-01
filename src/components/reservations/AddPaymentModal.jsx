@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   Select,
   SelectContent,
@@ -140,16 +140,16 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
   const SelectedIcon = selectedConfig.icon
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] p-0 gap-0 flex flex-col" style={{ maxHeight: 'calc(100vh - 48px)' }}>
-        <DialogHeader className="px-6 pt-5 pb-3 border-b bg-muted/30 shrink-0">
-          <DialogTitle className="flex items-center gap-3 text-lg">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="sm:max-w-[480px] p-0 gap-0 flex flex-col">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b bg-muted/30 shrink-0">
+          <SheetTitle className="flex items-center gap-3 text-lg">
             <div className={cn("p-2 rounded-lg", selectedConfig.color)}>
               <SelectedIcon className="h-5 w-5" />
             </div>
             Record Payment
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1 min-h-0">
           <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
@@ -310,7 +310,7 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
               </div>
             )}
 
-            <DialogFooter className="gap-2 sm:gap-2">
+            <SheetFooter className="gap-2 sm:gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -326,10 +326,10 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Record Payment
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }
