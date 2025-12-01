@@ -1901,13 +1901,20 @@ export const deleteDiscountApplication = async(id) => {
 // ============================================================================
 
 // Folio Management Functions
-export const createMasterFolio = async (reservationId, roomNumber = '') => {
+export const createMasterFolio = async (reservationId, roomNumber = '', roomTypeName = '') => {
     // Generate folio number
     const timestamp = Date.now().toString(36).toUpperCase()
     const folioNumber = `F-${timestamp}`
 
-    // Use room number for folio name (helpful for multi-room bookings)
-    const folioName = roomNumber ? `Room ${roomNumber} - Main` : 'Main Folio'
+    // Use room number for folio name, or room type name if unassigned
+    let folioName
+    if (roomNumber) {
+        folioName = `Room ${roomNumber} - Main`
+    } else if (roomTypeName) {
+        folioName = `${roomTypeName} (unassigned) - Main`
+    } else {
+        folioName = 'Main Folio'
+    }
 
     const { data, error } = await supabase
         .from('folios')
@@ -1935,7 +1942,7 @@ export const getFolioByReservation = async (reservationId) => {
     return { data, error }
 }
 
-export const getOrCreateMasterFolio = async (reservationId, roomNumber = '') => {
+export const getOrCreateMasterFolio = async (reservationId, roomNumber = '', roomTypeName = '') => {
     // First try to get existing folio
     const { data: existing } = await getFolioByReservation(reservationId)
     if (existing) {
@@ -1943,7 +1950,7 @@ export const getOrCreateMasterFolio = async (reservationId, roomNumber = '') => 
     }
 
     // Create new master folio
-    return await createMasterFolio(reservationId, roomNumber)
+    return await createMasterFolio(reservationId, roomNumber, roomTypeName)
 }
 
 /**

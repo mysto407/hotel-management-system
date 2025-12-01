@@ -310,9 +310,10 @@ export default function PaymentPage({ onNavigate }) {
             throw new Error(`No room assigned for ${roomType.name} slot ${index + 1}`)
           }
 
-          // Get the room number for folio naming
+          // Get the room number for folio naming (or room type name if unassigned)
           const roomData = assignedRoomId ? rooms.find(r => r.id === assignedRoomId) : null
           const roomNumber = roomData?.room_number || ''
+          const roomTypeName = roomType.name || ''
 
           // Get meal plan for this room (default to 'none' if not set)
           const mealPlan = roomType.mealPlans?.[index] || 'none'
@@ -351,7 +352,7 @@ export default function PaymentPage({ onNavigate }) {
             booking_id: bookingId, // Link all reservations from this booking together
             // Include additional guest IDs only for guests assigned to THIS room
             ...(guestsForThisRoom.length > 0 && { additional_guest_ids: guestsForThisRoom })
-          }, { roomNumber })
+          }, { roomNumber, roomTypeName })
 
           if (!reservation) {
             throw new Error(`Failed to create reservation for ${roomType.name}. Please try again.`)

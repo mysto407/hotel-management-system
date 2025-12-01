@@ -59,7 +59,7 @@ export const ReservationProvider = ({ children }) => {
   };
 
   const addReservation = async (reservation, options = {}) => {
-    const { skipFolioGeneration = false, guestName = 'Guest', roomNumber = '' } = options;
+    const { skipFolioGeneration = false, guestName = 'Guest', roomNumber = '', roomTypeName = '' } = options;
 
     const { data, error } = await createReservationAPI(reservation);
     if (error) {
@@ -84,7 +84,7 @@ export const ReservationProvider = ({ children }) => {
     // Auto-generate folio and charges (Cloudbeds-style)
     if (!skipFolioGeneration && createdReservation) {
       try {
-        await generateFolioCharges(createdReservation, guestName, roomNumber);
+        await generateFolioCharges(createdReservation, guestName, roomNumber, roomTypeName);
       } catch (folioError) {
         console.error('Error generating folio charges:', folioError);
         // Don't fail the reservation creation, just log the error
@@ -96,13 +96,14 @@ export const ReservationProvider = ({ children }) => {
   };
 
   // Generate folio and all initial charges for a reservation
-  const generateFolioCharges = async (reservation, guestName = 'Guest', roomNumber = '') => {
+  const generateFolioCharges = async (reservation, guestName = 'Guest', roomNumber = '', roomTypeName = '') => {
     const userId = user?.id || null;
 
-    // 1. Create or get master folio (uses room number for multi-room bookings)
+    // 1. Create or get master folio (uses room number for multi-room bookings, or room type if unassigned)
     const { data: folio, error: folioError } = await getOrCreateMasterFolio(
       reservation.id,
-      roomNumber
+      roomNumber,
+      roomTypeName
     );
 
     if (folioError || !folio) {
