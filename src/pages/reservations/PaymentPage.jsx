@@ -47,17 +47,18 @@ export default function PaymentPage({ onNavigate }) {
   const [promoCodeInput, setPromoCodeInput] = useState('')
   const [applyingPromo, setApplyingPromo] = useState(false)
   const [showAllGuests, setShowAllGuests] = useState(false)
-  const [taxRate, setTaxRate] = useState(18) // Default to 18%, will be updated from tax_configurations
+  const [taxRate, setTaxRate] = useState(18) // Default to 18% for room charges
+  const [foodTaxRate, setFoodTaxRate] = useState(5) // Default to 5% for food/meal plans
 
-  // Load dynamic tax rate from tax_configurations
+  // Load dynamic tax rates from tax_configurations
   useEffect(() => {
-    const loadTaxRate = async () => {
-      const { rate } = await getTotalTaxRate('room_charge')
-      if (rate > 0) {
-        setTaxRate(rate)
-      }
+    const loadTaxRates = async () => {
+      const { rate: roomRate } = await getTotalTaxRate('room_charge')
+      const { rate: foodRate } = await getTotalTaxRate('food')
+      if (roomRate > 0) setTaxRate(roomRate)
+      if (foodRate > 0) setFoodTaxRate(foodRate)
     }
-    loadTaxRate()
+    loadTaxRates()
   }, [])
 
   // Get primary guest (first guest or fallback to guestDetails)
@@ -855,7 +856,7 @@ export default function PaymentPage({ onNavigate }) {
                             const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
 
                             const mealPlanSubtotal = pricePerPerson * totalGuests * roomNights
-                            const mealPlanTax = mealPlanSubtotal * (taxRate / 100)
+                            const mealPlanTax = mealPlanSubtotal * (foodTaxRate / 100)
                             const mealPlanTotal = mealPlanSubtotal + mealPlanTax
 
                             // Skip if no meal plan cost
@@ -891,7 +892,7 @@ export default function PaymentPage({ onNavigate }) {
                                     <span>₹{mealPlanSubtotal.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">GST ({taxRate}%)</span>
+                                    <span className="text-muted-foreground">GST ({foodTaxRate}%)</span>
                                     <span>₹{mealPlanTax.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-xs font-medium pt-1 border-t border-border">
@@ -923,7 +924,7 @@ export default function PaymentPage({ onNavigate }) {
                               const guestCount = room.guestCounts?.[i] || { adults: 1, children: 0, infants: 0 }
                               const totalGuests = (guestCount.adults || 1) + (guestCount.children || 0)
                               const mealPlanSubtotal = pricePerPerson * totalGuests * roomNights
-                              const mealPlanTax = mealPlanSubtotal * (taxRate / 100)
+                              const mealPlanTax = mealPlanSubtotal * (foodTaxRate / 100)
                               roomMealPlanTotal += mealPlanSubtotal + mealPlanTax
                             }
                             return sum + roomMealPlanTotal
