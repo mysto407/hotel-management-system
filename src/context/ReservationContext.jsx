@@ -17,6 +17,7 @@ import {
   // Folio and charge generation functions
   getOrCreateMasterFolio,
   getFolioByReservation,
+  updateMasterFolioName,
   generateDailyRoomChargesWithTax,
   generateDailyMealChargesWithTax,
   createServiceChargeWithTax,
@@ -422,7 +423,7 @@ export const ReservationProvider = ({ children }) => {
   };
 
   // Assign a specific room to a reservation
-  const assignRoom = async (reservationId, roomId, forceRoomType = false) => {
+  const assignRoom = async (reservationId, roomId, forceRoomType = false, roomNumber = null) => {
     const { data, error } = await assignRoomAPI(reservationId, roomId, forceRoomType);
 
     if (error) {
@@ -433,6 +434,11 @@ export const ReservationProvider = ({ children }) => {
       console.error('Error assigning room:', error);
       showError('Failed to assign room: ' + error.message);
       return { data: null, error };
+    }
+
+    // Update the folio name to show the room number
+    if (roomNumber) {
+      await updateMasterFolioName(reservationId, roomNumber);
     }
 
     showSuccess('Room assigned successfully');

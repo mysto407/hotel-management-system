@@ -1970,6 +1970,25 @@ export const getFoliosByReservation = async (reservationId) => {
 }
 
 /**
+ * Update the master folio name for a reservation (e.g., when room is assigned)
+ * @param {string} reservationId - The reservation ID
+ * @param {string} roomNumber - The room number to display
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const updateMasterFolioName = async (reservationId, roomNumber) => {
+    const folioName = roomNumber ? `Room ${roomNumber} - Main` : 'Main Folio'
+
+    const { data, error } = await supabase
+        .from('folios')
+        .update({ name: folioName })
+        .eq('reservation_id', reservationId)
+        .eq('folio_type', 'master')
+        .select()
+
+    return { data: data?.[0], error }
+}
+
+/**
  * Create an additional folio for a reservation
  * @param {string} reservationId - The reservation ID
  * @param {string} folioType - Type of folio ('incidentals', 'split', 'custom')
