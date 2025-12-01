@@ -73,27 +73,35 @@ export default function FolioTab({ reservationIds, primaryReservation, onFolioCh
   // View mode state
   const [groupByDate, setGroupByDate] = useState(false)
 
-  // Fetch folios for the primary reservation
+  // Fetch folios for ALL reservations in the group
   const fetchFolios = async () => {
-    if (!primaryReservation?.id) return
+    if (!reservationIds || reservationIds.length === 0) return
 
     try {
-      const { data, error } = await getFoliosByReservation(primaryReservation.id)
-      if (error) {
-        console.error('Error fetching folios:', error)
-        return
+      const allFolios = []
+      const balances = {}
+
+      // Fetch folios for ALL reservations in the group
+      for (const resId of reservationIds) {
+        const { data, error } = await getFoliosByReservation(resId)
+        if (error) {
+          console.error('Error fetching folios for reservation:', resId, error)
+          continue
+        }
+        if (data) {
+          allFolios.push(...data)
+        }
       }
 
-      setFolios(data || [])
+      setFolios(allFolios)
 
       // Set active folio to first one (master) if not already set
-      if (data && data.length > 0 && !activeFolioId) {
-        setActiveFolioId(data[0].id)
+      if (allFolios.length > 0 && !activeFolioId) {
+        setActiveFolioId(allFolios[0].id)
       }
 
       // Fetch balances for all folios
-      const balances = {}
-      for (const folio of (data || [])) {
+      for (const folio of allFolios) {
         const { data: balanceData } = await getFolioBalance(folio.id)
         if (balanceData) {
           balances[folio.id] = balanceData
@@ -139,7 +147,7 @@ export default function FolioTab({ reservationIds, primaryReservation, onFolioCh
   useEffect(() => {
     fetchFolios()
     fetchTransactions()
-  }, [reservationIds, primaryReservation?.id])
+  }, [reservationIds])
 
   // Handle folio creation success
   const handleFolioCreated = async (newFolio) => {
