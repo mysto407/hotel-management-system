@@ -64,18 +64,19 @@ export function ReservationFlowProvider({ children }) {
     notes: ''
   })
 
-  // Tax rate from tax_configurations (loaded dynamically)
-  const [taxRate, setTaxRate] = useState(18) // Default 18%
+  // Tax rates from tax_configurations (loaded dynamically)
+  const [taxRate, setTaxRate] = useState(18) // Default 18% for rooms/addons
+  const [foodTaxRate, setFoodTaxRate] = useState(5) // Default 5% for food/meal plans
 
-  // Load dynamic tax rate from tax_configurations
+  // Load dynamic tax rates from tax_configurations
   useEffect(() => {
-    const loadTaxRate = async () => {
-      const { rate } = await getTotalTaxRate('room_charge')
-      if (rate > 0) {
-        setTaxRate(rate)
-      }
+    const loadTaxRates = async () => {
+      const { rate: roomRate } = await getTotalTaxRate('room_charge')
+      const { rate: foodRate } = await getTotalTaxRate('food')
+      if (roomRate > 0) setTaxRate(roomRate)
+      if (foodRate > 0) setFoodTaxRate(foodRate)
     }
-    loadTaxRate()
+    loadTaxRates()
   }, [])
 
   // Room selection handlers
