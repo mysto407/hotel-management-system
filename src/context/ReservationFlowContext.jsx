@@ -385,7 +385,20 @@ export function ReservationFlowProvider({ children }) {
       addonDiscountResult.totalDiscount +
       totalBillDiscountResult.totalDiscount
 
-    const tax = subtotal * (taxRate / 100) // Dynamic tax from tax_configurations
+    // Calculate tax separately for different charge types
+    // If total bill discounts were applied, proportionally reduce each category
+    const roomAndAddonBeforeDiscount = roomDiscountResult.finalAmount + addonDiscountResult.finalAmount
+    const roomAndAddonFinal = subtotalAfterCategoryDiscounts > 0
+      ? (roomAndAddonBeforeDiscount / subtotalAfterCategoryDiscounts) * subtotal
+      : 0
+    const mealPlanFinal = subtotalAfterCategoryDiscounts > 0
+      ? (mealPlanSubtotal / subtotalAfterCategoryDiscounts) * subtotal
+      : 0
+
+    const roomAndAddonTax = roomAndAddonFinal * (taxRate / 100)      // 18% for rooms/addons
+    const mealPlanTax = mealPlanFinal * (foodTaxRate / 100)          // 5% for food/meal plans
+    const tax = roomAndAddonTax + mealPlanTax
+
     const total = subtotal + tax
     const suggestedDeposit = total * 0.3 // 30% suggested deposit
     const balanceDue = total - (paymentInfo.amount || 0)
@@ -400,14 +413,17 @@ export function ReservationFlowProvider({ children }) {
         totalBillDiscounts: totalBillDiscountResult.appliedDiscounts
       },
       tax,
-      taxRate, // Include tax rate for display
+      roomTax: roomAndAddonTax,
+      mealPlanTax,
+      taxRate,
+      foodTaxRate,
       total,
       nights: totalNights,
       suggestedDeposit,
       balanceDue,
       mealPlanSubtotal
     }
-  }, [selectedRooms, addons, selectedDiscounts, paymentInfo.amount, getMealPlanPrice, taxRate])
+  }, [selectedRooms, addons, selectedDiscounts, paymentInfo.amount, getMealPlanPrice, taxRate, foodTaxRate])
 
   // Reset flow
   const resetFlow = useCallback(() => {

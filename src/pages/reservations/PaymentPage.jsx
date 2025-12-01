@@ -1061,7 +1061,7 @@ export default function PaymentPage({ onNavigate }) {
                       <span className="font-medium">₹{bill.subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total GST ({taxRate}%)</span>
+                      <span className="text-muted-foreground">Total Taxes</span>
                       <span className="font-medium">₹{bill.tax.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-3 border-t-2">
