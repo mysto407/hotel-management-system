@@ -619,6 +619,8 @@ export default function ReservationDetails({ onNavigate }) {
           <FolioTab
             reservationIds={groupedReservations.map(r => r.id)}
             primaryReservation={primaryReservation}
+            groupedReservations={groupedReservations}
+            guests={guests}
             onFolioChange={fetchFolioTotals}
           />
         </TabsContent>
