@@ -51,7 +51,7 @@ import CreateFolioModal from './CreateFolioModal'
 import TransferTransactionModal from './TransferTransactionModal'
 import SplitTransactionModal from './SplitTransactionModal'
 
-export default function FolioTab({ reservationIds, primaryReservation, onFolioChange }) {
+export default function FolioTab({ reservationIds, primaryReservation, groupedReservations = [], guests = [], onFolioChange }) {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -810,6 +810,9 @@ export default function FolioTab({ reservationIds, primaryReservation, onFolioCh
         open={addPaymentOpen}
         onOpenChange={setAddPaymentOpen}
         reservationId={primaryReservation?.id}
+        primaryReservation={primaryReservation}
+        groupedReservations={groupedReservations}
+        guests={guests}
         folios={folios}
         activeFolioId={activeFolioId}
         balanceDue={activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance}
