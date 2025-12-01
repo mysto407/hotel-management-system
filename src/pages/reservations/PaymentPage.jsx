@@ -302,8 +302,9 @@ export default function PaymentPage({ onNavigate }) {
 
         // Create one reservation per quantity
         for (let index = 0; index < roomType.quantity; index++) {
-          // Get the assigned room ID (may be null if assignLater is enabled)
-          const assignedRoomId = roomType.assignedRooms?.[index] || roomType.roomIds?.[index] || null
+          // Get the assigned room ID (null if assignLater is enabled)
+          // Don't fall back to roomIds when assignLater is true - that would auto-assign rooms
+          const assignedRoomId = assignLater ? null : (roomType.assignedRooms?.[index] || roomType.roomIds?.[index] || null)
 
           // If not in assignLater mode and no room is assigned, that's an error
           if (!assignLater && !assignedRoomId) {
