@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Loader2, CreditCard, Banknote, Smartphone, Building2, CircleDollarSign, Wallet } from 'lucide-react'
+import { Loader2, CreditCard, Banknote, Smartphone, Building2, CircleDollarSign, Wallet, Link2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Sheet,
   SheetContent,
@@ -15,79 +16,99 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { createPaymentTransaction, getPaymentMethods } from '@/lib/supabase'
+import { createPaymentTransaction } from '@/lib/supabase'
 import { formatCurrency } from '@/utils/currency'
 
-// Default payment methods with icons and colors
-const DEFAULT_PAYMENT_METHODS = [
-  { code: 'cash', name: 'Cash', icon: Banknote, color: 'text-green-600 bg-green-50' },
-  { code: 'card', name: 'Card', icon: CreditCard, color: 'text-blue-600 bg-blue-50' },
-  { code: 'upi', name: 'UPI', icon: Smartphone, color: 'text-purple-600 bg-purple-50' },
-  { code: 'bank_transfer', name: 'Bank', icon: Building2, color: 'text-orange-600 bg-orange-50' },
-  { code: 'other', name: 'Other', icon: CircleDollarSign, color: 'text-gray-600 bg-gray-50' }
-]
-
-// Map payment method codes to icons and colors
+// Payment method configurations
 const PAYMENT_CONFIG = {
-  cash: { icon: Banknote, color: 'text-green-600 bg-green-50' },
-  card: { icon: CreditCard, color: 'text-blue-600 bg-blue-50' },
-  upi: { icon: Smartphone, color: 'text-purple-600 bg-purple-50' },
-  bank_transfer: { icon: Building2, color: 'text-orange-600 bg-orange-50' },
-  other: { icon: CircleDollarSign, color: 'text-gray-600 bg-gray-50' },
-  default: { icon: Wallet, color: 'text-gray-600 bg-gray-50' }
+  cash: { icon: Banknote, color: 'text-green-600 bg-green-50', label: 'Cash' },
+  card: { icon: CreditCard, color: 'text-blue-600 bg-blue-50', label: 'Card' },
+  upi: { icon: Smartphone, color: 'text-purple-600 bg-purple-50', label: 'UPI' },
+  bank_transfer: { icon: Building2, color: 'text-orange-600 bg-orange-50', label: 'Bank Transfer' },
+  cheque: { icon: CircleDollarSign, color: 'text-teal-600 bg-teal-50', label: 'Cheque' },
+  other: { icon: CircleDollarSign, color: 'text-gray-600 bg-gray-50', label: 'Other' },
+  default: { icon: Wallet, color: 'text-gray-600 bg-gray-50', label: 'Payment' }
 }
 
-export default function AddPaymentModal({ open, onOpenChange, reservationId, folios = [], activeFolioId = null, balanceDue = 0, onSuccess }) {
+export default function AddPaymentModal({
+  open,
+  onOpenChange,
+  reservationId,
+  primaryReservation,
+  groupedReservations = [],
+  guests = [],
+  folios = [],
+  activeFolioId = null,
+  balanceDue = 0,
+  onSuccess
+}) {
   const [loading, setLoading] = useState(false)
-  const [paymentMethods, setPaymentMethods] = useState(DEFAULT_PAYMENT_METHODS)
-  const [paymentMethod, setPaymentMethod] = useState('cash')
-  const [amount, setAmount] = useState('')
-  const [referenceNumber, setReferenceNumber] = useState('')
-  const [notes, setNotes] = useState('')
-  const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [assignedGuestId, setAssignedGuestId] = useState('')
   const [selectedFolioId, setSelectedFolioId] = useState(activeFolioId)
+  const [amount, setAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [useCurrentDateTime, setUseCurrentDateTime] = useState(true)
+  const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [transactionTime, setTransactionTime] = useState(format(new Date(), 'HH:mm'))
+  const [notes, setNotes] = useState('')
 
-  // Load payment methods from database
-  useEffect(() => {
-    const loadPaymentMethods = async () => {
-      try {
-        const { data, error } = await getPaymentMethods(true) // Only active methods
-        if (!error && data && data.length > 0) {
-          setPaymentMethods(data)
-        }
-      } catch (err) {
-        console.error('Error loading payment methods:', err)
-        // Keep default methods on error
+  // Build list of guests from reservation
+  const reservationGuests = useMemo(() => {
+    if (!primaryReservation || !guests.length) return []
+
+    const guestList = []
+
+    // Primary guest
+    if (primaryReservation.guest_id) {
+      const primaryGuest = guests.find(g => g.id === primaryReservation.guest_id)
+      if (primaryGuest) {
+        guestList.push({ ...primaryGuest, isPrimary: true })
       }
     }
-    loadPaymentMethods()
-  }, [])
+
+    // Additional guests from all reservations in the group
+    const allAdditionalGuestIds = new Set()
+    groupedReservations.forEach(res => {
+      const additionalIds = res.additional_guest_ids || []
+      additionalIds.forEach(id => allAdditionalGuestIds.add(id))
+    })
+
+    allAdditionalGuestIds.forEach(guestId => {
+      if (guestId !== primaryReservation.guest_id) {
+        const guest = guests.find(g => g.id === guestId)
+        if (guest) {
+          guestList.push({ ...guest, isPrimary: false })
+        }
+      }
+    })
+
+    return guestList
+  }, [primaryReservation, groupedReservations, guests])
 
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      // Set to first available payment method
-      setPaymentMethod(paymentMethods[0]?.code || 'cash')
+      // Default to primary guest
+      const primaryGuestId = primaryReservation?.guest_id || ''
+      setAssignedGuestId(primaryGuestId)
+      setSelectedFolioId(activeFolioId || (folios.length > 0 ? folios[0].id : null))
       // Pre-fill with balance due if positive
       setAmount(balanceDue > 0 ? balanceDue.toFixed(2) : '')
-      setReferenceNumber('')
-      setNotes('')
+      setPaymentMethod('cash')
+      setUseCurrentDateTime(true)
       setTransactionDate(format(new Date(), 'yyyy-MM-dd'))
-      setSelectedFolioId(activeFolioId || (folios.length > 0 ? folios[0].id : null))
+      setTransactionTime(format(new Date(), 'HH:mm'))
+      setNotes('')
     }
-  }, [open, balanceDue, paymentMethods, activeFolioId, folios])
-
-  // Handle full payment button
-  const handlePayFull = () => {
-    if (balanceDue > 0) {
-      setAmount(balanceDue.toFixed(2))
-    }
-  }
+  }, [open, balanceDue, activeFolioId, folios, primaryReservation])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -107,19 +128,28 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
       const paymentAmount = parseFloat(amount)
 
       // Get payment method display name
-      const methodInfo = paymentMethods.find(m => m.code === paymentMethod)
-      const description = `${methodInfo?.name || 'Payment'}${referenceNumber ? ` (Ref: ${referenceNumber})` : ''}`
+      const methodConfig = PAYMENT_CONFIG[paymentMethod] || PAYMENT_CONFIG.default
+      const description = methodConfig.label
+
+      // Determine transaction datetime
+      let transactionDateTime
+      if (useCurrentDateTime) {
+        transactionDateTime = new Date().toISOString()
+      } else {
+        transactionDateTime = new Date(`${transactionDate}T${transactionTime}`).toISOString()
+      }
 
       const result = await createPaymentTransaction({
         reservation_id: reservationId,
         folio_id: selectedFolioId,
-        amount: paymentAmount, // Will be stored as negative in the function
+        amount: paymentAmount,
         payment_method: paymentMethod,
         description,
-        reference_number: referenceNumber,
         notes,
-        transaction_status: 'posted', // Payments are always posted immediately
-        transaction_date: new Date(transactionDate).toISOString()
+        transaction_status: 'posted',
+        transaction_date: transactionDateTime,
+        // Include assigned guest for reference
+        metadata: assignedGuestId ? { assigned_to_guest_id: assignedGuestId } : undefined
       })
 
       if (result.error) throw result.error
@@ -134,9 +164,8 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
     }
   }
 
-  // Get config for a payment method code
-  const getConfig = (code) => PAYMENT_CONFIG[code] || PAYMENT_CONFIG.default
-  const selectedConfig = getConfig(paymentMethod)
+  // Get config for selected payment method
+  const selectedConfig = PAYMENT_CONFIG[paymentMethod] || PAYMENT_CONFIG.default
   const SelectedIcon = selectedConfig.icon
 
   return (
@@ -153,75 +182,39 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
 
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1 min-h-0">
           <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-            {/* Balance Due Summary */}
-            {balanceDue > 0 && (
-              <div className="bg-red-50 dark:bg-red-950/30 p-4 rounded-lg border border-red-200 dark:border-red-800">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">Balance Due</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                      {formatCurrency(balanceDue)}
-                    </p>
-                  </div>
-                  <Button type="button" variant="outline" onClick={handlePayFull} className="border-red-300 text-red-600 hover:bg-red-50">
-                    Pay Full Amount
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Payment Method Selection - Visual Buttons */}
+            {/* Assign to Guest */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Payment Method</Label>
-              <div className="grid grid-cols-5 gap-2">
-                {DEFAULT_PAYMENT_METHODS.map(method => {
-                  const Icon = method.icon
-                  const isSelected = paymentMethod === method.code
-                  return (
-                    <button
-                      key={method.code}
-                      type="button"
-                      onClick={() => setPaymentMethod(method.code)}
-                      className={cn(
-                        "flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all",
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-transparent bg-muted/50 hover:bg-muted"
-                      )}
-                    >
-                      <div className={cn("p-1.5 rounded-md", method.color)}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <span className={cn(
-                        "text-xs font-medium",
-                        isSelected ? "text-primary" : "text-muted-foreground"
-                      )}>
-                        {method.name}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+              <Label htmlFor="assignedGuest">Assign to</Label>
+              <Select value={assignedGuestId} onValueChange={setAssignedGuestId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select guest" />
+                </SelectTrigger>
+                <SelectContent>
+                  {reservationGuests.map(guest => (
+                    <SelectItem key={guest.id} value={guest.id}>
+                      {guest.name}{guest.isPrimary ? ' (Primary)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Folio Selector (only show if multiple folios) */}
-            {folios.length > 1 && (
-              <div className="space-y-2">
-                <Label htmlFor="folio">Apply to Folio</Label>
-                <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select folio" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {folios.map(folio => (
-                      <SelectItem key={folio.id} value={folio.id}>
-                        {folio.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* Select Folio */}
+            <div className="space-y-2">
+              <Label htmlFor="folio">Select Folio</Label>
+              <Select value={selectedFolioId || ''} onValueChange={setSelectedFolioId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select folio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {folios.map(folio => (
+                    <SelectItem key={folio.id} value={folio.id}>
+                      {folio.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Amount */}
             <div className="space-y-2">
@@ -238,36 +231,117 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
               />
             </div>
 
-            {/* Reference Number (for card, UPI, bank transfer) */}
-            {['card', 'upi', 'bank_transfer'].includes(paymentMethod) && (
-              <div className="space-y-2">
-                <Label htmlFor="referenceNumber">
-                  {paymentMethod === 'card' ? 'Last 4 Digits / Auth Code' :
-                   paymentMethod === 'upi' ? 'UPI Transaction ID' :
-                   'Transaction Reference'}
-                </Label>
-                <Input
-                  id="referenceNumber"
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                  placeholder={
-                    paymentMethod === 'card' ? 'XXXX / Auth code' :
-                    paymentMethod === 'upi' ? 'UPI123456789' :
-                    'Reference number'
-                  }
-                />
-              </div>
-            )}
-
-            {/* Transaction Date */}
+            {/* Payment Type with grouped options */}
             <div className="space-y-2">
-              <Label htmlFor="transactionDate">Payment Date</Label>
-              <Input
-                id="transactionDate"
-                type="date"
-                value={transactionDate}
-                onChange={(e) => setTransactionDate(e.target.value)}
-              />
+              <Label htmlFor="paymentType">Payment Type</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Process section - Coming Soon */}
+                  <SelectGroup>
+                    <SelectLabel className="text-muted-foreground text-xs uppercase tracking-wide">
+                      Process (Coming Soon)
+                    </SelectLabel>
+                    <SelectItem value="pay_link" disabled className="opacity-50">
+                      <div className="flex items-center gap-2">
+                        <Link2 className="h-4 w-4" />
+                        Pay by Link
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="add_card" disabled className="opacity-50">
+                      <div className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Add Credit Card
+                      </div>
+                    </SelectItem>
+                  </SelectGroup>
+
+                  <SelectSeparator />
+
+                  {/* Record Only section */}
+                  <SelectGroup>
+                    <SelectLabel className="text-xs uppercase tracking-wide">
+                      Record Only
+                    </SelectLabel>
+                    <SelectItem value="cash">
+                      <div className="flex items-center gap-2">
+                        <Banknote className="h-4 w-4 text-green-600" />
+                        Cash
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="card">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-blue-600" />
+                        Card
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="upi">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="h-4 w-4 text-purple-600" />
+                        UPI
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="bank_transfer">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-orange-600" />
+                        Bank Transfer
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="cheque">
+                      <div className="flex items-center gap-2">
+                        <CircleDollarSign className="h-4 w-4 text-teal-600" />
+                        Cheque
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="other">
+                      <div className="flex items-center gap-2">
+                        <CircleDollarSign className="h-4 w-4 text-gray-600" />
+                        Other
+                      </div>
+                    </SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Post with current date and time checkbox */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="useCurrentDateTime"
+                  checked={useCurrentDateTime}
+                  onCheckedChange={setUseCurrentDateTime}
+                />
+                <Label htmlFor="useCurrentDateTime" className="cursor-pointer">
+                  Post with current date and time
+                </Label>
+              </div>
+
+              {/* Date and time fields when checkbox is unchecked */}
+              {!useCurrentDateTime && (
+                <div className="grid grid-cols-2 gap-3 pl-6">
+                  <div className="space-y-1">
+                    <Label htmlFor="transactionDate" className="text-xs text-muted-foreground">Date</Label>
+                    <Input
+                      id="transactionDate"
+                      type="date"
+                      value={transactionDate}
+                      onChange={(e) => setTransactionDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="transactionTime" className="text-xs text-muted-foreground">Time</Label>
+                    <Input
+                      id="transactionTime"
+                      type="time"
+                      value={transactionTime}
+                      onChange={(e) => setTransactionTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notes */}
@@ -284,8 +358,9 @@ export default function AddPaymentModal({ open, onOpenChange, reservationId, fol
             </div>
           </div>
 
-          {/* Summary Footer */}
-          <div className="border-t bg-muted/30 px-6 py-3 space-y-3 shrink-0">
+          {/* Footer with summary and buttons */}
+          <div className="border-t bg-muted/30 px-6 py-4 space-y-3 shrink-0">
+            {/* Payment Summary */}
             {amount && parseFloat(amount) > 0 && (
               <div className="bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800 p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
