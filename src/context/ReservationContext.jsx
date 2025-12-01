@@ -99,10 +99,10 @@ export const ReservationProvider = ({ children }) => {
   const generateFolioCharges = async (reservation, guestName = 'Guest', roomNumber = '') => {
     const userId = user?.id || null;
 
-    // 1. Create or get master folio
+    // 1. Create or get master folio (uses room number for multi-room bookings)
     const { data: folio, error: folioError } = await getOrCreateMasterFolio(
       reservation.id,
-      guestName
+      roomNumber
     );
 
     if (folioError || !folio) {
