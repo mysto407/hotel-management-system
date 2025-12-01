@@ -4,6 +4,7 @@ import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useReservations } from '../../context/ReservationContext'
 import { useGuests } from '../../context/GuestContext'
 import { useMealPlans } from '../../context/MealPlanContext'
+import { useRooms } from '../../context/RoomContext'
 import { useAlert } from '@/context/AlertContext'
 import { getTotalTaxRate, validateRoomAvailability, validateRoomTypeAvailability } from '../../lib/supabase'
 import StepIndicator from '../../components/reservations/StepIndicator'
@@ -41,6 +42,7 @@ export default function PaymentPage({ onNavigate }) {
   const { addReservation } = useReservations()
   const { addGuest, updateGuest, updateGuestStats } = useGuests()
   const { getMealPlanPrice, getMealPlanName } = useMealPlans()
+  const { rooms } = useRooms()
   const { error: showError, success: showSuccess, warning: showWarning, info: showInfo } = useAlert()
 
   const [loading, setLoading] = useState(false)
@@ -308,6 +310,10 @@ export default function PaymentPage({ onNavigate }) {
             throw new Error(`No room assigned for ${roomType.name} slot ${index + 1}`)
           }
 
+          // Get the room number for folio naming
+          const roomData = assignedRoomId ? rooms.find(r => r.id === assignedRoomId) : null
+          const roomNumber = roomData?.room_number || ''
+
           // Get meal plan for this room (default to 'none' if not set)
           const mealPlan = roomType.mealPlans?.[index] || 'none'
 
@@ -345,7 +351,7 @@ export default function PaymentPage({ onNavigate }) {
             booking_id: bookingId, // Link all reservations from this booking together
             // Include additional guest IDs only for guests assigned to THIS room
             ...(guestsForThisRoom.length > 0 && { additional_guest_ids: guestsForThisRoom })
-          })
+          }, { roomNumber })
 
           if (!reservation) {
             throw new Error(`Failed to create reservation for ${roomType.name}. Please try again.`)

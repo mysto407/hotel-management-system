@@ -191,6 +191,9 @@ const Reservations = ({ onNavigate }) => {
           const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
           const days = calculateDays(formData.check_in_date, formData.check_out_date);
           const roomAmount = roomType ? roomType.base_price * days : 0;
+          // Get the room number for folio naming
+          const roomData = roomDetail.room_id ? rooms.find(r => r.id === roomDetail.room_id) : null;
+          const roomNumber = roomData?.room_number || '';
           const reservationData = {
              // ... (copy properties from logic)
             booking_source: formData.booking_source,
@@ -211,7 +214,7 @@ const Reservations = ({ onNavigate }) => {
             status: formData.status,
             special_requests: formData.special_requests
           };
-          await addReservation(reservationData);
+          await addReservation(reservationData, { roomNumber });
         }
       }
       closeModal();
