@@ -437,8 +437,10 @@ export const ReservationProvider = ({ children }) => {
     }
 
     // Update the folio name to show the room number
-    if (roomNumber) {
-      await updateMasterFolioName(reservationId, roomNumber);
+    // Get room number from returned data if not provided by caller
+    const assignedRoomNumber = roomNumber || data?.rooms?.room_number;
+    if (assignedRoomNumber) {
+      await updateMasterFolioName(reservationId, assignedRoomNumber);
     }
 
     showSuccess('Room assigned successfully');
