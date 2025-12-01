@@ -647,11 +647,12 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     // Same room type - proceed with assignment
     const guest = guests.find(g => g.id === draggedUnassigned.guest_id);
+    const roomNumber = result.room?.room_number || '';
 
-    const { error } = await assignRoomToReservation(draggedUnassigned.id, targetRoomId);
+    const { error } = await assignRoomToReservation(draggedUnassigned.id, targetRoomId, false, roomNumber);
 
     if (!error) {
-      showSuccess(`Assigned ${guest?.name || 'Guest'} to Room ${result.room?.room_number}`);
+      showSuccess(`Assigned ${guest?.name || 'Guest'} to Room ${roomNumber}`);
     }
 
     setDraggedUnassigned(null);
@@ -664,11 +665,12 @@ const ReservationCalendar = ({ onNavigate }) => {
 
     const { reservation, targetRoomId, targetRoom } = forceMoveDialog;
     const guest = guests.find(g => g.id === reservation.guest_id);
+    const roomNumber = targetRoom?.room_number || '';
 
-    const { error } = await assignRoomToReservation(reservation.id, targetRoomId, true); // forceRoomType = true
+    const { error } = await assignRoomToReservation(reservation.id, targetRoomId, true, roomNumber); // forceRoomType = true
 
     if (!error) {
-      showSuccess(`Assigned ${guest?.name || 'Guest'} to Room ${targetRoom?.room_number} (room type changed)`);
+      showSuccess(`Assigned ${guest?.name || 'Guest'} to Room ${roomNumber} (room type changed)`);
     }
 
     setForceMoveDialog(null);
@@ -1115,7 +1117,7 @@ const ReservationCalendar = ({ onNavigate }) => {
       }
 
       // Assign the room
-      const result = await assignRoomToReservation(selectedUnassignedReservation.id, roomId);
+      const result = await assignRoomToReservation(selectedUnassignedReservation.id, roomId, false, room.room_number);
       if (result.error) {
         showError('Failed to assign room: ' + result.error.message);
       } else {
@@ -1517,11 +1519,11 @@ const ReservationCalendar = ({ onNavigate }) => {
   };
 
   // Handle room assignment and check-in for unassigned reservations
-  const handleRoomAssignmentAndCheckIn = async (roomId) => {
+  const handleRoomAssignmentAndCheckIn = async (roomId, roomNumber) => {
     if (!roomAssignmentReservation) return;
 
-    // First assign the room
-    const { error } = await assignRoomToReservation(roomAssignmentReservation.id, roomId);
+    // First assign the room (pass room number to update folio name)
+    const { error } = await assignRoomToReservation(roomAssignmentReservation.id, roomId, false, roomNumber);
     if (error) {
       showError('Failed to assign room: ' + error.message);
       return;

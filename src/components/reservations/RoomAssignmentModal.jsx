@@ -88,9 +88,13 @@ export default function RoomAssignmentModal({
   const handleAssign = async () => {
     if (!selectedRoomId || !onAssign) return;
 
+    // Find the selected room to get its room number
+    const selectedRoom = availableRooms.find(r => r.id === selectedRoomId);
+    const roomNumber = selectedRoom?.room_number || '';
+
     setLoading(true);
     try {
-      await onAssign(selectedRoomId);
+      await onAssign(selectedRoomId, roomNumber);
     } finally {
       setLoading(false);
     }

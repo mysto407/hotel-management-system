@@ -331,11 +331,11 @@ const Reservations = ({ onNavigate }) => {
   };
 
   // Handle room assignment and check-in for unassigned reservations
-  const handleRoomAssignmentAndCheckIn = async (roomId) => {
+  const handleRoomAssignmentAndCheckIn = async (roomId, roomNumber) => {
     if (!roomAssignmentReservation) return;
 
-    const result = await assignRoom(roomAssignmentReservation.id, roomId);
-    if (result.success) {
+    const result = await assignRoom(roomAssignmentReservation.id, roomId, false, roomNumber);
+    if (result.data) {
       // Room assigned, now check in
       await checkIn(roomAssignmentReservation.id);
       setIsRoomAssignmentModalOpen(false);
