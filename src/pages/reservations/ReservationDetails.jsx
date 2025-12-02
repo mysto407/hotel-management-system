@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, Edit, Calendar, User, Users, DollarSign, Home, MapPin, Phone, Mail, Building, ChevronDown, ChevronUp, MoreVertical, Trash2, ArrowRight } from 'lucide-react'
+import { ChevronLeft, Edit, Calendar, Users, MoreVertical, Trash2, ArrowRight } from 'lucide-react'
 import { useReservations } from '../../context/ReservationContext'
 import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
@@ -334,7 +334,7 @@ export default function ReservationDetails({ onNavigate }) {
 
   return (
     <div className="w-full">
-      <div className="max-w-7xl mx-auto py-6 space-y-6">
+      <div className="max-w-[85rem] mx-auto py-6 space-y-6">
         {/* Header Card */}
         <Card>
         <CardContent className="pt-6">
@@ -576,36 +576,6 @@ export default function ReservationDetails({ onNavigate }) {
             </CardContent>
           </Card>
 
-          {/* Summary Card */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                  <DollarSign className="h-8 w-8 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Charges</p>
-                    <p className="text-xl font-bold">₹{(folioTotals.totalCharges ?? totalAmount).toFixed(2)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                  <DollarSign className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Payments</p>
-                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">₹{(folioTotals.totalPayments ?? totalPaid).toFixed(2)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                  <DollarSign className={`h-8 w-8 ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Balance Due</p>
-                    <p className={`text-xl font-bold ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                      ₹{(folioTotals.balance ?? balanceDue).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="folio">
