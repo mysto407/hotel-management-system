@@ -4306,7 +4306,8 @@ export const generateDailyRoomChargesWithTax = async (
     checkOutDate,
     roomNumber,
     userId,
-    applyTaxes = true
+    applyTaxes = true,
+    roomTypeName = ''
 ) => {
     const roomCharges = []
     const taxCharges = []
@@ -4325,7 +4326,10 @@ export const generateDailyRoomChargesWithTax = async (
         const scheduledPostDate = new Date(chargeDate)
         scheduledPostDate.setHours(0, 0, 0, 0)
 
-        const description = `Night ${i + 1} of ${nights}`
+        // Include room type name in description (e.g., "Deluxe Double Night 1 of 2")
+        const description = roomTypeName
+            ? `${roomTypeName} Night ${i + 1} of ${nights}`
+            : `Night ${i + 1} of ${nights}`
 
         // Create room charge
         const { data: roomCharge, error: chargeError } = await createRoomCharge({

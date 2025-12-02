@@ -141,7 +141,8 @@ export const ReservationProvider = ({ children }) => {
       reservation.check_out_date,
       roomNumber || 'TBD',
       userId,
-      true // Apply taxes
+      true, // Apply taxes
+      roomTypeName // Room type name for description (e.g., "Deluxe Double Night 1 of 2")
     );
 
     // 3. Generate meal plan charges if applicable (Cloudbeds-style daily posting)

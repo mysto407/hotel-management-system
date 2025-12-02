@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
 import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown } from 'lucide-react'
-import { useRooms } from '@/context/RoomContext'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -55,7 +54,6 @@ import TransferTransactionModal from './TransferTransactionModal'
 import SplitTransactionModal from './SplitTransactionModal'
 
 export default function FolioTab({ reservationIds, primaryReservation, groupedReservations = [], guests = [], onFolioChange }) {
-  const { roomTypes } = useRooms()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -90,29 +88,17 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const canSplitFolios = isMultiRoomBooking && hasMasterFolio && bookingId
   const canMergeFolios = isMultiRoomBooking && hasRoomFolios && bookingId
 
-  // Helper to get room type name from context
-  const getRoomTypeName = (roomTypeId) => {
-    if (!roomTypeId) return null
-    const roomType = roomTypes.find(rt => rt.id === roomTypeId)
-    return roomType?.name || null
-  }
-
   // Create lookup map for room and guest info by reservation_id
   const reservationInfoMap = useMemo(() => {
     const map = new Map()
     for (const res of groupedReservations) {
-      // Priority: assigned room number > joined room_types name > context room type lookup
-      const roomDisplay = res.rooms?.room_number
-        || res.room_types?.name
-        || getRoomTypeName(res.room_type_id)
-        || 'Unassigned'
       map.set(res.id, {
-        roomNumber: roomDisplay,
+        roomNumber: res.rooms?.room_number || 'TBD',
         guestName: res.guests?.name || 'Guest'
       })
     }
     return map
-  }, [groupedReservations, roomTypes])
+  }, [groupedReservations])
 
   // Helper to get room/guest info for a transaction
   const getTransactionRoomInfo = (txn) => {
