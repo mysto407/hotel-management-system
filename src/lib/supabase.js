@@ -4325,7 +4325,7 @@ export const generateDailyRoomChargesWithTax = async (
         const scheduledPostDate = new Date(chargeDate)
         scheduledPostDate.setHours(0, 0, 0, 0)
 
-        const description = `Room ${roomNumber} - Night ${i + 1} of ${nights}`
+        const description = `Night ${i + 1} of ${nights}`
 
         // Create room charge
         const { data: roomCharge, error: chargeError } = await createRoomCharge({
