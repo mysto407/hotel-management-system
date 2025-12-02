@@ -281,6 +281,14 @@ export default function PaymentPage({ onNavigate }) {
       // This allows multiple reservations (different rooms, room changes, etc.) to be grouped as one booking
       const bookingId = crypto.randomUUID();
 
+      // Calculate total room count for the booking (used for master folio naming)
+      const totalRoomCount = selectedRooms.reduce((sum, roomType) => sum + (roomType.quantity || 1), 0);
+
+      // Get primary guest name for folio naming
+      const primaryGuestName = primaryGuest.firstName
+        ? `${primaryGuest.firstName}${primaryGuest.surname ? ' ' + primaryGuest.surname : ''}`
+        : 'Guest';
+
       // Create reservations SEQUENTIALLY for each selected room (enables proper error handling)
       const createdReservations = []
 
@@ -353,7 +361,12 @@ export default function PaymentPage({ onNavigate }) {
             booking_id: bookingId, // Link all reservations from this booking together
             // Include additional guest IDs only for guests assigned to THIS room
             ...(guestsForThisRoom.length > 0 && { additional_guest_ids: guestsForThisRoom })
-          }, { roomNumber, roomTypeName })
+          }, {
+            roomNumber,
+            roomTypeName,
+            guestName: primaryGuestName,
+            roomCount: totalRoomCount
+          })
 
           if (!reservation) {
             throw new Error(`Failed to create reservation for ${roomType.name}. Please try again.`)

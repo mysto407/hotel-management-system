@@ -148,14 +148,21 @@ export default function ReservationDetails({ onNavigate }) {
     try {
       let totalCharges = 0
       let totalPayments = 0
-      // Get folios for each reservation and sum their totals
+      const seenFolioIds = new Set()
+
+      // Get folios for each reservation and sum their totals (deduplicating shared folios)
+      const bookingId = groupedReservations[0]?.booking_id
       for (const reservation of groupedReservations) {
-        const { data: folios, error: folioError } = await getFoliosByReservation(reservation.id)
+        const { data: folios, error: folioError } = await getFoliosByReservation(reservation.id, bookingId)
         if (folioError) {
           console.error('Error fetching folios:', folioError)
           continue
         }
         for (const folio of (folios || [])) {
+          // Skip if we've already counted this folio (shared folios for multi-room bookings)
+          if (seenFolioIds.has(folio.id)) continue
+          seenFolioIds.add(folio.id)
+
           const { data: balanceData, error: balanceError } = await getFolioBalance(folio.id)
           if (balanceError) {
             console.error('Error fetching folio balance:', balanceError)

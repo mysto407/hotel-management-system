@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List } from 'lucide-react'
+import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -42,7 +42,9 @@ import {
   getFolioBalance,
   moveTransactionToFolio,
   voidTransactionWithChildren,
-  reverseTransaction
+  reverseTransaction,
+  splitMasterFolioByRooms,
+  mergeFoliosIntoMaster
 } from '@/lib/supabase'
 import { formatCurrency } from '@/utils/currency'
 import AddChargeModal from './AddChargeModal'
@@ -70,8 +72,21 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const [transferModalOpen, setTransferModalOpen] = useState(false)
   const [splitModalOpen, setSplitModalOpen] = useState(false)
 
+  // Split/Merge folio state
+  const [splitFolioConfirmOpen, setSplitFolioConfirmOpen] = useState(false)
+  const [mergeFolioConfirmOpen, setMergeFolioConfirmOpen] = useState(false)
+  const [folioActionLoading, setFolioActionLoading] = useState(false)
+
   // View mode state
   const [groupByDate, setGroupByDate] = useState(false)
+
+  // Check if this is a multi-room booking
+  const bookingId = primaryReservation?.booking_id
+  const isMultiRoomBooking = groupedReservations.length > 1 || (reservationIds && reservationIds.length > 1)
+  const hasMasterFolio = folios.some(f => f.folio_type === 'master' && f.booking_id === bookingId)
+  const hasRoomFolios = folios.some(f => f.folio_type === 'room' && f.booking_id === bookingId)
+  const canSplitFolios = isMultiRoomBooking && hasMasterFolio && bookingId
+  const canMergeFolios = isMultiRoomBooking && hasRoomFolios && bookingId
 
   // Fetch folios for ALL reservations in the group
   const fetchFolios = async () => {
@@ -80,16 +95,23 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
     try {
       const allFolios = []
       const balances = {}
+      const seenFolioIds = new Set()
 
       // Fetch folios for ALL reservations in the group
       for (const resId of reservationIds) {
-        const { data, error } = await getFoliosByReservation(resId)
+        const { data, error } = await getFoliosByReservation(resId, bookingId)
         if (error) {
           console.error('Error fetching folios for reservation:', resId, error)
           continue
         }
         if (data) {
-          allFolios.push(...data)
+          // Deduplicate folios (same folio can be returned for multiple reservations in a booking)
+          for (const folio of data) {
+            if (!seenFolioIds.has(folio.id)) {
+              seenFolioIds.add(folio.id)
+              allFolios.push(folio)
+            }
+          }
         }
       }
 
@@ -166,13 +188,64 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
 
       await fetchTransactions()
       await fetchFolios()
-      setMoveToFolioOpen(false)
       setSelectedTransaction(null)
     } catch (err) {
       console.error('Error moving transaction:', err)
       alert('Failed to move transaction: ' + err.message)
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  // Handle splitting master folio into room folios
+  const handleSplitFolios = async () => {
+    if (!bookingId) return
+
+    setFolioActionLoading(true)
+    try {
+      const { data, error } = await splitMasterFolioByRooms(bookingId)
+      if (error) throw error
+
+      await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
+      setSplitFolioConfirmOpen(false)
+
+      // Set active folio to the first room folio
+      if (data?.roomFolios?.[0]) {
+        setActiveFolioId(data.roomFolios[0].id)
+      }
+    } catch (err) {
+      console.error('Error splitting folios:', err)
+      alert('Failed to split folios: ' + err.message)
+    } finally {
+      setFolioActionLoading(false)
+    }
+  }
+
+  // Handle merging room folios into master
+  const handleMergeFolios = async () => {
+    if (!bookingId) return
+
+    setFolioActionLoading(true)
+    try {
+      const { data, error } = await mergeFoliosIntoMaster(bookingId)
+      if (error) throw error
+
+      await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
+      setMergeFolioConfirmOpen(false)
+
+      // Set active folio to the new master
+      if (data?.masterFolio) {
+        setActiveFolioId(data.masterFolio.id)
+      }
+    } catch (err) {
+      console.error('Error merging folios:', err)
+      alert('Failed to merge folios: ' + err.message)
+    } finally {
+      setFolioActionLoading(false)
     }
   }
 
@@ -394,15 +467,29 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       }
                     `}
                   >
-                    <span className="font-medium text-sm truncate max-w-[150px]">
-                      {folio.name}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium text-sm truncate max-w-[150px]">
+                        {folio.name}
+                      </span>
+                      {folio.folio_type === 'master' && folio.booking_id && (
+                        <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${isActive ? 'bg-primary-foreground/20' : ''}`}>
+                          Master
+                        </Badge>
+                      )}
+                      {folio.folio_type === 'room' && (
+                        <Badge variant="outline" className={`text-[10px] px-1 py-0 ${isActive ? 'border-primary-foreground/50' : ''}`}>
+                          Room
+                        </Badge>
+                      )}
+                    </div>
                     <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                       {formatCurrency(balance)}
                     </span>
                   </button>
                 )
               })}
+
+              {/* New Folio Button */}
               <Button
                 variant="outline"
                 size="sm"
@@ -412,6 +499,33 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                 <FolderPlus className="h-4 w-4 mr-1" />
                 New Folio
               </Button>
+
+              {/* Split/Merge Dropdown for multi-room bookings */}
+              {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-auto py-2 px-3">
+                      <SplitSquareVertical className="h-4 w-4 mr-1" />
+                      Manage
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {canSplitFolios && (
+                      <DropdownMenuItem onClick={() => setSplitFolioConfirmOpen(true)}>
+                        <SplitSquareVertical className="h-4 w-4 mr-2" />
+                        Split into Room Folios
+                      </DropdownMenuItem>
+                    )}
+                    {canMergeFolios && (
+                      <DropdownMenuItem onClick={() => setMergeFolioConfirmOpen(true)}>
+                        <Merge className="h-4 w-4 mr-2" />
+                        Merge into Master Folio
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -922,6 +1036,66 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
           setSelectedTransaction(null)
         }}
       />
+
+      {/* Split Folio Confirmation Dialog */}
+      <AlertDialog open={splitFolioConfirmOpen} onOpenChange={setSplitFolioConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <SplitSquareVertical className="h-5 w-5 text-primary" />
+              Split into Room Folios
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will split the master folio into separate folios for each room in this booking.
+              Each room's charges will be moved to its respective folio.
+              <div className="mt-3 p-3 bg-muted rounded-lg">
+                <p className="font-medium text-foreground">This booking has {groupedReservations.length || reservationIds?.length || 0} rooms</p>
+                <p className="text-sm mt-1">After splitting, you can manage billing separately for each room.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={folioActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSplitFolios}
+              disabled={folioActionLoading}
+            >
+              {folioActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SplitSquareVertical className="h-4 w-4 mr-2" />}
+              Split Folios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Merge Folio Confirmation Dialog */}
+      <AlertDialog open={mergeFolioConfirmOpen} onOpenChange={setMergeFolioConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Merge className="h-5 w-5 text-primary" />
+              Merge into Master Folio
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will merge all room folios back into a single master folio.
+              All transactions from each room will be combined.
+              <div className="mt-3 p-3 bg-muted rounded-lg">
+                <p className="font-medium text-foreground">All room charges will appear on one folio</p>
+                <p className="text-sm mt-1">This is useful for single-bill checkout or group payments.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={folioActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleMergeFolios}
+              disabled={folioActionLoading}
+            >
+              {folioActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Merge className="h-4 w-4 mr-2" />}
+              Merge Folios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -1901,17 +1901,28 @@ export const deleteDiscountApplication = async(id) => {
 // ============================================================================
 
 // Folio Management Functions
-export const createMasterFolio = async (reservationId, roomNumber = '', roomTypeName = '') => {
+
+/**
+ * Create a master folio for a booking (group of reservations)
+ * @param {string} reservationId - The primary reservation ID
+ * @param {string} bookingId - The booking ID that groups multiple reservations
+ * @param {string} guestName - Primary guest name for the folio
+ * @param {number} roomCount - Number of rooms in the booking
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const createMasterFolio = async (reservationId, bookingId = null, guestName = '', roomCount = 1) => {
     // Generate folio number
     const timestamp = Date.now().toString(36).toUpperCase()
     const folioNumber = `F-${timestamp}`
 
-    // Use room number for folio name, or room type name if unassigned
+    // Build folio name based on guest name and room count
     let folioName
-    if (roomNumber) {
-        folioName = `Room ${roomNumber} - Main`
-    } else if (roomTypeName) {
-        folioName = `${roomTypeName} (unassigned) - Main`
+    if (guestName && roomCount > 1) {
+        folioName = `${guestName} - ${roomCount} Rooms`
+    } else if (guestName) {
+        folioName = `${guestName} - Main`
+    } else if (roomCount > 1) {
+        folioName = `Booking - ${roomCount} Rooms`
     } else {
         folioName = 'Main Folio'
     }
@@ -1920,6 +1931,7 @@ export const createMasterFolio = async (reservationId, roomNumber = '', roomType
         .from('folios')
         .insert({
             reservation_id: reservationId,
+            booking_id: bookingId,
             folio_type: 'master',
             folio_number: folioNumber,
             name: folioName,
@@ -1931,34 +1943,124 @@ export const createMasterFolio = async (reservationId, roomNumber = '', roomType
     return { data: data?.[0], error }
 }
 
+/**
+ * Get master folio by booking_id (for multi-room bookings)
+ * @param {string} bookingId - The booking ID
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const getFolioByBookingId = async (bookingId) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .select('*')
+        .eq('booking_id', bookingId)
+        .eq('folio_type', 'master')
+        .eq('is_active', true)
+        .maybeSingle()
+
+    return { data, error }
+}
+
 export const getFolioByReservation = async (reservationId) => {
+    // First check if this reservation has a booking_id and if there's a booking-level folio
+    const { data: reservation } = await supabase
+        .from('reservations')
+        .select('booking_id')
+        .eq('id', reservationId)
+        .single()
+
+    // If reservation has booking_id, try to get folio by booking_id first
+    if (reservation?.booking_id) {
+        const { data: bookingFolio, error: bookingError } = await getFolioByBookingId(reservation.booking_id)
+        if (bookingFolio) {
+            return { data: bookingFolio, error: null }
+        }
+    }
+
+    // Fallback: get folio by reservation_id (for single-room or legacy bookings)
     const { data, error } = await supabase
         .from('folios')
         .select('*')
         .eq('reservation_id', reservationId)
         .eq('folio_type', 'master')
-        .single()
+        .maybeSingle()
 
     return { data, error }
 }
 
-export const getOrCreateMasterFolio = async (reservationId, roomNumber = '', roomTypeName = '') => {
-    // First try to get existing folio
-    const { data: existing } = await getFolioByReservation(reservationId)
+/**
+ * Get or create master folio for a booking
+ * For multi-room bookings, creates ONE folio for the entire booking
+ * @param {string} reservationId - The reservation ID
+ * @param {string} bookingId - Optional booking ID for multi-room bookings
+ * @param {string} guestName - Primary guest name
+ * @param {number} roomCount - Number of rooms in the booking
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const getOrCreateMasterFolio = async (reservationId, bookingId = null, guestName = '', roomCount = 1) => {
+    // If booking_id provided, try to get existing booking-level folio first
+    if (bookingId) {
+        const { data: bookingFolio } = await getFolioByBookingId(bookingId)
+        if (bookingFolio) {
+            return { data: bookingFolio, error: null }
+        }
+    }
+
+    // Try to get existing folio by reservation_id
+    const { data: existing } = await supabase
+        .from('folios')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .eq('folio_type', 'master')
+        .maybeSingle()
+
     if (existing) {
         return { data: existing, error: null }
     }
 
     // Create new master folio
-    return await createMasterFolio(reservationId, roomNumber, roomTypeName)
+    return await createMasterFolio(reservationId, bookingId, guestName, roomCount)
 }
 
 /**
- * Get ALL active folios for a reservation (not just master)
+ * Get ALL active folios for a reservation (includes booking-level folios for multi-room bookings)
  * @param {string} reservationId - The reservation ID
+ * @param {string} bookingId - Optional booking ID for multi-room bookings
  * @returns {Promise<{data: Array, error: object}>}
  */
-export const getFoliosByReservation = async (reservationId) => {
+export const getFoliosByReservation = async (reservationId, bookingId = null) => {
+    // If bookingId provided, get all folios for the booking
+    if (bookingId) {
+        const { data, error } = await supabase
+            .from('folios')
+            .select('*')
+            .or(`booking_id.eq.${bookingId},reservation_id.eq.${reservationId}`)
+            .eq('is_active', true)
+            .order('folio_type', { ascending: true }) // master first
+            .order('created_at', { ascending: true })
+
+        return { data, error }
+    }
+
+    // Fallback: check if reservation has a booking_id
+    const { data: reservation } = await supabase
+        .from('reservations')
+        .select('booking_id')
+        .eq('id', reservationId)
+        .single()
+
+    if (reservation?.booking_id) {
+        const { data, error } = await supabase
+            .from('folios')
+            .select('*')
+            .or(`booking_id.eq.${reservation.booking_id},reservation_id.eq.${reservationId}`)
+            .eq('is_active', true)
+            .order('folio_type', { ascending: true })
+            .order('created_at', { ascending: true })
+
+        return { data, error }
+    }
+
+    // Single-room booking: just get folios by reservation_id
     const { data, error } = await supabase
         .from('folios')
         .select('*')
@@ -1970,12 +2072,51 @@ export const getFoliosByReservation = async (reservationId) => {
 }
 
 /**
+ * Get ALL active folios for a booking (by booking_id)
+ * @param {string} bookingId - The booking ID
+ * @returns {Promise<{data: Array, error: object}>}
+ */
+export const getFoliosByBookingId = async (bookingId) => {
+    const { data, error } = await supabase
+        .from('folios')
+        .select('*')
+        .eq('booking_id', bookingId)
+        .eq('is_active', true)
+        .order('folio_type', { ascending: true }) // master first
+        .order('created_at', { ascending: true })
+
+    return { data, error }
+}
+
+/**
  * Update the master folio name for a reservation (e.g., when room is assigned)
+ * For single-room bookings only - multi-room bookings keep booking-level name
  * @param {string} reservationId - The reservation ID
  * @param {string} roomNumber - The room number to display
  * @returns {Promise<{data: object, error: object}>}
  */
 export const updateMasterFolioName = async (reservationId, roomNumber) => {
+    // First check if this reservation has a booking_id with multiple rooms
+    const { data: reservation } = await supabase
+        .from('reservations')
+        .select('booking_id')
+        .eq('id', reservationId)
+        .single()
+
+    if (reservation?.booking_id) {
+        // Check if there are multiple reservations with this booking_id
+        const { count } = await supabase
+            .from('reservations')
+            .select('*', { count: 'exact', head: true })
+            .eq('booking_id', reservation.booking_id)
+
+        // Don't update folio name for multi-room bookings (keep consolidated name)
+        if (count > 1) {
+            return { data: null, error: null }
+        }
+    }
+
+    // Single room booking: update the folio name to show room number
     const folioName = roomNumber ? `Room ${roomNumber} - Main` : 'Main Folio'
 
     const { data, error } = await supabase
@@ -1986,6 +2127,218 @@ export const updateMasterFolioName = async (reservationId, roomNumber) => {
         .select()
 
     return { data: data?.[0], error }
+}
+
+/**
+ * Split a master folio into separate room folios
+ * Creates one folio per reservation in the booking, moving transactions to their respective room folios
+ * @param {string} bookingId - The booking ID
+ * @param {string} userId - The user performing the split
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const splitMasterFolioByRooms = async (bookingId, userId = null) => {
+    try {
+        // 1. Get all reservations for this booking
+        const { data: reservations, error: resError } = await supabase
+            .from('reservations')
+            .select(`
+                id,
+                room_id,
+                rooms (room_number),
+                room_type_id,
+                room_types (name),
+                guest_id,
+                guests (name)
+            `)
+            .eq('booking_id', bookingId)
+            .order('created_at', { ascending: true })
+
+        if (resError || !reservations?.length) {
+            return { data: null, error: resError || { message: 'No reservations found for booking' } }
+        }
+
+        // 2. Get the master folio
+        const { data: masterFolio, error: folioError } = await getFolioByBookingId(bookingId)
+        if (folioError || !masterFolio) {
+            return { data: null, error: folioError || { message: 'No master folio found for booking' } }
+        }
+
+        // 3. Get all transactions from the master folio
+        const { data: transactions, error: txnError } = await supabase
+            .from('folio_transactions')
+            .select('*')
+            .eq('folio_id', masterFolio.id)
+            .not('transaction_status', 'in', '("voided","reversed")')
+            .order('created_at', { ascending: true })
+
+        if (txnError) {
+            return { data: null, error: txnError }
+        }
+
+        // 4. Create individual room folios for each reservation
+        const roomFolios = []
+        for (const res of reservations) {
+            const timestamp = Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4)
+            const folioNumber = `F-${timestamp}`
+            const roomNumber = res.rooms?.room_number || 'Unassigned'
+            const roomTypeName = res.room_types?.name || 'Room'
+            const guestName = res.guests?.name || 'Guest'
+
+            const folioName = res.rooms?.room_number
+                ? `Room ${roomNumber} - ${guestName}`
+                : `${roomTypeName} (unassigned) - ${guestName}`
+
+            const { data: newFolio, error: createError } = await supabase
+                .from('folios')
+                .insert({
+                    reservation_id: res.id,
+                    booking_id: bookingId,
+                    folio_type: 'room',
+                    folio_number: folioNumber,
+                    name: folioName,
+                    is_active: true,
+                    checkout_status: 'open'
+                })
+                .select()
+                .single()
+
+            if (createError) {
+                console.error('Error creating room folio:', createError)
+                continue
+            }
+
+            roomFolios.push({ ...newFolio, reservation_id: res.id })
+        }
+
+        // 5. Move transactions to their respective room folios based on reservation_id
+        for (const txn of transactions || []) {
+            // Find the room folio for this transaction's reservation
+            const targetFolio = roomFolios.find(f => f.reservation_id === txn.reservation_id)
+            if (targetFolio) {
+                await supabase
+                    .from('folio_transactions')
+                    .update({ folio_id: targetFolio.id })
+                    .eq('id', txn.id)
+            }
+        }
+
+        // 6. Deactivate the master folio (keep for history)
+        await supabase
+            .from('folios')
+            .update({
+                is_active: false,
+                notes: `Split into ${roomFolios.length} room folios at ${new Date().toISOString()}`
+            })
+            .eq('id', masterFolio.id)
+
+        return {
+            data: {
+                originalFolio: masterFolio,
+                roomFolios,
+                transactionsMoved: transactions?.length || 0
+            },
+            error: null
+        }
+    } catch (err) {
+        console.error('Error splitting master folio:', err)
+        return { data: null, error: { message: err.message } }
+    }
+}
+
+/**
+ * Merge room folios back into a single master folio
+ * @param {string} bookingId - The booking ID
+ * @param {string} userId - The user performing the merge
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const mergeFoliosIntoMaster = async (bookingId, userId = null) => {
+    try {
+        // 1. Get all active room folios for this booking
+        const { data: roomFolios, error: folioError } = await supabase
+            .from('folios')
+            .select('*')
+            .eq('booking_id', bookingId)
+            .eq('is_active', true)
+            .eq('folio_type', 'room')
+
+        if (folioError || !roomFolios?.length) {
+            return { data: null, error: folioError || { message: 'No room folios found to merge' } }
+        }
+
+        // 2. Get primary reservation for the master folio
+        const { data: reservations } = await supabase
+            .from('reservations')
+            .select(`
+                id,
+                guest_id,
+                guests (name)
+            `)
+            .eq('booking_id', bookingId)
+            .order('created_at', { ascending: true })
+            .limit(1)
+
+        const primaryReservation = reservations?.[0]
+        const guestName = primaryReservation?.guests?.name || 'Guest'
+
+        // 3. Create new master folio
+        const timestamp = Date.now().toString(36).toUpperCase()
+        const { data: masterFolio, error: createError } = await supabase
+            .from('folios')
+            .insert({
+                reservation_id: primaryReservation?.id,
+                booking_id: bookingId,
+                folio_type: 'master',
+                folio_number: `F-${timestamp}`,
+                name: `${guestName} - ${roomFolios.length} Rooms`,
+                is_active: true,
+                checkout_status: 'open'
+            })
+            .select()
+            .single()
+
+        if (createError) {
+            return { data: null, error: createError }
+        }
+
+        // 4. Move all transactions from room folios to master
+        let transactionsMoved = 0
+        for (const roomFolio of roomFolios) {
+            const { data: transactions } = await supabase
+                .from('folio_transactions')
+                .select('id')
+                .eq('folio_id', roomFolio.id)
+
+            if (transactions?.length) {
+                await supabase
+                    .from('folio_transactions')
+                    .update({ folio_id: masterFolio.id })
+                    .eq('folio_id', roomFolio.id)
+
+                transactionsMoved += transactions.length
+            }
+
+            // Deactivate room folio
+            await supabase
+                .from('folios')
+                .update({
+                    is_active: false,
+                    notes: `Merged into master folio at ${new Date().toISOString()}`
+                })
+                .eq('id', roomFolio.id)
+        }
+
+        return {
+            data: {
+                masterFolio,
+                mergedFolios: roomFolios.length,
+                transactionsMoved
+            },
+            error: null
+        }
+    } catch (err) {
+        console.error('Error merging folios:', err)
+        return { data: null, error: { message: err.message } }
+    }
 }
 
 /**

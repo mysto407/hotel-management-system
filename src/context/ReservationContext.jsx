@@ -60,7 +60,7 @@ export const ReservationProvider = ({ children }) => {
   };
 
   const addReservation = async (reservation, options = {}) => {
-    const { skipFolioGeneration = false, guestName = 'Guest', roomNumber = '', roomTypeName = '' } = options;
+    const { skipFolioGeneration = false, guestName = 'Guest', roomNumber = '', roomTypeName = '', roomCount = 1 } = options;
 
     const { data, error } = await createReservationAPI(reservation);
     if (error) {
@@ -83,9 +83,10 @@ export const ReservationProvider = ({ children }) => {
     }
 
     // Auto-generate folio and charges (Cloudbeds-style)
+    // For multi-room bookings, all rooms share ONE master folio
     if (!skipFolioGeneration && createdReservation) {
       try {
-        await generateFolioCharges(createdReservation, guestName, roomNumber, roomTypeName);
+        await generateFolioCharges(createdReservation, guestName, roomNumber, roomTypeName, roomCount);
       } catch (folioError) {
         console.error('Error generating folio charges:', folioError);
         // Don't fail the reservation creation, just log the error
@@ -97,14 +98,17 @@ export const ReservationProvider = ({ children }) => {
   };
 
   // Generate folio and all initial charges for a reservation
-  const generateFolioCharges = async (reservation, guestName = 'Guest', roomNumber = '', roomTypeName = '') => {
+  const generateFolioCharges = async (reservation, guestName = 'Guest', roomNumber = '', roomTypeName = '', roomCount = 1) => {
     const userId = user?.id || null;
 
-    // 1. Create or get master folio (uses room number for multi-room bookings, or room type if unassigned)
+    // 1. Create or get master folio
+    // For multi-room bookings (with booking_id), creates ONE master folio for all rooms
+    // For single-room bookings, creates a folio per reservation
     const { data: folio, error: folioError } = await getOrCreateMasterFolio(
       reservation.id,
-      roomNumber,
-      roomTypeName
+      reservation.booking_id || null,
+      guestName,
+      roomCount
     );
 
     if (folioError || !folio) {
