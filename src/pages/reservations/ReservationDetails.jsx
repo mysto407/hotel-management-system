@@ -337,58 +337,63 @@ export default function ReservationDetails({ onNavigate }) {
       <div className="max-w-[85rem] mx-auto py-6 space-y-6">
         {/* Header Card */}
         <Card>
-        <CardContent className="py-3 space-y-2">
-          {/* Row 1: Name, Status, Res ID */}
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">{guestInfo.name}</h1>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="cursor-pointer">
-                  <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-xs hover:opacity-80">
-                    {primaryReservation.status}
-                  </Badge>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => handleStatusChange('Inquiry')}>Inquiry</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange('Tentative')}>Tentative</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange('Hold')}>Hold</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange('Confirmed')}>Confirmed</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange('Checked-in')}>Checked-in</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange('Checked-out')}>Checked-out</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange('Cancelled')}>Cancelled</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <span className="text-sm text-muted-foreground">ID: {primaryReservation.id.substring(0, 13)}</span>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{guestInfo.name}</h1>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="cursor-pointer">
+                    <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-sm hover:opacity-80">
+                      {primaryReservation.status}
+                    </Badge>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => handleStatusChange('Inquiry')}>Inquiry</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange('Tentative')}>Tentative</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange('Hold')}>Hold</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange('Confirmed')}>Confirmed</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange('Checked-in')}>Checked-in</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange('Checked-out')}>Checked-out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange('Cancelled')}>Cancelled</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Reservation ID: {primaryReservation.id.substring(0, 13)}
+            </p>
           </div>
 
-          {/* Row 2: Quick Info */}
-          <div className="flex items-center gap-6 text-sm">
+          {/* Quick Info Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 pb-4">
             <div>
-              <span className="text-xs text-muted-foreground">Check-In </span>
-              <span className="font-medium">{new Date(primaryReservation.check_in_date).toLocaleDateString()}</span>
+              <p className="text-xs text-muted-foreground mb-1">Check-In</p>
+              <p className="font-medium text-sm">{new Date(primaryReservation.check_in_date).toLocaleDateString()}</p>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground">Check-Out </span>
-              <span className="font-medium">{new Date(primaryReservation.check_out_date).toLocaleDateString()}</span>
+              <p className="text-xs text-muted-foreground mb-1">Check-Out</p>
+              <p className="font-medium text-sm">{new Date(primaryReservation.check_out_date).toLocaleDateString()}</p>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground">Nights </span>
-              <span className="font-medium">{nights}</span>
+              <p className="text-xs text-muted-foreground mb-1">Nights</p>
+              <p className="font-medium text-sm">{nights}</p>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground">Res Date </span>
-              <span className="font-medium">{new Date(primaryReservation.created_at || primaryReservation.check_in_date).toLocaleDateString()}</span>
+              <p className="text-xs text-muted-foreground mb-1">Reservation Date</p>
+              <p className="font-medium text-sm">
+                {new Date(primaryReservation.created_at || primaryReservation.check_in_date).toLocaleDateString()}
+              </p>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground">Guests </span>
-              <span className="font-medium">{totalGuests}</span>
+              <p className="text-xs text-muted-foreground mb-1">Guests</p>
+              <p className="font-medium text-sm">{totalGuests}</p>
             </div>
             <div>
-              <span className="text-xs text-muted-foreground">Source </span>
-              <span className="font-medium capitalize">
+              <p className="text-xs text-muted-foreground mb-1">Booking Source</p>
+              <p className="font-medium text-sm capitalize">
                 {primaryReservation.booking_source === 'agent' && agentInfo
-                  ? agentInfo.name
+                  ? `Agent: ${agentInfo.name}`
                   : primaryReservation.booking_source === 'walk-in'
                   ? 'Walk-in'
                   : primaryReservation.booking_source === 'phone'
@@ -398,13 +403,13 @@ export default function ReservationDetails({ onNavigate }) {
                   : primaryReservation.booking_source === 'website'
                   ? 'Website'
                   : primaryReservation.direct_source || primaryReservation.booking_source || 'Walk-in'}
-              </span>
+              </p>
             </div>
-            <div>
-              <span className="text-xs text-muted-foreground">Balance </span>
-              <span className={`font-bold ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
+              <p className={`font-bold text-lg ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 ₹{(folioTotals.balance ?? balanceDue).toFixed(2)}
-              </span>
+              </p>
             </div>
           </div>
         </CardContent>
