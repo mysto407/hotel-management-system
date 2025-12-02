@@ -284,9 +284,10 @@ export const ReservationProvider = ({ children }) => {
       roomRate,
       newCheckIn,
       newCheckOut,
-      'Room', // Room number may not be available here
+      oldReservation.rooms?.room_number || 'TBD',
       userId,
-      true
+      true,
+      oldReservation.room_types?.name || '' // Room type name for description
     );
 
     console.log(`Regenerated ${nights} room charges for new date range`);
