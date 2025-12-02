@@ -338,32 +338,32 @@ export default function ReservationDetails({ onNavigate }) {
         {/* Header Card */}
         <Card>
         <CardContent className="py-4 space-y-3">
-          {/* Row 1: Name, Status, and Res ID */}
-          <div>
-            <div className="flex items-center gap-2">
+          {/* Row 1: Name, Res ID, and Status */}
+          <div className="flex items-center gap-6">
+            <div>
               <h1 className="text-xl font-bold">{guestInfo.name}</h1>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="cursor-pointer">
-                    <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-xs hover:opacity-80">
-                      {primaryReservation.status}
-                    </Badge>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem onClick={() => handleStatusChange('Inquiry')}>Inquiry</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange('Tentative')}>Tentative</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange('Hold')}>Hold</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange('Confirmed')}>Confirmed</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange('Checked-in')}>Checked-in</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange('Checked-out')}>Checked-out</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange('Cancelled')}>Cancelled</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <p className="text-xs text-muted-foreground">
+                ID: {primaryReservation.id.substring(0, 13)}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              ID: {primaryReservation.id.substring(0, 13)}
-            </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="cursor-pointer hover:opacity-80">
+                  <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-base px-3 py-1">
+                    {primaryReservation.status}
+                  </Badge>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleStatusChange('Inquiry')}>Inquiry</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Tentative')}>Tentative</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Hold')}>Hold</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Confirmed')}>Confirmed</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Checked-in')}>Checked-in</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Checked-out')}>Checked-out</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Cancelled')}>Cancelled</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Row 2: Quick Info */}
