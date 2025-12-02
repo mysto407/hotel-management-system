@@ -11,13 +11,6 @@ import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select'
-import {
   Tabs,
   TabsContent,
   TabsList,
@@ -355,37 +348,36 @@ export default function ReservationDetails({ onNavigate }) {
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">{guestInfo.name}</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold">{guestInfo.name}</h1>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="cursor-pointer">
+                        <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-sm hover:opacity-80">
+                          {primaryReservation.status}
+                        </Badge>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => handleStatusChange('Inquiry')}>Inquiry</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange('Tentative')}>Tentative</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange('Hold')}>Hold</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange('Confirmed')}>Confirmed</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange('Checked-in')}>Checked-in</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange('Checked-out')}>Checked-out</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange('Cancelled')}>Cancelled</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Reservation ID: {primaryReservation.id.substring(0, 13)}
                 </p>
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              {/* Status Dropdown */}
-              <Select
-                value={primaryReservation.status}
-                onValueChange={handleStatusChange}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Inquiry">Inquiry</SelectItem>
-                  <SelectItem value="Tentative">Tentative</SelectItem>
-                  <SelectItem value="Hold">Hold</SelectItem>
-                  <SelectItem value="Confirmed">Confirmed</SelectItem>
-                  <SelectItem value="Checked-in">Checked-in</SelectItem>
-                  <SelectItem value="Checked-out">Checked-out</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {/* Quick Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 pb-4 border-b">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 pb-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Check-In</p>
               <p className="font-medium text-sm">{new Date(primaryReservation.check_in_date).toLocaleDateString()}</p>
@@ -432,12 +424,6 @@ export default function ReservationDetails({ onNavigate }) {
             </div>
           </div>
 
-          {/* Status Badge */}
-          <div className="mt-4">
-            <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-sm">
-              {primaryReservation.status}
-            </Badge>
-          </div>
         </CardContent>
       </Card>
 
