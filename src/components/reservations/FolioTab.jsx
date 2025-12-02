@@ -88,6 +88,24 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const canSplitFolios = isMultiRoomBooking && hasMasterFolio && bookingId
   const canMergeFolios = isMultiRoomBooking && hasRoomFolios && bookingId
 
+  // Create lookup map for room and guest info by reservation_id
+  const reservationInfoMap = useMemo(() => {
+    const map = new Map()
+    for (const res of groupedReservations) {
+      map.set(res.id, {
+        roomNumber: res.rooms?.room_number || res.room_types?.name || 'TBD',
+        guestName: res.guests?.name || 'Guest'
+      })
+    }
+    return map
+  }, [groupedReservations])
+
+  // Helper to get room/guest info for a transaction
+  const getTransactionRoomInfo = (txn) => {
+    const info = reservationInfoMap.get(txn.reservation_id)
+    return info || { roomNumber: 'N/A', guestName: 'N/A' }
+  }
+
   // Fetch folios for ALL reservations in the group
   const fetchFolios = async () => {
     if (!reservationIds || reservationIds.length === 0) return
@@ -636,6 +654,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         const amount = parseFloat(txn.amount || 0)
                         const isCharge = amount > 0
                         const isVoidedOrReversed = txn.transaction_status === 'voided' || txn.transaction_status === 'reversed'
+                        const roomInfo = getTransactionRoomInfo(txn)
 
                         return (
                           <TableRow
@@ -643,6 +662,16 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                             className={isVoidedOrReversed ? 'opacity-50' : ''}
                           >
                             <TableCell className="w-[60px]"></TableCell>
+                            {isMultiRoomBooking && (
+                              <>
+                                <TableCell className="text-sm font-medium w-[80px]">
+                                  {roomInfo.roomNumber}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground truncate max-w-[100px] w-[100px]">
+                                  {roomInfo.guestName}
+                                </TableCell>
+                              </>
+                            )}
                             <TableCell>
                               <div className={isVoidedOrReversed ? 'line-through' : ''}>
                                 <span className="font-medium">{txn.description || getTransactionTypeDisplay(txn.transaction_type)}</span>
@@ -656,13 +685,13 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                 <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
                               )}
                             </TableCell>
-                            <TableCell className="w-[100px]">
+                            <TableCell className="w-[80px]">
                               {getStatusBadge(txn.transaction_status)}
                             </TableCell>
-                            <TableCell className={`text-right w-[120px] ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                            <TableCell className={`text-right w-[100px] ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {isCharge ? formatCurrency(amount) : ''}
                             </TableCell>
-                            <TableCell className={`text-right w-[120px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                            <TableCell className={`text-right w-[100px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
                             </TableCell>
                             <TableCell className="w-[50px]">
@@ -762,12 +791,18 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px]">Date</TableHead>
+                  <TableHead className="w-[80px]">Date</TableHead>
+                  {isMultiRoomBooking && (
+                    <>
+                      <TableHead className="w-[80px]">Room</TableHead>
+                      <TableHead className="w-[100px]">Guest</TableHead>
+                    </>
+                  )}
                   <TableHead>Description</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="text-right w-[120px]">Debit</TableHead>
-                  <TableHead className="text-right w-[120px]">Credit</TableHead>
-                  <TableHead className="text-right w-[120px]">Balance</TableHead>
+                  <TableHead className="w-[80px]">Status</TableHead>
+                  <TableHead className="text-right w-[100px]">Debit</TableHead>
+                  <TableHead className="text-right w-[100px]">Credit</TableHead>
+                  <TableHead className="text-right w-[100px]">Balance</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -776,6 +811,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                   const amount = parseFloat(txn.amount || 0)
                   const isCharge = amount > 0
                   const isVoidedOrReversed = txn.transaction_status === 'voided' || txn.transaction_status === 'reversed'
+                  const roomInfo = getTransactionRoomInfo(txn)
 
                   return (
                     <TableRow
@@ -785,6 +821,16 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       <TableCell className="text-sm">
                         {format(new Date(txn.transaction_date || txn.created_at), 'MMM dd')}
                       </TableCell>
+                      {isMultiRoomBooking && (
+                        <>
+                          <TableCell className="text-sm font-medium">
+                            {roomInfo.roomNumber}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground truncate max-w-[100px]">
+                            {roomInfo.guestName}
+                          </TableCell>
+                        </>
+                      )}
                       <TableCell>
                         <div className={isVoidedOrReversed ? 'line-through' : ''}>
                           <span className="font-medium">{txn.description || getTransactionTypeDisplay(txn.transaction_type)}</span>
