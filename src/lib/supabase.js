@@ -431,7 +431,8 @@ export const generateDailyMealChargesWithTax = async (
     checkOutDate,
     roomNumber,
     userId,
-    applyTaxes = true
+    applyTaxes = true,
+    roomTypeName = ''
 ) => {
     // Skip if not a meal plan (Room Only, etc.)
     if (!mealPlan || mealPlan.is_meal_plan === false) {
@@ -471,7 +472,10 @@ export const generateDailyMealChargesWithTax = async (
         const scheduledPostDate = new Date(chargeDate)
         scheduledPostDate.setHours(0, 0, 0, 0)
 
-        const description = `${mealPlan.name} (${includedMeals}) - Room ${roomNumber} - Day ${i + 1} of ${nights} (${totalGuests} guests)`
+        // Include room type name in description (e.g., "Full Board - Deluxe Double - Day 1 of 2")
+        const description = roomTypeName
+            ? `${mealPlan.name} (${includedMeals}) - ${roomTypeName} - Day ${i + 1} of ${nights} (${totalGuests} guests)`
+            : `${mealPlan.name} (${includedMeals}) - Day ${i + 1} of ${nights} (${totalGuests} guests)`
 
         // Create service charge for this day's meals
         const { data: mealCharge, error: chargeError } = await createServiceCharge({

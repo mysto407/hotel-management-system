@@ -165,7 +165,8 @@ export const ReservationProvider = ({ children }) => {
             reservation.check_out_date,
             roomNumber || 'TBD',
             userId,
-            true // Apply taxes
+            true, // Apply taxes
+            roomTypeName // Room type name for description (e.g., "Full Board - Deluxe Double - Day 1 of 2")
           );
         }
       } catch (mealError) {
@@ -358,7 +359,7 @@ export const ReservationProvider = ({ children }) => {
     }
 
     // 6. Regenerate daily meal charges
-    const roomNumber = oldReservation.rooms?.room_number || 'Room';
+    const roomNumber = oldReservation.rooms?.room_number || 'TBD';
     await generateDailyMealChargesWithTax(
       reservationId,
       folio.id,
@@ -368,7 +369,8 @@ export const ReservationProvider = ({ children }) => {
       newCheckOut,
       roomNumber,
       userId,
-      true
+      true,
+      oldReservation.room_types?.name || '' // Room type name for description
     );
 
     const nights = calculateNights(newCheckIn, newCheckOut);
