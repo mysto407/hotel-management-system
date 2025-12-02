@@ -341,7 +341,7 @@ export default function ReservationDetails({ onNavigate }) {
 
   return (
     <div className="w-full">
-      <div className="max-w-7xl mx-auto px-0.5 sm:px-0.5 lg:px-1 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto py-6 space-y-6">
         {/* Header Card */}
         <Card>
         <CardContent className="pt-6">
