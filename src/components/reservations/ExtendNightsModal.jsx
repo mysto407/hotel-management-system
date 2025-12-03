@@ -205,20 +205,25 @@ export default function ExtendNightsModal({
     setSelectedDates([])
   }
 
-  // Navigate dates
+  // Navigate dates - ensure we always show exactly 14 dates
   const goToPrevious = () => {
-    if (displayStartDate) {
-      const newDate = new Date(displayStartDate)
-      newDate.setDate(newDate.getDate() - 14)
-      setDisplayStartDate(newDate)
+    if (displayStartDate && allDates.length > 0) {
+      const currentDateStr = displayStartDate.toISOString().split('T')[0]
+      const currentIndex = allDates.indexOf(currentDateStr)
+      // Move back 14 days, but don't go before the first date
+      const newIndex = Math.max(0, currentIndex - 14)
+      setDisplayStartDate(new Date(allDates[newIndex]))
     }
   }
 
   const goToNext = () => {
-    if (displayStartDate) {
-      const newDate = new Date(displayStartDate)
-      newDate.setDate(newDate.getDate() + 14)
-      setDisplayStartDate(newDate)
+    if (displayStartDate && allDates.length > 0) {
+      const currentDateStr = displayStartDate.toISOString().split('T')[0]
+      const currentIndex = allDates.indexOf(currentDateStr)
+      // Move forward 14 days, but ensure we still have 14 dates to show
+      const maxStartIndex = Math.max(0, allDates.length - 14)
+      const newIndex = Math.min(maxStartIndex, currentIndex + 14)
+      setDisplayStartDate(new Date(allDates[newIndex]))
     }
   }
 
@@ -601,13 +606,19 @@ export default function ExtendNightsModal({
 
               {/* Dates Grid */}
               <div className="grid grid-cols-7 gap-1">
-                {allDates
-                  .filter((dateStr, index) => {
-                    if (!displayStartDate) return true
-                    const displayStart = displayStartDate.toISOString().split('T')[0]
-                    const displayIndex = allDates.indexOf(displayStart)
-                    return index >= displayIndex && index < displayIndex + 14
-                  })
+                {(() => {
+                  // Get exactly 14 dates to display
+                  const displayStart = displayStartDate?.toISOString().split('T')[0]
+                  let startIndex = displayStart ? allDates.indexOf(displayStart) : 0
+                  // If date not found in array, find the closest one
+                  if (startIndex === -1) {
+                    startIndex = allDates.findIndex(d => d >= displayStart) || 0
+                  }
+                  // Ensure we always show exactly 14 dates
+                  const maxStartIndex = Math.max(0, allDates.length - 14)
+                  startIndex = Math.min(Math.max(0, startIndex), maxStartIndex)
+                  return allDates.slice(startIndex, startIndex + 14)
+                })()
                   .map(dateStr => {
                     const booking = bookedDates.get(dateStr)
                     const isBooked = !!booking
