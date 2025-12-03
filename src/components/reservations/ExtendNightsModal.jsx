@@ -235,9 +235,10 @@ export default function ExtendNightsModal({
   const goToNext = () => {
     if (allDates.length > 0) {
       const currentIndex = getCurrentDisplayIndex()
-      // Move forward 14 days, but ensure we still have 14 dates to show
       const maxStartIndex = Math.max(0, allDates.length - 14)
-      const newIndex = Math.min(maxStartIndex, currentIndex + 14)
+      // Snap to the last aligned position (multiple of 14) to maintain consistent navigation
+      const lastAlignedIndex = Math.floor(maxStartIndex / 14) * 14
+      const newIndex = Math.min(lastAlignedIndex, currentIndex + 14)
       setDisplayStartDate(new Date(allDates[newIndex]))
     }
   }
