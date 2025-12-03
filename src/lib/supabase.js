@@ -2372,6 +2372,107 @@ export const createFolio = async (reservationId, folioType, name) => {
 }
 
 /**
+ * Delete a folio after moving all transactions to another folio
+ * @param {string} folioId - The folio ID to delete
+ * @param {string} targetFolioId - The folio ID to move transactions to
+ * @param {string} reservationId - The reservation ID (for validation)
+ * @param {string} bookingId - Optional booking ID (for multi-room validation)
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const deleteFolio = async (folioId, targetFolioId, reservationId, bookingId = null) => {
+    try {
+        // 1. Get the folio to delete
+        const { data: folioToDelete, error: fetchError } = await supabase
+            .from('folios')
+            .select('*')
+            .eq('id', folioId)
+            .single()
+
+        if (fetchError || !folioToDelete) {
+            return { data: null, error: fetchError || { message: 'Folio not found' } }
+        }
+
+        // 2. Validate: cannot delete master folio
+        if (folioToDelete.folio_type === 'master') {
+            return { data: null, error: { message: 'Cannot delete master folio' } }
+        }
+
+        // 3. Count total active folios for this reservation/booking
+        let countQuery = supabase
+            .from('folios')
+            .select('id', { count: 'exact' })
+            .eq('is_active', true)
+
+        if (bookingId) {
+            countQuery = countQuery.or(`booking_id.eq.${bookingId},reservation_id.eq.${reservationId}`)
+        } else {
+            countQuery = countQuery.eq('reservation_id', reservationId)
+        }
+
+        const { count, error: countError } = await countQuery
+
+        if (countError) {
+            return { data: null, error: countError }
+        }
+
+        // 4. Validate: must have at least 1 folio remaining after deletion
+        if (count <= 1) {
+            return { data: null, error: { message: 'Cannot delete the last folio. At least one folio must exist.' } }
+        }
+
+        // 5. Validate target folio exists and is active
+        const { data: targetFolio, error: targetError } = await supabase
+            .from('folios')
+            .select('*')
+            .eq('id', targetFolioId)
+            .eq('is_active', true)
+            .single()
+
+        if (targetError || !targetFolio) {
+            return { data: null, error: targetError || { message: 'Target folio not found or inactive' } }
+        }
+
+        // 6. Move all transactions from deleted folio to target folio
+        const { data: movedTransactions, error: moveError } = await supabase
+            .from('folio_transactions')
+            .update({ folio_id: targetFolioId })
+            .eq('folio_id', folioId)
+            .select()
+
+        if (moveError) {
+            return { data: null, error: moveError }
+        }
+
+        // 7. Soft delete the folio (set is_active = false)
+        const { data: deletedFolio, error: deleteError } = await supabase
+            .from('folios')
+            .update({
+                is_active: false,
+                notes: `Deleted at ${new Date().toISOString()}. ${movedTransactions?.length || 0} transactions moved to folio ${targetFolio.name}.`
+            })
+            .eq('id', folioId)
+            .select()
+            .single()
+
+        if (deleteError) {
+            return { data: null, error: deleteError }
+        }
+
+        return {
+            data: {
+                deletedFolio,
+                targetFolio,
+                transactionsMoved: movedTransactions?.length || 0
+            },
+            error: null
+        }
+    } catch (err) {
+        console.error('Error deleting folio:', err)
+        return { data: null, error: err }
+    }
+}
+
+/**
  * Get transactions by folio ID (instead of reservation ID)
  * @param {string} folioId - The folio ID
  * @param {object} options - Query options

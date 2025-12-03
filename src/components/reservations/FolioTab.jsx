@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown } from 'lucide-react'
+import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -52,6 +52,7 @@ import AddPaymentModal from './AddPaymentModal'
 import CreateFolioModal from './CreateFolioModal'
 import TransferTransactionModal from './TransferTransactionModal'
 import SplitTransactionModal from './SplitTransactionModal'
+import DeleteFolioModal from './DeleteFolioModal'
 
 export default function FolioTab({ reservationIds, primaryReservation, groupedReservations = [], guests = [], onFolioChange }) {
   const [transactions, setTransactions] = useState([])
@@ -76,6 +77,10 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const [splitFolioConfirmOpen, setSplitFolioConfirmOpen] = useState(false)
   const [mergeFolioConfirmOpen, setMergeFolioConfirmOpen] = useState(false)
   const [folioActionLoading, setFolioActionLoading] = useState(false)
+
+  // Delete folio state
+  const [deleteFolioOpen, setDeleteFolioOpen] = useState(false)
+  const [selectedFolioForDelete, setSelectedFolioForDelete] = useState(null)
 
   // View mode state
   const [groupByDate, setGroupByDate] = useState(false)
@@ -203,6 +208,18 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const handleFolioCreated = async (newFolio) => {
     await fetchFolios()
     setActiveFolioId(newFolio.id)
+  }
+
+  // Handle folio deletion success
+  const handleFolioDeleted = async (result) => {
+    await fetchFolios()
+    await fetchTransactions()
+    onFolioChange?.()
+    // Switch to the target folio that received the transactions
+    if (result?.targetFolio?.id) {
+      setActiveFolioId(result.targetFolio.id)
+    }
+    setSelectedFolioForDelete(null)
   }
 
   // Handle moving transaction to another folio
@@ -483,37 +500,53 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
               {folios.map((folio) => {
                 const balance = folioBalances[folio.id]?.balance || 0
                 const isActive = activeFolioId === folio.id
+                const canDeleteFolio = folio.folio_type !== 'master' && folios.length > 1
                 return (
-                  <button
-                    key={folio.id}
-                    onClick={() => setActiveFolioId(folio.id)}
-                    className={`
-                      flex flex-col items-start px-4 py-2 rounded-lg border transition-colors min-w-[120px]
-                      ${isActive
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card hover:bg-muted border-border'
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium text-sm truncate max-w-[150px]">
-                        {folio.name}
+                  <div key={folio.id} className="relative group">
+                    <button
+                      onClick={() => setActiveFolioId(folio.id)}
+                      className={`
+                        flex flex-col items-start px-4 py-2 rounded-lg border transition-colors min-w-[120px]
+                        ${isActive
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card hover:bg-muted border-border'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-sm truncate max-w-[150px]">
+                          {folio.name}
+                        </span>
+                        {folio.folio_type === 'master' && folio.booking_id && (
+                          <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${isActive ? 'bg-primary-foreground/20' : ''}`}>
+                            Master
+                          </Badge>
+                        )}
+                        {folio.folio_type === 'room' && (
+                          <Badge variant="outline" className={`text-[10px] px-1 py-0 ${isActive ? 'border-primary-foreground/50' : ''}`}>
+                            Room
+                          </Badge>
+                        )}
+                      </div>
+                      <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                        {formatCurrency(balance)}
                       </span>
-                      {folio.folio_type === 'master' && folio.booking_id && (
-                        <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${isActive ? 'bg-primary-foreground/20' : ''}`}>
-                          Master
-                        </Badge>
-                      )}
-                      {folio.folio_type === 'room' && (
-                        <Badge variant="outline" className={`text-[10px] px-1 py-0 ${isActive ? 'border-primary-foreground/50' : ''}`}>
-                          Room
-                        </Badge>
-                      )}
-                    </div>
-                    <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                      {formatCurrency(balance)}
-                    </span>
-                  </button>
+                    </button>
+                    {/* Delete button - only for non-master folios */}
+                    {canDeleteFolio && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedFolioForDelete(folio)
+                          setDeleteFolioOpen(true)
+                        }}
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
+                        title="Delete folio"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                 )
               })}
 
@@ -1152,6 +1185,17 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Folio Modal */}
+      <DeleteFolioModal
+        open={deleteFolioOpen}
+        onOpenChange={setDeleteFolioOpen}
+        folio={selectedFolioForDelete}
+        folios={folios}
+        reservationId={primaryReservation?.id}
+        bookingId={bookingId}
+        onSuccess={handleFolioDeleted}
+      />
     </div>
   )
 }
