@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Plus, Printer, MoreVertical, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, Trash2, MoveRight } from 'lucide-react'
+import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown, Trash2, MoveRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -666,34 +666,48 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   }
 
   return (
-    <div className="space-y-3">
-      {/* Folio Tabs + Summary Combined */}
-      <Card>
-        <CardContent className="p-3">
-          {/* Folio Tabs */}
-          {folios.length > 0 && (
-            <div className="flex items-center gap-2 pb-3 mb-3 border-b overflow-x-auto">
+    <div className="space-y-4">
+      {/* Folio Tabs Bar */}
+      {folios.length > 0 && (
+        <Card>
+          <CardContent className="py-2 px-2">
+            <div className="flex items-center gap-1 overflow-x-auto">
               {folios.map((folio) => {
                 const balance = folioBalances[folio.id]?.balance || 0
                 const isActive = activeFolioId === folio.id
                 const canDeleteFolio = folio.folio_type !== 'master' && folios.length > 1
                 return (
-                  <div key={folio.id} className="relative group flex-shrink-0">
+                  <div key={folio.id} className="relative group">
                     <button
                       onClick={() => setActiveFolioId(folio.id)}
                       className={`
-                        px-3 py-1.5 rounded-md text-sm font-medium transition-colors
+                        flex flex-col items-start px-4 py-2 rounded-lg border transition-colors min-w-[120px]
                         ${isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card hover:bg-muted border-border'
                         }
                       `}
                     >
-                      {folio.name}
-                      {folio.folio_type === 'master' && folio.booking_id && (
-                        <span className="ml-1 text-xs opacity-70">(M)</span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-sm truncate max-w-[150px]">
+                          {folio.name}
+                        </span>
+                        {folio.folio_type === 'master' && folio.booking_id && (
+                          <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${isActive ? 'bg-primary-foreground/20' : ''}`}>
+                            Master
+                          </Badge>
+                        )}
+                        {folio.folio_type === 'room' && (
+                          <Badge variant="outline" className={`text-[10px] px-1 py-0 ${isActive ? 'border-primary-foreground/50' : ''}`}>
+                            Room
+                          </Badge>
+                        )}
+                      </div>
+                      <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                        {formatCurrency(balance)}
+                      </span>
                     </button>
+                    {/* Delete button - only for non-master folios */}
                     {canDeleteFolio && (
                       <button
                         onClick={(e) => {
@@ -701,28 +715,35 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                           setSelectedFolioForDelete(folio)
                           setDeleteFolioOpen(true)
                         }}
-                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs"
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
                         title="Delete folio"
                       >
-                        <Trash2 className="h-2.5 w-2.5" />
+                        <Trash2 className="h-3 w-3" />
                       </button>
                     )}
                   </div>
                 )
               })}
+
+              {/* New Folio Button */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setCreateFolioOpen(true)}
-                className="h-7 px-2 text-muted-foreground"
+                className="h-auto py-2 px-3 min-w-[100px]"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <FolderPlus className="h-4 w-4 mr-1" />
+                New Folio
               </Button>
+
+              {/* Split/Merge Dropdown for multi-room bookings */}
               {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground">
-                      <MoreVertical className="h-3.5 w-3.5" />
+                    <Button variant="outline" size="sm" className="h-auto py-2 px-3">
+                      <SplitSquareVertical className="h-4 w-4 mr-1" />
+                      Manage
+                      <ChevronDown className="h-3 w-3 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -742,61 +763,60 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                 </DropdownMenu>
               )}
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Summary Row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div>
-                <span className="text-xs text-muted-foreground">Charges</span>
-                <p className="text-lg font-semibold">
-                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Payments</span>
-                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Balance</span>
-                <p className={`text-lg font-bold ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
-                </p>
-              </div>
+      {/* Summary Bar */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Charges</p>
+              <p className="text-2xl font-bold text-foreground">
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
+              </p>
             </div>
-
-            {/* Actions on the right */}
-            <div className="flex items-center gap-2">
-              <Button onClick={() => setAddChargeOpen(true)} size="sm">
-                <Plus className="h-4 w-4 mr-1" />
-                Charge
-              </Button>
-              <Button onClick={() => setAddPaymentOpen(true)} variant="outline" size="sm">
-                <CreditCard className="h-4 w-4 mr-1" />
-                Payment
-              </Button>
+            <div>
+              <p className="text-sm text-muted-foreground">Payments</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Balance Due</p>
+              <p className={`text-2xl font-bold ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Filter Bar */}
-      <div className="flex items-center justify-between">
+      {/* Action Bar */}
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
+          <Button onClick={() => setAddChargeOpen(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Charge
+          </Button>
+          <Button onClick={() => setAddPaymentOpen(true)} variant="outline" size="sm">
+            <CreditCard className="h-4 w-4 mr-1" />
+            Add Payment
+          </Button>
           {folios.length > 1 && (
             <Popover open={moveTransactionOpen} onOpenChange={setMoveTransactionOpen}>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
+                <Button variant="outline" size="sm">
                   <MoveRight className="h-4 w-4 mr-1" />
-                  Move
+                  Move Transaction
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-72" align="start">
-                <div className="space-y-3">
-                  <p className="font-medium text-sm">Move Transactions</p>
+              <PopoverContent className="w-80" align="start">
+                <div className="space-y-4">
+                  <div className="font-medium">Move Transactions</div>
 
+                  {/* Move Individual Transactions Option */}
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -807,47 +827,16 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                           if (!checked) setSelectedTransactionIds(new Set())
                         }}
                       />
-                      <Label htmlFor="move-individual" className="text-sm cursor-pointer">
-                        Select individual
+                      <Label htmlFor="move-individual" className="text-sm font-medium cursor-pointer">
+                        Move individual transactions
                       </Label>
                     </div>
                     {moveMode === 'individual' && (
-                      <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
-                        <SelectTrigger className="w-full h-8">
-                          <SelectValue placeholder="Target folio" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {folios
-                            .filter(f => f.id !== activeFolioId)
-                            .map(folio => (
-                              <SelectItem key={folio.id} value={folio.id}>
-                                {folio.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="move-type"
-                        checked={moveMode === 'type'}
-                        onCheckedChange={(checked) => {
-                          setMoveMode(checked ? 'type' : null)
-                          setMoveTransactionType('')
-                        }}
-                      />
-                      <Label htmlFor="move-type" className="text-sm cursor-pointer">
-                        By type
-                      </Label>
-                    </div>
-                    {moveMode === 'type' && (
-                      <div className="space-y-2">
+                      <div className="ml-6">
+                        <Label className="text-xs text-muted-foreground mb-1 block">Target Folio</Label>
                         <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
-                          <SelectTrigger className="w-full h-8">
-                            <SelectValue placeholder="Target folio" />
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select folio" />
                           </SelectTrigger>
                           <SelectContent>
                             {folios
@@ -859,30 +848,76 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                               ))}
                           </SelectContent>
                         </Select>
-                        <Select value={moveTransactionType} onValueChange={setMoveTransactionType}>
-                          <SelectTrigger className="w-full h-8">
-                            <SelectValue placeholder="Transaction type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {transactionTypes.map(type => (
-                              <SelectItem key={type} value={type}>
-                                {getTypeOptionDisplay(type)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       </div>
                     )}
                   </div>
 
+                  {/* Move by Transaction Type Option */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="move-type"
+                        checked={moveMode === 'type'}
+                        onCheckedChange={(checked) => {
+                          setMoveMode(checked ? 'type' : null)
+                          setMoveTransactionType('')
+                        }}
+                      />
+                      <Label htmlFor="move-type" className="text-sm font-medium cursor-pointer">
+                        Move by transaction type
+                      </Label>
+                    </div>
+                    {moveMode === 'type' && (
+                      <div className="ml-6 space-y-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">Target Folio</Label>
+                          <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select folio" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {folios
+                                .filter(f => f.id !== activeFolioId)
+                                .map(folio => (
+                                  <SelectItem key={folio.id} value={folio.id}>
+                                    {folio.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">Transaction Type</Label>
+                          <Select value={moveTransactionType} onValueChange={setMoveTransactionType}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {transactionTypes.map(type => (
+                                <SelectItem key={type} value={type}>
+                                  {getTypeOptionDisplay(type)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Button */}
                   <Button
                     onClick={handleActivateMoveMode}
                     disabled={!moveMode || !moveTargetFolioId || moveLoading}
                     className="w-full"
                     size="sm"
                   >
-                    {moveLoading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                    {moveMode === 'individual' ? 'Start Selection' : 'Move'}
+                    {moveLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <MoveRight className="h-4 w-4 mr-1" />
+                    )}
+                    {moveMode === 'individual' ? 'Select Transactions' : 'Move Transactions'}
                   </Button>
                 </div>
               </PopoverContent>
@@ -892,7 +927,8 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
 
         <div className="flex items-center gap-2">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[120px] h-8">
+            <SelectTrigger className="w-[150px]">
+              <Filter className="h-4 w-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -905,16 +941,18 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
           </Select>
 
           <Button
-            variant="ghost"
+            variant={groupByDate ? "default" : "outline"}
             size="sm"
             onClick={() => setGroupByDate(!groupByDate)}
-            className={groupByDate ? 'bg-muted' : ''}
+            title={groupByDate ? "Switch to list view" : "Group by date"}
           >
-            {groupByDate ? <List className="h-4 w-4" /> : <CalendarDays className="h-4 w-4" />}
+            {groupByDate ? <List className="h-4 w-4 mr-1" /> : <CalendarDays className="h-4 w-4 mr-1" />}
+            {groupByDate ? "List" : "By Date"}
           </Button>
 
-          <Button variant="ghost" size="sm" disabled>
-            <Printer className="h-4 w-4" />
+          <Button variant="outline" size="sm" disabled>
+            <Printer className="h-4 w-4 mr-1" />
+            Print
           </Button>
         </div>
       </div>
@@ -923,21 +961,27 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
       <Card>
         <CardContent className="p-0">
           {filteredTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-              <Receipt className="h-10 w-10 mb-3 opacity-40" />
-              <p className="font-medium">No transactions</p>
-              <p className="text-sm">Add charges or payments to get started</p>
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Receipt className="h-12 w-12 mb-4 opacity-50" />
+              <p className="text-lg font-medium">No transactions yet</p>
+              <p className="text-sm">Add charges or payments to see them here</p>
             </div>
           ) : groupByDate && groupedTransactions ? (
             /* Grouped by Date View */
             <div className="divide-y">
               {groupedTransactions.map((group) => (
-                <div key={group.date}>
+                <div key={group.date} className="py-2">
                   {/* Date Header */}
-                  <div className="flex items-center justify-between px-4 py-2 bg-muted/30 sticky top-0">
-                    <span className="text-sm font-medium">{group.displayDate}</span>
-                    <span className={`text-sm font-medium ${group.dayTotal >= 0 ? '' : 'text-green-600 dark:text-green-400'}`}>
-                      {formatCurrency(group.dayTotal)}
+                  <div className="flex items-center justify-between px-4 py-2 bg-muted/50 sticky top-0">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold text-sm">{group.displayDate}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {group.transactions.length} item{group.transactions.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    <span className={`font-semibold text-sm ${group.dayTotal >= 0 ? 'text-foreground' : 'text-green-600 dark:text-green-400'}`}>
+                      {group.dayTotal >= 0 ? '+' : ''}{formatCurrency(group.dayTotal)}
                     </span>
                   </div>
                   {/* Transactions for this date */}
@@ -952,60 +996,96 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         return (
                           <TableRow
                             key={txn.id}
-                            className={`${isVoidedOrReversed ? 'opacity-40' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
+                            className={`${isVoidedOrReversed ? 'opacity-50' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
                           >
-                            {moveMode === 'individual' && (
-                              <TableCell className="w-10 pr-0">
-                                {isTransactionSelectable(txn) ? (
+                            <TableCell className="w-[60px]">
+                              {moveMode === 'individual' && (
+                                isTransactionSelectable(txn) ? (
                                   <Checkbox
                                     checked={selectedTransactionIds.has(txn.id)}
                                     onCheckedChange={() => handleToggleTransaction(txn.id)}
                                   />
-                                ) : null}
-                              </TableCell>
-                            )}
-                            {isMultiRoomBooking && (
-                              <TableCell className="w-16 text-xs text-muted-foreground">
-                                {roomInfo.roomNumber}
-                              </TableCell>
-                            )}
-                            <TableCell className="py-2">
-                              <span className={`text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
-                                {txn.description || getTransactionTypeDisplay(txn.transaction_type)}
-                              </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )
+                              )}
                             </TableCell>
-                            <TableCell className={`text-right w-20 text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                            {isMultiRoomBooking && (
+                              <>
+                                <TableCell className="text-sm font-medium w-[80px]">
+                                  {roomInfo.roomNumber}
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground truncate max-w-[100px] w-[100px]">
+                                  {roomInfo.guestName}
+                                </TableCell>
+                              </>
+                            )}
+                            <TableCell>
+                              <div className={isVoidedOrReversed ? 'line-through' : ''}>
+                                <span className="font-medium">{txn.description || getTransactionTypeDisplay(txn.transaction_type)}</span>
+                                {txn.service_category && (
+                                  <span className="text-muted-foreground ml-2 text-xs">
+                                    ({txn.service_category})
+                                  </span>
+                                )}
+                              </div>
+                              {txn.notes && (
+                                <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
+                              )}
+                            </TableCell>
+                            <TableCell className="w-[80px]">
+                              {getStatusBadge(txn.transaction_status)}
+                            </TableCell>
+                            <TableCell className={`text-right w-[100px] ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {isCharge ? formatCurrency(amount) : ''}
                             </TableCell>
-                            <TableCell className={`text-right w-20 text-sm text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                            <TableCell className={`text-right w-[100px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
                             </TableCell>
-                            <TableCell className="w-8">
+                            <TableCell className="w-[50px]">
                               {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                                      <MoreVertical className="h-3.5 w-3.5" />
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreVertical className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    {folios.length > 1 && folios
-                                      .filter(f => f.id !== txn.folio_id)
-                                      .map(targetFolio => (
+                                    <DropdownMenuItem disabled>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    {folios.length > 1 && (
+                                      <>
+                                        <DropdownMenuSeparator />
+                                        {folios
+                                          .filter(f => f.id !== txn.folio_id)
+                                          .map(targetFolio => (
+                                            <DropdownMenuItem
+                                              key={targetFolio.id}
+                                              onClick={() => {
+                                                setSelectedTransaction(txn)
+                                                handleMoveToFolio(targetFolio.id)
+                                              }}
+                                            >
+                                              <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                              Move to {targetFolio.name}
+                                            </DropdownMenuItem>
+                                          ))
+                                        }
+                                      </>
+                                    )}
+                                    {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
+                                      <>
                                         <DropdownMenuItem
-                                          key={targetFolio.id}
                                           onClick={() => {
                                             setSelectedTransaction(txn)
-                                            handleMoveToFolio(targetFolio.id)
+                                            setTransferModalOpen(true)
                                           }}
                                         >
                                           <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                          Move to {targetFolio.name}
+                                          Transfer to Another Room
                                         </DropdownMenuItem>
-                                      ))
-                                    }
-                                    {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                      <>
                                         <DropdownMenuItem
                                           onClick={() => {
                                             setSelectedTransaction(txn)
@@ -1013,11 +1093,11 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                           }}
                                         >
                                           <Scissors className="h-4 w-4 mr-2" />
-                                          Split
+                                          Split Transaction
                                         </DropdownMenuItem>
                                       </>
                                     )}
-                                    {(canVoid(txn) || canReverse(txn)) && <DropdownMenuSeparator />}
+                                    <DropdownMenuSeparator />
                                     {canVoid(txn) && (
                                       <DropdownMenuItem
                                         onClick={() => {
@@ -1058,9 +1138,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
             /* Standard List View */
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
+                <TableRow>
                   {moveMode === 'individual' && (
-                    <TableHead className="w-10">
+                    <TableHead className="w-[40px]">
                       <Checkbox
                         checked={selectedTransactionIds.size > 0 &&
                           selectedTransactionIds.size === filteredTransactions.filter(isTransactionSelectable).length}
@@ -1071,15 +1151,19 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       />
                     </TableHead>
                   )}
-                  <TableHead className="w-20 text-xs">Date</TableHead>
+                  <TableHead className="w-[80px]">Date</TableHead>
                   {isMultiRoomBooking && (
-                    <TableHead className="w-16 text-xs">Room</TableHead>
+                    <>
+                      <TableHead className="w-[80px]">Room</TableHead>
+                      <TableHead className="w-[100px]">Guest</TableHead>
+                    </>
                   )}
-                  <TableHead className="text-xs">Description</TableHead>
-                  <TableHead className="text-right w-24 text-xs">Debit</TableHead>
-                  <TableHead className="text-right w-24 text-xs">Credit</TableHead>
-                  <TableHead className="text-right w-24 text-xs">Balance</TableHead>
-                  <TableHead className="w-8"></TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-[80px]">Status</TableHead>
+                  <TableHead className="text-right w-[100px]">Debit</TableHead>
+                  <TableHead className="text-right w-[100px]">Credit</TableHead>
+                  <TableHead className="text-right w-[100px]">Balance</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1092,79 +1176,116 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                   return (
                     <TableRow
                       key={txn.id}
-                      className={`${isVoidedOrReversed ? 'opacity-40' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
+                      className={`${isVoidedOrReversed ? 'opacity-50' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
                     >
                       {moveMode === 'individual' && (
-                        <TableCell className="w-10 pr-0">
+                        <TableCell className="w-[40px]">
                           {isTransactionSelectable(txn) ? (
                             <Checkbox
                               checked={selectedTransactionIds.has(txn.id)}
                               onCheckedChange={() => handleToggleTransaction(txn.id)}
                             />
-                          ) : null}
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                       )}
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(txn.transaction_date || txn.created_at), 'MMM d')}
+                      <TableCell className="text-sm">
+                        {format(new Date(txn.transaction_date || txn.created_at), 'MMM dd')}
                       </TableCell>
                       {isMultiRoomBooking && (
-                        <TableCell className="text-xs text-muted-foreground">
-                          {roomInfo.roomNumber}
-                        </TableCell>
+                        <>
+                          <TableCell className="text-sm font-medium">
+                            {roomInfo.roomNumber}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground truncate max-w-[100px]">
+                            {roomInfo.guestName}
+                          </TableCell>
+                        </>
                       )}
-                      <TableCell className="py-2">
-                        <span className={`text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
-                          {txn.description || getTransactionTypeDisplay(txn.transaction_type)}
-                        </span>
+                      <TableCell>
+                        <div className={isVoidedOrReversed ? 'line-through' : ''}>
+                          <span className="font-medium">{txn.description || getTransactionTypeDisplay(txn.transaction_type)}</span>
+                          {txn.service_category && (
+                            <span className="text-muted-foreground ml-2 text-xs">
+                              ({txn.service_category})
+                            </span>
+                          )}
+                        </div>
                         {txn.notes && (
-                          <p className="text-xs text-muted-foreground">{txn.notes}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
                         )}
                       </TableCell>
-                      <TableCell className={`text-right text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                      <TableCell>
+                        {getStatusBadge(txn.transaction_status)}
+                      </TableCell>
+                      <TableCell className={`text-right ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {isCharge ? formatCurrency(amount) : ''}
                       </TableCell>
-                      <TableCell className={`text-right text-sm text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                      <TableCell className={`text-right text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
                       </TableCell>
-                      <TableCell className={`text-right text-sm font-medium ${isVoidedOrReversed ? 'line-through text-muted-foreground' : ''}`}>
+                      <TableCell className={`text-right font-medium ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {formatCurrency(txn.runningBalance)}
                       </TableCell>
-                      <TableCell className="w-8">
+                      <TableCell>
                         {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreVertical className="h-3.5 w-3.5" />
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {folios.length > 1 && folios
-                                .filter(f => f.id !== txn.folio_id)
-                                .map(targetFolio => (
+                              <DropdownMenuItem disabled>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              {/* Move to Folio options */}
+                              {folios.length > 1 && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  {folios
+                                    .filter(f => f.id !== txn.folio_id)
+                                    .map(targetFolio => (
+                                      <DropdownMenuItem
+                                        key={targetFolio.id}
+                                        onClick={() => {
+                                          setSelectedTransaction(txn)
+                                          handleMoveToFolio(targetFolio.id)
+                                        }}
+                                      >
+                                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                        Move to {targetFolio.name}
+                                      </DropdownMenuItem>
+                                    ))
+                                  }
+                                </>
+                              )}
+                              {/* Transfer to another room (only for charges) */}
+                              {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
+                                <>
                                   <DropdownMenuItem
-                                    key={targetFolio.id}
                                     onClick={() => {
                                       setSelectedTransaction(txn)
-                                      handleMoveToFolio(targetFolio.id)
+                                      setTransferModalOpen(true)
                                     }}
                                   >
                                     <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                    Move to {targetFolio.name}
+                                    Transfer to Another Room
                                   </DropdownMenuItem>
-                                ))
-                              }
-                              {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedTransaction(txn)
-                                    setSplitModalOpen(true)
-                                  }}
-                                >
-                                  <Scissors className="h-4 w-4 mr-2" />
-                                  Split
-                                </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedTransaction(txn)
+                                      setSplitModalOpen(true)
+                                    }}
+                                  >
+                                    <Scissors className="h-4 w-4 mr-2" />
+                                    Split Transaction
+                                  </DropdownMenuItem>
+                                </>
                               )}
-                              {(canVoid(txn) || canReverse(txn)) && <DropdownMenuSeparator />}
+                              <DropdownMenuSeparator />
                               {canVoid(txn) && (
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -1205,22 +1326,39 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
       {/* Floating Action Bar for Selection Mode */}
       {moveMode === 'individual' && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="flex items-center gap-3 bg-background border rounded-lg shadow-lg px-4 py-2">
-            <span className="text-sm">
-              <span className="font-medium">{selectedTransactionIds.size}</span> selected
-            </span>
-            <Button variant="ghost" size="sm" onClick={resetMoveMode}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleBulkMoveSelected}
-              disabled={selectedTransactionIds.size === 0 || moveLoading}
-            >
-              {moveLoading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Move
-            </Button>
-          </div>
+          <Card className="shadow-lg border-2">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-4">
+                <div className="text-sm">
+                  <span className="font-medium">{selectedTransactionIds.size}</span>
+                  <span className="text-muted-foreground ml-1">
+                    transaction{selectedTransactionIds.size !== 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetMoveMode}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkMoveSelected}
+                    disabled={selectedTransactionIds.size === 0 || moveLoading}
+                  >
+                    {moveLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <MoveRight className="h-4 w-4 mr-1" />
+                    )}
+                    Move to {folios.find(f => f.id === moveTargetFolioId)?.name || 'Folio'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
