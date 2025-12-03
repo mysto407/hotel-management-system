@@ -99,12 +99,12 @@ export default function ExtendNightsModal({
       const checkIn = new Date(reservation.check_in_date)
       const checkOut = new Date(reservation.check_out_date)
 
-      // Generate extended date range (30 days before check-in to 30 days after check-out)
+      // Generate extended date range (180 days before check-in to 180 days after check-out)
       const startDate = new Date(checkIn)
-      startDate.setDate(startDate.getDate() - 30)
+      startDate.setDate(startDate.getDate() - 180)
 
       const endDate = new Date(checkOut)
-      endDate.setDate(endDate.getDate() + 30)
+      endDate.setDate(endDate.getDate() + 180)
 
       const dates = []
       const bookedMap = new Map()
