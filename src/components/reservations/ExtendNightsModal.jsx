@@ -676,47 +676,47 @@ export default function ExtendNightsModal({
                 )}
               </div>
 
-              {/* Totals Comparison */}
-              <div className="border rounded-lg p-4 bg-muted/20">
-                <h3 className="font-semibold mb-3">Recalculated Totals</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Original */}
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">Original</div>
-                    <div className="flex justify-between text-sm">
-                      <span>Nights:</span>
-                      <span>{originalTotals.nights}</span>
+              {/* Totals Comparison - Only show after changes */}
+              {nightsDifference !== 0 && (
+                <div className="border rounded-lg p-4 bg-muted/20">
+                  <h3 className="font-semibold mb-3">Recalculated Totals</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Original */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">Original</div>
+                      <div className="flex justify-between text-sm">
+                        <span>Nights:</span>
+                        <span>{originalTotals.nights}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Total:</span>
+                        <span>{formatCurrency(originalTotals.total)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Total:</span>
-                      <span>{formatCurrency(originalTotals.total)}</span>
+
+                    {/* New */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-foreground">New</div>
+                      <div className="flex justify-between text-sm">
+                        <span>Nights:</span>
+                        <span className="font-medium">{totals.nights}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span>{formatCurrency(totals.subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Tax ({totals.taxRate}%):</span>
+                        <span>{formatCurrency(totals.tax)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold border-t pt-2">
+                        <span>Total:</span>
+                        <span>{formatCurrency(totals.total)}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* New */}
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium text-foreground">New</div>
-                    <div className="flex justify-between text-sm">
-                      <span>Nights:</span>
-                      <span className="font-medium">{totals.nights}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal:</span>
-                      <span>{formatCurrency(totals.subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Tax ({totals.taxRate}%):</span>
-                      <span>{formatCurrency(totals.tax)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold border-t pt-2">
-                      <span>Total:</span>
-                      <span>{formatCurrency(totals.total)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Difference */}
-                {nightsDifference !== 0 && (
+                  {/* Difference */}
                   <div className="mt-4 pt-4 border-t">
                     <div className={`flex justify-between text-sm font-semibold ${totalDifference > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       <span>
@@ -732,8 +732,8 @@ export default function ExtendNightsModal({
                         : 'Pending charges for removed nights will be voided.'}
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
