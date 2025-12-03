@@ -42,15 +42,12 @@ export default function ExtendNightsModal({
   const { rooms, roomTypes } = useRooms()
   const { updateReservation } = useReservations()
 
-  // State for date range display - using page index for reliable navigation
-  const [currentPage, setCurrentPage] = useState(0)
-  const [bookingPageIndex, setBookingPageIndex] = useState(0) // Page where booking starts
+  // State for date range display
+  const [displayStartDate, setDisplayStartDate] = useState(null)
   const [allDates, setAllDates] = useState([])
   const [selectedDates, setSelectedDates] = useState([])
   const [bookedDates, setBookedDates] = useState(new Map())
   const [unavailableDates, setUnavailableDates] = useState(new Set()) // Dates booked by OTHER reservations
-
-  const DATES_PER_PAGE = 14 // 2 rows of 7
 
   // State for loading and saving
   const [loading, setLoading] = useState(false)
@@ -102,12 +99,12 @@ export default function ExtendNightsModal({
       const checkIn = new Date(reservation.check_in_date)
       const checkOut = new Date(reservation.check_out_date)
 
-      // Generate extended date range (180 days before check-in to 180 days after check-out)
+      // Generate extended date range (30 days before check-in to 30 days after check-out)
       const startDate = new Date(checkIn)
-      startDate.setDate(startDate.getDate() - 180)
+      startDate.setDate(startDate.getDate() - 30)
 
       const endDate = new Date(checkOut)
-      endDate.setDate(endDate.getDate() + 180)
+      endDate.setDate(endDate.getDate() + 30)
 
       const dates = []
       const bookedMap = new Map()
@@ -138,13 +135,7 @@ export default function ExtendNightsModal({
 
       setAllDates(dates)
       setBookedDates(bookedMap)
-
-      // Calculate which page the booking starts on
-      const checkInStr = checkIn.toISOString().split('T')[0]
-      const checkInIndex = dates.indexOf(checkInStr)
-      const bookingPage = Math.floor(checkInIndex / DATES_PER_PAGE)
-      setBookingPageIndex(bookingPage)
-      setCurrentPage(bookingPage)
+      setDisplayStartDate(checkIn)
 
       // Fetch unavailable dates (other reservations for this room)
       if (reservation.room_id) {
@@ -214,26 +205,21 @@ export default function ExtendNightsModal({
     setSelectedDates([])
   }
 
-  // Calculate total pages
-  const totalPages = Math.ceil(allDates.length / DATES_PER_PAGE)
-
-  // Navigate dates using simple page index
+  // Navigate dates
   const goToPrevious = () => {
-    setCurrentPage(prev => Math.max(0, prev - 1))
+    if (displayStartDate) {
+      const newDate = new Date(displayStartDate)
+      newDate.setDate(newDate.getDate() - 14)
+      setDisplayStartDate(newDate)
+    }
   }
 
   const goToNext = () => {
-    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))
-  }
-
-  const goToBooking = () => {
-    setCurrentPage(bookingPageIndex)
-  }
-
-  // Get dates for current page
-  const getVisibleDates = () => {
-    const startIndex = currentPage * DATES_PER_PAGE
-    return allDates.slice(startIndex, startIndex + DATES_PER_PAGE)
+    if (displayStartDate) {
+      const newDate = new Date(displayStartDate)
+      newDate.setDate(newDate.getDate() + 14)
+      setDisplayStartDate(newDate)
+    }
   }
 
   // Add selected dates to booking
@@ -567,30 +553,18 @@ export default function ExtendNightsModal({
               {/* Navigation and Action Buttons */}
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="flex items-center gap-1">
-                  <Button
-                    onClick={goToPrevious}
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentPage === 0}
-                  >
+                  <Button onClick={goToPrevious} variant="ghost" size="icon" className="h-8 w-8">
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
-                    onClick={goToBooking}
+                    onClick={() => setDisplayStartDate(new Date(reservation.check_in_date))}
                     variant="ghost"
                     size="sm"
                     className="h-8 text-xs"
                   >
                     Booking
                   </Button>
-                  <Button
-                    onClick={goToNext}
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={currentPage >= totalPages - 1}
-                  >
+                  <Button onClick={goToNext} variant="ghost" size="icon" className="h-8 w-8">
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -627,7 +601,14 @@ export default function ExtendNightsModal({
 
               {/* Dates Grid */}
               <div className="grid grid-cols-7 gap-1">
-                {getVisibleDates().map(dateStr => {
+                {allDates
+                  .filter((dateStr, index) => {
+                    if (!displayStartDate) return true
+                    const displayStart = displayStartDate.toISOString().split('T')[0]
+                    const displayIndex = allDates.indexOf(displayStart)
+                    return index >= displayIndex && index < displayIndex + 14
+                  })
+                  .map(dateStr => {
                     const booking = bookedDates.get(dateStr)
                     const isBooked = !!booking
                     const isSelected = selectedDates.includes(dateStr)
