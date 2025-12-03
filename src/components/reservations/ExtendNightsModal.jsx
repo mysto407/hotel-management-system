@@ -205,11 +205,23 @@ export default function ExtendNightsModal({
     setSelectedDates([])
   }
 
+  // Helper to find the current display index, handling cases where date isn't found
+  const getCurrentDisplayIndex = () => {
+    if (!displayStartDate || allDates.length === 0) return 0
+    const currentDateStr = displayStartDate.toISOString().split('T')[0]
+    let index = allDates.indexOf(currentDateStr)
+    // If not found, find the closest date
+    if (index === -1) {
+      index = allDates.findIndex(d => d >= currentDateStr)
+      if (index === -1) index = allDates.length - 14 // Past the end, go to last valid position
+    }
+    return Math.max(0, index)
+  }
+
   // Navigate dates - ensure we always show exactly 14 dates
   const goToPrevious = () => {
-    if (displayStartDate && allDates.length > 0) {
-      const currentDateStr = displayStartDate.toISOString().split('T')[0]
-      const currentIndex = allDates.indexOf(currentDateStr)
+    if (allDates.length > 0) {
+      const currentIndex = getCurrentDisplayIndex()
       // Move back 14 days, but don't go before the first date
       const newIndex = Math.max(0, currentIndex - 14)
       setDisplayStartDate(new Date(allDates[newIndex]))
@@ -217,9 +229,8 @@ export default function ExtendNightsModal({
   }
 
   const goToNext = () => {
-    if (displayStartDate && allDates.length > 0) {
-      const currentDateStr = displayStartDate.toISOString().split('T')[0]
-      const currentIndex = allDates.indexOf(currentDateStr)
+    if (allDates.length > 0) {
+      const currentIndex = getCurrentDisplayIndex()
       // Move forward 14 days, but ensure we still have 14 dates to show
       const maxStartIndex = Math.max(0, allDates.length - 14)
       const newIndex = Math.min(maxStartIndex, currentIndex + 14)
