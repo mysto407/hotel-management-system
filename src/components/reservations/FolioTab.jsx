@@ -133,6 +133,16 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
         }
       }
 
+      // Sort folios: master first, room second, all others last (by created_at)
+      allFolios.sort((a, b) => {
+        const typeOrder = { master: 0, room: 1 }
+        const aOrder = typeOrder[a.folio_type] ?? 2
+        const bOrder = typeOrder[b.folio_type] ?? 2
+        if (aOrder !== bOrder) return aOrder - bOrder
+        // Within same priority, sort by created_at
+        return new Date(a.created_at) - new Date(b.created_at)
+      })
+
       setFolios(allFolios)
 
       // Set active folio to first one (master) if not already set
