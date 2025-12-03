@@ -1,9 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown, Trash2 } from 'lucide-react'
+import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown, Trash2, MoveRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -84,6 +91,14 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
 
   // View mode state
   const [groupByDate, setGroupByDate] = useState(false)
+
+  // Move transaction state
+  const [moveTransactionOpen, setMoveTransactionOpen] = useState(false)
+  const [moveMode, setMoveMode] = useState(null) // 'individual' or 'type'
+  const [moveTargetFolioId, setMoveTargetFolioId] = useState('')
+  const [moveTransactionType, setMoveTransactionType] = useState('')
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState(new Set())
+  const [moveLoading, setMoveLoading] = useState(false)
 
   // Check if this is a multi-room booking
   const bookingId = primaryReservation?.booking_id
@@ -480,6 +495,166 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
     return txn.transaction_status === 'posted'
   }
 
+  // Get unique transaction types for the move by type feature
+  const transactionTypes = useMemo(() => {
+    const types = new Set()
+    filteredTransactions.forEach(txn => {
+      if (txn.transaction_status !== 'voided' && txn.transaction_status !== 'reversed') {
+        // Group payment types together
+        if (txn.transaction_type.startsWith('payment_')) {
+          types.add('all_payments')
+        }
+        types.add(txn.transaction_type)
+        // Also add service_category if it exists (for Add-ons, Restaurant, etc.)
+        if (txn.service_category) {
+          types.add(`category:${txn.service_category}`)
+        }
+      }
+    })
+    return Array.from(types).sort()
+  }, [filteredTransactions])
+
+  // Get display name for transaction type
+  const getTypeOptionDisplay = (type) => {
+    if (type === 'all_payments') return 'All Payments'
+    if (type.startsWith('category:')) return type.replace('category:', '')
+    return getTransactionTypeDisplay(type)
+  }
+
+  // Handle toggling transaction selection
+  const handleToggleTransaction = (txnId) => {
+    setSelectedTransactionIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(txnId)) {
+        newSet.delete(txnId)
+      } else {
+        newSet.add(txnId)
+      }
+      return newSet
+    })
+  }
+
+  // Handle select all visible transactions
+  const handleSelectAll = () => {
+    const allIds = filteredTransactions
+      .filter(txn => txn.transaction_status !== 'voided' && txn.transaction_status !== 'reversed' && !txn.parent_transaction_id)
+      .map(txn => txn.id)
+    setSelectedTransactionIds(new Set(allIds))
+  }
+
+  // Handle deselect all
+  const handleDeselectAll = () => {
+    setSelectedTransactionIds(new Set())
+  }
+
+  // Reset move mode
+  const resetMoveMode = () => {
+    setMoveMode(null)
+    setMoveTargetFolioId('')
+    setMoveTransactionType('')
+    setSelectedTransactionIds(new Set())
+    setMoveTransactionOpen(false)
+  }
+
+  // Handle activating move mode
+  const handleActivateMoveMode = () => {
+    if (!moveTargetFolioId) {
+      alert('Please select a target folio')
+      return
+    }
+    if (moveMode === 'individual') {
+      // Keep popover closed, allow selection in ledger
+      setMoveTransactionOpen(false)
+    } else if (moveMode === 'type') {
+      if (!moveTransactionType) {
+        alert('Please select a transaction type')
+        return
+      }
+      // Execute bulk move by type immediately
+      handleBulkMoveByType()
+    }
+  }
+
+  // Handle bulk move selected transactions
+  const handleBulkMoveSelected = async () => {
+    if (selectedTransactionIds.size === 0) {
+      alert('Please select at least one transaction to move')
+      return
+    }
+    if (!moveTargetFolioId) {
+      alert('Please select a target folio')
+      return
+    }
+
+    setMoveLoading(true)
+    try {
+      // Move each selected transaction (and its children via the existing function)
+      for (const txnId of selectedTransactionIds) {
+        const { error } = await moveTransactionToFolio(txnId, moveTargetFolioId)
+        if (error) {
+          console.error('Error moving transaction:', error)
+        }
+      }
+
+      await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
+      resetMoveMode()
+    } catch (err) {
+      console.error('Error moving transactions:', err)
+      alert('Failed to move some transactions: ' + err.message)
+    } finally {
+      setMoveLoading(false)
+    }
+  }
+
+  // Handle bulk move by transaction type
+  const handleBulkMoveByType = async () => {
+    if (!moveTransactionType || !moveTargetFolioId) return
+
+    setMoveLoading(true)
+    try {
+      // Find all transactions matching the selected type
+      const txnsToMove = filteredTransactions.filter(txn => {
+        if (txn.transaction_status === 'voided' || txn.transaction_status === 'reversed') return false
+        if (txn.parent_transaction_id) return false // Don't move child transactions directly
+
+        if (moveTransactionType === 'all_payments') {
+          return txn.transaction_type.startsWith('payment_')
+        }
+        if (moveTransactionType.startsWith('category:')) {
+          return txn.service_category === moveTransactionType.replace('category:', '')
+        }
+        return txn.transaction_type === moveTransactionType
+      })
+
+      // Move each transaction (and its children via the existing function)
+      for (const txn of txnsToMove) {
+        const { error } = await moveTransactionToFolio(txn.id, moveTargetFolioId)
+        if (error) {
+          console.error('Error moving transaction:', error)
+        }
+      }
+
+      await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
+      resetMoveMode()
+    } catch (err) {
+      console.error('Error moving transactions:', err)
+      alert('Failed to move some transactions: ' + err.message)
+    } finally {
+      setMoveLoading(false)
+    }
+  }
+
+  // Check if a transaction is selectable (not voided/reversed, not a child tax)
+  const isTransactionSelectable = (txn) => {
+    return txn.transaction_status !== 'voided' &&
+           txn.transaction_status !== 'reversed' &&
+           !txn.parent_transaction_id
+  }
+
   if (loading) {
     return (
       <Card>
@@ -629,6 +804,125 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
             <CreditCard className="h-4 w-4 mr-1" />
             Add Payment
           </Button>
+          {folios.length > 1 && (
+            <Popover open={moveTransactionOpen} onOpenChange={setMoveTransactionOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoveRight className="h-4 w-4 mr-1" />
+                  Move Transaction
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="start">
+                <div className="space-y-4">
+                  <div className="font-medium">Move Transactions</div>
+
+                  {/* Move Individual Transactions Option */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="move-individual"
+                        checked={moveMode === 'individual'}
+                        onCheckedChange={(checked) => {
+                          setMoveMode(checked ? 'individual' : null)
+                          if (!checked) setSelectedTransactionIds(new Set())
+                        }}
+                      />
+                      <Label htmlFor="move-individual" className="text-sm font-medium cursor-pointer">
+                        Move individual transactions
+                      </Label>
+                    </div>
+                    {moveMode === 'individual' && (
+                      <div className="ml-6">
+                        <Label className="text-xs text-muted-foreground mb-1 block">Target Folio</Label>
+                        <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select folio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {folios
+                              .filter(f => f.id !== activeFolioId)
+                              .map(folio => (
+                                <SelectItem key={folio.id} value={folio.id}>
+                                  {folio.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Move by Transaction Type Option */}
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="move-type"
+                        checked={moveMode === 'type'}
+                        onCheckedChange={(checked) => {
+                          setMoveMode(checked ? 'type' : null)
+                          setMoveTransactionType('')
+                        }}
+                      />
+                      <Label htmlFor="move-type" className="text-sm font-medium cursor-pointer">
+                        Move by transaction type
+                      </Label>
+                    </div>
+                    {moveMode === 'type' && (
+                      <div className="ml-6 space-y-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">Target Folio</Label>
+                          <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select folio" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {folios
+                                .filter(f => f.id !== activeFolioId)
+                                .map(folio => (
+                                  <SelectItem key={folio.id} value={folio.id}>
+                                    {folio.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">Transaction Type</Label>
+                          <Select value={moveTransactionType} onValueChange={setMoveTransactionType}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {transactionTypes.map(type => (
+                                <SelectItem key={type} value={type}>
+                                  {getTypeOptionDisplay(type)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Button */}
+                  <Button
+                    onClick={handleActivateMoveMode}
+                    disabled={!moveMode || !moveTargetFolioId || moveLoading}
+                    className="w-full"
+                    size="sm"
+                  >
+                    {moveLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <MoveRight className="h-4 w-4 mr-1" />
+                    )}
+                    {moveMode === 'individual' ? 'Select Transactions' : 'Move Transactions'}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -702,9 +996,20 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         return (
                           <TableRow
                             key={txn.id}
-                            className={isVoidedOrReversed ? 'opacity-50' : ''}
+                            className={`${isVoidedOrReversed ? 'opacity-50' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
                           >
-                            <TableCell className="w-[60px]"></TableCell>
+                            <TableCell className="w-[60px]">
+                              {moveMode === 'individual' && (
+                                isTransactionSelectable(txn) ? (
+                                  <Checkbox
+                                    checked={selectedTransactionIds.has(txn.id)}
+                                    onCheckedChange={() => handleToggleTransaction(txn.id)}
+                                  />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )
+                              )}
+                            </TableCell>
                             {isMultiRoomBooking && (
                               <>
                                 <TableCell className="text-sm font-medium w-[80px]">
@@ -834,6 +1139,18 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
             <Table>
               <TableHeader>
                 <TableRow>
+                  {moveMode === 'individual' && (
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={selectedTransactionIds.size > 0 &&
+                          selectedTransactionIds.size === filteredTransactions.filter(isTransactionSelectable).length}
+                        onCheckedChange={(checked) => {
+                          if (checked) handleSelectAll()
+                          else handleDeselectAll()
+                        }}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="w-[80px]">Date</TableHead>
                   {isMultiRoomBooking && (
                     <>
@@ -859,8 +1176,20 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                   return (
                     <TableRow
                       key={txn.id}
-                      className={isVoidedOrReversed ? 'opacity-50' : ''}
+                      className={`${isVoidedOrReversed ? 'opacity-50' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
                     >
+                      {moveMode === 'individual' && (
+                        <TableCell className="w-[40px]">
+                          {isTransactionSelectable(txn) ? (
+                            <Checkbox
+                              checked={selectedTransactionIds.has(txn.id)}
+                              onCheckedChange={() => handleToggleTransaction(txn.id)}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="text-sm">
                         {format(new Date(txn.transaction_date || txn.created_at), 'MMM dd')}
                       </TableCell>
@@ -993,6 +1322,45 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
           )}
         </CardContent>
       </Card>
+
+      {/* Floating Action Bar for Selection Mode */}
+      {moveMode === 'individual' && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+          <Card className="shadow-lg border-2">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-4">
+                <div className="text-sm">
+                  <span className="font-medium">{selectedTransactionIds.size}</span>
+                  <span className="text-muted-foreground ml-1">
+                    transaction{selectedTransactionIds.size !== 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetMoveMode}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkMoveSelected}
+                    disabled={selectedTransactionIds.size === 0 || moveLoading}
+                  >
+                    {moveLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <MoveRight className="h-4 w-4 mr-1" />
+                    )}
+                    Move to {folios.find(f => f.id === moveTargetFolioId)?.name || 'Folio'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Add Charge Modal */}
       <AddChargeModal
