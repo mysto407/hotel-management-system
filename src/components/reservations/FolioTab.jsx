@@ -669,43 +669,62 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
     <div className="space-y-4">
       {/* Folio Tabs Bar */}
       {folios.length > 0 && (
-        <Card>
-          <CardContent className="py-2 px-2">
-            <div className="flex items-center gap-1 overflow-x-auto">
+        <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-800/50">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {folios.map((folio) => {
                 const balance = folioBalances[folio.id]?.balance || 0
+                const charges = folioBalances[folio.id]?.charges || 0
                 const isActive = activeFolioId === folio.id
                 const canDeleteFolio = folio.folio_type !== 'master' && folios.length > 1
+                const hasBalance = balance > 0
                 return (
                   <div key={folio.id} className="relative group">
                     <button
                       onClick={() => setActiveFolioId(folio.id)}
                       className={`
-                        flex flex-col items-start px-4 py-2 rounded-lg border transition-colors min-w-[120px]
+                        relative flex flex-col items-start px-5 py-3 rounded-xl border-2 transition-all duration-200 min-w-[160px]
                         ${isActive
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card hover:bg-muted border-border'
+                          ? 'bg-white dark:bg-slate-800 border-primary shadow-md scale-[1.02]'
+                          : 'bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm'
                         }
                       `}
                     >
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium text-sm truncate max-w-[150px]">
+                      {/* Active indicator bar */}
+                      {isActive && (
+                        <div className="absolute top-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
+                      )}
+                      <div className="flex items-center gap-2 w-full">
+                        <span className={`font-semibold text-sm truncate max-w-[120px] ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                           {folio.name}
                         </span>
                         {folio.folio_type === 'master' && folio.booking_id && (
-                          <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${isActive ? 'bg-primary-foreground/20' : ''}`}>
+                          <Badge className="text-[10px] px-1.5 py-0 bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300 border-0">
                             Master
                           </Badge>
                         )}
                         {folio.folio_type === 'room' && (
-                          <Badge variant="outline" className={`text-[10px] px-1 py-0 ${isActive ? 'border-primary-foreground/50' : ''}`}>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400">
                             Room
                           </Badge>
                         )}
                       </div>
-                      <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        {formatCurrency(balance)}
-                      </span>
+                      <div className="flex items-baseline gap-1 mt-1">
+                        <span className={`text-lg font-bold tabular-nums ${
+                          hasBalance
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : balance < 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-slate-600 dark:text-slate-400'
+                        }`}>
+                          {formatCurrency(balance)}
+                        </span>
+                        {charges > 0 && !isActive && (
+                          <span className="text-[10px] text-muted-foreground">
+                            of {formatCurrency(charges)}
+                          </span>
+                        )}
+                      </div>
                     </button>
                     {/* Delete button - only for non-master folios */}
                     {canDeleteFolio && (
@@ -715,24 +734,27 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                           setSelectedFolioForDelete(folio)
                           setDeleteFolioOpen(true)
                         }}
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center shadow-lg hover:bg-red-600 hover:scale-110"
                         title="Delete folio"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
                 )
               })}
 
+              {/* Divider */}
+              <div className="h-12 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+
               {/* New Folio Button */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCreateFolioOpen(true)}
-                className="h-auto py-2 px-3 min-w-[100px]"
+                className="h-auto py-2.5 px-4 rounded-xl border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all duration-200"
               >
-                <FolderPlus className="h-4 w-4 mr-1" />
+                <FolderPlus className="h-4 w-4 mr-2" />
                 New Folio
               </Button>
 
@@ -740,21 +762,21 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
               {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-auto py-2 px-3">
-                      <SplitSquareVertical className="h-4 w-4 mr-1" />
+                    <Button variant="outline" size="sm" className="h-auto py-2.5 px-4 rounded-xl">
+                      <SplitSquareVertical className="h-4 w-4 mr-2" />
                       Manage
                       <ChevronDown className="h-3 w-3 ml-1" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="rounded-xl">
                     {canSplitFolios && (
-                      <DropdownMenuItem onClick={() => setSplitFolioConfirmOpen(true)}>
+                      <DropdownMenuItem onClick={() => setSplitFolioConfirmOpen(true)} className="rounded-lg">
                         <SplitSquareVertical className="h-4 w-4 mr-2" />
                         Split into Room Folios
                       </DropdownMenuItem>
                     )}
                     {canMergeFolios && (
-                      <DropdownMenuItem onClick={() => setMergeFolioConfirmOpen(true)}>
+                      <DropdownMenuItem onClick={() => setMergeFolioConfirmOpen(true)} className="rounded-lg">
                         <Merge className="h-4 w-4 mr-2" />
                         Merge into Master Folio
                       </DropdownMenuItem>
@@ -768,30 +790,72 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
       )}
 
       {/* Summary Bar */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Charges</p>
-              <p className="text-2xl font-bold text-foreground">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
-              </p>
+      <div className="grid grid-cols-3 gap-4">
+        {/* Total Charges Card */}
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-slate-50 to-slate-100/80 dark:from-slate-900 dark:to-slate-800/80">
+          <CardContent className="py-5 px-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Charges</p>
+              <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                <Receipt className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Payments</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
-              </p>
+            <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+              {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Payments Card */}
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-50 to-emerald-100/80 dark:from-emerald-950/50 dark:to-emerald-900/30">
+          <CardContent className="py-5 px-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Payments</p>
+              <div className="h-8 w-8 rounded-full bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center">
+                <CreditCard className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Balance Due</p>
-              <p className={`text-2xl font-bold ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
-              </p>
+            <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">
+              {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Balance Due Card */}
+        <Card className={`border-0 shadow-sm ${
+          (activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0
+            ? 'bg-gradient-to-br from-red-50 to-red-100/80 dark:from-red-950/50 dark:to-red-900/30'
+            : 'bg-gradient-to-br from-emerald-50 to-emerald-100/80 dark:from-emerald-950/50 dark:to-emerald-900/30'
+        }`}>
+          <CardContent className="py-5 px-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-sm font-medium ${
+                (activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-emerald-600 dark:text-emerald-400'
+              }`}>Balance Due</p>
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                (activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0
+                  ? 'bg-red-200 dark:bg-red-800'
+                  : 'bg-emerald-200 dark:bg-emerald-800'
+              }`}>
+                <AlertCircle className={`h-4 w-4 ${
+                  (activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0
+                    ? 'text-red-700 dark:text-red-300'
+                    : 'text-emerald-700 dark:text-emerald-300'
+                }`} />
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <p className={`text-3xl font-bold tabular-nums ${
+              (activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0
+                ? 'text-red-700 dark:text-red-300'
+                : 'text-emerald-700 dark:text-emerald-300'
+            }`}>
+              {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Action Bar */}
       <div className="flex items-center justify-between gap-4">
