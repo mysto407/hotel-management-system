@@ -828,8 +828,8 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                 </button>
               </div>
 
-              {/* Manage Dropdown - only for multi-room bookings */}
-              {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
+              {/* Manage Dropdown - for folio operations */}
+              {(canSplitFolios || canMergeFolios || canMergeAll || canMergeSelected) && (
                 <div className="flex items-center px-3 border-l">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -848,8 +848,23 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       {canMergeFolios && (
                         <DropdownMenuItem onClick={() => setMergeFolioConfirmOpen(true)}>
                           <Merge className="h-4 w-4 mr-2" />
-                          Merge into Master Folio
+                          Merge Room Folios
                         </DropdownMenuItem>
+                      )}
+                      {canMergeAll && (
+                        <DropdownMenuItem onClick={() => setMergeAllConfirmOpen(true)}>
+                          <Merge className="h-4 w-4 mr-2" />
+                          Merge All into Master
+                        </DropdownMenuItem>
+                      )}
+                      {canMergeSelected && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setMergeSelectedOpen(true)}>
+                            <Merge className="h-4 w-4 mr-2" />
+                            Merge Selected Folios...
+                          </DropdownMenuItem>
+                        </>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1628,13 +1643,13 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Merge Folio Confirmation Dialog */}
+      {/* Merge Room Folios Confirmation Dialog */}
       <AlertDialog open={mergeFolioConfirmOpen} onOpenChange={setMergeFolioConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Merge className="h-5 w-5 text-primary" />
-              Merge into Master Folio
+              Merge Room Folios
             </AlertDialogTitle>
             <AlertDialogDescription>
               This will merge all room folios back into a single master folio.
@@ -1653,6 +1668,137 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
             >
               {folioActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Merge className="h-4 w-4 mr-2" />}
               Merge Folios
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Merge All Folios Confirmation Dialog */}
+      <AlertDialog open={mergeAllConfirmOpen} onOpenChange={setMergeAllConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Merge className="h-5 w-5 text-primary" />
+              Merge All Folios into Master
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will merge ALL folios (room folios, incidentals, custom folios) into a single master folio.
+              <div className="mt-3 p-3 bg-muted rounded-lg">
+                <p className="font-medium text-foreground">{nonMasterFolios.length} folio{nonMasterFolios.length !== 1 ? 's' : ''} will be merged:</p>
+                <ul className="text-sm mt-2 space-y-1">
+                  {nonMasterFolios.map(f => (
+                    <li key={f.id} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      {f.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={folioActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleMergeAllFolios}
+              disabled={folioActionLoading}
+            >
+              {folioActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Merge className="h-4 w-4 mr-2" />}
+              Merge All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Merge Selected Folios Dialog */}
+      <AlertDialog open={mergeSelectedOpen} onOpenChange={(open) => {
+        setMergeSelectedOpen(open)
+        if (!open) {
+          setSelectedFoliosForMerge(new Set())
+          setMergeTargetFolioId('')
+        }
+      }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Merge className="h-5 w-5 text-primary" />
+              Merge Selected Folios
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>Select the folios you want to merge and choose a target folio.</p>
+
+                {/* Target Folio Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Merge into:</Label>
+                  <Select value={mergeTargetFolioId} onValueChange={setMergeTargetFolioId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select target folio" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {folios.map(folio => (
+                        <SelectItem key={folio.id} value={folio.id}>
+                          {folio.name}
+                          {folio.folio_type === 'master' && ' (Master)'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Folios to Merge */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Folios to merge:</Label>
+                  <div className="border rounded-lg p-3 space-y-2 max-h-[200px] overflow-y-auto">
+                    {folios
+                      .filter(f => f.id !== mergeTargetFolioId)
+                      .map(folio => (
+                        <div key={folio.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`merge-folio-${folio.id}`}
+                            checked={selectedFoliosForMerge.has(folio.id)}
+                            onCheckedChange={() => handleToggleFolioForMerge(folio.id)}
+                          />
+                          <Label
+                            htmlFor={`merge-folio-${folio.id}`}
+                            className="text-sm font-normal cursor-pointer flex-1"
+                          >
+                            {folio.name}
+                            {folio.folio_type === 'master' && (
+                              <span className="ml-1 text-xs text-primary">(Master)</span>
+                            )}
+                            {folio.folio_type === 'room' && (
+                              <span className="ml-1 text-xs text-muted-foreground">(Room)</span>
+                            )}
+                          </Label>
+                        </div>
+                      ))}
+                    {folios.filter(f => f.id !== mergeTargetFolioId).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        Select a target folio first
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {selectedFoliosForMerge.size > 0 && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-300">
+                      {selectedFoliosForMerge.size} folio{selectedFoliosForMerge.size !== 1 ? 's' : ''} will be merged into {folios.find(f => f.id === mergeTargetFolioId)?.name || 'target folio'}.
+                      All transactions will be moved and the merged folios will be deactivated.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={folioActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleMergeSelectedFolios}
+              disabled={folioActionLoading || selectedFoliosForMerge.size === 0 || !mergeTargetFolioId}
+            >
+              {folioActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Merge className="h-4 w-4 mr-2" />}
+              Merge {selectedFoliosForMerge.size} Folio{selectedFoliosForMerge.size !== 1 ? 's' : ''}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
