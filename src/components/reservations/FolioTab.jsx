@@ -1155,7 +1155,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       />
                     </TableHead>
                   )}
-                  <TableHead className="w-[80px]">Date</TableHead>
+                  <TableHead className="w-[120px]">Date & Time</TableHead>
                   {isMultiRoomBooking && (
                     <>
                       <TableHead className="w-[80px]">Room</TableHead>
@@ -1163,10 +1163,12 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                     </>
                   )}
                   <TableHead>Description</TableHead>
+                  <TableHead className="w-[50px] text-center">Qty</TableHead>
                   <TableHead className="w-[80px]">Status</TableHead>
                   <TableHead className="text-right w-[100px]">Debit</TableHead>
                   <TableHead className="text-right w-[100px]">Credit</TableHead>
                   <TableHead className="text-right w-[100px]">Balance</TableHead>
+                  <TableHead className="w-[150px]">Notes</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -1195,7 +1197,8 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         </TableCell>
                       )}
                       <TableCell className="text-sm">
-                        {format(new Date(txn.transaction_date || txn.created_at), 'MMM dd')}
+                        <div>{format(new Date(txn.transaction_date || txn.created_at), 'MMM dd, yyyy')}</div>
+                        <div className="text-xs text-muted-foreground">{format(new Date(txn.transaction_date || txn.created_at), 'hh:mm a')}</div>
                       </TableCell>
                       {isMultiRoomBooking && (
                         <>
@@ -1216,9 +1219,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                             </span>
                           )}
                         </div>
-                        {txn.notes && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
-                        )}
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        {txn.quantity ? txn.quantity : '—'}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(txn.transaction_status)}
@@ -1231,6 +1234,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       </TableCell>
                       <TableCell className={`text-right font-medium ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {formatCurrency(txn.runningBalance)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]" title={txn.notes || ''}>
+                        {txn.notes || '—'}
                       </TableCell>
                       <TableCell>
                         {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
