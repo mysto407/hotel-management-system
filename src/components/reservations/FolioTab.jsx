@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { format } from 'date-fns'
-import { Plus, Filter, Printer, MoreVertical, Eye, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, FolderPlus, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, ChevronDown, Trash2, MoveRight } from 'lucide-react'
+import { Plus, Printer, MoreVertical, XCircle, RotateCcw, Loader2, Receipt, CreditCard, AlertCircle, ArrowRightLeft, Scissors, CalendarDays, List, SplitSquareVertical, Merge, Trash2, MoveRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -952,96 +952,60 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         return (
                           <TableRow
                             key={txn.id}
-                            className={`${isVoidedOrReversed ? 'opacity-50' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
+                            className={`${isVoidedOrReversed ? 'opacity-40' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
                           >
-                            <TableCell className="w-[60px]">
-                              {moveMode === 'individual' && (
-                                isTransactionSelectable(txn) ? (
+                            {moveMode === 'individual' && (
+                              <TableCell className="w-10 pr-0">
+                                {isTransactionSelectable(txn) ? (
                                   <Checkbox
                                     checked={selectedTransactionIds.has(txn.id)}
                                     onCheckedChange={() => handleToggleTransaction(txn.id)}
                                   />
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )
-                              )}
-                            </TableCell>
-                            {isMultiRoomBooking && (
-                              <>
-                                <TableCell className="text-sm font-medium w-[80px]">
-                                  {roomInfo.roomNumber}
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground truncate max-w-[100px] w-[100px]">
-                                  {roomInfo.guestName}
-                                </TableCell>
-                              </>
+                                ) : null}
+                              </TableCell>
                             )}
-                            <TableCell>
-                              <div className={isVoidedOrReversed ? 'line-through' : ''}>
-                                <span className="font-medium">{txn.description || getTransactionTypeDisplay(txn.transaction_type)}</span>
-                                {txn.service_category && (
-                                  <span className="text-muted-foreground ml-2 text-xs">
-                                    ({txn.service_category})
-                                  </span>
-                                )}
-                              </div>
-                              {txn.notes && (
-                                <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
-                              )}
+                            {isMultiRoomBooking && (
+                              <TableCell className="w-16 text-xs text-muted-foreground">
+                                {roomInfo.roomNumber}
+                              </TableCell>
+                            )}
+                            <TableCell className="py-2">
+                              <span className={`text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                                {txn.description || getTransactionTypeDisplay(txn.transaction_type)}
+                              </span>
                             </TableCell>
-                            <TableCell className="w-[80px]">
-                              {getStatusBadge(txn.transaction_status)}
-                            </TableCell>
-                            <TableCell className={`text-right w-[100px] ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                            <TableCell className={`text-right w-20 text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {isCharge ? formatCurrency(amount) : ''}
                             </TableCell>
-                            <TableCell className={`text-right w-[100px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                            <TableCell className={`text-right w-20 text-sm text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
                             </TableCell>
-                            <TableCell className="w-[50px]">
+                            <TableCell className="w-8">
                               {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreVertical className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                      <MoreVertical className="h-3.5 w-3.5" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem disabled>
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      View Details
-                                    </DropdownMenuItem>
-                                    {folios.length > 1 && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        {folios
-                                          .filter(f => f.id !== txn.folio_id)
-                                          .map(targetFolio => (
-                                            <DropdownMenuItem
-                                              key={targetFolio.id}
-                                              onClick={() => {
-                                                setSelectedTransaction(txn)
-                                                handleMoveToFolio(targetFolio.id)
-                                              }}
-                                            >
-                                              <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                              Move to {targetFolio.name}
-                                            </DropdownMenuItem>
-                                          ))
-                                        }
-                                      </>
-                                    )}
-                                    {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                      <>
+                                    {folios.length > 1 && folios
+                                      .filter(f => f.id !== txn.folio_id)
+                                      .map(targetFolio => (
                                         <DropdownMenuItem
+                                          key={targetFolio.id}
                                           onClick={() => {
                                             setSelectedTransaction(txn)
-                                            setTransferModalOpen(true)
+                                            handleMoveToFolio(targetFolio.id)
                                           }}
                                         >
                                           <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                          Transfer to Another Room
+                                          Move to {targetFolio.name}
                                         </DropdownMenuItem>
+                                      ))
+                                    }
+                                    {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
+                                      <>
                                         <DropdownMenuItem
                                           onClick={() => {
                                             setSelectedTransaction(txn)
@@ -1049,11 +1013,11 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                           }}
                                         >
                                           <Scissors className="h-4 w-4 mr-2" />
-                                          Split Transaction
+                                          Split
                                         </DropdownMenuItem>
                                       </>
                                     )}
-                                    <DropdownMenuSeparator />
+                                    {(canVoid(txn) || canReverse(txn)) && <DropdownMenuSeparator />}
                                     {canVoid(txn) && (
                                       <DropdownMenuItem
                                         onClick={() => {
@@ -1094,9 +1058,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
             /* Standard List View */
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   {moveMode === 'individual' && (
-                    <TableHead className="w-[40px]">
+                    <TableHead className="w-10">
                       <Checkbox
                         checked={selectedTransactionIds.size > 0 &&
                           selectedTransactionIds.size === filteredTransactions.filter(isTransactionSelectable).length}
@@ -1107,19 +1071,15 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       />
                     </TableHead>
                   )}
-                  <TableHead className="w-[80px]">Date</TableHead>
+                  <TableHead className="w-20 text-xs">Date</TableHead>
                   {isMultiRoomBooking && (
-                    <>
-                      <TableHead className="w-[80px]">Room</TableHead>
-                      <TableHead className="w-[100px]">Guest</TableHead>
-                    </>
+                    <TableHead className="w-16 text-xs">Room</TableHead>
                   )}
-                  <TableHead>Description</TableHead>
-                  <TableHead className="w-[80px]">Status</TableHead>
-                  <TableHead className="text-right w-[100px]">Debit</TableHead>
-                  <TableHead className="text-right w-[100px]">Credit</TableHead>
-                  <TableHead className="text-right w-[100px]">Balance</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="text-xs">Description</TableHead>
+                  <TableHead className="text-right w-24 text-xs">Debit</TableHead>
+                  <TableHead className="text-right w-24 text-xs">Credit</TableHead>
+                  <TableHead className="text-right w-24 text-xs">Balance</TableHead>
+                  <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1132,116 +1092,79 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                   return (
                     <TableRow
                       key={txn.id}
-                      className={`${isVoidedOrReversed ? 'opacity-50' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
+                      className={`${isVoidedOrReversed ? 'opacity-40' : ''} ${moveMode === 'individual' && selectedTransactionIds.has(txn.id) ? 'bg-primary/10' : ''}`}
                     >
                       {moveMode === 'individual' && (
-                        <TableCell className="w-[40px]">
+                        <TableCell className="w-10 pr-0">
                           {isTransactionSelectable(txn) ? (
                             <Checkbox
                               checked={selectedTransactionIds.has(txn.id)}
                               onCheckedChange={() => handleToggleTransaction(txn.id)}
                             />
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                          ) : null}
                         </TableCell>
                       )}
-                      <TableCell className="text-sm">
-                        {format(new Date(txn.transaction_date || txn.created_at), 'MMM dd')}
+                      <TableCell className="text-xs text-muted-foreground">
+                        {format(new Date(txn.transaction_date || txn.created_at), 'MMM d')}
                       </TableCell>
                       {isMultiRoomBooking && (
-                        <>
-                          <TableCell className="text-sm font-medium">
-                            {roomInfo.roomNumber}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground truncate max-w-[100px]">
-                            {roomInfo.guestName}
-                          </TableCell>
-                        </>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {roomInfo.roomNumber}
+                        </TableCell>
                       )}
-                      <TableCell>
-                        <div className={isVoidedOrReversed ? 'line-through' : ''}>
-                          <span className="font-medium">{txn.description || getTransactionTypeDisplay(txn.transaction_type)}</span>
-                          {txn.service_category && (
-                            <span className="text-muted-foreground ml-2 text-xs">
-                              ({txn.service_category})
-                            </span>
-                          )}
-                        </div>
+                      <TableCell className="py-2">
+                        <span className={`text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                          {txn.description || getTransactionTypeDisplay(txn.transaction_type)}
+                        </span>
                         {txn.notes && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
+                          <p className="text-xs text-muted-foreground">{txn.notes}</p>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {getStatusBadge(txn.transaction_status)}
-                      </TableCell>
-                      <TableCell className={`text-right ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                      <TableCell className={`text-right text-sm ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {isCharge ? formatCurrency(amount) : ''}
                       </TableCell>
-                      <TableCell className={`text-right text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                      <TableCell className={`text-right text-sm text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
                       </TableCell>
-                      <TableCell className={`text-right font-medium ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                      <TableCell className={`text-right text-sm font-medium ${isVoidedOrReversed ? 'line-through text-muted-foreground' : ''}`}>
                         {formatCurrency(txn.runningBalance)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-8">
                         {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreVertical className="h-3.5 w-3.5" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem disabled>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              {/* Move to Folio options */}
-                              {folios.length > 1 && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  {folios
-                                    .filter(f => f.id !== txn.folio_id)
-                                    .map(targetFolio => (
-                                      <DropdownMenuItem
-                                        key={targetFolio.id}
-                                        onClick={() => {
-                                          setSelectedTransaction(txn)
-                                          handleMoveToFolio(targetFolio.id)
-                                        }}
-                                      >
-                                        <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                        Move to {targetFolio.name}
-                                      </DropdownMenuItem>
-                                    ))
-                                  }
-                                </>
-                              )}
-                              {/* Transfer to another room (only for charges) */}
-                              {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                <>
+                              {folios.length > 1 && folios
+                                .filter(f => f.id !== txn.folio_id)
+                                .map(targetFolio => (
                                   <DropdownMenuItem
+                                    key={targetFolio.id}
                                     onClick={() => {
                                       setSelectedTransaction(txn)
-                                      setTransferModalOpen(true)
+                                      handleMoveToFolio(targetFolio.id)
                                     }}
                                   >
                                     <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                    Transfer to Another Room
+                                    Move to {targetFolio.name}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedTransaction(txn)
-                                      setSplitModalOpen(true)
-                                    }}
-                                  >
-                                    <Scissors className="h-4 w-4 mr-2" />
-                                    Split Transaction
-                                  </DropdownMenuItem>
-                                </>
+                                ))
+                              }
+                              {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedTransaction(txn)
+                                    setSplitModalOpen(true)
+                                  }}
+                                >
+                                  <Scissors className="h-4 w-4 mr-2" />
+                                  Split
+                                </DropdownMenuItem>
                               )}
-                              <DropdownMenuSeparator />
+                              {(canVoid(txn) || canReverse(txn)) && <DropdownMenuSeparator />}
                               {canVoid(txn) && (
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -1282,39 +1205,22 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
       {/* Floating Action Bar for Selection Mode */}
       {moveMode === 'individual' && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-          <Card className="shadow-lg border-2">
-            <CardContent className="py-3 px-4">
-              <div className="flex items-center gap-4">
-                <div className="text-sm">
-                  <span className="font-medium">{selectedTransactionIds.size}</span>
-                  <span className="text-muted-foreground ml-1">
-                    transaction{selectedTransactionIds.size !== 1 ? 's' : ''} selected
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetMoveMode}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleBulkMoveSelected}
-                    disabled={selectedTransactionIds.size === 0 || moveLoading}
-                  >
-                    {moveLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <MoveRight className="h-4 w-4 mr-1" />
-                    )}
-                    Move to {folios.find(f => f.id === moveTargetFolioId)?.name || 'Folio'}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-3 bg-background border rounded-lg shadow-lg px-4 py-2">
+            <span className="text-sm">
+              <span className="font-medium">{selectedTransactionIds.size}</span> selected
+            </span>
+            <Button variant="ghost" size="sm" onClick={resetMoveMode}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleBulkMoveSelected}
+              disabled={selectedTransactionIds.size === 0 || moveLoading}
+            >
+              {moveLoading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Move
+            </Button>
+          </div>
         </div>
       )}
 
