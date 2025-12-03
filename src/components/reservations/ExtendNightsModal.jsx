@@ -205,11 +205,11 @@ export default function ExtendNightsModal({
     setSelectedDates([])
   }
 
-  // Navigate dates
+  // Navigate dates (move by 14 days = 2 rows)
   const goToPrevious = () => {
     if (displayStartDate) {
       const newDate = new Date(displayStartDate)
-      newDate.setDate(newDate.getDate() - 7)
+      newDate.setDate(newDate.getDate() - 14)
       setDisplayStartDate(newDate)
     }
   }
@@ -217,7 +217,7 @@ export default function ExtendNightsModal({
   const goToNext = () => {
     if (displayStartDate) {
       const newDate = new Date(displayStartDate)
-      newDate.setDate(newDate.getDate() + 7)
+      newDate.setDate(newDate.getDate() + 14)
       setDisplayStartDate(newDate)
     }
   }
