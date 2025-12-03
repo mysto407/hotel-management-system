@@ -530,13 +530,30 @@ export default function ExtendNightsModal({
           </div>
         ) : (
           <>
-            <DialogHeader>
-              <DialogTitle>Extend / Shorten Stay</DialogTitle>
+            <DialogHeader className="space-y-0">
+              <div className="flex items-center justify-between">
+                <DialogTitle>Extend / Shorten Stay</DialogTitle>
+                {/* Compact Legend */}
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-sm bg-emerald-100 dark:bg-emerald-900/40"></div>
+                    <span>Booked</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-sm bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-500"></div>
+                    <span>Selected</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-sm bg-red-100 dark:bg-red-950/40"></div>
+                    <span>Unavailable</span>
+                  </div>
+                </div>
+              </div>
               <DialogDescription>
                 {info && (
-                  <div className="text-sm font-medium text-foreground mt-2">
+                  <span className="text-xs">
                     {info.guestName} – {info.referenceNo} – {info.roomName} (Room {info.roomNumber})
-                  </div>
+                  </span>
                 )}
               </DialogDescription>
             </DialogHeader>
@@ -598,7 +615,7 @@ export default function ExtendNightsModal({
                     if (!displayStartDate) return true
                     const displayStart = displayStartDate.toISOString().split('T')[0]
                     const displayIndex = allDates.indexOf(displayStart)
-                    return index >= displayIndex && index < displayIndex + 21
+                    return index >= displayIndex && index < displayIndex + 14
                   })
                   .map(dateStr => {
                     const booking = bookedDates.get(dateStr)
@@ -649,26 +666,6 @@ export default function ExtendNightsModal({
                       </div>
                     )
                   })}
-              </div>
-
-              {/* Compact Legend */}
-              <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground pt-2">
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-emerald-100 dark:bg-emerald-900/40"></div>
-                  <span>Booked</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-500"></div>
-                  <span>Selected</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-red-100 dark:bg-red-950/40"></div>
-                  <span>Unavailable</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-muted/30"></div>
-                  <span>Available</span>
-                </div>
               </div>
 
               {/* Totals Comparison - Only show after changes */}
