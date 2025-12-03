@@ -1202,26 +1202,15 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                       </>
                                     )}
                                     {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                      <>
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            setSelectedTransaction(txn)
-                                            setTransferModalOpen(true)
-                                          }}
-                                        >
-                                          <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                          Transfer to Another Room
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            setSelectedTransaction(txn)
-                                            setSplitModalOpen(true)
-                                          }}
-                                        >
-                                          <Scissors className="h-4 w-4 mr-2" />
-                                          Split Transaction
-                                        </DropdownMenuItem>
-                                      </>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedTransaction(txn)
+                                          setTransferModalOpen(true)
+                                        }}
+                                      >
+                                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                        Transfer to Another Room
+                                      </DropdownMenuItem>
                                     )}
                                     <DropdownMenuSeparator />
                                     {canVoid(txn) && (
