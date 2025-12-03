@@ -733,10 +733,10 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                 {/* Add Folio Button - sits beside the last tab */}
                 <button
                   onClick={() => setCreateFolioOpen(true)}
-                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 mx-2 rounded-full border-2 border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
+                  className="flex-shrink-0 flex items-center justify-center w-8 h-8 mx-3 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted hover:shadow-sm transition-all"
                   title="New Folio"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-5 w-5" />
                 </button>
               </div>
 
