@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Edit, Calendar, Users, MoreVertical, Trash2, ArrowRight } from 'lucide-react'
+import { CalendarPlus, Calendar, Users, MoreVertical, Trash2, ArrowRight, Plus } from 'lucide-react'
 import { useReservations } from '../../context/ReservationContext'
 import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
 import { useAgents } from '../../context/AgentContext'
 import { useMealPlans } from '../../context/MealPlanContext'
+import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { getActiveReservationNotes, getTotalTaxRate, getFoliosByReservation, getFolioBalance } from '../../lib/supabase'
 import { groupConsecutiveReservations, formatRoomChangeSequence } from '../../utils/bookingUtils'
 import { Button } from '../../components/ui/button'
@@ -31,17 +32,18 @@ import {
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu'
 import NotesTab from '../../components/reservations/NotesTab'
-import QuickEditModal from '../../components/reservations/QuickEditModal'
+import ExtendNightsModal from '../../components/reservations/ExtendNightsModal'
 import MealPlanEditModal from '../../components/reservations/MealPlanEditModal'
 import GuestDetailsTab from '../../components/reservations/GuestDetailsTab'
 import FolioTab from '../../components/reservations/FolioTab'
 
 export default function ReservationDetails({ onNavigate }) {
-  const { reservations, updateReservation, splitReservation } = useReservations()
+  const { reservations, updateReservation } = useReservations()
   const { rooms, roomTypes } = useRooms()
   const { guests } = useGuests()
   const { agents } = useAgents()
   const { getMealPlanName, calculateMealPlanCost } = useMealPlans()
+  const { setAddToExistingBooking } = useReservationFlow()
 
   const [groupedReservations, setGroupedReservations] = useState([])
   const [primaryReservation, setPrimaryReservation] = useState(null)
@@ -49,8 +51,8 @@ export default function ReservationDetails({ onNavigate }) {
   const [additionalGuestsInfo, setAdditionalGuestsInfo] = useState([])
   const [agentInfo, setAgentInfo] = useState(null)
   const [notesCount, setNotesCount] = useState(0)
-  const [quickEditModalOpen, setQuickEditModalOpen] = useState(false)
-  const [selectedReservationForEdit, setSelectedReservationForEdit] = useState(null)
+  const [extendNightsModalOpen, setExtendNightsModalOpen] = useState(false)
+  const [selectedReservationForExtend, setSelectedReservationForExtend] = useState(null)
   const [mealPlanModalOpen, setMealPlanModalOpen] = useState(false)
   const [selectedReservationForMealPlan, setSelectedReservationForMealPlan] = useState(null)
   const [folioTotals, setFolioTotals] = useState({
@@ -259,9 +261,24 @@ export default function ReservationDetails({ onNavigate }) {
     }
   }
 
-  const handleQuickEdit = (reservation) => {
-    setSelectedReservationForEdit(reservation)
-    setQuickEditModalOpen(true)
+  const handleExtendNights = (reservation) => {
+    setSelectedReservationForExtend(reservation)
+    setExtendNightsModalOpen(true)
+  }
+
+  // Handle adding a new room to the existing booking
+  const handleAddRoom = () => {
+    // Set context to indicate we're adding to an existing booking
+    setAddToExistingBooking({
+      bookingId: primaryReservation.booking_id,
+      guestId: primaryReservation.guest_id,
+      guestName: guestInfo?.name,
+      agentId: primaryReservation.agent_id,
+      bookingSource: primaryReservation.booking_source,
+      reservationIds: groupedReservations.map(r => r.id)
+    })
+    // Navigate to new reservation page
+    onNavigate('new-reservation')
   }
 
   const handleEditMealPlan = (reservation) => {
@@ -312,24 +329,9 @@ export default function ReservationDetails({ onNavigate }) {
     }
   }
 
-  const handleSaveSplit = async (splitData) => {
-    const result = await splitReservation(selectedReservationForEdit.id, splitData)
-    if (result && result.allReservations) {
-      // Update sessionStorage with all reservation IDs (original + new ones)
-      const allReservationIds = result.allReservations.map(r => r.id)
-      sessionStorage.setItem('reservationDetailsIds', JSON.stringify(allReservationIds))
-
-      setQuickEditModalOpen(false)
-      setSelectedReservationForEdit(null)
-
-      // Update local state immediately with the new reservations
-      // This ensures the UI updates without needing a page reload
-      setGroupedReservations(result.allReservations)
-      setPrimaryReservation(result.allReservations[0])
-
-      // The context has already reloaded reservations via loadReservations()
-      // The useEffect will pick up the changes on the next render cycle
-    }
+  // Handle successful extend nights - refresh folio totals
+  const handleExtendNightsSuccess = () => {
+    fetchFolioTotals()
   }
 
   return (
@@ -427,6 +429,14 @@ export default function ReservationDetails({ onNavigate }) {
         </TabsList>
 
         <TabsContent value="accommodations" className="space-y-4">
+          {/* Add Room Button */}
+          <div className="flex justify-end">
+            <Button onClick={handleAddRoom} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Room
+            </Button>
+          </div>
+
           {/* Accommodations Table */}
           <Card>
             <CardContent className="p-0">
@@ -539,9 +549,9 @@ export default function ReservationDetails({ onNavigate }) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleQuickEdit(reservation)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
+                              <DropdownMenuItem onClick={() => handleExtendNights(reservation)}>
+                                <CalendarPlus className="h-4 w-4 mr-2" />
+                                Extend Nights
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Calendar className="h-4 w-4 mr-2" />
@@ -622,12 +632,12 @@ export default function ReservationDetails({ onNavigate }) {
       </Tabs>
       </div>
 
-      {/* Quick Edit Modal */}
-      <QuickEditModal
-        open={quickEditModalOpen}
-        onOpenChange={setQuickEditModalOpen}
-        reservation={selectedReservationForEdit}
-        onSave={handleSaveSplit}
+      {/* Extend Nights Modal */}
+      <ExtendNightsModal
+        open={extendNightsModalOpen}
+        onOpenChange={setExtendNightsModalOpen}
+        reservation={selectedReservationForExtend}
+        onSuccess={handleExtendNightsSuccess}
       />
 
       {/* Meal Plan Edit Modal */}
