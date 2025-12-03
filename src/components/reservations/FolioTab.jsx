@@ -1140,8 +1140,24 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground truncate max-w-[150px] w-[150px]" title={txn.notes || ''}>
-                              {txn.notes || '—'}
+                            <TableCell className="w-[150px]">
+                              {txn.notes ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button className="text-sm text-muted-foreground truncate max-w-[150px] block text-left hover:text-foreground hover:underline cursor-pointer">
+                                      {txn.notes}
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-80 max-h-60 overflow-y-auto" align="start">
+                                    <div className="space-y-2">
+                                      <h4 className="font-medium text-sm">Notes</h4>
+                                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{txn.notes}</p>
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">—</span>
+                              )}
                             </TableCell>
                             <TableCell className="text-center text-sm w-[50px]">
                               {txn.quantity ? txn.quantity : '—'}
@@ -1326,8 +1342,24 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]" title={txn.notes || ''}>
-                        {txn.notes || '—'}
+                      <TableCell className="max-w-[150px]">
+                        {txn.notes ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="text-sm text-muted-foreground truncate max-w-[150px] block text-left hover:text-foreground hover:underline cursor-pointer">
+                                {txn.notes}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 max-h-60 overflow-y-auto" align="start">
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-sm">Notes</h4>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{txn.notes}</p>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center text-sm">
                         {txn.quantity ? txn.quantity : '—'}
