@@ -1037,6 +1037,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                 )}
                               </div>
                             </TableCell>
+                            <TableCell className="text-sm text-muted-foreground truncate max-w-[150px] w-[150px]" title={txn.notes || ''}>
+                              {txn.notes || '—'}
+                            </TableCell>
                             <TableCell className="text-center text-sm w-[50px]">
                               {txn.quantity ? txn.quantity : '—'}
                             </TableCell>
@@ -1048,9 +1051,6 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                             </TableCell>
                             <TableCell className={`text-right w-[100px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground truncate max-w-[150px] w-[150px]" title={txn.notes || ''}>
-                              {txn.notes || '—'}
                             </TableCell>
                             <TableCell className="w-[50px]">
                               {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
@@ -1169,12 +1169,12 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                     </>
                   )}
                   <TableHead>Description</TableHead>
+                  <TableHead className="w-[150px]">Notes</TableHead>
                   <TableHead className="w-[50px] text-center">Qty</TableHead>
                   <TableHead className="w-[80px]">Status</TableHead>
                   <TableHead className="text-right w-[100px]">Debit</TableHead>
                   <TableHead className="text-right w-[100px]">Credit</TableHead>
                   <TableHead className="text-right w-[100px]">Balance</TableHead>
-                  <TableHead className="w-[150px]">Notes</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -1226,6 +1226,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                           )}
                         </div>
                       </TableCell>
+                      <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]" title={txn.notes || ''}>
+                        {txn.notes || '—'}
+                      </TableCell>
                       <TableCell className="text-center text-sm">
                         {txn.quantity ? txn.quantity : '—'}
                       </TableCell>
@@ -1240,9 +1243,6 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       </TableCell>
                       <TableCell className={`text-right font-medium ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {formatCurrency(txn.runningBalance)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground truncate max-w-[150px]" title={txn.notes || ''}>
-                        {txn.notes || '—'}
                       </TableCell>
                       <TableCell>
                         {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
