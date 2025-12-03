@@ -546,7 +546,7 @@ export default function ExtendNightsModal({
               <div className="flex items-center justify-between">
                 <DialogTitle>Extend / Shorten Stay</DialogTitle>
                 {/* Compact Legend */}
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground mr-6">
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-sm bg-emerald-100 dark:bg-emerald-900/40"></div>
                     <span>Booked</span>
