@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '../ui/button'
-import { Badge } from '../ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -521,7 +520,7 @@ export default function ExtendNightsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         {loading || !reservation || allDates.length === 0 ? (
           <div className="flex items-center justify-center p-8">
             <div className="text-center">
@@ -542,33 +541,38 @@ export default function ExtendNightsModal({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Navigation and Action Buttons */}
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Button onClick={goToPrevious} variant="outline" size="sm">
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
+              <div className="flex items-center justify-between border-b pb-3">
+                <div className="flex items-center gap-1">
+                  <Button onClick={goToPrevious} variant="ghost" size="icon" className="h-8 w-8">
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     onClick={() => setDisplayStartDate(new Date(reservation.check_in_date))}
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
+                    className="h-8 text-xs"
                   >
-                    Go to Booking
+                    Booking
                   </Button>
-                  <Button onClick={goToNext} variant="outline" size="sm">
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
+                  <Button onClick={goToNext} variant="ghost" size="icon" className="h-8 w-8">
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-1">
+                  {selectedDates.length > 0 && (
+                    <span className="text-xs text-muted-foreground mr-2">
+                      {selectedDates.length} selected
+                    </span>
+                  )}
                   <Button
                     onClick={handleAdd}
                     disabled={selectedDates.length === 0}
                     size="sm"
+                    className="h-7 text-xs"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-3 w-3 mr-1" />
                     Add
                   </Button>
                   <Button
@@ -576,178 +580,135 @@ export default function ExtendNightsModal({
                     disabled={selectedDates.length === 0}
                     variant="destructive"
                     size="sm"
+                    className="h-7 text-xs"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Remove
                   </Button>
-                  <Button onClick={clearSelection} variant="outline" size="sm">
+                  <Button onClick={clearSelection} variant="ghost" size="sm" className="h-7 text-xs">
                     Clear
                   </Button>
                 </div>
               </div>
 
-              {/* Dates Display */}
-              <div className="border rounded-lg p-4 bg-background">
-                <div className="flex flex-wrap gap-2">
-                  {allDates
-                    .filter((dateStr, index) => {
-                      if (!displayStartDate) return true
-                      const displayStart = displayStartDate.toISOString().split('T')[0]
-                      const displayIndex = allDates.indexOf(displayStart)
-                      return index >= displayIndex && index < displayIndex + 21
-                    })
-                    .map(dateStr => {
-                      const booking = bookedDates.get(dateStr)
-                      const isBooked = !!booking
-                      const isSelected = selectedDates.includes(dateStr)
-                      const isUnavailable = unavailableDates.has(dateStr)
+              {/* Dates Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {allDates
+                  .filter((dateStr, index) => {
+                    if (!displayStartDate) return true
+                    const displayStart = displayStartDate.toISOString().split('T')[0]
+                    const displayIndex = allDates.indexOf(displayStart)
+                    return index >= displayIndex && index < displayIndex + 21
+                  })
+                  .map(dateStr => {
+                    const booking = bookedDates.get(dateStr)
+                    const isBooked = !!booking
+                    const isSelected = selectedDates.includes(dateStr)
+                    const isUnavailable = unavailableDates.has(dateStr)
+                    const date = new Date(dateStr)
+                    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
+                    const dayNum = date.getDate()
+                    const monthName = date.toLocaleDateString('en-US', { month: 'short' })
 
-                      return (
-                        <div
-                          key={dateStr}
-                          onClick={() => toggleDateSelection(dateStr)}
-                          className={`
-                            flex flex-col items-center justify-center p-3 rounded-lg border-2 cursor-pointer
-                            transition-all min-w-[80px]
-                            ${isUnavailable
-                              ? 'border-red-300 bg-red-50 dark:bg-red-950/30 cursor-not-allowed opacity-75'
-                              : isSelected
-                                ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
-                                : isBooked
-                                  ? 'border-primary bg-primary/10 shadow-md'
-                                  : 'border-muted bg-muted/20 hover:border-primary/50'
-                            }
-                          `}
-                        >
-                          <div className="text-xs font-medium mb-1">
-                            {formatDate(dateStr)}
-                          </div>
-                          {isUnavailable && !isBooked && (
-                            <div className="text-xs text-red-600 dark:text-red-400 font-medium">
-                              Unavailable
-                            </div>
-                          )}
-                          {isBooked && (
-                            <>
-                              <div className="text-xs text-muted-foreground">
-                                {booking.roomTypeName}
-                              </div>
-                              <div className="text-xs font-semibold text-green-600 dark:text-green-400">
-                                {formatCurrency(booking.price)}
-                              </div>
-                            </>
-                          )}
-                          {!isBooked && !isUnavailable && (
-                            <div className="text-xs text-muted-foreground">
-                              Available
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                    return (
+                      <div
+                        key={dateStr}
+                        onClick={() => toggleDateSelection(dateStr)}
+                        className={`
+                          flex flex-col items-center justify-center py-2 px-1 rounded cursor-pointer
+                          transition-all text-center min-h-[60px]
+                          ${isUnavailable
+                            ? 'bg-red-100 dark:bg-red-950/40 cursor-not-allowed'
+                            : isSelected
+                              ? 'bg-blue-100 dark:bg-blue-900/40 ring-2 ring-blue-500'
+                              : isBooked
+                                ? 'bg-emerald-100 dark:bg-emerald-900/40'
+                                : 'bg-muted/30 hover:bg-muted/60'
+                          }
+                        `}
+                      >
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                          {dayName}
+                        </span>
+                        <span className={`text-sm font-semibold leading-tight ${isBooked ? 'text-emerald-700 dark:text-emerald-300' : ''}`}>
+                          {dayNum}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {monthName}
+                        </span>
+                        {isBooked && (
+                          <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            {formatCurrency(booking.price)}
+                          </span>
+                        )}
+                        {isUnavailable && !isBooked && (
+                          <span className="text-[9px] text-red-600 dark:text-red-400">
+                            Booked
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+
+              {/* Compact Legend */}
+              <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground pt-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-emerald-100 dark:bg-emerald-900/40"></div>
+                  <span>Booked</span>
                 </div>
-
-                {/* Legend */}
-                <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded border-2 border-primary bg-primary/10"></div>
-                    <span>Current booking</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded border-2 border-green-500 bg-green-50 dark:bg-green-950/30"></div>
-                    <span>Selected</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded border-2 border-red-300 bg-red-50 dark:bg-red-950/30"></div>
-                    <span>Unavailable (other booking)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded border-2 border-muted bg-muted/20"></div>
-                    <span>Available</span>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-100 dark:bg-blue-900/40 ring-1 ring-blue-500"></div>
+                  <span>Selected</span>
                 </div>
-
-                {/* Selection Info */}
-                {selectedDates.length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <Badge variant="secondary">
-                      {selectedDates.length} date{selectedDates.length !== 1 ? 's' : ''} selected
-                    </Badge>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-red-100 dark:bg-red-950/40"></div>
+                  <span>Unavailable</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-muted/30"></div>
+                  <span>Available</span>
+                </div>
               </div>
 
               {/* Totals Comparison - Only show after changes */}
               {nightsDifference !== 0 && (
-                <div className="border rounded-lg p-4 bg-muted/20">
-                  <h3 className="font-semibold mb-3">Recalculated Totals</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Original */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground">Original</div>
-                      <div className="flex justify-between text-sm">
-                        <span>Nights:</span>
-                        <span>{originalTotals.nights}</span>
+                <div className="border rounded-md p-3 bg-muted/10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Original: </span>
+                        <span>{originalTotals.nights} nights • {formatCurrency(originalTotals.total)}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Total:</span>
-                        <span>{formatCurrency(originalTotals.total)}</span>
+                      <div className="text-xs font-medium">
+                        <span className="text-muted-foreground">New: </span>
+                        <span>{totals.nights} nights • {formatCurrency(totals.total)}</span>
                       </div>
                     </div>
-
-                    {/* New */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-foreground">New</div>
-                      <div className="flex justify-between text-sm">
-                        <span>Nights:</span>
-                        <span className="font-medium">{totals.nights}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>{formatCurrency(totals.subtotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Tax ({totals.taxRate}%):</span>
-                        <span>{formatCurrency(totals.tax)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-bold border-t pt-2">
-                        <span>Total:</span>
-                        <span>{formatCurrency(totals.total)}</span>
-                      </div>
+                    <div className={`text-xs font-semibold px-2 py-1 rounded ${
+                      totalDifference > 0
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                    }`}>
+                      {nightsDifference > 0 ? '+' : ''}{nightsDifference} night{Math.abs(nightsDifference) !== 1 ? 's' : ''} ({totalDifference > 0 ? '+' : ''}{formatCurrency(totalDifference)})
                     </div>
-                  </div>
-
-                  {/* Difference */}
-                  <div className="mt-4 pt-4 border-t">
-                    <div className={`flex justify-between text-sm font-semibold ${totalDifference > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                      <span>
-                        {nightsDifference > 0 ? '+' : ''}{nightsDifference} night{Math.abs(nightsDifference) !== 1 ? 's' : ''}
-                      </span>
-                      <span>
-                        {totalDifference > 0 ? '+' : ''}{formatCurrency(totalDifference)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {nightsDifference > 0
-                        ? 'Additional room charges will be added to the folio.'
-                        : 'Pending charges for removed nights will be voided.'}
-                    </p>
                   </div>
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
                   Cancel
                 </Button>
-                <Button onClick={handleUpdate} disabled={saving || nightsDifference === 0}>
+                <Button size="sm" onClick={handleUpdate} disabled={saving || nightsDifference === 0}>
                   {saving ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Updating...
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      Saving...
                     </>
                   ) : (
-                    'Update'
+                    'Save Changes'
                   )}
                 </Button>
               </div>
