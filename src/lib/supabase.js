@@ -752,6 +752,16 @@ export const getReservationById = async(reservationId) => {
     return { data, error }
 }
 
+// Get all reservations for a specific room
+export const getReservationsForRoom = async(roomId) => {
+    const { data, error } = await supabase
+        .from('reservations')
+        .select('id, check_in_date, check_out_date, status, guest_id')
+        .eq('room_id', roomId)
+        .order('check_in_date')
+    return { data, error }
+}
+
 // Get available rooms for a specific date range
 // Accounts for both assigned reservations and unassigned reservations (by room type)
 export const getAvailableRooms = async(checkInDate, checkOutDate) => {
