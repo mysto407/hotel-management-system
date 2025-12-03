@@ -250,17 +250,17 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   }
 
   // Handle moving transaction to another folio
-  const handleMoveToFolio = async (targetFolioId) => {
-    if (!selectedTransaction || !targetFolioId) return
+  const handleMoveToFolio = async (transactionId, targetFolioId) => {
+    if (!transactionId || !targetFolioId) return
 
     setActionLoading(true)
     try {
-      const { error } = await moveTransactionToFolio(selectedTransaction.id, targetFolioId)
+      const { error } = await moveTransactionToFolio(transactionId, targetFolioId)
       if (error) throw error
 
       await fetchTransactions()
       await fetchFolios()
-      setSelectedTransaction(null)
+      onFolioChange?.()
     } catch (err) {
       console.error('Error moving transaction:', err)
       alert('Failed to move transaction: ' + err.message)
@@ -1176,10 +1176,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                           .map(targetFolio => (
                                             <DropdownMenuItem
                                               key={targetFolio.id}
-                                              onClick={() => {
-                                                setSelectedTransaction(txn)
-                                                handleMoveToFolio(targetFolio.id)
-                                              }}
+                                              onClick={() => handleMoveToFolio(txn.id, targetFolio.id)}
                                             >
                                               <ArrowRightLeft className="h-4 w-4 mr-2" />
                                               Move to {targetFolio.name}
@@ -1369,10 +1366,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                     .map(targetFolio => (
                                       <DropdownMenuItem
                                         key={targetFolio.id}
-                                        onClick={() => {
-                                          setSelectedTransaction(txn)
-                                          handleMoveToFolio(targetFolio.id)
-                                        }}
+                                        onClick={() => handleMoveToFolio(txn.id, targetFolio.id)}
                                       >
                                         <ArrowRightLeft className="h-4 w-4 mr-2" />
                                         Move to {targetFolio.name}
