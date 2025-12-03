@@ -730,21 +730,19 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                     </div>
                   )
                 })}
+                {/* Add Folio Button - sits beside the last tab */}
+                <button
+                  onClick={() => setCreateFolioOpen(true)}
+                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 mx-2 rounded-full border-2 border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
+                  title="New Folio"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1 px-3 border-l">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCreateFolioOpen(true)}
-                  className="h-8 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <FolderPlus className="h-4 w-4" />
-                  <span className="ml-1.5 text-xs">New Folio</span>
-                </Button>
-
-                {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
+              {/* Manage Dropdown - only for multi-room bookings */}
+              {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
+                <div className="flex items-center px-3 border-l">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 px-2.5 text-muted-foreground hover:text-foreground">
@@ -767,8 +765,8 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
