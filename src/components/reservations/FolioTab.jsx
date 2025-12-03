@@ -667,125 +667,131 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
 
   return (
     <div className="space-y-4">
-      {/* Folio Tabs Bar */}
-      {folios.length > 0 && (
-        <Card>
-          <CardContent className="py-2 px-2">
-            <div className="flex items-center gap-1 overflow-x-auto">
-              {folios.map((folio) => {
-                const balance = folioBalances[folio.id]?.balance || 0
-                const isActive = activeFolioId === folio.id
-                const canDeleteFolio = folio.folio_type !== 'master' && folios.length > 1
-                return (
-                  <div key={folio.id} className="relative group">
-                    <button
-                      onClick={() => setActiveFolioId(folio.id)}
-                      className={`
-                        flex flex-col items-start px-4 py-2 rounded-lg border transition-colors min-w-[120px]
-                        ${isActive
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card hover:bg-muted border-border'
-                        }
-                      `}
-                    >
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium text-sm truncate max-w-[150px]">
-                          {folio.name}
-                        </span>
-                        {folio.folio_type === 'master' && folio.booking_id && (
-                          <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${isActive ? 'bg-primary-foreground/20' : ''}`}>
-                            Master
-                          </Badge>
-                        )}
-                        {folio.folio_type === 'room' && (
-                          <Badge variant="outline" className={`text-[10px] px-1 py-0 ${isActive ? 'border-primary-foreground/50' : ''}`}>
-                            Room
-                          </Badge>
-                        )}
-                      </div>
-                      <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        {formatCurrency(balance)}
-                      </span>
-                    </button>
-                    {/* Delete button - only for non-master folios */}
-                    {canDeleteFolio && (
+      {/* Folio Tabs & Summary Bar */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {/* Folio Tabs Row */}
+          {folios.length > 0 && (
+            <div className="flex items-center border-b">
+              {/* Scrollable Tabs */}
+              <div className="flex-1 flex items-center gap-0 overflow-x-auto">
+                {folios.map((folio, index) => {
+                  const balance = folioBalances[folio.id]?.balance || 0
+                  const isActive = activeFolioId === folio.id
+                  const canDeleteFolio = folio.folio_type !== 'master' && folios.length > 1
+                  return (
+                    <div key={folio.id} className="relative group flex-shrink-0">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedFolioForDelete(folio)
-                          setDeleteFolioOpen(true)
-                        }}
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
-                        title="Delete folio"
+                        onClick={() => setActiveFolioId(folio.id)}
+                        className={`
+                          flex items-center gap-3 px-5 py-3 border-b-2 transition-all
+                          ${isActive
+                            ? 'border-primary bg-muted/50'
+                            : 'border-transparent hover:bg-muted/30'
+                          }
+                          ${index > 0 ? 'border-l border-l-border' : ''}
+                        `}
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <div className="flex flex-col items-start">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`font-medium text-sm ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {folio.name}
+                            </span>
+                            {folio.folio_type === 'master' && folio.booking_id && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                                Master
+                              </span>
+                            )}
+                            {folio.folio_type === 'room' && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                Room
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-xs tabular-nums ${balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                            {formatCurrency(balance)}
+                          </span>
+                        </div>
+                        {/* Delete button */}
+                        {canDeleteFolio && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedFolioForDelete(folio)
+                              setDeleteFolioOpen(true)
+                            }}
+                            className="ml-1 p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete folio"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
                       </button>
-                    )}
-                  </div>
-                )
-              })}
+                    </div>
+                  )
+                })}
+              </div>
 
-              {/* New Folio Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCreateFolioOpen(true)}
-                className="h-auto py-2 px-3 min-w-[100px]"
-              >
-                <FolderPlus className="h-4 w-4 mr-1" />
-                New Folio
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1 px-3 border-l">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCreateFolioOpen(true)}
+                  className="h-8 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                  <span className="ml-1.5 text-xs">New Folio</span>
+                </Button>
 
-              {/* Split/Merge Dropdown for multi-room bookings */}
-              {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-auto py-2 px-3">
-                      <SplitSquareVertical className="h-4 w-4 mr-1" />
-                      Manage
-                      <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {canSplitFolios && (
-                      <DropdownMenuItem onClick={() => setSplitFolioConfirmOpen(true)}>
-                        <SplitSquareVertical className="h-4 w-4 mr-2" />
-                        Split into Room Folios
-                      </DropdownMenuItem>
-                    )}
-                    {canMergeFolios && (
-                      <DropdownMenuItem onClick={() => setMergeFolioConfirmOpen(true)}>
-                        <Merge className="h-4 w-4 mr-2" />
-                        Merge into Master Folio
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 px-2.5 text-muted-foreground hover:text-foreground">
+                        <SplitSquareVertical className="h-4 w-4" />
+                        <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {canSplitFolios && (
+                        <DropdownMenuItem onClick={() => setSplitFolioConfirmOpen(true)}>
+                          <SplitSquareVertical className="h-4 w-4 mr-2" />
+                          Split into Room Folios
+                        </DropdownMenuItem>
+                      )}
+                      {canMergeFolios && (
+                        <DropdownMenuItem onClick={() => setMergeFolioConfirmOpen(true)}>
+                          <Merge className="h-4 w-4 mr-2" />
+                          Merge into Master Folio
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
 
-      {/* Summary Bar */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Charges</p>
-              <p className="text-2xl font-bold text-foreground">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
-              </p>
+          {/* Summary Row */}
+          <div className="flex items-center justify-between px-6 py-4 bg-muted/30">
+            <div className="flex items-center gap-8">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Charges</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
+                </p>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payments</p>
+                <p className="text-lg font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Payments</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Balance Due</p>
-              <p className={`text-2xl font-bold ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+            <div className="text-right">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Balance Due</p>
+              <p className={`text-xl font-bold tabular-nums ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
               </p>
             </div>
