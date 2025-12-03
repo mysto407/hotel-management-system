@@ -31,7 +31,7 @@ import {
   getTransactionsByReservation,
   getReservationsForRoom
 } from '../../lib/supabase'
-import { format, addDays, differenceInDays } from 'date-fns'
+import { differenceInDays } from 'date-fns'
 
 export default function ExtendNightsModal({
   open,
@@ -42,12 +42,15 @@ export default function ExtendNightsModal({
   const { rooms, roomTypes } = useRooms()
   const { updateReservation } = useReservations()
 
-  // State for date range display
-  const [displayStartDate, setDisplayStartDate] = useState(null)
+  // State for date range display - using page index for reliable navigation
+  const [currentPage, setCurrentPage] = useState(0)
+  const [bookingPageIndex, setBookingPageIndex] = useState(0) // Page where booking starts
   const [allDates, setAllDates] = useState([])
   const [selectedDates, setSelectedDates] = useState([])
   const [bookedDates, setBookedDates] = useState(new Map())
   const [unavailableDates, setUnavailableDates] = useState(new Set()) // Dates booked by OTHER reservations
+
+  const DATES_PER_PAGE = 14 // 2 rows of 7
 
   // State for loading and saving
   const [loading, setLoading] = useState(false)
@@ -135,11 +138,17 @@ export default function ExtendNightsModal({
 
       setAllDates(dates)
       setBookedDates(bookedMap)
-      setDisplayStartDate(checkIn)
+
+      // Calculate which page the booking starts on
+      const checkInStr = checkIn.toISOString().split('T')[0]
+      const checkInIndex = dates.indexOf(checkInStr)
+      const bookingPage = Math.floor(checkInIndex / DATES_PER_PAGE)
+      setBookingPageIndex(bookingPage)
+      setCurrentPage(bookingPage)
 
       // Fetch unavailable dates (other reservations for this room)
       if (reservation.room_id) {
-        await fetchUnavailableDates(reservation.room_id, reservation.id, dates)
+        await fetchUnavailableDates(reservation.room_id, reservation.id)
       }
     } finally {
       setLoading(false)
@@ -147,7 +156,7 @@ export default function ExtendNightsModal({
   }
 
   // Fetch dates that are unavailable due to other reservations
-  const fetchUnavailableDates = async (roomId, currentReservationId, allDatesList) => {
+  const fetchUnavailableDates = async (roomId, currentReservationId) => {
     try {
       // Get all reservations for this room
       const { data: roomReservations, error } = await getReservationsForRoom(roomId)
@@ -205,36 +214,26 @@ export default function ExtendNightsModal({
     setSelectedDates([])
   }
 
-  // Helper to find the closest valid index for a date
-  const findClosestDateIndex = (dateStr) => {
-    const exactIndex = allDates.indexOf(dateStr)
-    if (exactIndex !== -1) return exactIndex
+  // Calculate total pages
+  const totalPages = Math.ceil(allDates.length / DATES_PER_PAGE)
 
-    // Find closest date if exact match not found
-    for (let i = 0; i < allDates.length; i++) {
-      if (allDates[i] >= dateStr) return Math.max(0, i)
-    }
-    return Math.max(0, allDates.length - 14)
-  }
-
-  // Navigate dates (move by 14 days = 2 rows)
+  // Navigate dates using simple page index
   const goToPrevious = () => {
-    if (displayStartDate && allDates.length >= 14) {
-      const currentDateStr = displayStartDate.toISOString().split('T')[0]
-      const currentIndex = findClosestDateIndex(currentDateStr)
-      const newIndex = Math.max(0, currentIndex - 14)
-      setDisplayStartDate(new Date(allDates[newIndex]))
-    }
+    setCurrentPage(prev => Math.max(0, prev - 1))
   }
 
   const goToNext = () => {
-    if (displayStartDate && allDates.length >= 14) {
-      const currentDateStr = displayStartDate.toISOString().split('T')[0]
-      const currentIndex = findClosestDateIndex(currentDateStr)
-      const maxIndex = allDates.length - 14
-      const newIndex = Math.min(maxIndex, currentIndex + 14)
-      setDisplayStartDate(new Date(allDates[newIndex]))
-    }
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))
+  }
+
+  const goToBooking = () => {
+    setCurrentPage(bookingPageIndex)
+  }
+
+  // Get dates for current page
+  const getVisibleDates = () => {
+    const startIndex = currentPage * DATES_PER_PAGE
+    return allDates.slice(startIndex, startIndex + DATES_PER_PAGE)
   }
 
   // Add selected dates to booking
@@ -349,12 +348,6 @@ export default function ExtendNightsModal({
   const nightsDifference = totals.nights - originalTotals.nights
   const totalDifference = totals.total - originalTotals.total
 
-  // Format date for display
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
   // Handle update/save
   const handleUpdate = async () => {
     if (bookedDates.size === 0) {
@@ -457,8 +450,6 @@ export default function ExtendNightsModal({
         if (transactions) {
           // Find pending charges for the removed dates
           for (const dateStr of datesToRemove) {
-            const dateToRemove = new Date(dateStr)
-
             const chargesForDate = transactions.filter(t => {
               if (t.transaction_status !== 'pending') return false
               if (!t.scheduled_post_date) return false
@@ -501,7 +492,6 @@ export default function ExtendNightsModal({
 
     for (let i = 1; i < sorted.length; i++) {
       const prevDate = new Date(sorted[i - 1])
-      const currDate = new Date(sorted[i])
       prevDate.setDate(prevDate.getDate() + 1)
 
       if (prevDate.toISOString().split('T')[0] === sorted[i]) {
@@ -577,18 +567,30 @@ export default function ExtendNightsModal({
               {/* Navigation and Action Buttons */}
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="flex items-center gap-1">
-                  <Button onClick={goToPrevious} variant="ghost" size="icon" className="h-8 w-8">
+                  <Button
+                    onClick={goToPrevious}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={currentPage === 0}
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
-                    onClick={() => setDisplayStartDate(new Date(reservation.check_in_date))}
+                    onClick={goToBooking}
                     variant="ghost"
                     size="sm"
                     className="h-8 text-xs"
                   >
                     Booking
                   </Button>
-                  <Button onClick={goToNext} variant="ghost" size="icon" className="h-8 w-8">
+                  <Button
+                    onClick={goToNext}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={currentPage >= totalPages - 1}
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -625,19 +627,7 @@ export default function ExtendNightsModal({
 
               {/* Dates Grid */}
               <div className="grid grid-cols-7 gap-1">
-                {(() => {
-                  // Calculate the display start index, clamped to valid bounds
-                  let displayIndex = 0
-                  if (displayStartDate) {
-                    const displayStart = displayStartDate.toISOString().split('T')[0]
-                    displayIndex = allDates.indexOf(displayStart)
-                    if (displayIndex === -1) displayIndex = 0
-                    // Clamp to ensure we always have 14 dates to show
-                    displayIndex = Math.max(0, Math.min(displayIndex, allDates.length - 14))
-                  }
-                  return allDates.slice(displayIndex, displayIndex + 14)
-                })()
-                  .map(dateStr => {
+                {getVisibleDates().map(dateStr => {
                     const booking = bookedDates.get(dateStr)
                     const isBooked = !!booking
                     const isSelected = selectedDates.includes(dateStr)
