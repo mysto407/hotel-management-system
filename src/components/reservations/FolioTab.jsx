@@ -666,48 +666,34 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   }
 
   return (
-    <div className="space-y-4">
-      {/* Folio Tabs Bar */}
-      {folios.length > 0 && (
-        <Card>
-          <CardContent className="py-2 px-2">
-            <div className="flex items-center gap-1 overflow-x-auto">
+    <div className="space-y-3">
+      {/* Folio Tabs + Summary Combined */}
+      <Card>
+        <CardContent className="p-3">
+          {/* Folio Tabs */}
+          {folios.length > 0 && (
+            <div className="flex items-center gap-2 pb-3 mb-3 border-b overflow-x-auto">
               {folios.map((folio) => {
                 const balance = folioBalances[folio.id]?.balance || 0
                 const isActive = activeFolioId === folio.id
                 const canDeleteFolio = folio.folio_type !== 'master' && folios.length > 1
                 return (
-                  <div key={folio.id} className="relative group">
+                  <div key={folio.id} className="relative group flex-shrink-0">
                     <button
                       onClick={() => setActiveFolioId(folio.id)}
                       className={`
-                        flex flex-col items-start px-4 py-2 rounded-lg border transition-colors min-w-[120px]
+                        px-3 py-1.5 rounded-md text-sm font-medium transition-colors
                         ${isActive
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card hover:bg-muted border-border'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                         }
                       `}
                     >
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium text-sm truncate max-w-[150px]">
-                          {folio.name}
-                        </span>
-                        {folio.folio_type === 'master' && folio.booking_id && (
-                          <Badge variant="secondary" className={`text-[10px] px-1 py-0 ${isActive ? 'bg-primary-foreground/20' : ''}`}>
-                            Master
-                          </Badge>
-                        )}
-                        {folio.folio_type === 'room' && (
-                          <Badge variant="outline" className={`text-[10px] px-1 py-0 ${isActive ? 'border-primary-foreground/50' : ''}`}>
-                            Room
-                          </Badge>
-                        )}
-                      </div>
-                      <span className={`text-xs ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        {formatCurrency(balance)}
-                      </span>
+                      {folio.name}
+                      {folio.folio_type === 'master' && folio.booking_id && (
+                        <span className="ml-1 text-xs opacity-70">(M)</span>
+                      )}
                     </button>
-                    {/* Delete button - only for non-master folios */}
                     {canDeleteFolio && (
                       <button
                         onClick={(e) => {
@@ -715,35 +701,28 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                           setSelectedFolioForDelete(folio)
                           setDeleteFolioOpen(true)
                         }}
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
+                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs"
                         title="Delete folio"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-2.5 w-2.5" />
                       </button>
                     )}
                   </div>
                 )
               })}
-
-              {/* New Folio Button */}
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setCreateFolioOpen(true)}
-                className="h-auto py-2 px-3 min-w-[100px]"
+                className="h-7 px-2 text-muted-foreground"
               >
-                <FolderPlus className="h-4 w-4 mr-1" />
-                New Folio
+                <Plus className="h-3.5 w-3.5" />
               </Button>
-
-              {/* Split/Merge Dropdown for multi-room bookings */}
               {isMultiRoomBooking && bookingId && (canSplitFolios || canMergeFolios) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-auto py-2 px-3">
-                      <SplitSquareVertical className="h-4 w-4 mr-1" />
-                      Manage
-                      <ChevronDown className="h-3 w-3 ml-1" />
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground">
+                      <MoreVertical className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -763,60 +742,61 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                 </DropdownMenu>
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
 
-      {/* Summary Bar */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Charges</p>
-              <p className="text-2xl font-bold text-foreground">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
-              </p>
+          {/* Summary Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div>
+                <span className="text-xs text-muted-foreground">Charges</span>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.charges || 0) : summary.totalCharges)}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">Payments</span>
+                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">Balance</span>
+                <p className={`text-lg font-bold ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                  {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Payments</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Balance Due</p>
-              <p className={`text-2xl font-bold ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
-              </p>
+
+            {/* Actions on the right */}
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setAddChargeOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Charge
+              </Button>
+              <Button onClick={() => setAddPaymentOpen(true)} variant="outline" size="sm">
+                <CreditCard className="h-4 w-4 mr-1" />
+                Payment
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Action Bar */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Filter Bar */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button onClick={() => setAddChargeOpen(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Add Charge
-          </Button>
-          <Button onClick={() => setAddPaymentOpen(true)} variant="outline" size="sm">
-            <CreditCard className="h-4 w-4 mr-1" />
-            Add Payment
-          </Button>
           {folios.length > 1 && (
             <Popover open={moveTransactionOpen} onOpenChange={setMoveTransactionOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="ghost" size="sm" className="text-muted-foreground">
                   <MoveRight className="h-4 w-4 mr-1" />
-                  Move Transaction
+                  Move
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80" align="start">
-                <div className="space-y-4">
-                  <div className="font-medium">Move Transactions</div>
+              <PopoverContent className="w-72" align="start">
+                <div className="space-y-3">
+                  <p className="font-medium text-sm">Move Transactions</p>
 
-                  {/* Move Individual Transactions Option */}
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -827,16 +807,47 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                           if (!checked) setSelectedTransactionIds(new Set())
                         }}
                       />
-                      <Label htmlFor="move-individual" className="text-sm font-medium cursor-pointer">
-                        Move individual transactions
+                      <Label htmlFor="move-individual" className="text-sm cursor-pointer">
+                        Select individual
                       </Label>
                     </div>
                     {moveMode === 'individual' && (
-                      <div className="ml-6">
-                        <Label className="text-xs text-muted-foreground mb-1 block">Target Folio</Label>
+                      <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
+                        <SelectTrigger className="w-full h-8">
+                          <SelectValue placeholder="Target folio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {folios
+                            .filter(f => f.id !== activeFolioId)
+                            .map(folio => (
+                              <SelectItem key={folio.id} value={folio.id}>
+                                {folio.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="move-type"
+                        checked={moveMode === 'type'}
+                        onCheckedChange={(checked) => {
+                          setMoveMode(checked ? 'type' : null)
+                          setMoveTransactionType('')
+                        }}
+                      />
+                      <Label htmlFor="move-type" className="text-sm cursor-pointer">
+                        By type
+                      </Label>
+                    </div>
+                    {moveMode === 'type' && (
+                      <div className="space-y-2">
                         <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select folio" />
+                          <SelectTrigger className="w-full h-8">
+                            <SelectValue placeholder="Target folio" />
                           </SelectTrigger>
                           <SelectContent>
                             {folios
@@ -848,76 +859,30 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                               ))}
                           </SelectContent>
                         </Select>
+                        <Select value={moveTransactionType} onValueChange={setMoveTransactionType}>
+                          <SelectTrigger className="w-full h-8">
+                            <SelectValue placeholder="Transaction type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {transactionTypes.map(type => (
+                              <SelectItem key={type} value={type}>
+                                {getTypeOptionDisplay(type)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                   </div>
 
-                  {/* Move by Transaction Type Option */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="move-type"
-                        checked={moveMode === 'type'}
-                        onCheckedChange={(checked) => {
-                          setMoveMode(checked ? 'type' : null)
-                          setMoveTransactionType('')
-                        }}
-                      />
-                      <Label htmlFor="move-type" className="text-sm font-medium cursor-pointer">
-                        Move by transaction type
-                      </Label>
-                    </div>
-                    {moveMode === 'type' && (
-                      <div className="ml-6 space-y-2">
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">Target Folio</Label>
-                          <Select value={moveTargetFolioId} onValueChange={setMoveTargetFolioId}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select folio" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {folios
-                                .filter(f => f.id !== activeFolioId)
-                                .map(folio => (
-                                  <SelectItem key={folio.id} value={folio.id}>
-                                    {folio.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">Transaction Type</Label>
-                          <Select value={moveTransactionType} onValueChange={setMoveTransactionType}>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {transactionTypes.map(type => (
-                                <SelectItem key={type} value={type}>
-                                  {getTypeOptionDisplay(type)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action Button */}
                   <Button
                     onClick={handleActivateMoveMode}
                     disabled={!moveMode || !moveTargetFolioId || moveLoading}
                     className="w-full"
                     size="sm"
                   >
-                    {moveLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <MoveRight className="h-4 w-4 mr-1" />
-                    )}
-                    {moveMode === 'individual' ? 'Select Transactions' : 'Move Transactions'}
+                    {moveLoading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                    {moveMode === 'individual' ? 'Start Selection' : 'Move'}
                   </Button>
                 </div>
               </PopoverContent>
@@ -927,8 +892,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
 
         <div className="flex items-center gap-2">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[150px]">
-              <Filter className="h-4 w-4 mr-2" />
+            <SelectTrigger className="w-[120px] h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -941,18 +905,16 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
           </Select>
 
           <Button
-            variant={groupByDate ? "default" : "outline"}
+            variant="ghost"
             size="sm"
             onClick={() => setGroupByDate(!groupByDate)}
-            title={groupByDate ? "Switch to list view" : "Group by date"}
+            className={groupByDate ? 'bg-muted' : ''}
           >
-            {groupByDate ? <List className="h-4 w-4 mr-1" /> : <CalendarDays className="h-4 w-4 mr-1" />}
-            {groupByDate ? "List" : "By Date"}
+            {groupByDate ? <List className="h-4 w-4" /> : <CalendarDays className="h-4 w-4" />}
           </Button>
 
-          <Button variant="outline" size="sm" disabled>
-            <Printer className="h-4 w-4 mr-1" />
-            Print
+          <Button variant="ghost" size="sm" disabled>
+            <Printer className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -961,27 +923,21 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
       <Card>
         <CardContent className="p-0">
           {filteredTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Receipt className="h-12 w-12 mb-4 opacity-50" />
-              <p className="text-lg font-medium">No transactions yet</p>
-              <p className="text-sm">Add charges or payments to see them here</p>
+            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+              <Receipt className="h-10 w-10 mb-3 opacity-40" />
+              <p className="font-medium">No transactions</p>
+              <p className="text-sm">Add charges or payments to get started</p>
             </div>
           ) : groupByDate && groupedTransactions ? (
             /* Grouped by Date View */
             <div className="divide-y">
               {groupedTransactions.map((group) => (
-                <div key={group.date} className="py-2">
+                <div key={group.date}>
                   {/* Date Header */}
-                  <div className="flex items-center justify-between px-4 py-2 bg-muted/50 sticky top-0">
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold text-sm">{group.displayDate}</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {group.transactions.length} item{group.transactions.length !== 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                    <span className={`font-semibold text-sm ${group.dayTotal >= 0 ? 'text-foreground' : 'text-green-600 dark:text-green-400'}`}>
-                      {group.dayTotal >= 0 ? '+' : ''}{formatCurrency(group.dayTotal)}
+                  <div className="flex items-center justify-between px-4 py-2 bg-muted/30 sticky top-0">
+                    <span className="text-sm font-medium">{group.displayDate}</span>
+                    <span className={`text-sm font-medium ${group.dayTotal >= 0 ? '' : 'text-green-600 dark:text-green-400'}`}>
+                      {formatCurrency(group.dayTotal)}
                     </span>
                   </div>
                   {/* Transactions for this date */}
