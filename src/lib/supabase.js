@@ -2625,37 +2625,6 @@ export const getFolioBalance = async (folioId) => {
     }
 }
 
-/**
- * Delete a folio (soft delete by setting is_active = false)
- * Only allowed if folio has no active transactions
- * @param {string} folioId - The folio ID
- * @returns {Promise<{data: object, error: object}>}
- */
-export const deleteFolio = async (folioId) => {
-    // Check if folio has any active transactions
-    const { data: transactions } = await supabase
-        .from('folio_transactions')
-        .select('id')
-        .eq('folio_id', folioId)
-        .not('transaction_status', 'in', '("voided","reversed")')
-        .limit(1)
-
-    if (transactions && transactions.length > 0) {
-        return {
-            data: null,
-            error: { message: 'Cannot delete folio with active transactions. Move or void transactions first.' }
-        }
-    }
-
-    const { data, error } = await supabase
-        .from('folios')
-        .update({ is_active: false })
-        .eq('id', folioId)
-        .select()
-
-    return { data: data?.[0], error }
-}
-
 // Search for active reservations (for transfer target selection)
 export const searchActiveReservations = async (searchTerm = '', excludeReservationId = null) => {
     let query = supabase
