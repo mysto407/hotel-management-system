@@ -51,7 +51,9 @@ import {
   voidTransactionWithChildren,
   reverseTransaction,
   splitMasterFolioByRooms,
-  mergeFoliosIntoMaster
+  mergeFoliosIntoMaster,
+  mergeAllFoliosIntoMaster,
+  mergeSelectedFolios
 } from '@/lib/supabase'
 import { formatCurrency } from '@/utils/currency'
 import AddChargeModal from './AddChargeModal'
@@ -83,6 +85,10 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   // Split/Merge folio state
   const [splitFolioConfirmOpen, setSplitFolioConfirmOpen] = useState(false)
   const [mergeFolioConfirmOpen, setMergeFolioConfirmOpen] = useState(false)
+  const [mergeAllConfirmOpen, setMergeAllConfirmOpen] = useState(false)
+  const [mergeSelectedOpen, setMergeSelectedOpen] = useState(false)
+  const [selectedFoliosForMerge, setSelectedFoliosForMerge] = useState(new Set())
+  const [mergeTargetFolioId, setMergeTargetFolioId] = useState('')
   const [folioActionLoading, setFolioActionLoading] = useState(false)
 
   // Delete folio state
@@ -105,8 +111,14 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const isMultiRoomBooking = groupedReservations.length > 1 || (reservationIds && reservationIds.length > 1)
   const hasMasterFolio = folios.some(f => f.folio_type === 'master' && f.booking_id === bookingId)
   const hasRoomFolios = folios.some(f => f.folio_type === 'room' && f.booking_id === bookingId)
+  const hasMultipleFolios = folios.length > 1
+  const nonMasterFolios = folios.filter(f => f.folio_type !== 'master')
   const canSplitFolios = isMultiRoomBooking && hasMasterFolio && bookingId
   const canMergeFolios = isMultiRoomBooking && hasRoomFolios && bookingId
+  // Can merge all if there are non-master folios to merge
+  const canMergeAll = nonMasterFolios.length > 0
+  // Can merge selected if there are at least 2 folios
+  const canMergeSelected = hasMultipleFolios
 
   // Create lookup map for room and guest info by reservation_id
   const reservationInfoMap = useMemo(() => {
@@ -307,6 +319,82 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
     } finally {
       setFolioActionLoading(false)
     }
+  }
+
+  // Handle merging ALL folios (including custom ones) into master
+  const handleMergeAllFolios = async () => {
+    if (!primaryReservation?.id) return
+
+    setFolioActionLoading(true)
+    try {
+      const { data, error } = await mergeAllFoliosIntoMaster(
+        bookingId,
+        primaryReservation.id
+      )
+      if (error) throw error
+
+      await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
+      setMergeAllConfirmOpen(false)
+
+      // Set active folio to the master
+      if (data?.masterFolio) {
+        setActiveFolioId(data.masterFolio.id)
+      }
+    } catch (err) {
+      console.error('Error merging all folios:', err)
+      alert('Failed to merge folios: ' + err.message)
+    } finally {
+      setFolioActionLoading(false)
+    }
+  }
+
+  // Handle merging selected folios into target
+  const handleMergeSelectedFolios = async () => {
+    if (selectedFoliosForMerge.size === 0 || !mergeTargetFolioId) {
+      alert('Please select folios to merge and a target folio')
+      return
+    }
+
+    setFolioActionLoading(true)
+    try {
+      const { data, error } = await mergeSelectedFolios(
+        Array.from(selectedFoliosForMerge),
+        mergeTargetFolioId
+      )
+      if (error) throw error
+
+      await fetchTransactions()
+      await fetchFolios()
+      onFolioChange?.()
+      setMergeSelectedOpen(false)
+      setSelectedFoliosForMerge(new Set())
+      setMergeTargetFolioId('')
+
+      // Set active folio to the target
+      if (data?.targetFolio) {
+        setActiveFolioId(data.targetFolio.id)
+      }
+    } catch (err) {
+      console.error('Error merging selected folios:', err)
+      alert('Failed to merge folios: ' + err.message)
+    } finally {
+      setFolioActionLoading(false)
+    }
+  }
+
+  // Toggle folio selection for merge
+  const handleToggleFolioForMerge = (folioId) => {
+    setSelectedFoliosForMerge(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(folioId)) {
+        newSet.delete(folioId)
+      } else {
+        newSet.add(folioId)
+      }
+      return newSet
+    })
   }
 
   // Filter transactions by folio and type, then compute running balance

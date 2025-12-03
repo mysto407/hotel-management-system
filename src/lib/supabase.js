@@ -2346,6 +2346,195 @@ export const mergeFoliosIntoMaster = async (bookingId, userId = null) => {
 }
 
 /**
+ * Merge ALL active folios (including custom/incidentals) into a single master folio
+ * @param {string} bookingId - The booking ID
+ * @param {string} primaryReservationId - The primary reservation ID for the master folio
+ * @param {string} userId - Optional user ID for audit
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const mergeAllFoliosIntoMaster = async (bookingId, primaryReservationId, userId = null) => {
+    try {
+        // 1. Get all active folios for this booking (except already existing master)
+        const { data: allFolios, error: folioError } = await supabase
+            .from('folios')
+            .select('*')
+            .eq('booking_id', bookingId)
+            .eq('is_active', true)
+
+        if (folioError) {
+            return { data: null, error: folioError }
+        }
+
+        // Separate master from other folios
+        const existingMaster = allFolios?.find(f => f.folio_type === 'master')
+        const otherFolios = allFolios?.filter(f => f.folio_type !== 'master') || []
+
+        if (otherFolios.length === 0 && existingMaster) {
+            return { data: { masterFolio: existingMaster, mergedFolios: 0, transactionsMoved: 0 }, error: null }
+        }
+
+        // 2. Get guest name for the master folio name
+        const { data: reservation } = await supabase
+            .from('reservations')
+            .select('guests (name)')
+            .eq('id', primaryReservationId)
+            .single()
+
+        const guestName = reservation?.guests?.name || 'Guest'
+
+        let masterFolio = existingMaster
+
+        // 3. Create new master folio if one doesn't exist
+        if (!masterFolio) {
+            const timestamp = Date.now().toString(36).toUpperCase()
+            const { data: newMaster, error: createError } = await supabase
+                .from('folios')
+                .insert({
+                    reservation_id: primaryReservationId,
+                    booking_id: bookingId,
+                    folio_type: 'master',
+                    folio_number: `F-${timestamp}`,
+                    name: `${guestName} - Master`,
+                    is_active: true,
+                    checkout_status: 'open'
+                })
+                .select()
+                .single()
+
+            if (createError) {
+                return { data: null, error: createError }
+            }
+            masterFolio = newMaster
+        }
+
+        // 4. Move all transactions from other folios to master
+        let transactionsMoved = 0
+        for (const folio of otherFolios) {
+            const { data: transactions } = await supabase
+                .from('folio_transactions')
+                .select('id')
+                .eq('folio_id', folio.id)
+
+            if (transactions?.length) {
+                await supabase
+                    .from('folio_transactions')
+                    .update({ folio_id: masterFolio.id })
+                    .eq('folio_id', folio.id)
+
+                transactionsMoved += transactions.length
+            }
+
+            // Deactivate the merged folio
+            await supabase
+                .from('folios')
+                .update({
+                    is_active: false,
+                    notes: `Merged into master folio at ${new Date().toISOString()}`
+                })
+                .eq('id', folio.id)
+        }
+
+        return {
+            data: {
+                masterFolio,
+                mergedFolios: otherFolios.length,
+                transactionsMoved
+            },
+            error: null
+        }
+    } catch (err) {
+        console.error('Error merging all folios:', err)
+        return { data: null, error: { message: err.message } }
+    }
+}
+
+/**
+ * Merge selected folios into a target folio
+ * @param {string[]} sourceFolioIds - Array of folio IDs to merge FROM
+ * @param {string} targetFolioId - The folio ID to merge INTO
+ * @param {string} userId - Optional user ID for audit
+ * @returns {Promise<{data: object, error: object}>}
+ */
+export const mergeSelectedFolios = async (sourceFolioIds, targetFolioId, userId = null) => {
+    try {
+        if (!sourceFolioIds?.length || !targetFolioId) {
+            return { data: null, error: { message: 'Source and target folios are required' } }
+        }
+
+        // Don't allow merging a folio into itself
+        const filteredSourceIds = sourceFolioIds.filter(id => id !== targetFolioId)
+        if (filteredSourceIds.length === 0) {
+            return { data: null, error: { message: 'No valid source folios to merge' } }
+        }
+
+        // 1. Verify all folios exist and are active
+        const { data: sourceFolios, error: sourceError } = await supabase
+            .from('folios')
+            .select('*')
+            .in('id', filteredSourceIds)
+            .eq('is_active', true)
+
+        if (sourceError) {
+            return { data: null, error: sourceError }
+        }
+
+        if (!sourceFolios?.length) {
+            return { data: null, error: { message: 'No active source folios found' } }
+        }
+
+        const { data: targetFolio, error: targetError } = await supabase
+            .from('folios')
+            .select('*')
+            .eq('id', targetFolioId)
+            .eq('is_active', true)
+            .single()
+
+        if (targetError || !targetFolio) {
+            return { data: null, error: targetError || { message: 'Target folio not found or inactive' } }
+        }
+
+        // 2. Move all transactions from source folios to target
+        let transactionsMoved = 0
+        for (const folio of sourceFolios) {
+            const { data: transactions } = await supabase
+                .from('folio_transactions')
+                .select('id')
+                .eq('folio_id', folio.id)
+
+            if (transactions?.length) {
+                await supabase
+                    .from('folio_transactions')
+                    .update({ folio_id: targetFolioId })
+                    .eq('folio_id', folio.id)
+
+                transactionsMoved += transactions.length
+            }
+
+            // Deactivate the merged folio
+            await supabase
+                .from('folios')
+                .update({
+                    is_active: false,
+                    notes: `Merged into folio ${targetFolio.name} at ${new Date().toISOString()}`
+                })
+                .eq('id', folio.id)
+        }
+
+        return {
+            data: {
+                targetFolio,
+                mergedFolios: sourceFolios.length,
+                transactionsMoved
+            },
+            error: null
+        }
+    } catch (err) {
+        console.error('Error merging selected folios:', err)
+        return { data: null, error: { message: err.message } }
+    }
+}
+
+/**
  * Create an additional folio for a reservation
  * @param {string} reservationId - The reservation ID
  * @param {string} folioType - Type of folio ('incidentals', 'split', 'custom')
