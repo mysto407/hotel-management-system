@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { format, isAfter, startOfDay } from 'date-fns'
 import { Loader2, Plus, Receipt, Percent, Tag, CreditCard, BadgeMinus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -40,9 +40,20 @@ const CHARGE_TYPES = [
   { value: 'discount', label: 'Discount', icon: BadgeMinus, color: 'text-red-600 bg-red-50' }
 ]
 
-export default function AddChargeModal({ open, onOpenChange, reservationId, folios = [], activeFolioId = null, onSuccess }) {
+export default function AddChargeModal({
+  open,
+  onOpenChange,
+  reservationId,
+  primaryReservation,
+  groupedReservations = [],
+  guests = [],
+  folios = [],
+  activeFolioId = null,
+  onSuccess
+}) {
   const [loading, setLoading] = useState(false)
   const [chargeType, setChargeType] = useState('service_charge')
+  const [assignedGuestId, setAssignedGuestId] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [quantity, setQuantity] = useState('1')
@@ -52,6 +63,39 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
   const [taxRate, setTaxRate] = useState(18)
   const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [selectedFolioId, setSelectedFolioId] = useState(activeFolioId)
+
+  // Build list of guests from reservation
+  const reservationGuests = useMemo(() => {
+    if (!primaryReservation || !guests.length) return []
+
+    const guestList = []
+
+    // Primary guest
+    if (primaryReservation.guest_id) {
+      const primaryGuest = guests.find(g => g.id === primaryReservation.guest_id)
+      if (primaryGuest) {
+        guestList.push({ ...primaryGuest, isPrimary: true })
+      }
+    }
+
+    // Additional guests from all reservations in the group
+    const allAdditionalGuestIds = new Set()
+    groupedReservations.forEach(res => {
+      const additionalIds = res.additional_guest_ids || []
+      additionalIds.forEach(id => allAdditionalGuestIds.add(id))
+    })
+
+    allAdditionalGuestIds.forEach(guestId => {
+      if (guestId !== primaryReservation.guest_id) {
+        const guest = guests.find(g => g.id === guestId)
+        if (guest) {
+          guestList.push({ ...guest, isPrimary: false })
+        }
+      }
+    })
+
+    return guestList
+  }, [primaryReservation, groupedReservations, guests])
 
   // Load tax rate
   useEffect(() => {
@@ -70,6 +114,9 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
   useEffect(() => {
     if (open) {
       setChargeType('service_charge')
+      // Default to primary guest
+      const primaryGuestId = primaryReservation?.guest_id || ''
+      setAssignedGuestId(primaryGuestId)
       setDescription('')
       setAmount('')
       setQuantity('1')
@@ -79,7 +126,7 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
       setTransactionDate(format(new Date(), 'yyyy-MM-dd'))
       setSelectedFolioId(activeFolioId || (folios.length > 0 ? folios[0].id : null))
     }
-  }, [open, activeFolioId, folios])
+  }, [open, activeFolioId, folios, primaryReservation])
 
   // Calculate total
   const calculateTotal = () => {
@@ -133,7 +180,9 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
         description: description || CHARGE_TYPES.find(t => t.value === chargeType)?.label,
         notes,
         transaction_status: status,
-        transaction_date: new Date(transactionDate).toISOString()
+        transaction_date: new Date(transactionDate).toISOString(),
+        // Include assigned guest for reference
+        metadata: assignedGuestId ? { assigned_to_guest_id: assignedGuestId } : undefined
       }
 
       let result
@@ -257,6 +306,25 @@ export default function AddChargeModal({ open, onOpenChange, reservationId, foli
                 })}
               </div>
             </div>
+
+            {/* Assign to Guest */}
+            {reservationGuests.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="assignedGuest">Assign to</Label>
+                <Select value={assignedGuestId} onValueChange={setAssignedGuestId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select guest" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reservationGuests.map(guest => (
+                      <SelectItem key={guest.id} value={guest.id}>
+                        {guest.name}{guest.isPrimary ? ' (Primary)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Folio Selector (only show if multiple folios) */}
             {folios.length > 1 && (

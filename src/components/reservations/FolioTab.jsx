@@ -1512,6 +1512,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
         open={addChargeOpen}
         onOpenChange={setAddChargeOpen}
         reservationId={primaryReservation?.id}
+        primaryReservation={primaryReservation}
+        groupedReservations={groupedReservations}
+        guests={guests}
         folios={folios}
         activeFolioId={activeFolioId}
         onSuccess={() => {
