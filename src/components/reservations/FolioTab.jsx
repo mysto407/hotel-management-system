@@ -1014,6 +1014,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                 )
                               )}
                             </TableCell>
+                            <TableCell className="text-xs text-muted-foreground w-[70px]">
+                              {format(new Date(txn.transaction_date || txn.created_at), 'hh:mm a')}
+                            </TableCell>
                             {isMultiRoomBooking && (
                               <>
                                 <TableCell className="text-sm font-medium w-[80px]">
@@ -1033,9 +1036,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                   </span>
                                 )}
                               </div>
-                              {txn.notes && (
-                                <p className="text-xs text-muted-foreground mt-0.5">{txn.notes}</p>
-                              )}
+                            </TableCell>
+                            <TableCell className="text-center text-sm w-[50px]">
+                              {txn.quantity ? txn.quantity : '—'}
                             </TableCell>
                             <TableCell className="w-[80px]">
                               {getStatusBadge(txn.transaction_status)}
@@ -1045,6 +1048,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                             </TableCell>
                             <TableCell className={`text-right w-[100px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground truncate max-w-[150px] w-[150px]" title={txn.notes || ''}>
+                              {txn.notes || '—'}
                             </TableCell>
                             <TableCell className="w-[50px]">
                               {!isVoidedOrReversed && (canVoid(txn) || canReverse(txn)) && (
