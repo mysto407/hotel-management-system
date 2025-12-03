@@ -59,7 +59,6 @@ import { formatCurrency } from '@/utils/currency'
 import AddChargeModal from './AddChargeModal'
 import AddPaymentModal from './AddPaymentModal'
 import CreateFolioModal from './CreateFolioModal'
-import TransferTransactionModal from './TransferTransactionModal'
 import DeleteFolioModal from './DeleteFolioModal'
 
 export default function FolioTab({ reservationIds, primaryReservation, groupedReservations = [], guests = [], onFolioChange }) {
@@ -78,7 +77,6 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const [activeFolioId, setActiveFolioId] = useState(null)
   const [folioBalances, setFolioBalances] = useState({})
   const [createFolioOpen, setCreateFolioOpen] = useState(false)
-  const [transferModalOpen, setTransferModalOpen] = useState(false)
 
   // Split/Merge folio state
   const [splitFolioConfirmOpen, setSplitFolioConfirmOpen] = useState(false)
@@ -1199,17 +1197,6 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                         }
                                       </>
                                     )}
-                                    {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedTransaction(txn)
-                                          setTransferModalOpen(true)
-                                        }}
-                                      >
-                                        <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                        Transfer to Another Room
-                                      </DropdownMenuItem>
-                                    )}
                                     <DropdownMenuSeparator />
                                     {canVoid(txn) && (
                                       <DropdownMenuItem
@@ -1394,18 +1381,6 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                   }
                                 </>
                               )}
-                              {/* Transfer to another room (only for charges) */}
-                              {parseFloat(txn.amount) > 0 && txn.transaction_status === 'posted' && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedTransaction(txn)
-                                    setTransferModalOpen(true)
-                                  }}
-                                >
-                                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                  Transfer to Another Room
-                                </DropdownMenuItem>
-                              )}
                               <DropdownMenuSeparator />
                               {canVoid(txn) && (
                                 <DropdownMenuItem
@@ -1588,20 +1563,6 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
         onOpenChange={setCreateFolioOpen}
         reservationId={primaryReservation?.id}
         onSuccess={handleFolioCreated}
-      />
-
-      {/* Transfer Transaction Modal */}
-      <TransferTransactionModal
-        open={transferModalOpen}
-        onOpenChange={setTransferModalOpen}
-        transaction={selectedTransaction}
-        currentReservationId={primaryReservation?.id}
-        onSuccess={() => {
-          fetchTransactions()
-          fetchFolios()
-          onFolioChange?.()
-          setSelectedTransaction(null)
-        }}
       />
 
       {/* Split Folio Confirmation Dialog */}
