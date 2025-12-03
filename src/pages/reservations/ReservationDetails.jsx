@@ -343,7 +343,7 @@ export default function ReservationDetails({ onNavigate }) {
             <div>
               <h1 className="text-xl font-bold">{guestInfo.name}</h1>
               <p className="text-xs text-muted-foreground">
-                ID: {primaryReservation.id.substring(0, 13)}
+                Reservation ID: {primaryReservation.id.substring(0, 13)}
               </p>
             </div>
             <DropdownMenu>
