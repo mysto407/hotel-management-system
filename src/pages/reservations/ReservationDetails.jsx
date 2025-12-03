@@ -551,7 +551,7 @@ export default function ReservationDetails({ onNavigate }) {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleExtendNights(reservation)}>
                                 <CalendarPlus className="h-4 w-4 mr-2" />
-                                Extend Nights
+                                Extend/Shorten Stay
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Calendar className="h-4 w-4 mr-2" />
