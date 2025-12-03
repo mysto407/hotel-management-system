@@ -36,6 +36,10 @@ export function ReservationFlowProvider({ children }) {
   // Assign Later mode - when true, rooms are booked by type only (no specific room assigned)
   const [assignLater, setAssignLater] = useState(true)
 
+  // Add to existing booking mode - when adding rooms to an existing reservation
+  const [addToExistingBooking, setAddToExistingBooking] = useState(null)
+  // Structure: { bookingId, guestId, guestName, agentId, bookingSource, reservationIds }
+
   // Step 2: Guest Details
   const [guestDetails, setGuestDetails] = useState({
     firstName: '',
@@ -440,6 +444,7 @@ export function ReservationFlowProvider({ children }) {
     setSelectedDiscounts([])
     setAppliedPromoCode(null)
     setAssignLater(false)
+    setAddToExistingBooking(null)
     setGuestDetails({
       firstName: '',
       surname: '',
@@ -473,6 +478,7 @@ export function ReservationFlowProvider({ children }) {
     selectedDiscounts,
     appliedPromoCode,
     assignLater,
+    addToExistingBooking,
     guestDetails,
     allGuestsDetails,
     paymentInfo,
@@ -481,6 +487,7 @@ export function ReservationFlowProvider({ children }) {
     setFilters,
     setSelectedAgent,
     setAssignLater,
+    setAddToExistingBooking,
     setGuestDetails,
     setAllGuestsDetails,
     setPaymentInfo,

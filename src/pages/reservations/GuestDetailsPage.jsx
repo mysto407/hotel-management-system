@@ -33,10 +33,47 @@ export default function GuestDetailsPage({ onNavigate }) {
     setGuestDetails,
     allGuestsDetails,
     setAllGuestsDetails,
-    selectedRooms
+    selectedRooms,
+    addToExistingBooking
   } = flowContext
   const { idProofTypes, guests } = guestContext
   const { rooms } = roomContext
+
+  // Check if we're adding to an existing booking
+  const isAddingToExisting = !!addToExistingBooking
+
+  // Pre-select existing guest when adding to existing booking
+  useEffect(() => {
+    if (isAddingToExisting && addToExistingBooking.guestId && guests.length > 0) {
+      const existingGuest = guests.find(g => g.id === addToExistingBooking.guestId)
+      if (existingGuest && selectedGuestId !== existingGuest.id) {
+        // Auto-select the guest from the existing booking
+        setSelectedGuestId(existingGuest.id)
+
+        const nameParts = (existingGuest.name || '').trim().split(' ')
+        const firstName = nameParts[0] || ''
+        const surname = nameParts.slice(1).join(' ') || ''
+
+        setGuestDetails({
+          id: existingGuest.id,
+          firstName,
+          surname,
+          email: existingGuest.email || '',
+          phone: existingGuest.phone || '',
+          dateOfBirth: existingGuest.date_of_birth || '',
+          idType: existingGuest.id_proof_type || 'N/A',
+          idNumber: existingGuest.id_proof_number || '',
+          address: existingGuest.address || '',
+          city: existingGuest.city || '',
+          state: existingGuest.state || '',
+          country: existingGuest.country || '',
+          photo: null,
+          photoUrl: existingGuest.photo_url || null,
+          assignedRoomId: ''
+        })
+      }
+    }
+  }, [isAddingToExisting, addToExistingBooking, guests, selectedGuestId, setGuestDetails])
 
   // Reset guest index when component mounts or when allGuestsDetails is empty
   useEffect(() => {
@@ -284,6 +321,19 @@ const handleSelectGuest = (guest) => {
 
   return (
     <div className="h-full flex flex-col bg-accent">
+      {/* Add to Existing Booking Banner */}
+      {isAddingToExisting && (
+        <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm text-blue-800 dark:text-blue-200">
+              Adding room to existing booking for <strong>{addToExistingBooking.guestName || 'Guest'}</strong>
+              {' '}- Guest details pre-filled
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-card border-b px-6 py-4">
         <div className="flex items-center justify-between">

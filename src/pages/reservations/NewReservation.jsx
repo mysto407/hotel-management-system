@@ -69,8 +69,30 @@ export default function NewReservation({ onNavigate }) {
     removeAddon,
     calculateBill,
     assignLater,
-    setAssignLater
+    setAssignLater,
+    addToExistingBooking,
+    setAddToExistingBooking
   } = useReservationFlow()
+
+  // Check if we're in "add to existing booking" mode
+  const isAddingToExisting = !!addToExistingBooking
+
+  // Initialize filters for add-to-existing mode
+  useEffect(() => {
+    if (addToExistingBooking) {
+      // Pre-fill booking source
+      if (addToExistingBooking.bookingSource) {
+        setFilters(prev => ({ ...prev, source: addToExistingBooking.bookingSource }))
+      }
+      // Pre-fill agent if applicable
+      if (addToExistingBooking.agentId) {
+        const agent = agents.find(a => a.id === addToExistingBooking.agentId)
+        if (agent) {
+          setSelectedAgent(agent)
+        }
+      }
+    }
+  }, [addToExistingBooking, agents, setFilters, setSelectedAgent])
 
   // State for available rooms based on date range
   const [availableRooms, setAvailableRooms] = useState([])
@@ -336,12 +358,43 @@ export default function NewReservation({ onNavigate }) {
     return bookedDates
   }
 
+  // Handle cancel when adding to existing booking
+  const handleCancelAddToExisting = () => {
+    setAddToExistingBooking(null)
+    clearSelectedRooms()
+    onNavigate('reservation-details')
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-accent">
+      {/* Add to Existing Booking Banner */}
+      {isAddingToExisting && (
+        <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm text-blue-800 dark:text-blue-200">
+                Adding room to existing booking for <strong>{addToExistingBooking.guestName || 'Guest'}</strong>
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancelAddToExisting}
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-card border-b px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">New Reservation</h1>
+          <h1 className="text-2xl font-bold">
+            {isAddingToExisting ? 'Add Room to Booking' : 'New Reservation'}
+          </h1>
           <StepIndicator currentStep={1} />
         </div>
       </div>

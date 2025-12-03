@@ -36,8 +36,12 @@ export default function PaymentPage({ onNavigate }) {
     applyPromoCode,
     appliedPromoCode,
     removeDiscount,
-    assignLater
+    assignLater,
+    addToExistingBooking
   } = useReservationFlow()
+
+  // Check if we're adding to an existing booking
+  const isAddingToExisting = !!addToExistingBooking
 
   const { addReservation } = useReservations()
   const { addGuest, updateGuest, updateGuestStats } = useGuests()
@@ -279,7 +283,8 @@ export default function PaymentPage({ onNavigate }) {
 
       // Generate a unique booking ID for this booking to link all reservations together
       // This allows multiple reservations (different rooms, room changes, etc.) to be grouped as one booking
-      const bookingId = crypto.randomUUID();
+      // If adding to existing booking, use that booking ID instead
+      const bookingId = isAddingToExisting ? addToExistingBooking.bookingId : crypto.randomUUID();
 
       // Calculate total room count for the booking (used for master folio naming)
       const totalRoomCount = selectedRooms.reduce((sum, roomType) => sum + (roomType.quantity || 1), 0);
@@ -389,13 +394,19 @@ export default function PaymentPage({ onNavigate }) {
         })
       }
 
-      showSuccess('Reservation created successfully!')
+      showSuccess(isAddingToExisting ? 'Room added to booking successfully!' : 'Reservation created successfully!')
 
       // Extract reservation IDs from created reservations
       const createdReservationIds = createdReservations.filter(r => r && r.id).map(r => r.id)
 
       // Store reservation IDs in sessionStorage for the details page
-      sessionStorage.setItem('reservationDetailsIds', JSON.stringify(createdReservationIds))
+      // If adding to existing booking, merge with existing reservation IDs
+      if (isAddingToExisting && addToExistingBooking.reservationIds) {
+        const allReservationIds = [...addToExistingBooking.reservationIds, ...createdReservationIds]
+        sessionStorage.setItem('reservationDetailsIds', JSON.stringify(allReservationIds))
+      } else {
+        sessionStorage.setItem('reservationDetailsIds', JSON.stringify(createdReservationIds))
+      }
 
       // Reset the flow and navigate to reservation details
       resetFlow()
@@ -410,6 +421,18 @@ export default function PaymentPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-accent">
+      {/* Add to Existing Booking Banner */}
+      {isAddingToExisting && (
+        <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm text-blue-800 dark:text-blue-200">
+              Adding room to existing booking for <strong>{addToExistingBooking.guestName || 'Guest'}</strong>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-card border-b px-6 py-4">
         <div className="flex items-center justify-between">
