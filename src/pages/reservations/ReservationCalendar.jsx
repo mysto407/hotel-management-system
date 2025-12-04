@@ -2363,9 +2363,9 @@ const ReservationCalendar = ({ onNavigate }) => {
                             "flex-shrink-0 border-r flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity",
                             isToday(date) && "ring-1 ring-inset ring-blue-400",
                             isWeekend(date) && "bg-muted/20",
-                            available > 50 ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" :
-                            available > 20 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300" :
-                            "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                            available > 50 ? "bg-success/20 text-success" :
+                            available > 20 ? "bg-warning/20 text-warning" :
+                            "bg-destructive/20 text-destructive"
                           )}
                           style={{ width: CELL_WIDTH, height: 22 }}
                           onClick={() => switchToDetailedView(date, roomType.id)}
@@ -2565,7 +2565,7 @@ const ReservationCalendar = ({ onNavigate }) => {
         {isUnassignedSidebarOpen && (
           <div className="w-80 border-l bg-card flex flex-col flex-shrink-0">
             {/* Sidebar Header */}
-            <div className="p-4 border-b bg-amber-50 dark:bg-amber-950/30">
+            <div className="p-4 border-b bg-orange/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-amber-600" />
@@ -2584,8 +2584,8 @@ const ReservationCalendar = ({ onNavigate }) => {
                 </Button>
               </div>
               {selectedUnassignedReservation && (
-                <div className="mt-3 p-2 bg-amber-100 dark:bg-amber-900/50 rounded-md">
-                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                <div className="mt-3 p-2 bg-orange/20 rounded-md">
+                  <p className="text-xs text-orange font-medium">
                     Click on a room cell to assign
                   </p>
                   <Button
@@ -2709,17 +2709,17 @@ const ReservationCalendar = ({ onNavigate }) => {
 
       {/* Swap Mode Indicator */}
       {swapMode && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-yellow-100 dark:bg-yellow-900 border border-yellow-400 rounded-lg shadow-lg p-3 z-50">
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-warning/20 border border-warning rounded-lg shadow-lg p-3 z-50">
           <div className="flex items-center gap-3">
-            <ArrowLeftRight className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-            <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            <ArrowLeftRight className="h-5 w-5 text-warning" />
+            <span className="text-sm font-medium text-warning-foreground">
               Click another reservation to swap rooms with {guests.find(g => g.id === swapMode.reservationA.guest_id)?.name || 'Guest'}
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCancelSwap}
-              className="text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800"
+              className="text-warning hover:bg-warning/20"
             >
               <X className="h-4 w-4 mr-1" />
               Cancel
@@ -2730,17 +2730,17 @@ const ReservationCalendar = ({ onNavigate }) => {
 
       {/* Resize Mode Indicator */}
       {resizeModeReservation && !resizeState && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-100 dark:bg-blue-900 border border-blue-400 rounded-lg shadow-lg p-3 z-50">
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-info/20 border border-info rounded-lg shadow-lg p-3 z-50">
           <div className="flex items-center gap-3">
-            <ArrowLeftRight className="h-5 w-5 text-blue-600 dark:text-blue-400 rotate-90" />
-            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+            <ArrowLeftRight className="h-5 w-5 text-info rotate-90" />
+            <span className="text-sm font-medium text-info-foreground">
               Drag the handles to resize {guests.find(g => g.id === resizeModeReservation.guest_id)?.name || 'Guest'}&apos;s reservation
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCancelResizeMode}
-              className="text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800"
+              className="text-info hover:bg-info/20"
             >
               <X className="h-4 w-4 mr-1" />
               Done

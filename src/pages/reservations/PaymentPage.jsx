@@ -423,10 +423,10 @@ export default function PaymentPage({ onNavigate }) {
     <div className="min-h-screen flex flex-col bg-accent">
       {/* Add to Existing Booking Banner */}
       {isAddingToExisting && (
-        <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
+        <div className="bg-info/10 border-b border-info/30 px-6 py-3">
           <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm text-blue-800 dark:text-blue-200">
+            <Check className="h-4 w-4 text-info" />
+            <span className="text-sm text-info">
               Adding room to existing booking for <strong>{addToExistingBooking.guestName || 'Guest'}</strong>
             </span>
           </div>
@@ -599,11 +599,11 @@ export default function PaymentPage({ onNavigate }) {
                                   <span className="font-medium">{stayNights}</span>
                                 </div>
                                 {stay.isConsecutive && (
-                                  <div className="flex items-start gap-1.5 text-sm bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5 mt-1">
-                                    <ArrowRight className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex items-start gap-1.5 text-sm bg-orange/10 border border-orange/30 rounded px-2 py-1.5 mt-1">
+                                    <ArrowRight className="h-4 w-4 text-orange mt-0.5 flex-shrink-0" />
                                     <div>
-                                      <div className="text-amber-800 dark:text-amber-300 font-medium text-xs">Room Move:</div>
-                                      <div className="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
+                                      <div className="text-orange font-medium text-xs">Room Move:</div>
+                                      <div className="text-orange text-xs mt-0.5">
                                         {formatRoomChangeSequence(stay.rooms)}
                                       </div>
                                     </div>
@@ -688,7 +688,7 @@ export default function PaymentPage({ onNavigate }) {
                                 <span className="font-medium text-sm">{room.name}</span>
                                 <span className="text-sm font-semibold">₹{((room.ratePrice || room.base_price) * roomNights).toFixed(2)}</span>
                               </div>
-                              <div className="flex justify-between text-xs text-blue-600 dark:text-blue-400">
+                              <div className="flex justify-between text-xs text-info">
                                 <span>Dates:</span>
                                 <span>
                                   {roomCheckIn && roomCheckOut && (
@@ -745,7 +745,7 @@ export default function PaymentPage({ onNavigate }) {
                               </span>
                             </div>
                             {stay.isConsecutive && (
-                              <div className="flex items-center gap-1.5 mt-1 text-xs text-amber-700 dark:text-amber-400">
+                              <div className="flex items-center gap-1.5 mt-1 text-xs text-orange">
                                 <ArrowRight className="h-3 w-3" />
                                 <span>Room Move: {formatRoomChangeSequence(stay.rooms)}</span>
                               </div>
@@ -829,7 +829,7 @@ export default function PaymentPage({ onNavigate }) {
                                   <div className="text-xs text-muted-foreground mt-0.5">
                                     Room {index + 1} of {room.quantity}
                                   </div>
-                                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                  <div className="text-xs text-info mt-0.5">
                                     {roomCheckIn && roomCheckOut && (
                                       `${roomCheckIn.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${roomCheckOut.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
                                     )}
@@ -914,7 +914,7 @@ export default function PaymentPage({ onNavigate }) {
                                     <div className="text-xs text-muted-foreground mt-0.5">
                                       Room {index + 1} of {room.quantity}
                                     </div>
-                                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                    <div className="text-xs text-info mt-0.5">
                                       {roomCheckIn && roomCheckOut && (
                                         `${roomCheckIn.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${roomCheckOut.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
                                       )}
@@ -1033,21 +1033,21 @@ export default function PaymentPage({ onNavigate }) {
 
                     {/* Applied Promo Code Display */}
                     {appliedPromoCode ? (
-                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 space-y-2">
+                      <div className="bg-success/10 border border-success/30 rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-medium text-sm text-emerald-800 dark:text-emerald-300">
+                            <div className="font-medium text-sm text-success">
                               {appliedPromoCode.code}
                             </div>
-                            <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            <div className="text-xs text-success mt-0.5">
                               {appliedPromoCode.name}
                             </div>
                             {(appliedPromoCode.value_type || appliedPromoCode.discount_type) === 'percentage' ? (
-                              <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                              <div className="text-xs text-success mt-0.5">
                                 {appliedPromoCode.value}% off
                               </div>
                             ) : (
-                              <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
+                              <div className="text-xs text-success mt-0.5">
                                 ₹{appliedPromoCode.value} off
                               </div>
                             )}
@@ -1056,7 +1056,7 @@ export default function PaymentPage({ onNavigate }) {
                             variant="ghost"
                             size="sm"
                             onClick={handleRemovePromoCode}
-                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                           >
                             Remove
                           </Button>
@@ -1090,7 +1090,7 @@ export default function PaymentPage({ onNavigate }) {
 
                     {/* Show total discount if applied */}
                     {bill.totalDiscount > 0 && (
-                      <div className="mt-3 pt-3 border-t flex justify-between text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                      <div className="mt-3 pt-3 border-t flex justify-between text-sm font-medium text-success">
                         <span>Total Discount Applied</span>
                         <span>-₹{bill.totalDiscount.toFixed(2)}</span>
                       </div>
@@ -1110,7 +1110,7 @@ export default function PaymentPage({ onNavigate }) {
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-3 border-t-2">
                       <span>Grand Total</span>
-                      <span className="text-blue-600 dark:text-blue-400">₹{bill.total.toFixed(2)}</span>
+                      <span className="text-info">₹{bill.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

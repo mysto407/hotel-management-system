@@ -504,9 +504,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
   const getStatusBadge = (status) => {
     switch (status) {
       case 'posted':
-        return <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">Posted</Badge>
+        return <Badge variant="default" className="bg-success/20 text-success">Posted</Badge>
       case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">Pending</Badge>
+        return <Badge variant="secondary" className="bg-warning/20 text-warning">Pending</Badge>
       case 'voided':
         return <Badge variant="outline" className="text-muted-foreground line-through">Voided</Badge>
       case 'reversed':
@@ -792,7 +792,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                               </span>
                             )}
                           </div>
-                          <span className={`text-xs tabular-nums ${balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          <span className={`text-xs tabular-nums ${balance > 0 ? 'text-orange' : 'text-success'}`}>
                             {formatCurrency(balance)}
                           </span>
                         </div>
@@ -881,14 +881,14 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
               <div className="h-8 w-px bg-border" />
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payments</p>
-                <p className="text-lg font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                <p className="text-lg font-semibold tabular-nums text-success">
                   {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.payments || 0) : summary.totalPayments)}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Balance Due</p>
-              <p className={`text-xl font-bold tabular-nums ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <p className={`text-xl font-bold tabular-nums ${(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance) > 0 ? 'text-orange' : 'text-success'}`}>
                 {formatCurrency(activeFolioId ? (folioBalances[activeFolioId]?.balance || 0) : summary.balance)}
               </p>
             </div>
@@ -1083,7 +1083,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         {group.transactions.length} item{group.transactions.length !== 1 ? 's' : ''}
                       </Badge>
                     </div>
-                    <span className={`font-semibold text-sm ${group.dayTotal >= 0 ? 'text-foreground' : 'text-green-600 dark:text-green-400'}`}>
+                    <span className={`font-semibold text-sm ${group.dayTotal >= 0 ? 'text-foreground' : 'text-success'}`}>
                       {group.dayTotal >= 0 ? '+' : ''}{formatCurrency(group.dayTotal)}
                     </span>
                   </div>
@@ -1164,7 +1164,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                             <TableCell className={`text-right w-[100px] ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {isCharge ? formatCurrency(amount) : ''}
                             </TableCell>
-                            <TableCell className={`text-right w-[100px] text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                            <TableCell className={`text-right w-[100px] text-success ${isVoidedOrReversed ? 'line-through' : ''}`}>
                               {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
                             </TableCell>
                             <TableCell className="w-[50px]">
@@ -1344,7 +1344,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                       <TableCell className={`text-right ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {isCharge ? formatCurrency(amount) : ''}
                       </TableCell>
-                      <TableCell className={`text-right text-green-600 dark:text-green-400 ${isVoidedOrReversed ? 'line-through' : ''}`}>
+                      <TableCell className={`text-right text-success ${isVoidedOrReversed ? 'line-through' : ''}`}>
                         {!isCharge ? formatCurrency(Math.abs(amount)) : ''}
                       </TableCell>
                       <TableCell className={`text-right font-medium ${isVoidedOrReversed ? 'line-through' : ''}`}>
@@ -1733,8 +1733,8 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                 </div>
 
                 {selectedFoliosForMerge.size > 0 && (
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <p className="text-sm text-amber-800 dark:text-amber-300">
+                  <div className="p-3 bg-orange/10 border border-orange/30 rounded-lg">
+                    <p className="text-sm text-orange">
                       {selectedFoliosForMerge.size} folio{selectedFoliosForMerge.size !== 1 ? 's' : ''} will be merged into {folios.find(f => f.id === mergeTargetFolioId)?.name || 'target folio'}.
                       All transactions will be moved and the merged folios will be deactivated.
                     </p>

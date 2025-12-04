@@ -369,11 +369,11 @@ export default function NewReservation({ onNavigate }) {
     <div className="min-h-screen flex flex-col bg-accent">
       {/* Add to Existing Booking Banner */}
       {isAddingToExisting && (
-        <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
+        <div className="bg-info/10 border-b border-info/30 px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm text-blue-800 dark:text-blue-200">
+              <Plus className="h-4 w-4 text-info" />
+              <span className="text-sm text-info">
                 Adding room to existing booking for <strong>{addToExistingBooking.guestName || 'Guest'}</strong>
               </span>
             </div>
@@ -381,7 +381,7 @@ export default function NewReservation({ onNavigate }) {
               variant="ghost"
               size="sm"
               onClick={handleCancelAddToExisting}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+              className="text-info hover:text-info/80"
             >
               Cancel
             </Button>
@@ -731,7 +731,7 @@ export default function NewReservation({ onNavigate }) {
                               <td className="p-3 text-center">
                                 <span className={`
                                   px-2 py-1 rounded text-sm font-medium
-                                  ${roomType.availableCount > 0 ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400'}
+                                  ${roomType.availableCount > 0 ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}
                                 `}>
                                   {roomType.availableCount}
                                   {selectedQty > 0 && ` (${selectedQty} selected)`}
@@ -875,7 +875,7 @@ export default function NewReservation({ onNavigate }) {
                               <div className="text-sm text-muted-foreground">
                                 ₹{room.ratePrice || room.base_price} × {roomNights} night{roomNights !== 1 ? 's' : ''}
                               </div>
-                              <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                              <div className="text-xs text-info mt-1">
                                 {roomCheckIn && roomCheckOut && (
                                   <>
                                     {format(roomCheckIn, 'dd MMM yyyy')} - {format(roomCheckOut, 'dd MMM yyyy')}
@@ -883,9 +883,9 @@ export default function NewReservation({ onNavigate }) {
                                 )}
                               </div>
                               {isPartOfConsecutiveStay && (
-                                <div className="flex items-center gap-1.5 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1 mt-2">
-                                  <ArrowRight className="h-3 w-3 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                                  <span className="text-amber-800 dark:text-amber-300">
+                                <div className="flex items-center gap-1.5 text-xs bg-orange/10 border border-orange/30 rounded px-2 py-1 mt-2">
+                                  <ArrowRight className="h-3 w-3 text-orange flex-shrink-0" />
+                                  <span className="text-orange">
                                     Part of continuous stay: {formatRoomChangeSequence(parentStay.rooms)}
                                   </span>
                                 </div>
@@ -904,7 +904,7 @@ export default function NewReservation({ onNavigate }) {
                                 size="icon"
                                 onClick={() => removeRoom(room.cartKey)}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
+                                <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
                           </div>
@@ -1054,7 +1054,7 @@ export default function NewReservation({ onNavigate }) {
                                       }
                                     }}
                                   >
-                                    <SelectTrigger className={`h-8 text-sm flex-1 ${!room.assignedRooms?.[index] ? 'border-red-500 dark:border-red-400' : ''}`}>
+                                    <SelectTrigger className={`h-8 text-sm flex-1 ${!room.assignedRooms?.[index] ? 'border-destructive' : ''}`}>
                                       <SelectValue placeholder="Select room *" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1351,7 +1351,7 @@ export default function NewReservation({ onNavigate }) {
                                 size="icon"
                                 onClick={() => removeAddon(addon.id)}
                               >
-                                <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
+                                <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </td>
                           </tr>
@@ -1376,8 +1376,8 @@ export default function NewReservation({ onNavigate }) {
                 <span className="text-muted-foreground line-through">₹{bill.subtotalBeforeDiscount.toFixed(2)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-emerald-600 dark:text-emerald-400">Discount:</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">-₹{bill.totalDiscount.toFixed(2)}</span>
+                <span className="text-success">Discount:</span>
+                <span className="font-semibold text-success">-₹{bill.totalDiscount.toFixed(2)}</span>
               </div>
             </>
           )}
@@ -1391,11 +1391,11 @@ export default function NewReservation({ onNavigate }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Grand Total:</span>
-            <span className="font-bold text-lg text-blue-600 dark:text-blue-400">₹{bill.total.toFixed(2)}</span>
+            <span className="font-bold text-lg text-info">₹{bill.total.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Suggested Deposit:</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">₹{bill.suggestedDeposit.toFixed(2)}</span>
+            <span className="font-semibold text-success">₹{bill.suggestedDeposit.toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Balance Due:</span>
@@ -1409,17 +1409,17 @@ export default function NewReservation({ onNavigate }) {
         <div className="flex justify-between items-center">
           <div>
             {selectedRooms.length > 0 && !allRoomsAssigned && !assignLater && (
-              <p className="text-sm text-red-600 dark:text-red-400">
+              <p className="text-sm text-destructive">
                 ⚠ Please assign room numbers to all selected rooms before proceeding
               </p>
             )}
             {selectedRooms.length > 0 && assignLater && (
-              <p className="text-sm text-amber-600 dark:text-amber-400">
+              <p className="text-sm text-orange">
                 ℹ Rooms will be assigned before check-in
               </p>
             )}
             {filters.source === 'agent' && !selectedAgent && (
-              <p className="text-sm text-red-600 dark:text-red-400">
+              <p className="text-sm text-destructive">
                 ⚠ Please select an agent before proceeding
               </p>
             )}
