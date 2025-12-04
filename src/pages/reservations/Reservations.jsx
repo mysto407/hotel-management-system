@@ -502,31 +502,20 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       return dateA - dateB;
     });
 
-  // Filter Button Component
+  // Filter Button Component - uses shadcn's built-in dark mode, only custom colors for active variants
   const FilterButton = ({ onClick, isActive, children, ...props }) => (
     <Button
       onClick={onClick}
       variant={isActive ? "default" : "outline"}
       size="sm"
       className={cn(
-        // Inactive state - explicit dark mode styling with background
-        !isActive && [
-          "bg-white border-slate-300 text-slate-700",
-          "hover:bg-slate-100",
-          "dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100",
-          "dark:hover:bg-slate-700 dark:hover:text-white"
-        ],
-        // Active state base
-        isActive && "text-white border-transparent",
-        // Active state variants
-        props.variant === 'purple' && isActive && "bg-purple-600 hover:bg-purple-700",
-        props.variant === 'warning' && isActive && "bg-yellow-600 hover:bg-yellow-700",
-        props.variant === 'orange' && isActive && "bg-orange-600 hover:bg-orange-700",
-        props.variant === 'info' && isActive && "bg-blue-600 hover:bg-blue-700",
-        props.variant === 'success' && isActive && "bg-green-700 hover:bg-green-800",
-        props.variant === 'destructive' && isActive && "bg-red-600 hover:bg-red-700",
-        // Default active state (no variant specified)
-        isActive && !props.variant && "bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200",
+        // Active state color variants
+        isActive && props.variant === 'purple' && "bg-purple-600 hover:bg-purple-700 text-white",
+        isActive && props.variant === 'warning' && "bg-yellow-600 hover:bg-yellow-700 text-white",
+        isActive && props.variant === 'orange' && "bg-orange-600 hover:bg-orange-700 text-white",
+        isActive && props.variant === 'info' && "bg-blue-600 hover:bg-blue-700 text-white",
+        isActive && props.variant === 'success' && "bg-green-700 hover:bg-green-800 text-white",
+        isActive && props.variant === 'destructive' && "bg-red-600 hover:bg-red-700 text-white",
       )}
     >
       {children}
@@ -800,8 +789,8 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           variant="outline"
           size="sm"
           className={cn(
-            "relative h-8 px-3 gap-1.5 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/20 dark:border-slate-600/50 shadow-md hover:bg-white/90 dark:hover:bg-slate-700/90 hover:shadow-lg transition-all duration-200 text-xs font-medium",
-            hasActiveFilters() ? "ring-2 ring-blue-500 ring-offset-1 text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-200"
+            "relative h-8 px-3 gap-1.5 shadow-md hover:shadow-lg transition-all duration-200 text-xs font-medium",
+            hasActiveFilters() && "ring-2 ring-blue-500 ring-offset-1 text-blue-600 dark:text-blue-400"
           )}
         >
           <Filter size={14} />
