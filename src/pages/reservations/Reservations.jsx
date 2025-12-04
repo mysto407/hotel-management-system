@@ -502,20 +502,20 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       return dateA - dateB;
     });
 
-  // Filter Button Component - uses shadcn's built-in dark mode, only custom colors for active variants
+  // Filter Button Component - uses semantic color CSS variables
   const FilterButton = ({ onClick, isActive, children, ...props }) => (
     <Button
       onClick={onClick}
       variant={isActive ? "default" : "outline"}
       size="sm"
       className={cn(
-        // Active state color variants
-        isActive && props.variant === 'purple' && "bg-purple-600 hover:bg-purple-700 text-white",
-        isActive && props.variant === 'warning' && "bg-yellow-600 hover:bg-yellow-700 text-white",
-        isActive && props.variant === 'orange' && "bg-orange-600 hover:bg-orange-700 text-white",
-        isActive && props.variant === 'info' && "bg-blue-600 hover:bg-blue-700 text-white",
-        isActive && props.variant === 'success' && "bg-green-700 hover:bg-green-800 text-white",
-        isActive && props.variant === 'destructive' && "bg-red-600 hover:bg-red-700 text-white",
+        // Active state color variants using CSS variables
+        isActive && props.variant === 'purple' && "bg-purple hover:bg-purple/90 text-white",
+        isActive && props.variant === 'warning' && "bg-warning hover:bg-warning/90 text-white",
+        isActive && props.variant === 'orange' && "bg-orange hover:bg-orange/90 text-white",
+        isActive && props.variant === 'info' && "bg-info hover:bg-info/90 text-white",
+        isActive && props.variant === 'success' && "bg-success hover:bg-success/90 text-white",
+        isActive && props.variant === 'destructive' && "bg-destructive hover:bg-destructive/90 text-white",
       )}
     >
       {children}
@@ -536,17 +536,17 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // Get status background color for card
+  // Get status background color for card - uses CSS variables
   const getStatusBgColor = (status) => {
     switch(status) {
-      case 'Inquiry': return 'bg-purple-500';
-      case 'Tentative': return 'bg-yellow-500';
-      case 'Hold': return 'bg-orange-500';
-      case 'Confirmed': return 'bg-blue-500';
-      case 'Checked-in': return 'bg-green-600';
-      case 'Checked-out': return 'bg-gray-500';
-      case 'Cancelled': return 'bg-red-500';
-      default: return 'bg-gray-400';
+      case 'Inquiry': return 'bg-purple';
+      case 'Tentative': return 'bg-warning';
+      case 'Hold': return 'bg-orange';
+      case 'Confirmed': return 'bg-info';
+      case 'Checked-in': return 'bg-success';
+      case 'Checked-out': return 'bg-muted-foreground';
+      case 'Cancelled': return 'bg-destructive';
+      default: return 'bg-muted-foreground';
     }
   };
 
@@ -606,7 +606,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                   {isMultiRoom && (
                     <span className={cn(
                       "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
-                      unassignedCount > 0 ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" : "bg-muted text-muted-foreground"
+                      unassignedCount > 0 ? "bg-warning/20 text-warning-foreground" : "bg-muted text-muted-foreground"
                     )}>
                       {unassignedCount === 0
                         ? `${group.length} rooms`
@@ -638,9 +638,9 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                         if (confirmed) group.forEach(r => checkIn(r.id));
                       } else handleCheckIn(primaryReservation);
                     }}
-                    className="h-6 w-6 hover:bg-green-100 dark:hover:bg-green-900 rounded-full"
+                    className="h-6 w-6 hover:bg-success/20 rounded-full"
                   >
-                    <CheckCircle size={14} className="text-green-600" />
+                    <CheckCircle size={14} className="text-success" />
                   </Button>
                 )}
                 {primaryReservation.status === 'Checked-in' && (
@@ -652,9 +652,9 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                         if (confirmed) group.forEach(r => checkOut(r.id));
                       } else handleCheckOut(primaryReservation);
                     }}
-                    className="h-6 w-6 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full"
+                    className="h-6 w-6 hover:bg-info/20 rounded-full"
                   >
-                    <LogOut size={14} className="text-blue-600" />
+                    <LogOut size={14} className="text-info" />
                   </Button>
                 )}
                 <DropdownMenu>
@@ -670,7 +670,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                     {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
                       <>
                         <DropdownMenuItem onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)} className="text-xs">
-                          <Edit2 size={12} className="mr-2 text-blue-600" />Edit
+                          <Edit2 size={12} className="mr-2 text-info" />Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={async () => {
                           if (isMultiRoom) {
@@ -678,7 +678,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                             if (confirmed) group.forEach(r => handleCancel(r));
                           } else handleCancel(primaryReservation);
                         }} className="text-xs">
-                          <XOctagon size={12} className="mr-2 text-orange-600" />Cancel
+                          <XOctagon size={12} className="mr-2 text-orange" />Cancel
                         </DropdownMenuItem>
                       </>
                     )}
@@ -699,7 +699,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                 {roomDisplay ? (
                   <span className="font-medium truncate" title={roomDisplay}>{roomDisplay}</span>
                 ) : (
-                  <span className="text-amber-600 dark:text-amber-400 font-medium">Unassigned</span>
+                  <span className="text-warning font-medium">Unassigned</span>
                 )}
               </div>
 
@@ -734,16 +734,16 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                 <span className="font-semibold text-sm">₹{totalAmount.toLocaleString()}</span>
                 <span className={cn(
                   "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
-                  primaryReservation.payment_status === 'Paid' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                  primaryReservation.payment_status === 'Partial' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                  'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                  primaryReservation.payment_status === 'Paid' ? 'bg-success/20 text-success-foreground' :
+                  primaryReservation.payment_status === 'Partial' ? 'bg-warning/20 text-warning-foreground' :
+                  'bg-destructive/20 text-destructive'
                 )}>
                   {primaryReservation.payment_status}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 {primaryReservation.meal_plan && primaryReservation.meal_plan !== 'NM' && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded-full">
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 bg-purple/20 text-purple-foreground rounded-full">
                     {primaryReservation.meal_plan}
                   </span>
                 )}

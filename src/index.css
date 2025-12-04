@@ -30,7 +30,19 @@
         --chart-3: 197 37% 24%;
         --chart-4: 43 74% 66%;
         --chart-5: 27 87% 67%;
-        --radius: 0.5rem
+        --radius: 0.5rem;
+
+        /* Custom status colors - light mode */
+        --success: 142 76% 36%;
+        --success-foreground: 142 76% 20%;
+        --warning: 45 93% 47%;
+        --warning-foreground: 45 93% 20%;
+        --info: 217 91% 60%;
+        --info-foreground: 217 91% 20%;
+        --purple: 271 91% 65%;
+        --purple-foreground: 271 91% 20%;
+        --orange: 24 95% 53%;
+        --orange-foreground: 24 95% 20%
     }
     .dark {
         --background: 0 0% 3.9%;
@@ -56,7 +68,19 @@
         --chart-2: 160 60% 45%;
         --chart-3: 30 80% 55%;
         --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%
+        --chart-5: 340 75% 55%;
+
+        /* Custom status colors - dark mode */
+        --success: 142 76% 36%;
+        --success-foreground: 142 76% 90%;
+        --warning: 45 93% 47%;
+        --warning-foreground: 45 93% 90%;
+        --info: 217 91% 60%;
+        --info-foreground: 217 91% 90%;
+        --purple: 271 91% 65%;
+        --purple-foreground: 271 91% 90%;
+        --orange: 24 95% 53%;
+        --orange-foreground: 24 95% 90%
     }
     /* * BLOCK 2: Apply global styles using the utilities defined from the variables above */
     * {
