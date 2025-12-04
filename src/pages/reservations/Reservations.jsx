@@ -550,7 +550,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     }
   };
 
-  // Reservation Card Component - Professional Compact Design
+  // Reservation Card Component - Clean shadcn Design
   const ReservationCard = ({ group, groupIndex }) => {
     const isMultiRoom = group.length > 1;
     const primaryReservation = group[0];
@@ -594,19 +594,19 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     const roomDisplay = getRoomDisplay();
 
     return (
-      <Card className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 rounded-xl hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-900/80 transition-all duration-300">
+      <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-3">
             {/* Header: Name + Room + Actions */}
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-sm truncate text-slate-800 dark:text-slate-100">
+                  <h3 className="font-semibold text-sm truncate">
                     {primaryReservation.guests?.name || 'Unknown'}
                   </h3>
                   {isMultiRoom && (
                     <span className={cn(
-                      "text-[10px] font-medium px-1.5 py-0.5 rounded-full backdrop-blur-sm",
-                      unassignedCount > 0 ? "bg-amber-100/80 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300" : "bg-slate-100/80 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300"
+                      "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                      unassignedCount > 0 ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" : "bg-muted text-muted-foreground"
                     )}>
                       {unassignedCount === 0
                         ? `${group.length} rooms`
@@ -617,7 +617,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] text-muted-foreground truncate">
                   {primaryReservation.guests?.phone || '—'}
                 </p>
               </div>
@@ -638,9 +638,9 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                         if (confirmed) group.forEach(r => checkIn(r.id));
                       } else handleCheckIn(primaryReservation);
                     }}
-                    className="h-6 w-6 hover:bg-green-100/70 dark:hover:bg-green-900/30 rounded-full"
+                    className="h-6 w-6 hover:bg-green-100 dark:hover:bg-green-900 rounded-full"
                   >
-                    <CheckCircle size={14} className="text-green-600 dark:text-green-400" />
+                    <CheckCircle size={14} className="text-green-600" />
                   </Button>
                 )}
                 {primaryReservation.status === 'Checked-in' && (
@@ -652,18 +652,18 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                         if (confirmed) group.forEach(r => checkOut(r.id));
                       } else handleCheckOut(primaryReservation);
                     }}
-                    className="h-6 w-6 hover:bg-blue-100/70 dark:hover:bg-blue-900/30 rounded-full"
+                    className="h-6 w-6 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full"
                   >
-                    <LogOut size={14} className="text-blue-600 dark:text-blue-400" />
+                    <LogOut size={14} className="text-blue-600" />
                   </Button>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-slate-100/70 dark:hover:bg-slate-700/50 rounded-full">
-                      <MoreVertical size={14} className="text-slate-600 dark:text-slate-400" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full">
+                      <MoreVertical size={14} className="text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-white/20 dark:border-slate-700/50">
+                  <DropdownMenuContent align="end" className="w-40">
                     <DropdownMenuItem onClick={() => handleViewDetails(group)} className="text-xs">
                       <Eye size={12} className="mr-2" />View Details
                     </DropdownMenuItem>
@@ -695,9 +695,9 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] mb-2">
               {/* Room */}
               <div className="flex items-center gap-1.5">
-                <BedDouble size={12} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
+                <BedDouble size={12} className="text-muted-foreground flex-shrink-0" />
                 {roomDisplay ? (
-                  <span className="font-medium truncate text-slate-700 dark:text-slate-200" title={roomDisplay}>{roomDisplay}</span>
+                  <span className="font-medium truncate" title={roomDisplay}>{roomDisplay}</span>
                 ) : (
                   <span className="text-amber-600 dark:text-amber-400 font-medium">Unassigned</span>
                 )}
@@ -705,14 +705,14 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
               {/* Dates */}
               <div className="flex items-center gap-1.5">
-                <CalendarDays size={12} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
-                <span className="truncate text-slate-600 dark:text-slate-300">{formatDate(earliestCheckIn)} → {formatDate(latestCheckOut)}</span>
+                <CalendarDays size={12} className="text-muted-foreground flex-shrink-0" />
+                <span className="truncate text-muted-foreground">{formatDate(earliestCheckIn)} → {formatDate(latestCheckOut)}</span>
               </div>
 
               {/* Guests */}
               <div className="flex items-center gap-1.5">
-                <Users size={12} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
-                <span className="text-slate-600 dark:text-slate-300">
+                <Users size={12} className="text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground">
                   {isMultiRoom ? (
                     <>{group.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}A {group.reduce((sum, r) => sum + (r.number_of_children || 0), 0)}C {group.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}I</>
                   ) : (
@@ -723,33 +723,33 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
               {/* Nights */}
               <div className="flex items-center gap-1.5">
-                <Clock size={12} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
-                <span className="text-slate-600 dark:text-slate-300">{nights} night{nights !== 1 ? 's' : ''}</span>
+                <Clock size={12} className="text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground">{nights} night{nights !== 1 ? 's' : ''}</span>
               </div>
             </div>
 
             {/* Footer: Amount + Status + Payment + Source */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-center justify-between pt-2 border-t">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">₹{totalAmount.toLocaleString()}</span>
+                <span className="font-semibold text-sm">₹{totalAmount.toLocaleString()}</span>
                 <span className={cn(
-                  "text-[10px] font-medium px-1.5 py-0.5 rounded-full backdrop-blur-sm",
-                  primaryReservation.payment_status === 'Paid' ? 'bg-green-100/80 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
-                  primaryReservation.payment_status === 'Partial' ? 'bg-yellow-100/80 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' :
-                  'bg-red-100/80 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                  "text-[10px] font-medium px-1.5 py-0.5 rounded-full",
+                  primaryReservation.payment_status === 'Paid' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                  primaryReservation.payment_status === 'Partial' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                  'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
                 )}>
                   {primaryReservation.payment_status}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 {primaryReservation.meal_plan && primaryReservation.meal_plan !== 'NM' && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 bg-purple-100/80 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 rounded-full backdrop-blur-sm">
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded-full">
                     {primaryReservation.meal_plan}
                   </span>
                 )}
-                <span className="text-[10px] text-slate-500 dark:text-slate-400">{getSourceLabel()}</span>
+                <span className="text-[10px] text-muted-foreground">{getSourceLabel()}</span>
                 <span className={cn(
-                  "text-[10px] font-medium px-1.5 py-0.5 rounded-full text-white shadow-sm",
+                  "text-[10px] font-medium px-1.5 py-0.5 rounded-full text-white",
                   getStatusBgColor(primaryReservation.status)
                 )}>
                   {primaryReservation.status}
@@ -759,8 +759,8 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
             {/* Alerts */}
             {isSplitReservation && (
-              <div className="flex gap-1.5 mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                <span className="text-[10px] px-1.5 py-0.5 bg-blue-50/80 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 rounded-full backdrop-blur-sm">
+              <div className="flex gap-1.5 mt-2 pt-2 border-t">
+                <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-700 rounded-full">
                   Extended Stay
                 </span>
               </div>
