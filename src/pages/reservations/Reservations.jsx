@@ -789,32 +789,29 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           variant="outline"
           size="sm"
           className={cn(
-            "relative h-8 px-3 gap-1.5 shadow-md hover:shadow-lg transition-all duration-200 text-xs font-medium",
-            hasActiveFilters() && "ring-2 ring-blue-500 ring-offset-1 text-blue-600 dark:text-blue-400"
+            "relative h-8 px-3 gap-1.5 text-xs font-medium",
+            hasActiveFilters() && "ring-2 ring-primary ring-offset-1"
           )}
         >
           <Filter size={14} />
           <span>Filter</span>
           {activeFilterCount() > 0 && (
-            <span className="h-4 w-4 rounded-full bg-blue-600 text-[10px] font-medium text-white flex items-center justify-center ml-0.5">
+            <span className="h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center ml-0.5">
               {activeFilterCount()}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[400px] p-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-xl"
-      >
+      <PopoverContent align="end" className="w-[400px] p-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-slate-200/50 dark:border-slate-700/50">
-          <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">Filters</span>
+        <div className="flex items-center justify-between p-3 border-b">
+          <span className="font-semibold text-sm">Filters</span>
           {hasActiveFilters() && (
             <Button
               onClick={clearAllFilters}
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="h-7 text-xs text-destructive hover:text-destructive"
             >
               Clear All
             </Button>
@@ -848,7 +845,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           </div>
 
           {/* Status Filters */}
-          <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+          <div className="space-y-2 pt-2 border-t">
             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</Label>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton onClick={() => setFilterStatus('all')} isActive={filterStatus === 'all'}>All</FilterButton>
@@ -863,7 +860,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           </div>
 
           {/* Meal Plan Filters */}
-          <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+          <div className="space-y-2 pt-2 border-t">
             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Meal Plan</Label>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton onClick={() => setFilterMealPlan('all')} isActive={filterMealPlan === 'all'}>All</FilterButton>
@@ -880,7 +877,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           </div>
 
           {/* Guest Count Filters */}
-          <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+          <div className="space-y-2 pt-2 border-t">
             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guests</Label>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton onClick={() => setFilterGuestCount('all')} isActive={filterGuestCount === 'all'}>All</FilterButton>
@@ -901,14 +898,14 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
         <>
           {/* Empty state header with filter */}
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Reservations</h2>
+            <h2 className="text-xl font-semibold">Reservations</h2>
             <FilterPopover />
           </div>
-          <Card className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50">
+          <Card>
             <CardContent className="p-12 text-center">
-              <Calendar size={48} className="mx-auto text-slate-400 opacity-50" />
-              <p className="mt-4 text-lg font-semibold text-slate-700 dark:text-slate-200">No reservations found</p>
-              <p className="text-slate-500 dark:text-slate-400">Try adjusting your filters</p>
+              <Calendar size={48} className="mx-auto text-muted-foreground opacity-50" />
+              <p className="mt-4 text-lg font-semibold">No reservations found</p>
+              <p className="text-muted-foreground">Try adjusting your filters</p>
             </CardContent>
           </Card>
         </>
@@ -942,7 +939,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
               return (
                 <div key={monthKey}>
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+                    <h2 className="text-xl font-semibold">
                       {monthName}
                     </h2>
                     {monthIndex === 0 && <FilterPopover />}
