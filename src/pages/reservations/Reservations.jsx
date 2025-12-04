@@ -787,15 +787,16 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="icon"
+          size="sm"
           className={cn(
-            "relative h-8 w-8 bg-white/70 backdrop-blur-md border-white/20 shadow-md hover:bg-white/90 hover:shadow-lg transition-all duration-200",
-            hasActiveFilters() && "ring-2 ring-blue-500 ring-offset-1"
+            "relative h-8 px-3 gap-1.5 bg-white/70 backdrop-blur-md border-white/20 shadow-md hover:bg-white/90 hover:shadow-lg transition-all duration-200 text-xs font-medium",
+            hasActiveFilters() ? "ring-2 ring-blue-500 ring-offset-1 text-blue-600" : "text-slate-600"
           )}
         >
-          <Filter size={14} className={hasActiveFilters() ? "text-blue-600" : "text-slate-600"} />
+          <Filter size={14} />
+          <span>Filter</span>
           {activeFilterCount() > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-blue-600 text-[10px] font-medium text-white flex items-center justify-center">
+            <span className="h-4 w-4 rounded-full bg-blue-600 text-[10px] font-medium text-white flex items-center justify-center ml-0.5">
               {activeFilterCount()}
             </span>
           )}
