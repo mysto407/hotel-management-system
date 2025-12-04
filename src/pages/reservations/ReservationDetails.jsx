@@ -772,8 +772,8 @@ export default function ReservationDetails({ onNavigate }) {
               </div>
               {selectedReservationForRoomAssignment?.room_id && (
                 <div className="text-right text-sm">
-                  <span className="text-muted-foreground">Assigned to room:</span>
-                  <span className="ml-1 font-medium">{getRoomInfo(selectedReservationForRoomAssignment.room_id).number}</span>
+                  <div className="text-muted-foreground">Assigned to room</div>
+                  <div className="font-medium">{getRoomInfo(selectedReservationForRoomAssignment.room_id).number}</div>
                 </div>
               )}
             </div>
@@ -807,7 +807,7 @@ export default function ReservationDetails({ onNavigate }) {
                   className="w-full"
                   onClick={() => handleUnassignRoom(selectedReservationForRoomAssignment.id)}
                 >
-                  Unassign current room
+                  Unassign Current Room
                 </Button>
               )}
             </div>
