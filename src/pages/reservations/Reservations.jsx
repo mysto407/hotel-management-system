@@ -781,129 +781,136 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     return count;
   };
 
+  // Filter Popover Component
+  const FilterPopover = () => (
+    <Popover open={showFilters} onOpenChange={setShowFilters}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className={cn(
+            "relative h-8 w-8 bg-white/70 backdrop-blur-md border-white/20 shadow-md hover:bg-white/90 hover:shadow-lg transition-all duration-200",
+            hasActiveFilters() && "ring-2 ring-blue-500 ring-offset-1"
+          )}
+        >
+          <Filter size={14} className={hasActiveFilters() ? "text-blue-600" : "text-slate-600"} />
+          {activeFilterCount() > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-blue-600 text-[10px] font-medium text-white flex items-center justify-center">
+              {activeFilterCount()}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-[400px] p-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-xl"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b border-slate-200/50 dark:border-slate-700/50">
+          <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">Filters</span>
+          {hasActiveFilters() && (
+            <Button
+              onClick={clearAllFilters}
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              Clear All
+            </Button>
+          )}
+        </div>
+
+        <div className="p-3 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Date Filters */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Date Range</Label>
+            <div className="flex gap-1.5 flex-wrap">
+              <FilterButton onClick={() => setDatePreset('all')} isActive={dateFilterType === 'all'}>All</FilterButton>
+              <FilterButton onClick={() => { setDatePreset('all'); setStartDate(today); setEndDate(today); setDateFilterType('today'); }} isActive={dateFilterType === 'today'}>Today</FilterButton>
+              <FilterButton onClick={() => setDatePreset('weekly')} isActive={dateFilterType === 'weekly'}>7 Days</FilterButton>
+              <FilterButton onClick={() => setDatePreset('fortnightly')} isActive={dateFilterType === 'fortnightly'}>14 Days</FilterButton>
+              <FilterButton onClick={() => setDatePreset('monthly')} isActive={dateFilterType === 'monthly'}>30 Days</FilterButton>
+              <FilterButton onClick={() => setDateFilterType('custom')} isActive={dateFilterType === 'custom'}>Custom</FilterButton>
+            </div>
+            {dateFilterType === 'custom' && (
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">From</Label>
+                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-8 text-xs" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">To</Label>
+                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-8 text-xs" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Status Filters */}
+          <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Status</Label>
+            <div className="flex gap-1.5 flex-wrap">
+              <FilterButton onClick={() => setFilterStatus('all')} isActive={filterStatus === 'all'}>All</FilterButton>
+              <FilterButton onClick={() => setFilterStatus('Inquiry')} isActive={filterStatus === 'Inquiry'} variant="purple">Inquiry</FilterButton>
+              <FilterButton onClick={() => setFilterStatus('Tentative')} isActive={filterStatus === 'Tentative'} variant="warning">Tentative</FilterButton>
+              <FilterButton onClick={() => setFilterStatus('Hold')} isActive={filterStatus === 'Hold'} variant="orange">Hold</FilterButton>
+              <FilterButton onClick={() => setFilterStatus('Confirmed')} isActive={filterStatus === 'Confirmed'} variant="info">Confirmed</FilterButton>
+              <FilterButton onClick={() => setFilterStatus('Checked-in')} isActive={filterStatus === 'Checked-in'}>Checked-in</FilterButton>
+              <FilterButton onClick={() => setFilterStatus('Checked-out')} isActive={filterStatus === 'Checked-out'} variant="success">Checked-out</FilterButton>
+              <FilterButton onClick={() => setFilterStatus('Cancelled')} isActive={filterStatus === 'Cancelled'} variant="destructive">Cancelled</FilterButton>
+            </div>
+          </div>
+
+          {/* Meal Plan Filters */}
+          <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Meal Plan</Label>
+            <div className="flex gap-1.5 flex-wrap">
+              <FilterButton onClick={() => setFilterMealPlan('all')} isActive={filterMealPlan === 'all'}>All</FilterButton>
+              {getActivePlans().map((plan) => (
+                <FilterButton
+                  key={plan.code}
+                  onClick={() => setFilterMealPlan(plan.code)}
+                  isActive={filterMealPlan === plan.code}
+                >
+                  {plan.name}
+                </FilterButton>
+              ))}
+            </div>
+          </div>
+
+          {/* Guest Count Filters */}
+          <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Guests</Label>
+            <div className="flex gap-1.5 flex-wrap">
+              <FilterButton onClick={() => setFilterGuestCount('all')} isActive={filterGuestCount === 'all'}>All</FilterButton>
+              <FilterButton onClick={() => setFilterGuestCount('1-2')} isActive={filterGuestCount === '1-2'}>1-2</FilterButton>
+              <FilterButton onClick={() => setFilterGuestCount('3-4')} isActive={filterGuestCount === '3-4'}>3-4</FilterButton>
+              <FilterButton onClick={() => setFilterGuestCount('5+')} isActive={filterGuestCount === '5+'}>5+</FilterButton>
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+
   return (
     <div className="space-y-6">
-      {/* Filter Icon Button with Popover */}
-      <div className="flex justify-end">
-        <Popover open={showFilters} onOpenChange={setShowFilters}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                "relative h-9 w-9 bg-white/70 backdrop-blur-md border-white/20 shadow-md hover:bg-white/90 hover:shadow-lg transition-all duration-200",
-                hasActiveFilters() && "ring-2 ring-blue-500 ring-offset-1"
-              )}
-            >
-              <Filter size={16} className={hasActiveFilters() ? "text-blue-600" : "text-slate-600"} />
-              {activeFilterCount() > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-blue-600 text-[10px] font-medium text-white flex items-center justify-center">
-                  {activeFilterCount()}
-                </span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            className="w-[400px] p-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-xl"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-slate-200/50 dark:border-slate-700/50">
-              <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">Filters</span>
-              {hasActiveFilters() && (
-                <Button
-                  onClick={clearAllFilters}
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  Clear All
-                </Button>
-              )}
-            </div>
-
-            <div className="p-3 space-y-4 max-h-[70vh] overflow-y-auto">
-              {/* Date Filters */}
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Date Range</Label>
-                <div className="flex gap-1.5 flex-wrap">
-                  <FilterButton onClick={() => setDatePreset('all')} isActive={dateFilterType === 'all'}>All</FilterButton>
-                  <FilterButton onClick={() => { setDatePreset('all'); setStartDate(today); setEndDate(today); setDateFilterType('today'); }} isActive={dateFilterType === 'today'}>Today</FilterButton>
-                  <FilterButton onClick={() => setDatePreset('weekly')} isActive={dateFilterType === 'weekly'}>7 Days</FilterButton>
-                  <FilterButton onClick={() => setDatePreset('fortnightly')} isActive={dateFilterType === 'fortnightly'}>14 Days</FilterButton>
-                  <FilterButton onClick={() => setDatePreset('monthly')} isActive={dateFilterType === 'monthly'}>30 Days</FilterButton>
-                  <FilterButton onClick={() => setDateFilterType('custom')} isActive={dateFilterType === 'custom'}>Custom</FilterButton>
-                </div>
-                {dateFilterType === 'custom' && (
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">From</Label>
-                      <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-8 text-xs" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">To</Label>
-                      <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-8 text-xs" />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Status Filters */}
-              <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Status</Label>
-                <div className="flex gap-1.5 flex-wrap">
-                  <FilterButton onClick={() => setFilterStatus('all')} isActive={filterStatus === 'all'}>All</FilterButton>
-                  <FilterButton onClick={() => setFilterStatus('Inquiry')} isActive={filterStatus === 'Inquiry'} variant="purple">Inquiry</FilterButton>
-                  <FilterButton onClick={() => setFilterStatus('Tentative')} isActive={filterStatus === 'Tentative'} variant="warning">Tentative</FilterButton>
-                  <FilterButton onClick={() => setFilterStatus('Hold')} isActive={filterStatus === 'Hold'} variant="orange">Hold</FilterButton>
-                  <FilterButton onClick={() => setFilterStatus('Confirmed')} isActive={filterStatus === 'Confirmed'} variant="info">Confirmed</FilterButton>
-                  <FilterButton onClick={() => setFilterStatus('Checked-in')} isActive={filterStatus === 'Checked-in'}>Checked-in</FilterButton>
-                  <FilterButton onClick={() => setFilterStatus('Checked-out')} isActive={filterStatus === 'Checked-out'} variant="success">Checked-out</FilterButton>
-                  <FilterButton onClick={() => setFilterStatus('Cancelled')} isActive={filterStatus === 'Cancelled'} variant="destructive">Cancelled</FilterButton>
-                </div>
-              </div>
-
-              {/* Meal Plan Filters */}
-              <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Meal Plan</Label>
-                <div className="flex gap-1.5 flex-wrap">
-                  <FilterButton onClick={() => setFilterMealPlan('all')} isActive={filterMealPlan === 'all'}>All</FilterButton>
-                  {getActivePlans().map((plan) => (
-                    <FilterButton
-                      key={plan.code}
-                      onClick={() => setFilterMealPlan(plan.code)}
-                      isActive={filterMealPlan === plan.code}
-                    >
-                      {plan.name}
-                    </FilterButton>
-                  ))}
-                </div>
-              </div>
-
-              {/* Guest Count Filters */}
-              <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Guests</Label>
-                <div className="flex gap-1.5 flex-wrap">
-                  <FilterButton onClick={() => setFilterGuestCount('all')} isActive={filterGuestCount === 'all'}>All</FilterButton>
-                  <FilterButton onClick={() => setFilterGuestCount('1-2')} isActive={filterGuestCount === '1-2'}>1-2</FilterButton>
-                  <FilterButton onClick={() => setFilterGuestCount('3-4')} isActive={filterGuestCount === '3-4'}>3-4</FilterButton>
-                  <FilterButton onClick={() => setFilterGuestCount('5+')} isActive={filterGuestCount === '5+'}>5+</FilterButton>
-                </div>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-
       {/* Reservation Cards Grid */}
       {groupReservations(filteredReservations).length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Calendar size={48} className="mx-auto text-muted-foreground opacity-50" />
-            <p className="mt-4 text-lg font-semibold">No reservations found</p>
-            <p className="text-muted-foreground">Try adjusting your filters</p>
-          </CardContent>
-        </Card>
+        <>
+          {/* Empty state header with filter */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Reservations</h2>
+            <FilterPopover />
+          </div>
+          <Card className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50">
+            <CardContent className="p-12 text-center">
+              <Calendar size={48} className="mx-auto text-slate-400 opacity-50" />
+              <p className="mt-4 text-lg font-semibold text-slate-700 dark:text-slate-200">No reservations found</p>
+              <p className="text-slate-500 dark:text-slate-400">Try adjusting your filters</p>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <div className="space-y-6">
           {(() => {
@@ -924,7 +931,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
             // Sort months chronologically
             const sortedMonths = Object.keys(byMonth).sort();
 
-            return sortedMonths.map(monthKey => {
+            return sortedMonths.map((monthKey, monthIndex) => {
               const [year, month] = monthKey.split('-');
               const monthName = new Date(year, parseInt(month) - 1).toLocaleDateString('en-IN', {
                 month: 'long',
@@ -933,9 +940,12 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
               return (
                 <div key={monthKey}>
-                  <h2 className="text-xl font-semibold mb-3">
-                    {monthName}
-                  </h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+                      {monthName}
+                    </h2>
+                    {monthIndex === 0 && <FilterPopover />}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {byMonth[monthKey].map(({ group, groupIndex }) => (
                       <ReservationCard key={groupIndex} group={group} groupIndex={groupIndex} />
