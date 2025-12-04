@@ -1108,7 +1108,7 @@ const Settings = () => {
                               size="sm"
                               onClick={() => handleDeletePaymentMethod(method.id)}
                               disabled={loading}
-                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-accent"
+                              className="text-destructive hover:text-destructive/80 hover:bg-accent"
                             >
                               <Trash2 size={16} />
                             </Button>

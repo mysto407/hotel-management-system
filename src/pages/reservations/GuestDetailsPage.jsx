@@ -323,10 +323,10 @@ const handleSelectGuest = (guest) => {
     <div className="h-full flex flex-col bg-accent">
       {/* Add to Existing Booking Banner */}
       {isAddingToExisting && (
-        <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800 px-6 py-3">
+        <div className="bg-info/10 border-b border-info/30 px-6 py-3">
           <div className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm text-blue-800 dark:text-blue-200">
+            <UserPlus className="h-4 w-4 text-info" />
+            <span className="text-sm text-info">
               Adding room to existing booking for <strong>{addToExistingBooking.guestName || 'Guest'}</strong>
               {' '}- Guest details pre-filled
             </span>
@@ -390,7 +390,7 @@ const handleSelectGuest = (guest) => {
                     key={guest.id}
                     onClick={() => handleSelectGuest(guest)}
                     className={`w-full text-left p-4 hover:bg-muted/30 transition-colors ${
-                      selectedGuestId === guest.id ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-400' : ''
+                      selectedGuestId === guest.id ? 'bg-info/10 border-l-4 border-info' : ''
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -511,7 +511,7 @@ const handleSelectGuest = (guest) => {
                           : 'Guest Photo'}
                       </Label>
                       {currentGuestIndex === 0 && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 rounded-full">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-info/20 text-info rounded-full">
                           Primary Guest
                         </span>
                       )}

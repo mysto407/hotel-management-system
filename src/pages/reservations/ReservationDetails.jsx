@@ -491,7 +491,7 @@ export default function ReservationDetails({ onNavigate }) {
             </div>
             <div className="ml-auto text-right">
               <p className="text-xs text-muted-foreground mb-1">Balance Due</p>
-              <p className={`font-bold text-lg ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <p className={`font-bold text-lg ${(folioTotals.balance ?? balanceDue) > 0 ? 'text-destructive' : 'text-success'}`}>
                 ₹{(folioTotals.balance ?? balanceDue).toFixed(2)}
               </p>
             </div>
@@ -551,9 +551,9 @@ export default function ReservationDetails({ onNavigate }) {
                                   {isConsecutive ? 'Continuous Stay' : `Stay ${stayIndex + 1}`}
                                 </span>
                                 {isConsecutive && (
-                                  <div className="flex items-center gap-1.5 text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded px-2 py-1">
-                                    <ArrowRight className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                                    <span className="text-amber-800 dark:text-amber-300">
+                                  <div className="flex items-center gap-1.5 text-xs bg-orange/10 border border-orange/30 rounded px-2 py-1">
+                                    <ArrowRight className="h-3 w-3 text-orange" />
+                                    <span className="text-orange">
                                       Room Move: {formatRoomChangeSequence(stayRooms)}
                                     </span>
                                   </div>
