@@ -906,7 +906,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
               return (
                 <div key={monthKey}>
-                  <h2 className="text-lg font-semibold text-muted-foreground mb-3 pb-2 border-b">
+                  <h2 className="text-xl font-semibold mb-3">
                     {monthName}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
