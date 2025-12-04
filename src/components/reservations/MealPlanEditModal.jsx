@@ -31,9 +31,7 @@ export default function MealPlanEditModal({ open, onOpenChange, reservation, onS
   }, [open, reservation])
 
   const handleSave = () => {
-    // Convert empty string to null for database
-    const mealPlanValue = selectedMealPlan === '' ? null : selectedMealPlan
-    onSave(reservation.id, mealPlanValue)
+    onSave(reservation.id, selectedMealPlan)
     onOpenChange(false)
   }
 
@@ -73,22 +71,21 @@ export default function MealPlanEditModal({ open, onOpenChange, reservation, onS
           </div>
 
           <Select
-            value={selectedMealPlan || 'none'}
-            onValueChange={(value) => setSelectedMealPlan(value === 'none' ? '' : value)}
+            value={selectedMealPlan || ''}
+            onValueChange={setSelectedMealPlan}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select meal plan" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">
-                <span className="text-muted-foreground">No Meal Plan</span>
-              </SelectItem>
               {getActivePlans().map((plan) => (
                 <SelectItem key={plan.code} value={plan.code}>
                   <span>{plan.name}</span>
-                  <span className="text-muted-foreground ml-2">
-                    ₹{parseFloat(plan.price_per_person || 0).toFixed(0)}/person/day
-                  </span>
+                  {plan.price_per_person > 0 && (
+                    <span className="text-muted-foreground ml-2">
+                      ₹{parseFloat(plan.price_per_person || 0).toFixed(0)}/person/day
+                    </span>
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
