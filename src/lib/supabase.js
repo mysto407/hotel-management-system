@@ -2193,12 +2193,11 @@ export const splitMasterFolioByRooms = async (bookingId, userId = null) => {
             return { data: null, error: folioError || { message: 'No master folio found for booking' } }
         }
 
-        // 3. Get all transactions from the master folio
+        // 3. Get all transactions from the master folio (including voided/reversed for history)
         const { data: transactions, error: txnError } = await supabase
             .from('folio_transactions')
             .select('*')
             .eq('folio_id', masterFolio.id)
-            .not('transaction_status', 'in', '("voided","reversed")')
             .order('created_at', { ascending: true })
 
         if (txnError) {
