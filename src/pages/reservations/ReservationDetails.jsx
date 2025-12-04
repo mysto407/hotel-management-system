@@ -735,41 +735,36 @@ export default function ReservationDetails({ onNavigate }) {
 
       {/* Room Assignment Modal */}
       <Dialog open={roomAssignmentModalOpen} onOpenChange={setRoomAssignmentModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Assign Room</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
             {selectedReservationForRoomAssignment && (
               <p className="text-sm text-muted-foreground">
-                Select a {getRoomInfo(null, selectedReservationForRoomAssignment.room_type_id).type} room for this reservation
+                {getRoomInfo(null, selectedReservationForRoomAssignment.room_type_id).type} • {availableRoomsForAssignment.length} available
               </p>
             )}
-            {loadingAvailableRooms ? (
-              <div className="py-4 text-center text-muted-foreground">Loading available rooms...</div>
-            ) : availableRoomsForAssignment.length === 0 ? (
-              <div className="py-4 text-center text-muted-foreground">No available rooms of this type</div>
-            ) : (
-              <div className="grid gap-2">
-                {availableRoomsForAssignment.map((room) => (
-                  <Button
-                    key={room.id}
-                    variant="outline"
-                    className="justify-start h-auto py-3"
-                    onClick={() => handleAssignRoom(selectedReservationForRoomAssignment.id, room.id)}
-                  >
-                    <DoorOpen className="h-4 w-4 mr-3" />
-                    <div className="text-left">
-                      <div className="font-medium">Room {room.room_number}</div>
-                      {room.floor && (
-                        <div className="text-xs text-muted-foreground">Floor {room.floor}</div>
-                      )}
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
+          </DialogHeader>
+          {loadingAvailableRooms ? (
+            <div className="py-4 text-center text-muted-foreground">Loading...</div>
+          ) : availableRoomsForAssignment.length === 0 ? (
+            <div className="py-4 text-center text-muted-foreground">No available rooms</div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+              {availableRoomsForAssignment.map((room) => (
+                <Button
+                  key={room.id}
+                  variant="outline"
+                  className="h-auto py-2 px-3 flex-col"
+                  onClick={() => handleAssignRoom(selectedReservationForRoomAssignment.id, room.id)}
+                >
+                  <div className="font-medium">{room.room_number}</div>
+                  {room.floor && (
+                    <div className="text-[10px] text-muted-foreground">Floor {room.floor}</div>
+                  )}
+                </Button>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
