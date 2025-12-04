@@ -31,6 +31,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
 import NotesTab from '../../components/reservations/NotesTab'
 import ExtendNightsModal from '../../components/reservations/ExtendNightsModal'
 import MealPlanEditModal from '../../components/reservations/MealPlanEditModal'
@@ -55,7 +61,8 @@ export default function ReservationDetails({ onNavigate }) {
   const [selectedReservationForExtend, setSelectedReservationForExtend] = useState(null)
   const [mealPlanModalOpen, setMealPlanModalOpen] = useState(false)
   const [selectedReservationForMealPlan, setSelectedReservationForMealPlan] = useState(null)
-  const [roomAssignmentOpen, setRoomAssignmentOpen] = useState(null) // reservation.id when open
+  const [roomAssignmentModalOpen, setRoomAssignmentModalOpen] = useState(false)
+  const [selectedReservationForRoomAssignment, setSelectedReservationForRoomAssignment] = useState(null)
   const [availableRoomsForAssignment, setAvailableRoomsForAssignment] = useState([])
   const [loadingAvailableRooms, setLoadingAvailableRooms] = useState(false)
   const [folioTotals, setFolioTotals] = useState({
@@ -337,15 +344,12 @@ export default function ReservationDetails({ onNavigate }) {
     fetchFolioTotals()
   }
 
-  // Handle opening room assignment dropdown
+  // Handle opening room assignment modal
   const handleOpenRoomAssignment = async (reservation) => {
-    if (roomAssignmentOpen === reservation.id) {
-      setRoomAssignmentOpen(null)
-      return
-    }
-
-    setRoomAssignmentOpen(reservation.id)
+    setSelectedReservationForRoomAssignment(reservation)
+    setRoomAssignmentModalOpen(true)
     setLoadingAvailableRooms(true)
+    setAvailableRoomsForAssignment([])
 
     try {
       // Pass reservation.id to exclude it from the unassigned count
@@ -382,8 +386,9 @@ export default function ReservationDetails({ onNavigate }) {
         return
       }
 
-      // Close the dropdown
-      setRoomAssignmentOpen(null)
+      // Close the modal
+      setRoomAssignmentModalOpen(false)
+      setSelectedReservationForRoomAssignment(null)
 
       // Refresh reservations to update the UI
       await fetchReservations()
@@ -576,42 +581,14 @@ export default function ReservationDetails({ onNavigate }) {
                         </TableCell>
                         <TableCell>
                           {roomInfo.number === 'Unassigned' ? (
-                            <DropdownMenu
-                              open={roomAssignmentOpen === reservation.id}
-                              onOpenChange={(open) => {
-                                if (open) {
-                                  handleOpenRoomAssignment(reservation)
-                                } else {
-                                  setRoomAssignmentOpen(null)
-                                }
-                              }}
+                            <button
+                              className="cursor-pointer"
+                              onClick={() => handleOpenRoomAssignment(reservation)}
                             >
-                              <DropdownMenuTrigger asChild>
-                                <button className="cursor-pointer">
-                                  <Badge variant="secondary" className="hover:bg-secondary/80">
-                                    Room Unassigned
-                                  </Badge>
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start">
-                                {loadingAvailableRooms ? (
-                                  <DropdownMenuItem disabled>Loading rooms...</DropdownMenuItem>
-                                ) : availableRoomsForAssignment.length === 0 ? (
-                                  <DropdownMenuItem disabled>No available rooms</DropdownMenuItem>
-                                ) : (
-                                  availableRoomsForAssignment.map((room) => (
-                                    <DropdownMenuItem
-                                      key={room.id}
-                                      onClick={() => handleAssignRoom(reservation.id, room.id)}
-                                    >
-                                      <DoorOpen className="h-4 w-4 mr-2" />
-                                      Room {room.room_number}
-                                      {room.floor && <span className="text-muted-foreground ml-2">(Floor {room.floor})</span>}
-                                    </DropdownMenuItem>
-                                  ))
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              <Badge variant="secondary" className="hover:bg-secondary/80">
+                                Room Unassigned
+                              </Badge>
+                            </button>
                           ) : (
                             <Badge variant="outline">Room {roomInfo.number}</Badge>
                           )}
@@ -755,6 +732,46 @@ export default function ReservationDetails({ onNavigate }) {
         reservation={selectedReservationForMealPlan}
         onSave={handleSaveMealPlan}
       />
+
+      {/* Room Assignment Modal */}
+      <Dialog open={roomAssignmentModalOpen} onOpenChange={setRoomAssignmentModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Room</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedReservationForRoomAssignment && (
+              <p className="text-sm text-muted-foreground">
+                Select a {getRoomInfo(null, selectedReservationForRoomAssignment.room_type_id).type} room for this reservation
+              </p>
+            )}
+            {loadingAvailableRooms ? (
+              <div className="py-4 text-center text-muted-foreground">Loading available rooms...</div>
+            ) : availableRoomsForAssignment.length === 0 ? (
+              <div className="py-4 text-center text-muted-foreground">No available rooms of this type</div>
+            ) : (
+              <div className="grid gap-2">
+                {availableRoomsForAssignment.map((room) => (
+                  <Button
+                    key={room.id}
+                    variant="outline"
+                    className="justify-start h-auto py-3"
+                    onClick={() => handleAssignRoom(selectedReservationForRoomAssignment.id, room.id)}
+                  >
+                    <DoorOpen className="h-4 w-4 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Room {room.room_number}</div>
+                      {room.floor && (
+                        <div className="text-xs text-muted-foreground">Floor {room.floor}</div>
+                      )}
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
