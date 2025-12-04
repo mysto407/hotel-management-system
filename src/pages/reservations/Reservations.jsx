@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Edit2, XOctagon, CheckCircle, LogOut, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock, Users, CreditCard, BedDouble, CalendarDays } from 'lucide-react';
+import { Edit2, XOctagon, CheckCircle, LogOut, Filter, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Clock, Users, BedDouble, CalendarDays } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
@@ -27,7 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -35,7 +34,7 @@ import {
 const Reservations = ({ onNavigate, searchTerm = '' }) => {
   const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation, deleteReservation, assignRoom } = useReservations();
   const { rooms, roomTypes } = useRooms();
-  const { getMealPlanName, getActivePlans } = useMealPlans();
+  const { getActivePlans } = useMealPlans();
   const { guests } = useGuests();
   const { agents } = useAgents();
   const confirm = useConfirm();
@@ -415,9 +414,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     onNavigate('reservation-details');
   };
 
-  const getMealPlanLabel = (mealPlan) => {
-    return getMealPlanName(mealPlan);
-  };
 
   const getRoomInfo = (room) => {
     if (!room) return 'Unknown';
@@ -602,7 +598,21 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // Reservation Card Component
+  // Get status background color for card
+  const getStatusBgColor = (status) => {
+    switch(status) {
+      case 'Inquiry': return 'bg-purple-500';
+      case 'Tentative': return 'bg-yellow-500';
+      case 'Hold': return 'bg-orange-500';
+      case 'Confirmed': return 'bg-blue-500';
+      case 'Checked-in': return 'bg-green-600';
+      case 'Checked-out': return 'bg-gray-500';
+      case 'Cancelled': return 'bg-red-500';
+      default: return 'bg-gray-400';
+    }
+  };
+
+  // Reservation Card Component - Professional Compact Design
   const ReservationCard = ({ group, groupIndex }) => {
     const isMultiRoom = group.length > 1;
     const primaryReservation = group[0];
@@ -617,7 +627,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       sum + (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0), 0
     );
 
-    // Calculate dates for multi-room groups
     const earliestCheckIn = isMultiRoom
       ? group.reduce((earliest, r) => (!earliest || r.check_in_date < earliest ? r.check_in_date : earliest), null)
       : primaryReservation.check_in_date;
@@ -628,276 +637,245 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     const nights = calculateNights(earliestCheckIn, latestCheckOut);
     const unassignedCount = group.filter(r => !r.room_id).length;
 
+    // Get room display
+    const getRoomDisplay = () => {
+      if (isMultiRoom) {
+        return group.map(r => r.rooms?.room_number || 'TBA').join(', ');
+      }
+      return primaryReservation.room_id ? primaryReservation.rooms?.room_number : null;
+    };
+
+    // Get source label
+    const getSourceLabel = () => {
+      if (primaryReservation.booking_source === 'agent') {
+        return primaryReservation.agents?.name || 'Agent';
+      }
+      if (primaryReservation.booking_source === 'direct' && primaryReservation.direct_source) {
+        return primaryReservation.direct_source;
+      }
+      return primaryReservation.booking_source?.charAt(0).toUpperCase() + primaryReservation.booking_source?.slice(1) || 'Direct';
+    };
+
+    const roomDisplay = getRoomDisplay();
+
     return (
-      <Card className={cn(
-        "border-l-4 hover:shadow-md transition-shadow",
-        getStatusBorderColor(primaryReservation.status)
-      )}>
-        <CardContent className="p-4">
-          {/* Header Row: Guest Info + Status + Actions */}
-          <div className="flex items-start justify-between gap-4 mb-3">
-            {/* Guest Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                {getSourceBadge(primaryReservation)}
-                {isMultiRoom && (
-                  <Badge variant="outline" className="text-xs">
-                    <BedDouble size={10} className="mr-1" />
-                    {group.length} Rooms
-                  </Badge>
-                )}
-                {isSplitReservation && (
-                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                    Extended
-                  </Badge>
-                )}
-                {unassignedCount > 0 && (
-                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                    <Clock size={10} className="mr-0.5" />
-                    {unassignedCount} Unassigned
-                  </Badge>
-                )}
+      <Card className="hover:shadow-lg transition-all duration-200 overflow-hidden">
+        <CardContent className="p-0">
+          {/* Top Status Bar */}
+          <div className={cn("h-1.5", getStatusBgColor(primaryReservation.status))} />
+
+          <div className="p-3">
+            {/* Header: Name + Room + Actions */}
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-sm truncate">
+                    {primaryReservation.guests?.name || 'Unknown'}
+                  </h3>
+                  {isMultiRoom && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                      {group.length}R
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {primaryReservation.guests?.phone || '—'}
+                </p>
               </div>
-              <h3 className="font-semibold text-lg truncate">
-                {primaryReservation.guests?.name || 'Unknown Guest'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {primaryReservation.guests?.phone || 'No phone'}
-              </p>
-            </div>
 
-            {/* Status + Actions */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Badge variant={
-                primaryReservation.status === 'Inquiry' ? 'purple' :
-                primaryReservation.status === 'Tentative' ? 'warning' :
-                primaryReservation.status === 'Hold' ? 'orange' :
-                primaryReservation.status === 'Confirmed' ? 'info' :
-                primaryReservation.status === 'Checked-in' ? 'default' :
-                primaryReservation.status === 'Checked-out' ? 'success' :
-                'destructive'
-              }>
-                {primaryReservation.status}
-              </Badge>
-
-              {/* Quick Actions */}
-              {(primaryReservation.status === 'Confirmed' || primaryReservation.status === 'Hold') && (
-                <Button
-                  variant="ghost" size="icon"
-                  onClick={async () => {
-                    if (isMultiRoom) {
-                      const unassignedInGroup = group.filter(r => !r.room_id);
-                      if (unassignedInGroup.length > 0) {
-                        await showAlert({
-                          variant: 'warning',
-                          title: 'Room Assignment Required',
-                          message: `${unassignedInGroup.length} room(s) in this group don't have rooms assigned. Please assign rooms before checking in.`
-                        });
-                        return;
-                      }
-                      const confirmed = await confirm({ variant: 'info', title: 'Check In Multiple Rooms', message: `Check in all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check In All'});
-                      if (confirmed) group.forEach(r => checkIn(r.id));
-                    } else handleCheckIn(primaryReservation);
-                  }}
-                  title="Check In"
-                  className="h-8 w-8"
-                >
-                  <CheckCircle size={18} className="text-green-600" />
-                </Button>
-              )}
-              {primaryReservation.status === 'Checked-in' && (
-                <Button
-                  variant="ghost" size="icon"
-                  onClick={async () => {
-                    if (isMultiRoom) {
-                      const confirmed = await confirm({ variant: 'info', title: 'Check Out Multiple Rooms', message: `Check out all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check Out All'});
-                      if (confirmed) group.forEach(r => checkOut(r.id));
-                    } else handleCheckOut(primaryReservation);
-                  }}
-                  title="Check Out"
-                  className="h-8 w-8"
-                >
-                  <LogOut size={18} className="text-blue-600" />
-                </Button>
-              )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" title="More actions" className="h-8 w-8">
-                    <MoreVertical size={18} />
+              {/* Actions */}
+              <div className="flex items-center gap-0.5 flex-shrink-0">
+                {(primaryReservation.status === 'Confirmed' || primaryReservation.status === 'Hold') && (
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={async () => {
+                      if (isMultiRoom) {
+                        const unassignedInGroup = group.filter(r => !r.room_id);
+                        if (unassignedInGroup.length > 0) {
+                          await showAlert({ variant: 'warning', title: 'Room Assignment Required', message: `${unassignedInGroup.length} room(s) need assignment.` });
+                          return;
+                        }
+                        const confirmed = await confirm({ variant: 'info', title: 'Check In', message: `Check in all ${group.length} rooms?`, confirmText: 'Check In All'});
+                        if (confirmed) group.forEach(r => checkIn(r.id));
+                      } else handleCheckIn(primaryReservation);
+                    }}
+                    className="h-6 w-6"
+                  >
+                    <CheckCircle size={14} className="text-green-600" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleViewDetails(group)}>
-                    <Eye size={16} className="mr-2" />
-                    View Details
-                  </DropdownMenuItem>
-                  {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
-                    <>
-                      <DropdownMenuItem onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)}>
-                        <Edit2 size={16} className="mr-2 text-blue-600" />
-                        {isMultiRoom ? 'Edit All Rooms' : 'Edit'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={async () => {
+                )}
+                {primaryReservation.status === 'Checked-in' && (
+                  <Button
+                    variant="ghost" size="icon"
+                    onClick={async () => {
+                      if (isMultiRoom) {
+                        const confirmed = await confirm({ variant: 'info', title: 'Check Out', message: `Check out all ${group.length} rooms?`, confirmText: 'Check Out All'});
+                        if (confirmed) group.forEach(r => checkOut(r.id));
+                      } else handleCheckOut(primaryReservation);
+                    }}
+                    className="h-6 w-6"
+                  >
+                    <LogOut size={14} className="text-blue-600" />
+                  </Button>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <MoreVertical size={14} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem onClick={() => handleViewDetails(group)} className="text-xs">
+                      <Eye size={12} className="mr-2" />View Details
+                    </DropdownMenuItem>
+                    {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
+                      <>
+                        <DropdownMenuItem onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)} className="text-xs">
+                          <Edit2 size={12} className="mr-2 text-blue-600" />Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={async () => {
                           if (isMultiRoom) {
-                            const confirmed = await confirm({ variant: 'warning', title: 'Cancel Multiple Reservations', message: `Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Cancel All'});
+                            const confirmed = await confirm({ variant: 'warning', title: 'Cancel Reservations', message: `Cancel all ${group.length} rooms?`, confirmText: 'Cancel All'});
                             if (confirmed) group.forEach(r => handleCancel(r));
                           } else handleCancel(primaryReservation);
-                        }}
-                      >
-                        <XOctagon size={16} className="mr-2 text-orange-600" />
-                        Cancel Reservation
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => isMultiRoom ? handleDeleteGroup(group) : handleDelete(primaryReservation)}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <Trash2 size={16} className="mr-2" />
-                    Delete Permanently
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                        }} className="text-xs">
+                          <XOctagon size={12} className="mr-2 text-orange-600" />Cancel
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => isMultiRoom ? handleDeleteGroup(group) : handleDelete(primaryReservation)} className="text-xs text-red-600">
+                      <Trash2 size={12} className="mr-2" />Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-          </div>
 
-          {/* Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            {/* Room Info */}
-            <div className="flex items-start gap-2">
-              <BedDouble size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Room</p>
-                {isMultiRoom ? (
-                  <p className="font-medium truncate" title={group.map(r => r.rooms?.room_number || 'TBA').join(', ')}>
-                    {group.map(r => r.rooms?.room_number || 'TBA').join(', ')}
-                  </p>
-                ) : primaryReservation.room_id ? (
-                  <p className="font-medium">{primaryReservation.rooms?.room_number}</p>
+            {/* Info Grid - 2x2 compact layout */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] mb-2">
+              {/* Room */}
+              <div className="flex items-center gap-1.5">
+                <BedDouble size={12} className="text-muted-foreground flex-shrink-0" />
+                {roomDisplay ? (
+                  <span className="font-medium truncate" title={roomDisplay}>{roomDisplay}</span>
                 ) : (
-                  <p className="font-medium text-amber-700">Unassigned</p>
+                  <span className="text-amber-600 font-medium">Unassigned</span>
                 )}
               </div>
-            </div>
 
-            {/* Dates */}
-            <div className="flex items-start gap-2">
-              <CalendarDays size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-muted-foreground">Stay</p>
-                <p className="font-medium">
-                  {formatDate(earliestCheckIn)} - {formatDate(latestCheckOut)}
-                </p>
-                <p className="text-xs text-muted-foreground">{nights} night{nights !== 1 ? 's' : ''}</p>
+              {/* Dates */}
+              <div className="flex items-center gap-1.5">
+                <CalendarDays size={12} className="text-muted-foreground flex-shrink-0" />
+                <span className="truncate">{formatDate(earliestCheckIn)} → {formatDate(latestCheckOut)}</span>
               </div>
-            </div>
 
-            {/* Guests */}
-            <div className="flex items-start gap-2">
-              <Users size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-muted-foreground">Guests</p>
-                <p className="font-medium">{totalGuests} Total</p>
-                <p className="text-xs text-muted-foreground">
+              {/* Guests */}
+              <div className="flex items-center gap-1.5">
+                <Users size={12} className="text-muted-foreground flex-shrink-0" />
+                <span>
                   {isMultiRoom ? (
-                    <>
-                      {group.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}A,
-                      {group.reduce((sum, r) => sum + (r.number_of_children || 0), 0)}C,
-                      {group.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}I
-                    </>
+                    <>{group.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}A {group.reduce((sum, r) => sum + (r.number_of_children || 0), 0)}C {group.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}I</>
                   ) : (
-                    <>
-                      {primaryReservation.number_of_adults || 0}A,
-                      {primaryReservation.number_of_children || 0}C,
-                      {primaryReservation.number_of_infants || 0}I
-                    </>
+                    <>{primaryReservation.number_of_adults || 0}A {primaryReservation.number_of_children || 0}C {primaryReservation.number_of_infants || 0}I</>
                   )}
-                </p>
+                </span>
+              </div>
+
+              {/* Nights */}
+              <div className="flex items-center gap-1.5">
+                <Clock size={12} className="text-muted-foreground flex-shrink-0" />
+                <span>{nights} night{nights !== 1 ? 's' : ''}</span>
               </div>
             </div>
 
-            {/* Amount & Payment */}
-            <div className="flex items-start gap-2">
-              <CreditCard size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-muted-foreground">Amount</p>
-                <p className="font-medium">₹{totalAmount.toLocaleString()}</p>
-                <Badge variant={
-                  primaryReservation.payment_status === 'Paid' ? 'success' :
-                  primaryReservation.payment_status === 'Partial' ? 'warning' :
-                  'destructive'
-                } className="text-xs mt-0.5">
+            {/* Footer: Amount + Status + Payment + Source */}
+            <div className="flex items-center justify-between pt-2 border-t border-dashed">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm">₹{totalAmount.toLocaleString()}</span>
+                <span className={cn(
+                  "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                  primaryReservation.payment_status === 'Paid' ? 'bg-green-100 text-green-700' :
+                  primaryReservation.payment_status === 'Partial' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
+                )}>
                   {primaryReservation.payment_status}
-                </Badge>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {primaryReservation.meal_plan && primaryReservation.meal_plan !== 'NM' && (
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
+                    {primaryReservation.meal_plan}
+                  </span>
+                )}
+                <span className="text-[10px] text-muted-foreground">{getSourceLabel()}</span>
+                <span className={cn(
+                  "text-[10px] font-medium px-1.5 py-0.5 rounded text-white",
+                  getStatusBgColor(primaryReservation.status)
+                )}>
+                  {primaryReservation.status}
+                </span>
               </div>
             </div>
-          </div>
 
-          {/* Meal Plan */}
-          {primaryReservation.meal_plan && primaryReservation.meal_plan !== 'NM' && (
-            <div className="mt-3 pt-3 border-t">
-              <span className="text-xs text-muted-foreground">Meal Plan: </span>
-              <span className="text-sm font-medium">{getMealPlanLabel(primaryReservation.meal_plan)}</span>
-            </div>
-          )}
+            {/* Alerts */}
+            {(unassignedCount > 0 || isSplitReservation) && (
+              <div className="flex gap-1.5 mt-2 pt-2 border-t">
+                {unassignedCount > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
+                    {unassignedCount} Unassigned
+                  </span>
+                )}
+                {isSplitReservation && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                    Extended Stay
+                  </span>
+                )}
+              </div>
+            )}
 
-          {/* Multi-Room Expansion */}
-          {isMultiRoom && (
-            <div className="mt-3 pt-3 border-t">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => toggleGroupExpansion(groupId)}
-                className="w-full justify-between text-muted-foreground hover:text-foreground"
-              >
-                <span>View {group.length} room details</span>
-                <ChevronDown size={16} className={cn("transition-transform", isExpanded && "rotate-180")} />
-              </Button>
-
-              {isExpanded && (
-                <div className="mt-2 space-y-2">
-                  {group.map((reservation, roomIndex) => (
-                    <div
-                      key={reservation.id}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground font-medium">Room {roomIndex + 1}</span>
-                        <span className="font-medium">
-                          {reservation.rooms?.room_number || 'Unassigned'}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {reservation.check_in_date} → {reservation.check_out_date}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {reservation.number_of_adults || 0}A, {reservation.number_of_children || 0}C
-                        </span>
-                        <span className="font-medium">₹{(reservation.total_amount || 0).toLocaleString()}</span>
+            {/* Multi-Room Expansion */}
+            {isMultiRoom && (
+              <div className="mt-2 pt-2 border-t">
+                <button
+                  onClick={() => toggleGroupExpansion(groupId)}
+                  className="flex items-center justify-between w-full text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <span>{group.length} rooms</span>
+                  <ChevronDown size={12} className={cn("transition-transform", isExpanded && "rotate-180")} />
+                </button>
+                {isExpanded && (
+                  <div className="mt-1.5 space-y-1">
+                    {group.map((reservation, roomIndex) => (
+                      <div key={reservation.id} className="flex items-center justify-between py-1 px-1.5 bg-slate-50 rounded text-[10px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium w-4">{roomIndex + 1}.</span>
+                          <span className="font-medium">{reservation.rooms?.room_number || 'TBA'}</span>
+                          <span className="text-muted-foreground">{formatDate(reservation.check_in_date)}-{formatDate(reservation.check_out_date)}</span>
+                          <span className="text-muted-foreground">{reservation.number_of_adults}A</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">₹{(reservation.total_amount || 0).toLocaleString()}</span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-0.5 hover:bg-slate-200 rounded">
+                                <MoreVertical size={10} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-32">
+                              <DropdownMenuItem onClick={() => handleEdit(reservation)} className="text-xs">
+                                <Edit2 size={10} className="mr-1.5" />Edit
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <MoreVertical size={14} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(reservation)}>
-                            <Edit2 size={14} className="mr-2 text-blue-600" />
-                            Edit This Room
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
