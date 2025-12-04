@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   Menu, LogOut, Hotel, Search, Home, Calendar, CalendarDays,
-  Building2, DoorOpen, Users, UserCog, CreditCard, FileText, BarChart3, Package, Settings, Tag, CircleUser
+  Building2, DoorOpen, Users, UserCog, CreditCard, FileText, BarChart3, Package, Settings, Tag, CircleUser, Plus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -137,8 +137,18 @@ export const Header = ({ currentPage, onNavigate, searchTerm, onSearchChange }) 
           })}
         </nav>
 
+        {/* New Booking Button */}
+        <Button
+          onClick={() => onNavigate('new-reservation')}
+          size="sm"
+          className="hidden sm:flex gap-2"
+        >
+          <Plus size={18} />
+          <span className="hidden md:inline">New Booking</span>
+        </Button>
+
         {/* User Menu */}
-        <div className="ml-auto lg:ml-4 flex items-center">
+        <div className="ml-2 lg:ml-4 flex items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
