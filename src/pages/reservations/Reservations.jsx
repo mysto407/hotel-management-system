@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
-import ReservationSummary from '../../components/reservations/ReservationSummary';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
@@ -678,17 +677,6 @@ const Reservations = ({ onNavigate }) => {
           </div>
         </CollapsibleContent>
       </Collapsible>
-
-      {/* Summary Statistics Box */}
-      <ReservationSummary
-        reservations={reservations}
-        filteredReservations={filteredReservations}
-        dateFilterType={dateFilterType}
-        startDate={startDate}
-        endDate={endDate}
-        showToggle={true}
-        defaultExpanded={true}
-      />
 
       {/* Reservation Table */}
       <Card>
