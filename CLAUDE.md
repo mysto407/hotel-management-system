@@ -49,6 +49,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Add validation in onChange to only allow numeric input: `/^\d*\.?\d*$/` for decimals, `/^\d*$/` for integers
    - This gives numeric keyboard on mobile without the spinner arrows
 
+8. **Shorthand: "cpm" means Commit, Push, and Merge** - When the user says "cpm":
+   - Commit all current changes with appropriate message
+   - Push the branch to remote
+   - Merge the branch into main
+   - Delete the feature branch after successful merge
+
 ## Git Workflow (Branch-Per-Task Strategy)
 
 This project uses a **Branch-Per-Task** workflow to enable easy review and reversion of changes. Every feature, fix, or refactoring gets its own branch.
