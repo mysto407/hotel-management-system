@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Edit2, XOctagon, CheckCircle, LogOut, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock } from 'lucide-react';
+import { Edit2, XOctagon, CheckCircle, LogOut, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock, Users, CreditCard, BedDouble, CalendarDays } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
@@ -14,14 +14,6 @@ import { cn } from '@/lib/utils';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -57,11 +49,11 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   const [initialRoomDetails, setInitialRoomDetails] = useState(null);
 
   const [filterStatus, setFilterStatus] = useState('all');
-  
+
   const [dateFilterType, setDateFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  
+
   const [filterMealPlan, setFilterMealPlan] = useState('all');
   const [filterGuestCount, setFilterGuestCount] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -70,23 +62,25 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   const [isRoomAssignmentModalOpen, setIsRoomAssignmentModalOpen] = useState(false);
   const [roomAssignmentReservation, setRoomAssignmentReservation] = useState(null);
 
+  const today = new Date().toISOString().split('T')[0];
+
   const setDatePreset = (preset) => {
-    const today = new Date();
+    const todayDate = new Date();
     let start, end;
     switch(preset) {
       case 'weekly':
-        start = new Date(today);
-        end = new Date(today);
+        start = new Date(todayDate);
+        end = new Date(todayDate);
         end.setDate(end.getDate() + 7);
         break;
       case 'fortnightly':
-        start = new Date(today);
-        end = new Date(today);
+        start = new Date(todayDate);
+        end = new Date(todayDate);
         end.setDate(end.getDate() + 14);
         break;
       case 'monthly':
-        start = new Date(today);
-        end = new Date(today);
+        start = new Date(todayDate);
+        end = new Date(todayDate);
         end.setMonth(end.getMonth() + 1);
         break;
       case 'all':
@@ -123,7 +117,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   const handleSubmit = async (formData, roomDetails) => {
     try {
       if (editingReservation) {
-        // ... (logic from original file remains the same)
         const reservationData = {
           booking_source: formData.booking_source,
           agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
@@ -145,7 +138,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
         };
         await updateReservation(editingReservation.id, reservationData);
       } else if (editingGroup) {
-        // ... (logic from original file remains the same)
         const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / editingGroup.length;
         for (let i = 0; i < editingGroup.length; i++) {
           const reservation = editingGroup[i];
@@ -154,7 +146,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           const days = calculateDays(formData.check_in_date, formData.check_out_date);
           const roomAmount = roomType ? roomType.base_price * days : 0;
           const reservationData = {
-            // ... (copy properties from logic)
             booking_source: formData.booking_source,
             agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
             direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
@@ -181,19 +172,16 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           message: `Successfully updated ${editingGroup.length} reservations!`
         });
       } else {
-        // ... (logic from original file remains the same)
-         const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / formData.number_of_rooms;
+        const advancePerRoom = (parseFloat(formData.advance_payment) || 0) / formData.number_of_rooms;
         for (let i = 0; i < roomDetails.length; i++) {
           const roomDetail = roomDetails[i];
           const roomType = roomTypes.find(rt => rt.id === roomDetail.room_type_id);
           const days = calculateDays(formData.check_in_date, formData.check_out_date);
           const roomAmount = roomType ? roomType.base_price * days : 0;
-          // Get the room number for folio naming (or room type name if unassigned)
           const roomData = roomDetail.room_id ? rooms.find(r => r.id === roomDetail.room_id) : null;
           const roomNumber = roomData?.room_number || '';
           const roomTypeName = roomType?.name || '';
           const reservationData = {
-             // ... (copy properties from logic)
             booking_source: formData.booking_source,
             agent_id: formData.booking_source === 'agent' ? formData.agent_id : null,
             direct_source: formData.booking_source === 'direct' ? formData.direct_source : null,
@@ -235,7 +223,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   };
 
   const handleEdit = (reservation) => {
-    // ... (logic from original file remains the same)
     setEditingReservation(reservation);
     setEditingGroup(null);
     const room = rooms.find(r => r.id === reservation.room_id);
@@ -269,8 +256,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   };
 
   const handleEditGroup = (group) => {
-    // ... (logic from original file remains the same)
-     setEditingGroup(group);
+    setEditingGroup(group);
     setEditingReservation(null);
     const primaryReservation = group[0];
     const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
@@ -307,9 +293,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   };
 
   const handleCheckIn = async (reservation) => {
-    // Check if reservation has no room assigned
     if (!reservation.room_id) {
-      // Show room assignment modal
       setRoomAssignmentReservation(reservation);
       setIsRoomAssignmentModalOpen(true);
       return;
@@ -327,13 +311,11 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     }
   };
 
-  // Handle room assignment and check-in for unassigned reservations
   const handleRoomAssignmentAndCheckIn = async (roomId, roomNumber) => {
     if (!roomAssignmentReservation) return;
 
     const result = await assignRoom(roomAssignmentReservation.id, roomId, false, roomNumber);
     if (result.data) {
-      // Room assigned, now check in
       await checkIn(roomAssignmentReservation.id);
       setIsRoomAssignmentModalOpen(false);
       setRoomAssignmentReservation(null);
@@ -421,60 +403,41 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   };
 
   const handleViewDetails = (group) => {
-    // Get the first reservation to check for booking_id
     const firstReservation = Array.isArray(group) ? group[0] : group;
-
-    // If the reservation has a booking_id, find ALL reservations with that booking_id
-    // This ensures we load all related reservations even if they weren't grouped together in the list
     let reservationIds;
     if (firstReservation.booking_id) {
-      // Find all reservations with the same booking_id
       const relatedReservations = reservations.filter(r => r.booking_id === firstReservation.booking_id);
       reservationIds = relatedReservations.map(r => r.id);
     } else {
-      // Fallback to the old behavior for reservations without booking_id
       reservationIds = Array.isArray(group) ? group.map(r => r.id) : [group.id];
     }
-
-    // Store reservation IDs in sessionStorage
     sessionStorage.setItem('reservationDetailsIds', JSON.stringify(reservationIds));
     onNavigate('reservation-details');
   };
 
   const getMealPlanLabel = (mealPlan) => {
-    // Use the MealPlanContext to get the meal plan name
     return getMealPlanName(mealPlan);
   };
 
   const getRoomInfo = (room) => {
-    // ... (logic from original file remains the same)
     if (!room) return 'Unknown';
     const roomType = roomTypes.find(rt => rt.id === room.room_type_id);
     return `${room.room_number} - ${roomType?.name || 'Unknown'}`;
   };
 
   const groupReservations = (reservations) => {
-    // Group reservations by booking_id (primary method) or by legacy heuristics
     const groups = [];
     const processed = new Set();
     reservations.forEach(reservation => {
       if (processed.has(reservation.id)) return;
       const group = reservations.filter(r => {
         if (processed.has(r.id)) return false;
-
-        // PRIMARY GROUPING: If both reservations have a booking_id and they match, group them together
-        // This is the most reliable method for multi-room bookings and room changes
         if (reservation.booking_id && r.booking_id === reservation.booking_id) {
           return true;
         }
-
-        // LEGACY: If both have a booking_reference and they match, group them together (split reservations)
         if (reservation.booking_reference && r.booking_reference === reservation.booking_reference) {
           return true;
         }
-
-        // FALLBACK: Use the original heuristic grouping logic for older reservations without booking_id
-        // This groups multi-room bookings created together (same guest, dates, source, meal plan, and within 30 seconds)
         const sameGuest = r.guest_id === reservation.guest_id;
         const sameDates = r.check_in_date === reservation.check_in_date && r.check_out_date === reservation.check_out_date;
         const sameSource = r.booking_source === reservation.booking_source && r.agent_id === reservation.agent_id;
@@ -543,7 +506,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       const dateB = new Date(b.check_in_date);
       return dateA - dateB;
     });
-    
+
   // Filter Button Component
   const FilterButton = ({ onClick, isActive, children, ...props }) => (
     <Button
@@ -563,6 +526,382 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       {children}
     </Button>
   );
+
+  // Get status color classes for card border
+  const getStatusBorderColor = (status) => {
+    switch(status) {
+      case 'Inquiry': return 'border-l-purple-500';
+      case 'Tentative': return 'border-l-yellow-500';
+      case 'Hold': return 'border-l-orange-500';
+      case 'Confirmed': return 'border-l-blue-500';
+      case 'Checked-in': return 'border-l-green-600';
+      case 'Checked-out': return 'border-l-gray-500';
+      case 'Cancelled': return 'border-l-red-500';
+      default: return 'border-l-gray-300';
+    }
+  };
+
+  // Get booking source badge
+  const getSourceBadge = (reservation) => {
+    if (reservation.booking_source === 'agent') {
+      return (
+        <Badge variant="info" className="text-xs">
+          <User size={10} className="mr-1" />
+          Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
+        </Badge>
+      );
+    } else if (reservation.booking_source === 'walk-in') {
+      return (
+        <Badge variant="success" className="text-xs">
+          <Building size={10} className="mr-1" />Walk-in
+        </Badge>
+      );
+    } else if (reservation.booking_source === 'phone') {
+      return (
+        <Badge variant="info" className="text-xs">
+          <Phone size={10} className="mr-1" />Phone
+        </Badge>
+      );
+    } else if (reservation.booking_source === 'email') {
+      return (
+        <Badge variant="warning" className="text-xs">
+          <Mail size={10} className="mr-1" />Email
+        </Badge>
+      );
+    } else if (reservation.booking_source === 'website') {
+      return (
+        <Badge variant="purple" className="text-xs">
+          <Building size={10} className="mr-1" />Website
+        </Badge>
+      );
+    } else if (reservation.booking_source === 'direct' && reservation.direct_source) {
+      return (
+        <Badge variant="success" className="text-xs">
+          <Building size={10} className="mr-1" />{reservation.direct_source}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="success" className="text-xs">
+        <Building size={10} className="mr-1" />Direct
+      </Badge>
+    );
+  };
+
+  // Format date for display
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
+
+  // Calculate nights
+  const calculateNights = (checkIn, checkOut) => {
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const diffTime = Math.abs(end - start);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Reservation Card Component
+  const ReservationCard = ({ group, groupIndex }) => {
+    const isMultiRoom = group.length > 1;
+    const primaryReservation = group[0];
+    const groupId = `${primaryReservation.guest_id}-${primaryReservation.check_in_date}-${groupIndex}`;
+    const isExpanded = expandedGroups.has(groupId);
+
+    const isSplitReservation = primaryReservation.booking_reference &&
+                              primaryReservation.booking_reference.startsWith('SPLIT-');
+
+    const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+    const totalGuests = group.reduce((sum, r) =>
+      sum + (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0), 0
+    );
+
+    // Calculate dates for multi-room groups
+    const earliestCheckIn = isMultiRoom
+      ? group.reduce((earliest, r) => (!earliest || r.check_in_date < earliest ? r.check_in_date : earliest), null)
+      : primaryReservation.check_in_date;
+    const latestCheckOut = isMultiRoom
+      ? group.reduce((latest, r) => (!latest || r.check_out_date > latest ? r.check_out_date : latest), null)
+      : primaryReservation.check_out_date;
+
+    const nights = calculateNights(earliestCheckIn, latestCheckOut);
+    const unassignedCount = group.filter(r => !r.room_id).length;
+
+    return (
+      <Card className={cn(
+        "border-l-4 hover:shadow-md transition-shadow",
+        getStatusBorderColor(primaryReservation.status)
+      )}>
+        <CardContent className="p-4">
+          {/* Header Row: Guest Info + Status + Actions */}
+          <div className="flex items-start justify-between gap-4 mb-3">
+            {/* Guest Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                {getSourceBadge(primaryReservation)}
+                {isMultiRoom && (
+                  <Badge variant="outline" className="text-xs">
+                    <BedDouble size={10} className="mr-1" />
+                    {group.length} Rooms
+                  </Badge>
+                )}
+                {isSplitReservation && (
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                    Extended
+                  </Badge>
+                )}
+                {unassignedCount > 0 && (
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                    <Clock size={10} className="mr-0.5" />
+                    {unassignedCount} Unassigned
+                  </Badge>
+                )}
+              </div>
+              <h3 className="font-semibold text-lg truncate">
+                {primaryReservation.guests?.name || 'Unknown Guest'}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {primaryReservation.guests?.phone || 'No phone'}
+              </p>
+            </div>
+
+            {/* Status + Actions */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Badge variant={
+                primaryReservation.status === 'Inquiry' ? 'purple' :
+                primaryReservation.status === 'Tentative' ? 'warning' :
+                primaryReservation.status === 'Hold' ? 'orange' :
+                primaryReservation.status === 'Confirmed' ? 'info' :
+                primaryReservation.status === 'Checked-in' ? 'default' :
+                primaryReservation.status === 'Checked-out' ? 'success' :
+                'destructive'
+              }>
+                {primaryReservation.status}
+              </Badge>
+
+              {/* Quick Actions */}
+              {(primaryReservation.status === 'Confirmed' || primaryReservation.status === 'Hold') && (
+                <Button
+                  variant="ghost" size="icon"
+                  onClick={async () => {
+                    if (isMultiRoom) {
+                      const unassignedInGroup = group.filter(r => !r.room_id);
+                      if (unassignedInGroup.length > 0) {
+                        await showAlert({
+                          variant: 'warning',
+                          title: 'Room Assignment Required',
+                          message: `${unassignedInGroup.length} room(s) in this group don't have rooms assigned. Please assign rooms before checking in.`
+                        });
+                        return;
+                      }
+                      const confirmed = await confirm({ variant: 'info', title: 'Check In Multiple Rooms', message: `Check in all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check In All'});
+                      if (confirmed) group.forEach(r => checkIn(r.id));
+                    } else handleCheckIn(primaryReservation);
+                  }}
+                  title="Check In"
+                  className="h-8 w-8"
+                >
+                  <CheckCircle size={18} className="text-green-600" />
+                </Button>
+              )}
+              {primaryReservation.status === 'Checked-in' && (
+                <Button
+                  variant="ghost" size="icon"
+                  onClick={async () => {
+                    if (isMultiRoom) {
+                      const confirmed = await confirm({ variant: 'info', title: 'Check Out Multiple Rooms', message: `Check out all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check Out All'});
+                      if (confirmed) group.forEach(r => checkOut(r.id));
+                    } else handleCheckOut(primaryReservation);
+                  }}
+                  title="Check Out"
+                  className="h-8 w-8"
+                >
+                  <LogOut size={18} className="text-blue-600" />
+                </Button>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" title="More actions" className="h-8 w-8">
+                    <MoreVertical size={18} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleViewDetails(group)}>
+                    <Eye size={16} className="mr-2" />
+                    View Details
+                  </DropdownMenuItem>
+                  {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
+                    <>
+                      <DropdownMenuItem onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)}>
+                        <Edit2 size={16} className="mr-2 text-blue-600" />
+                        {isMultiRoom ? 'Edit All Rooms' : 'Edit'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          if (isMultiRoom) {
+                            const confirmed = await confirm({ variant: 'warning', title: 'Cancel Multiple Reservations', message: `Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Cancel All'});
+                            if (confirmed) group.forEach(r => handleCancel(r));
+                          } else handleCancel(primaryReservation);
+                        }}
+                      >
+                        <XOctagon size={16} className="mr-2 text-orange-600" />
+                        Cancel Reservation
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => isMultiRoom ? handleDeleteGroup(group) : handleDelete(primaryReservation)}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 size={16} className="mr-2" />
+                    Delete Permanently
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Info Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            {/* Room Info */}
+            <div className="flex items-start gap-2">
+              <BedDouble size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Room</p>
+                {isMultiRoom ? (
+                  <p className="font-medium truncate" title={group.map(r => r.rooms?.room_number || 'TBA').join(', ')}>
+                    {group.map(r => r.rooms?.room_number || 'TBA').join(', ')}
+                  </p>
+                ) : primaryReservation.room_id ? (
+                  <p className="font-medium">{primaryReservation.rooms?.room_number}</p>
+                ) : (
+                  <p className="font-medium text-amber-700">Unassigned</p>
+                )}
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="flex items-start gap-2">
+              <CalendarDays size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Stay</p>
+                <p className="font-medium">
+                  {formatDate(earliestCheckIn)} - {formatDate(latestCheckOut)}
+                </p>
+                <p className="text-xs text-muted-foreground">{nights} night{nights !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+
+            {/* Guests */}
+            <div className="flex items-start gap-2">
+              <Users size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Guests</p>
+                <p className="font-medium">{totalGuests} Total</p>
+                <p className="text-xs text-muted-foreground">
+                  {isMultiRoom ? (
+                    <>
+                      {group.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}A,
+                      {group.reduce((sum, r) => sum + (r.number_of_children || 0), 0)}C,
+                      {group.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)}I
+                    </>
+                  ) : (
+                    <>
+                      {primaryReservation.number_of_adults || 0}A,
+                      {primaryReservation.number_of_children || 0}C,
+                      {primaryReservation.number_of_infants || 0}I
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Amount & Payment */}
+            <div className="flex items-start gap-2">
+              <CreditCard size={16} className="text-muted-foreground mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Amount</p>
+                <p className="font-medium">₹{totalAmount.toLocaleString()}</p>
+                <Badge variant={
+                  primaryReservation.payment_status === 'Paid' ? 'success' :
+                  primaryReservation.payment_status === 'Partial' ? 'warning' :
+                  'destructive'
+                } className="text-xs mt-0.5">
+                  {primaryReservation.payment_status}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Meal Plan */}
+          {primaryReservation.meal_plan && primaryReservation.meal_plan !== 'NM' && (
+            <div className="mt-3 pt-3 border-t">
+              <span className="text-xs text-muted-foreground">Meal Plan: </span>
+              <span className="text-sm font-medium">{getMealPlanLabel(primaryReservation.meal_plan)}</span>
+            </div>
+          )}
+
+          {/* Multi-Room Expansion */}
+          {isMultiRoom && (
+            <div className="mt-3 pt-3 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleGroupExpansion(groupId)}
+                className="w-full justify-between text-muted-foreground hover:text-foreground"
+              >
+                <span>View {group.length} room details</span>
+                <ChevronDown size={16} className={cn("transition-transform", isExpanded && "rotate-180")} />
+              </Button>
+
+              {isExpanded && (
+                <div className="mt-2 space-y-2">
+                  {group.map((reservation, roomIndex) => (
+                    <div
+                      key={reservation.id}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground font-medium">Room {roomIndex + 1}</span>
+                        <span className="font-medium">
+                          {reservation.rooms?.room_number || 'Unassigned'}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {reservation.check_in_date} → {reservation.check_out_date}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {reservation.number_of_adults || 0}A, {reservation.number_of_children || 0}C
+                        </span>
+                        <span className="font-medium">₹{(reservation.total_amount || 0).toLocaleString()}</span>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreVertical size={14} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(reservation)}>
+                            <Edit2 size={14} className="mr-2 text-blue-600" />
+                            Edit This Room
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -586,7 +925,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                   Clear All
                 </Button>
               )}
-              <ChevronDown 
+              <ChevronDown
                 size={16}
                 className={cn("transition-transform", showFilters && "rotate-180")}
               />
@@ -603,7 +942,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
               <FilterButton onClick={() => setDatePreset('monthly')} isActive={dateFilterType === 'monthly'}>Next 30 Days</FilterButton>
               <FilterButton onClick={() => setDateFilterType('custom')} isActive={dateFilterType === 'custom'}>Custom</FilterButton>
             </div>
-            
+
             {dateFilterType === 'custom' && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -616,7 +955,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                 </div>
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t">
               <div className="space-y-3">
                 <Label className="font-semibold">Status</Label>
@@ -660,346 +999,22 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Reservation Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Guest Name</TableHead>
-                <TableHead>Room</TableHead>
-                <TableHead>Check-in</TableHead>
-                <TableHead>Check-out</TableHead>
-                <TableHead>Guests</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {groupReservations(filteredReservations).length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={9} className="h-48 text-center">
-                    <Calendar size={48} className="mx-auto text-muted-foreground opacity-50" />
-                    <p className="mt-4 text-lg font-semibold">No reservations found</p>
-                    <p className="text-muted-foreground">Try adjusting your filters</p>
-                  </TableCell>
-                </TableRow>
-              )}
-              {groupReservations(filteredReservations).map((group, groupIndex) => {
-                const isMultiRoom = group.length > 1;
-                const primaryReservation = group[0];
-                const groupId = `${primaryReservation.guest_id}-${primaryReservation.check_in_date}-${groupIndex}`;
-                const isExpanded = expandedGroups.has(groupId);
-
-                // Check if this is a split reservation group
-                const isSplitReservation = primaryReservation.booking_reference &&
-                                          primaryReservation.booking_reference.startsWith('SPLIT-');
-
-                const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
-                const totalGuests = group.reduce((sum, r) =>
-                  sum + (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0), 0
-                );
-
-                return (
-                  <>
-                    <TableRow 
-                      key={groupId} 
-                      className={cn(isMultiRoom && "bg-gray-50 hover:bg-gray-100", isMultiRoom && "cursor-pointer")}
-                      onClick={isMultiRoom ? () => toggleGroupExpansion(groupId) : undefined}
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {isMultiRoom && <ChevronDown size={16} className={cn("transition-transform", isExpanded && "rotate-180")} />}
-                          <div>
-                            <div className="flex gap-1 flex-wrap">
-                              {primaryReservation.booking_source === 'agent' ? (
-                                <Badge variant="info">
-                                  <User size={12} className="mr-1" />
-                                  Agent{primaryReservation.agents?.name ? `: ${primaryReservation.agents.name}` : ''}
-                                </Badge>
-                              ) : primaryReservation.booking_source === 'walk-in' ? (
-                                <Badge variant="success">
-                                  <Building size={12} className="mr-1" />Walk-in
-                                </Badge>
-                              ) : primaryReservation.booking_source === 'phone' ? (
-                                <Badge variant="info">
-                                  <Phone size={12} className="mr-1" />Phone
-                                </Badge>
-                              ) : primaryReservation.booking_source === 'email' ? (
-                                <Badge variant="warning">
-                                  <Mail size={12} className="mr-1" />Email
-                                </Badge>
-                              ) : primaryReservation.booking_source === 'website' ? (
-                                <Badge variant="purple">
-                                  <Building size={12} className="mr-1" />Website
-                                </Badge>
-                              ) : primaryReservation.booking_source === 'direct' && primaryReservation.direct_source ? (
-                                <Badge variant="success">
-                                  <Building size={12} className="mr-1" />{primaryReservation.direct_source}
-                                </Badge>
-                              ) : (
-                                <Badge variant="success">
-                                  <Building size={12} className="mr-1" />Direct
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="font-bold mt-1">{primaryReservation.guests?.name || 'Unknown'}</div>
-                            <div className="text-xs text-muted-foreground">{primaryReservation.guests?.phone || 'N/A'}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {isMultiRoom ? (
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <strong>{group.length} Rooms</strong>
-                              {isSplitReservation && (
-                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200">
-                                  Extended
-                                </Badge>
-                              )}
-                              {/* Show count of unassigned rooms in group */}
-                              {group.filter(r => !r.room_id).length > 0 && (
-                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-amber-50 text-amber-700 border-amber-200">
-                                  <Clock size={10} className="mr-0.5" />
-                                  {group.filter(r => !r.room_id).length} Unassigned
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground max-w-xs truncate">
-                              {group.map(r => r.rooms?.room_number || 'TBA').join(', ')}
-                            </div>
-                          </div>
-                        ) : primaryReservation.room_id ? (
-                          getRoomInfo(primaryReservation.rooms)
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={14} className="text-amber-600" />
-                            <span className="text-amber-700 font-medium">Unassigned</span>
-                            {primaryReservation.room_types?.name && (
-                              <span className="text-xs text-muted-foreground">
-                                ({primaryReservation.room_types.name})
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isMultiRoom ? (
-                          <div>
-                            <div className="font-medium">
-                              {/* Show earliest check-in date */}
-                              {group.reduce((earliest, r) => {
-                                return !earliest || r.check_in_date < earliest ? r.check_in_date : earliest;
-                              }, null)}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">Earliest</div>
-                          </div>
-                        ) : (
-                          primaryReservation.check_in_date
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isMultiRoom ? (
-                          <div>
-                            <div className="font-medium">
-                              {/* Show latest check-out date */}
-                              {group.reduce((latest, r) => {
-                                return !latest || r.check_out_date > latest ? r.check_out_date : latest;
-                              }, null)}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">Latest</div>
-                          </div>
-                        ) : (
-                          primaryReservation.check_out_date
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {totalGuests} Total
-                        <div className="text-xs text-muted-foreground">
-                          {isMultiRoom ? (
-                            <>
-                              {group.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)} A
-                              , {group.reduce((sum, r) => sum + (r.number_of_children || 0), 0)} C
-                              , {group.reduce((sum, r) => sum + (r.number_of_infants || 0), 0)} I
-                            </>
-                          ) : (
-                            <>
-                              {primaryReservation.number_of_adults || 0} A
-                              , {primaryReservation.number_of_children || 0} C
-                              , {primaryReservation.number_of_infants || 0} I
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>₹{totalAmount.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          primaryReservation.payment_status === 'Paid' ? 'success' :
-                          primaryReservation.payment_status === 'Partial' ? 'warning' :
-                          'destructive'
-                        }>
-                          {primaryReservation.payment_status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          primaryReservation.status === 'Inquiry' ? 'purple' :
-                          primaryReservation.status === 'Tentative' ? 'warning' :
-                          primaryReservation.status === 'Hold' ? 'orange' :
-                          primaryReservation.status === 'Confirmed' ? 'info' :
-                          primaryReservation.status === 'Checked-in' ? 'default' :
-                          primaryReservation.status === 'Checked-out' ? 'success' :
-                          'destructive'
-                        }>
-                          {primaryReservation.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
-                          {(primaryReservation.status === 'Confirmed' || primaryReservation.status === 'Hold') && (
-                            <Button
-                              variant="ghost" size="icon"
-                              onClick={async () => {
-                                if (isMultiRoom) {
-                                  // Check if any reservation in the group is unassigned
-                                  const unassignedInGroup = group.filter(r => !r.room_id);
-                                  if (unassignedInGroup.length > 0) {
-                                    await showAlert({
-                                      variant: 'warning',
-                                      title: 'Room Assignment Required',
-                                      message: `${unassignedInGroup.length} room(s) in this group don't have rooms assigned. Please assign rooms before checking in.`
-                                    });
-                                    return;
-                                  }
-                                  const confirmed = await confirm({ variant: 'info', title: 'Check In Multiple Rooms', message: `Check in all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check In All'});
-                                  if (confirmed) group.forEach(r => checkIn(r.id));
-                                } else handleCheckIn(primaryReservation);
-                              }}
-                              title="Check In"
-                            >
-                              <CheckCircle size={16} className="text-green-600" />
-                            </Button>
-                          )}
-                          {primaryReservation.status === 'Checked-in' && (
-                            <Button
-                              variant="ghost" size="icon"
-                              onClick={async () => {
-                                if (isMultiRoom) {
-                                  const confirmed = await confirm({ variant: 'info', title: 'Check Out Multiple Rooms', message: `Check out all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Check Out All'});
-                                  if (confirmed) group.forEach(r => checkOut(r.id));
-                                } else handleCheckOut(primaryReservation);
-                              }}
-                              title="Check Out"
-                            >
-                              <LogOut size={16} className="text-blue-600" />
-                            </Button>
-                          )}
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" title="More actions">
-                                <MoreVertical size={16} />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewDetails(group)}>
-                                <Eye size={16} className="mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
-                                <>
-                                  <DropdownMenuItem onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)}>
-                                    <Edit2 size={16} className="mr-2 text-blue-600" />
-                                    {isMultiRoom ? 'Edit All Rooms' : 'Edit'}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={async () => {
-                                      if (isMultiRoom) {
-                                        const confirmed = await confirm({ variant: 'warning', title: 'Cancel Multiple Reservations', message: `Cancel all ${group.length} rooms for ${primaryReservation.guests?.name}?`, confirmText: 'Cancel All'});
-                                        if (confirmed) group.forEach(r => handleCancel(r));
-                                      } else handleCancel(primaryReservation);
-                                    }}
-                                  >
-                                    <XOctagon size={16} className="mr-2 text-orange-600" />
-                                    Cancel Reservation
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => isMultiRoom ? handleDeleteGroup(group) : handleDelete(primaryReservation)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 size={16} className="mr-2" />
-                                Delete Permanently
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    
-                    {/* Expanded Room Details */}
-                    {isMultiRoom && isExpanded && group.map((reservation, roomIndex) => (
-                      <TableRow
-                        key={reservation.id}
-                        className="bg-white hover:bg-white"
-                      >
-                        <TableCell className="pl-12">
-                          <span className="text-xs text-muted-foreground">Room {roomIndex + 1}</span>
-                        </TableCell>
-                        <TableCell>{getRoomInfo(reservation.rooms)}</TableCell>
-                        <TableCell>
-                          <span className="text-sm">{reservation.check_in_date}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{reservation.check_out_date}</span>
-                        </TableCell>
-                        <TableCell>
-                          <small>
-                            {reservation.number_of_adults || 0} A
-                            , {reservation.number_of_children || 0} C
-                            , {reservation.number_of_infants || 0} I
-                          </small>
-                        </TableCell>
-                        <TableCell>
-                          <small>₹{(reservation.total_amount || 0).toLocaleString()}</small>
-                        </TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>
-                          <div className="flex justify-center">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" title="More actions">
-                                  <MoreVertical size={16} />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleEdit(reservation)}>
-                                  <Edit2 size={16} className="mr-2 text-blue-600" />
-                                  Edit This Room
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Reservation Cards Grid */}
+      {groupReservations(filteredReservations).length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Calendar size={48} className="mx-auto text-muted-foreground opacity-50" />
+            <p className="mt-4 text-lg font-semibold">No reservations found</p>
+            <p className="text-muted-foreground">Try adjusting your filters</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {groupReservations(filteredReservations).map((group, groupIndex) => (
+            <ReservationCard key={groupIndex} group={group} groupIndex={groupIndex} />
+          ))}
+        </div>
+      )}
 
       {/* Reusable EditBookingModal */}
       <EditBookingModal
