@@ -582,11 +582,12 @@ export default function ReservationDetails({ onNavigate }) {
                         <TableCell>
                           {roomInfo.number === 'Unassigned' ? (
                             <button
-                              type="button"
+                              className="cursor-pointer"
                               onClick={() => handleOpenRoomAssignment(reservation)}
-                              className="inline-flex items-center rounded-md border border-transparent bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 cursor-pointer transition-colors"
                             >
-                              Room Unassigned
+                              <Badge variant="secondary" className="hover:bg-secondary/80">
+                                Room Unassigned
+                              </Badge>
                             </button>
                           ) : (
                             <Badge variant="outline">Room {roomInfo.number}</Badge>
