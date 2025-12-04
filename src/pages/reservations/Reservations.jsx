@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock } from 'lucide-react';
+import { Edit2, XOctagon, CheckCircle, LogOut, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
@@ -566,12 +566,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button onClick={() => onNavigate('new-reservation')}>
-          <Plus size={20} className="mr-2" /> New Booking
-        </Button>
-      </div>
-
       {/* Main Filters - Date Range and Quick Filters */}
       <Collapsible open={showFilters} onOpenChange={setShowFilters} className="border rounded-lg">
         <CollapsibleTrigger asChild>

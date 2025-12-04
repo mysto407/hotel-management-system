@@ -2,11 +2,19 @@
 import { useState } from 'react';
 import {
   Menu, LogOut, Hotel, Search, Home, Calendar, CalendarDays,
-  Building2, DoorOpen, Users, UserCog, CreditCard, FileText, BarChart3, Package, Settings, Tag
+  Building2, DoorOpen, Users, UserCog, CreditCard, FileText, BarChart3, Package, Settings, Tag, CircleUser
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '../common/ThemeToggle';
 
@@ -129,34 +137,34 @@ export const Header = ({ currentPage, onNavigate, searchTerm, onSearchChange }) 
           })}
         </nav>
 
-        {/* User Info + Logout */}
-        <div className="ml-auto lg:ml-4 flex items-center gap-2">
-          <ThemeToggle />
-          <div className="hidden xl:flex flex-col items-end">
-            <span className="font-medium text-sm">{user?.name}</span>
-            <span className="text-xs text-muted-foreground">{user?.role}</span>
-          </div>
-          <Button
-            onClick={logout}
-            variant="ghost"
-            size="sm"
-            className="gap-2 hidden lg:flex"
-            title="Logout"
-          >
-            <LogOut size={18} />
-            <span>Logout</span>
-          </Button>
-          {/* Mobile Logout */}
-          <Button
-            onClick={logout}
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            title="Logout"
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="sr-only">Logout</span>
-          </Button>
+        {/* User Menu */}
+        <div className="ml-auto lg:ml-4 flex items-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <CircleUser className="h-6 w-6" />
+                <span className="sr-only">User menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{user?.role}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5 flex items-center justify-between">
+                <span className="text-sm">Dark Mode</span>
+                <ThemeToggle />
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
