@@ -348,9 +348,11 @@ export default function ReservationDetails({ onNavigate }) {
     setLoadingAvailableRooms(true)
 
     try {
+      // Pass reservation.id to exclude it from the unassigned count
       const { data: available, error } = await getAvailableRooms(
         reservation.check_in_date,
-        reservation.check_out_date
+        reservation.check_out_date,
+        reservation.id
       )
 
       if (error) {

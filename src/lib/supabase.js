@@ -766,7 +766,7 @@ export const getReservationsForRoom = async(roomId) => {
 
 // Get available rooms for a specific date range
 // Accounts for both assigned reservations and unassigned reservations (by room type)
-export const getAvailableRooms = async(checkInDate, checkOutDate) => {
+export const getAvailableRooms = async(checkInDate, checkOutDate, excludeReservationId = null) => {
     // First, get all rooms with their types
     // Exclude only rooms that are in Maintenance or Blocked status
     // (these are operational statuses unrelated to reservations)
@@ -793,19 +793,27 @@ export const getAvailableRooms = async(checkInDate, checkOutDate) => {
     if (assignedError) return { data: null, error: assignedError }
 
     // Get all UNASSIGNED reservations that overlap (count per room type)
-    const { data: unassignedReservations, error: unassignedError } = await supabase
+    // Optionally exclude a specific reservation (used when assigning room to existing reservation)
+    let unassignedQuery = supabase
         .from('reservations')
-        .select('room_type_id')
+        .select('id, room_type_id')
         .lt('check_in_date', checkOutDate)
         .gt('check_out_date', checkInDate)
         .not('status', 'in', '("Cancelled","Checked-out")')
         .is('room_id', null)
 
+    const { data: unassignedReservations, error: unassignedError } = await unassignedQuery
+
     if (unassignedError) return { data: null, error: unassignedError }
+
+    // Filter out the excluded reservation if provided
+    const filteredUnassigned = excludeReservationId
+        ? unassignedReservations?.filter(res => res.id !== excludeReservationId)
+        : unassignedReservations
 
     // Count unassigned reservations per room type
     const unassignedCountByType = {}
-    unassignedReservations?.forEach(res => {
+    filteredUnassigned?.forEach(res => {
         if (res.room_type_id) {
             unassignedCountByType[res.room_type_id] = (unassignedCountByType[res.room_type_id] || 0) + 1
         }
