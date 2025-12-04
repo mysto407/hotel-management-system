@@ -1984,7 +1984,7 @@ export const getFolioByReservation = async (reservationId) => {
         .eq('id', reservationId)
         .single()
 
-    // If reservation has booking_id, try to get folio by booking_id first
+    // If reservation has booking_id, try to get master folio by booking_id first
     if (reservation?.booking_id) {
         const { data: bookingFolio, error: bookingError } = await getFolioByBookingId(reservation.booking_id)
         if (bookingFolio) {
@@ -1992,15 +1992,29 @@ export const getFolioByReservation = async (reservationId) => {
         }
     }
 
-    // Fallback: get folio by reservation_id (for single-room or legacy bookings)
-    const { data, error } = await supabase
+    // Try to get master folio by reservation_id (for single-room or legacy bookings)
+    const { data: masterFolio, error: masterError } = await supabase
         .from('folios')
         .select('*')
         .eq('reservation_id', reservationId)
         .eq('folio_type', 'master')
+        .eq('is_active', true)
         .maybeSingle()
 
-    return { data, error }
+    if (masterFolio) {
+        return { data: masterFolio, error: null }
+    }
+
+    // Fallback: get room folio for this reservation (when master folio was split into room folios)
+    const { data: roomFolio, error: roomError } = await supabase
+        .from('folios')
+        .select('*')
+        .eq('reservation_id', reservationId)
+        .eq('folio_type', 'room')
+        .eq('is_active', true)
+        .maybeSingle()
+
+    return { data: roomFolio, error: roomError }
 }
 
 /**
