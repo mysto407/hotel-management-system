@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Edit2, XOctagon, CheckCircle, LogOut, Filter, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Clock, Users, BedDouble, CalendarDays } from 'lucide-react';
+import { Edit2, XOctagon, CheckCircle, LogOut, Filter, Calendar, Trash2, MoreVertical, Eye, Clock, Users, BedDouble, CalendarDays } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -772,63 +771,87 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     );
   };
 
+  // Count active filters for badge
+  const activeFilterCount = () => {
+    let count = 0;
+    if (filterStatus !== 'all') count++;
+    if (filterMealPlan !== 'all') count++;
+    if (filterGuestCount !== 'all') count++;
+    if (dateFilterType !== 'all') count++;
+    return count;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Main Filters - Date Range and Quick Filters */}
-      <Collapsible open={showFilters} onOpenChange={setShowFilters} className="border rounded-lg">
-        <CollapsibleTrigger asChild>
-          <div className="flex justify-between items-center p-4 bg-gray-50 cursor-pointer rounded-t-lg">
-            <div className="flex items-center gap-2">
-              <Filter size={16} className="text-muted-foreground" />
-              <span className="font-semibold">Filters</span>
-              {hasActiveFilters() && <Badge variant="info">Active</Badge>}
-            </div>
-            <div className="flex items-center gap-3">
+      {/* Filter Icon Button with Popover */}
+      <div className="flex justify-end">
+        <Popover open={showFilters} onOpenChange={setShowFilters}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "relative h-9 w-9 bg-white/70 backdrop-blur-md border-white/20 shadow-md hover:bg-white/90 hover:shadow-lg transition-all duration-200",
+                hasActiveFilters() && "ring-2 ring-blue-500 ring-offset-1"
+              )}
+            >
+              <Filter size={16} className={hasActiveFilters() ? "text-blue-600" : "text-slate-600"} />
+              {activeFilterCount() > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-blue-600 text-[10px] font-medium text-white flex items-center justify-center">
+                  {activeFilterCount()}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="w-[400px] p-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-white/20 dark:border-slate-700/50 shadow-xl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-3 border-b border-slate-200/50 dark:border-slate-700/50">
+              <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">Filters</span>
               {hasActiveFilters() && (
                 <Button
-                  onClick={(e) => { e.stopPropagation(); clearAllFilters(); }}
+                  onClick={clearAllFilters}
                   variant="ghost"
                   size="sm"
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  className="h-7 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
                 >
                   Clear All
                 </Button>
               )}
-              <ChevronDown
-                size={16}
-                className={cn("transition-transform", showFilters && "rotate-180")}
-              />
-            </div>
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="p-4 space-y-6">
-            <div className="flex gap-2 flex-wrap">
-              <FilterButton onClick={() => setDatePreset('all')} isActive={dateFilterType === 'all'}>All Dates</FilterButton>
-              <FilterButton onClick={() => { setDatePreset('all'); setStartDate(today); setEndDate(today); setDateFilterType('today'); }} isActive={dateFilterType === 'today'}>Today</FilterButton>
-              <FilterButton onClick={() => setDatePreset('weekly')} isActive={dateFilterType === 'weekly'}>Next 7 Days</FilterButton>
-              <FilterButton onClick={() => setDatePreset('fortnightly')} isActive={dateFilterType === 'fortnightly'}>Next 14 Days</FilterButton>
-              <FilterButton onClick={() => setDatePreset('monthly')} isActive={dateFilterType === 'monthly'}>Next 30 Days</FilterButton>
-              <FilterButton onClick={() => setDateFilterType('custom')} isActive={dateFilterType === 'custom'}>Custom</FilterButton>
             </div>
 
-            {dateFilterType === 'custom' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>From Date</Label>
-                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <div className="p-3 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Date Filters */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Date Range</Label>
+                <div className="flex gap-1.5 flex-wrap">
+                  <FilterButton onClick={() => setDatePreset('all')} isActive={dateFilterType === 'all'}>All</FilterButton>
+                  <FilterButton onClick={() => { setDatePreset('all'); setStartDate(today); setEndDate(today); setDateFilterType('today'); }} isActive={dateFilterType === 'today'}>Today</FilterButton>
+                  <FilterButton onClick={() => setDatePreset('weekly')} isActive={dateFilterType === 'weekly'}>7 Days</FilterButton>
+                  <FilterButton onClick={() => setDatePreset('fortnightly')} isActive={dateFilterType === 'fortnightly'}>14 Days</FilterButton>
+                  <FilterButton onClick={() => setDatePreset('monthly')} isActive={dateFilterType === 'monthly'}>30 Days</FilterButton>
+                  <FilterButton onClick={() => setDateFilterType('custom')} isActive={dateFilterType === 'custom'}>Custom</FilterButton>
                 </div>
-                <div className="space-y-2">
-                  <Label>To Date</Label>
-                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                </div>
+                {dateFilterType === 'custom' && (
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">From</Label>
+                      <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-8 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">To</Label>
+                      <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-8 text-xs" />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t">
-              <div className="space-y-3">
-                <Label className="font-semibold">Status</Label>
-                <div className="flex gap-2 flex-wrap">
+              {/* Status Filters */}
+              <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Status</Label>
+                <div className="flex gap-1.5 flex-wrap">
                   <FilterButton onClick={() => setFilterStatus('all')} isActive={filterStatus === 'all'}>All</FilterButton>
                   <FilterButton onClick={() => setFilterStatus('Inquiry')} isActive={filterStatus === 'Inquiry'} variant="purple">Inquiry</FilterButton>
                   <FilterButton onClick={() => setFilterStatus('Tentative')} isActive={filterStatus === 'Tentative'} variant="warning">Tentative</FilterButton>
@@ -839,9 +862,11 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                   <FilterButton onClick={() => setFilterStatus('Cancelled')} isActive={filterStatus === 'Cancelled'} variant="destructive">Cancelled</FilterButton>
                 </div>
               </div>
-              <div className="space-y-3">
-                <Label className="font-semibold">Meal Plan</Label>
-                <div className="flex gap-2 flex-wrap">
+
+              {/* Meal Plan Filters */}
+              <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Meal Plan</Label>
+                <div className="flex gap-1.5 flex-wrap">
                   <FilterButton onClick={() => setFilterMealPlan('all')} isActive={filterMealPlan === 'all'}>All</FilterButton>
                   {getActivePlans().map((plan) => (
                     <FilterButton
@@ -854,9 +879,11 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                   ))}
                 </div>
               </div>
-              <div className="space-y-3">
-                <Label className="font-semibold">Guests</Label>
-                <div className="flex gap-2 flex-wrap">
+
+              {/* Guest Count Filters */}
+              <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Guests</Label>
+                <div className="flex gap-1.5 flex-wrap">
                   <FilterButton onClick={() => setFilterGuestCount('all')} isActive={filterGuestCount === 'all'}>All</FilterButton>
                   <FilterButton onClick={() => setFilterGuestCount('1-2')} isActive={filterGuestCount === '1-2'}>1-2</FilterButton>
                   <FilterButton onClick={() => setFilterGuestCount('3-4')} isActive={filterGuestCount === '3-4'}>3-4</FilterButton>
@@ -864,9 +891,9 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                 </div>
               </div>
             </div>
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       {/* Reservation Cards Grid */}
       {groupReservations(filteredReservations).length === 0 ? (
