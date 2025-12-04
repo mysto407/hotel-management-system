@@ -26,6 +26,7 @@ const getPageFromHash = () => {
 
 export const Layout = () => {
   const [currentPage, setCurrentPage] = useState(getPageFromHash());
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('');
 
   // Custom navigation handler that updates hash
   const handleNavigate = (page) => {
@@ -55,7 +56,7 @@ export const Layout = () => {
     dashboard: <Dashboard />,
     'room-types': <RoomTypes />,
     rooms: <Rooms />,
-    reservations: <Reservations onNavigate={handleNavigate} />,
+    reservations: <Reservations onNavigate={handleNavigate} searchTerm={globalSearchTerm} />,
     'reservation-calendar': <ReservationCalendar onNavigate={handleNavigate} />,
     'reservation-details': <ReservationDetails onNavigate={handleNavigate} />,
     'new-reservation': <NewReservation onNavigate={handleNavigate} />,
@@ -75,6 +76,8 @@ export const Layout = () => {
       <Header
         currentPage={currentPage}
         onNavigate={handleNavigate}
+        searchTerm={globalSearchTerm}
+        onSearchChange={setGlobalSearchTerm}
       />
       <main className={`flex-1 ${['reservation-calendar', 'reservation-details', 'new-reservation', 'guest-details', 'payment'].includes(currentPage) ? '' : 'p-4 md:p-6'}`}>
         {pages[currentPage]}

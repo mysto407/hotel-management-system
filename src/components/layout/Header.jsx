@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '../common/ThemeToggle';
 
-export const Header = ({ currentPage, onNavigate }) => {
+export const Header = ({ currentPage, onNavigate, searchTerm, onSearchChange }) => {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -100,6 +100,8 @@ export const Header = ({ currentPage, onNavigate }) => {
               type="search"
               placeholder="Search guests, rooms, reservations..."
               className="pl-9 w-full"
+              value={searchTerm}
+              onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
         </div>

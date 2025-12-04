@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Search, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock } from 'lucide-react';
+import { Plus, Edit2, XOctagon, CheckCircle, LogOut, Filter, User, Building, ChevronDown, Calendar, Trash2, MoreVertical, Eye, Phone, Mail, Clock } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
@@ -40,7 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const Reservations = ({ onNavigate }) => {
+const Reservations = ({ onNavigate, searchTerm = '' }) => {
   const { reservations, addReservation, updateReservation, checkIn, checkOut, cancelReservation, deleteReservation, assignRoom } = useReservations();
   const { rooms, roomTypes } = useRooms();
   const { getMealPlanName, getActivePlans } = useMealPlans();
@@ -57,7 +57,6 @@ const Reservations = ({ onNavigate }) => {
   const [initialRoomDetails, setInitialRoomDetails] = useState(null);
 
   const [filterStatus, setFilterStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
   
   const [dateFilterType, setDateFilterType] = useState('all');
   const [startDate, setStartDate] = useState('');
@@ -104,7 +103,6 @@ const Reservations = ({ onNavigate }) => {
 
   const clearAllFilters = () => {
     setFilterStatus('all');
-    setSearchTerm('');
     setFilterMealPlan('all');
     setFilterGuestCount('all');
     setDateFilterType('all');
@@ -568,18 +566,8 @@ const Reservations = ({ onNavigate }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div className="relative w-full sm:w-72">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search guest name or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={() => onNavigate('new-reservation')} className="w-full sm:w-auto">
+      <div className="flex justify-end">
+        <Button onClick={() => onNavigate('new-reservation')}>
           <Plus size={20} className="mr-2" /> New Booking
         </Button>
       </div>
