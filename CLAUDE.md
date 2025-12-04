@@ -363,6 +363,60 @@ This project uses **Tailwind CSS v4** with shadcn/ui:
 
 **Important**: There's a mix of Tailwind v3 and v4 configuration. Some commented lines reference the Tailwind Vite plugin that's not currently active.
 
+### Semantic Color System
+
+This project uses **CSS variable-based semantic colors** that automatically adapt to light/dark mode. Never use manual `dark:` overrides for status colors.
+
+#### Available Semantic Colors
+
+| Color | Purpose | Example Usage |
+|-------|---------|---------------|
+| `success` | Positive states, paid, confirmed, available | Paid badges, positive balances, active status |
+| `warning` | Caution states, partial, tentative | Partial payments, tentative bookings |
+| `destructive` | Negative states, errors, cancelled, unpaid | Unpaid badges, error states, delete actions |
+| `info` | Informational, neutral actions, edit | Info banners, edit buttons, extended stay |
+| `orange` | Pending states, hold, balance due | Hold status, pending balance, room moves |
+| `purple` | Special states, inquiry, meal plans | Inquiry status, meal plan badges, commissions |
+
+#### How It Works
+
+Colors are defined in two places:
+1. **CSS Variables** (`src/index.css`) - HSL values for light and dark modes
+2. **Tailwind Config** (`tailwind.config.js`) - Maps CSS variables to Tailwind classes
+
+#### Usage Patterns
+
+```jsx
+// Text colors
+<span className="text-success">Paid</span>
+<span className="text-destructive">Unpaid</span>
+<span className="text-warning">Partial</span>
+
+// Background with opacity (for badges/pills)
+<span className="bg-success/20 text-success">Confirmed</span>
+<span className="bg-warning/20 text-warning">Tentative</span>
+<span className="bg-info/10 text-info-foreground">Info Banner</span>
+
+// Borders
+<div className="border border-success/50">...</div>
+<div className="border-destructive/30">...</div>
+
+// Foreground variants (for better contrast on colored backgrounds)
+<span className="text-success-foreground">...</span>
+```
+
+#### DO NOT use manual dark mode overrides
+
+```jsx
+// ❌ BAD - Manual dark mode overrides
+<span className="text-green-600 dark:text-green-400">Paid</span>
+<span className="text-red-600 dark:text-red-400">Unpaid</span>
+
+// ✅ GOOD - Semantic colors (auto dark mode)
+<span className="text-success">Paid</span>
+<span className="text-destructive">Unpaid</span>
+```
+
 ## Common Patterns
 
 ### Creating a New Feature
