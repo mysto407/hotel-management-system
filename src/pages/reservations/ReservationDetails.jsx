@@ -793,11 +793,11 @@ export default function ReservationDetails({ onNavigate }) {
               )}
               {selectedReservationForRoomAssignment?.room_id && (
                 <Button
-                  variant="ghost"
-                  className="w-full text-muted-foreground"
+                  variant="outline"
+                  className="w-full"
                   onClick={() => handleUnassignRoom(selectedReservationForRoomAssignment.id)}
                 >
-                  Unassign Room
+                  Unassign current room ({getRoomInfo(selectedReservationForRoomAssignment.room_id).number})
                 </Button>
               )}
             </div>
