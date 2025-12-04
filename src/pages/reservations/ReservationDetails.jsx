@@ -398,6 +398,23 @@ export default function ReservationDetails({ onNavigate }) {
     }
   }
 
+  // Handle unassigning a room from a reservation
+  const handleUnassignRoom = async (reservationId) => {
+    try {
+      await updateReservation(reservationId, { room_id: null })
+
+      // Close the modal if open
+      setRoomAssignmentModalOpen(false)
+      setSelectedReservationForRoomAssignment(null)
+
+      // Refresh reservations to update the UI
+      await fetchReservations()
+    } catch (error) {
+      console.error('Error unassigning room:', error)
+      alert('Failed to unassign room: ' + error.message)
+    }
+  }
+
   return (
     <div className="w-full">
       <div className="max-w-[85rem] mx-auto py-6 space-y-6">
@@ -590,7 +607,14 @@ export default function ReservationDetails({ onNavigate }) {
                               </Badge>
                             </button>
                           ) : (
-                            <Badge variant="outline">Room {roomInfo.number}</Badge>
+                            <button
+                              className="cursor-pointer"
+                              onClick={() => handleOpenRoomAssignment(reservation)}
+                            >
+                              <Badge variant="outline" className="hover:bg-muted">
+                                Room {roomInfo.number}
+                              </Badge>
+                            </button>
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
@@ -624,12 +648,10 @@ export default function ReservationDetails({ onNavigate }) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {!reservation.room_id && (
-                                <DropdownMenuItem onClick={() => handleOpenRoomAssignment(reservation)}>
-                                  <DoorOpen className="h-4 w-4 mr-2" />
-                                  Assign Room
-                                </DropdownMenuItem>
-                              )}
+                              <DropdownMenuItem onClick={() => handleOpenRoomAssignment(reservation)}>
+                                <DoorOpen className="h-4 w-4 mr-2" />
+                                {reservation.room_id ? 'Change Room' : 'Assign Room'}
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleExtendNights(reservation)}>
                                 <CalendarPlus className="h-4 w-4 mr-2" />
                                 Extend/Shorten Stay
@@ -737,7 +759,9 @@ export default function ReservationDetails({ onNavigate }) {
       <Dialog open={roomAssignmentModalOpen} onOpenChange={setRoomAssignmentModalOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Assign Room</DialogTitle>
+            <DialogTitle>
+              {selectedReservationForRoomAssignment?.room_id ? 'Change Room' : 'Assign Room'}
+            </DialogTitle>
             {selectedReservationForRoomAssignment && (
               <p className="text-sm text-muted-foreground">
                 {getRoomInfo(null, selectedReservationForRoomAssignment.room_type_id).type} • {availableRoomsForAssignment.length} available
@@ -746,23 +770,36 @@ export default function ReservationDetails({ onNavigate }) {
           </DialogHeader>
           {loadingAvailableRooms ? (
             <div className="py-4 text-center text-muted-foreground">Loading...</div>
-          ) : availableRoomsForAssignment.length === 0 ? (
-            <div className="py-4 text-center text-muted-foreground">No available rooms</div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-              {availableRoomsForAssignment.map((room) => (
+            <div className="space-y-3">
+              {availableRoomsForAssignment.length === 0 ? (
+                <div className="py-4 text-center text-muted-foreground">No available rooms</div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                  {availableRoomsForAssignment.map((room) => (
+                    <Button
+                      key={room.id}
+                      variant="outline"
+                      className="h-auto py-2 px-3 flex-col"
+                      onClick={() => handleAssignRoom(selectedReservationForRoomAssignment.id, room.id)}
+                    >
+                      <div className="font-medium">{room.room_number}</div>
+                      {room.floor && (
+                        <div className="text-[10px] text-muted-foreground">Floor {room.floor}</div>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {selectedReservationForRoomAssignment?.room_id && (
                 <Button
-                  key={room.id}
-                  variant="outline"
-                  className="h-auto py-2 px-3 flex-col"
-                  onClick={() => handleAssignRoom(selectedReservationForRoomAssignment.id, room.id)}
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={() => handleUnassignRoom(selectedReservationForRoomAssignment.id)}
                 >
-                  <div className="font-medium">{room.room_number}</div>
-                  {room.floor && (
-                    <div className="text-[10px] text-muted-foreground">Floor {room.floor}</div>
-                  )}
+                  Unassign Room
                 </Button>
-              ))}
+              )}
             </div>
           )}
         </DialogContent>
