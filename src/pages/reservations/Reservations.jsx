@@ -895,25 +895,25 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Floating Filter Button - Always visible */}
+      <div className="sticky top-2 z-20 flex justify-end pointer-events-none">
+        <div className="pointer-events-auto">
+          <FilterPopover />
+        </div>
+      </div>
+
       {/* Reservation Cards Grid */}
       {groupReservations(filteredReservations).length === 0 ? (
-        <>
-          {/* Empty state header with filter */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Reservations</h2>
-            <FilterPopover />
-          </div>
-          <Card className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50">
-            <CardContent className="p-12 text-center">
-              <Calendar size={48} className="mx-auto text-slate-400 opacity-50" />
-              <p className="mt-4 text-lg font-semibold text-slate-700 dark:text-slate-200">No reservations found</p>
-              <p className="text-slate-500 dark:text-slate-400">Try adjusting your filters</p>
-            </CardContent>
-          </Card>
-        </>
+        <Card className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50">
+          <CardContent className="p-12 text-center">
+            <Calendar size={48} className="mx-auto text-slate-400 opacity-50" />
+            <p className="mt-4 text-lg font-semibold text-slate-700 dark:text-slate-200">No reservations found</p>
+            <p className="text-slate-500 dark:text-slate-400">Try adjusting your filters</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 -mt-4">
           {(() => {
             const groups = groupReservations(filteredReservations);
             // Group by month based on earliest check-in date
@@ -932,7 +932,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
             // Sort months chronologically
             const sortedMonths = Object.keys(byMonth).sort();
 
-            return sortedMonths.map((monthKey, monthIndex) => {
+            return sortedMonths.map((monthKey) => {
               const [year, month] = monthKey.split('-');
               const monthName = new Date(year, parseInt(month) - 1).toLocaleDateString('en-IN', {
                 month: 'long',
@@ -941,12 +941,9 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
               return (
                 <div key={monthKey}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-                      {monthName}
-                    </h2>
-                    {monthIndex === 0 && <FilterPopover />}
-                  </div>
+                  <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-3">
+                    {monthName}
+                  </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {byMonth[monthKey].map(({ group, groupIndex }) => (
                       <ReservationCard key={groupIndex} group={group} groupIndex={groupIndex} />
