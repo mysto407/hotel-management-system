@@ -760,7 +760,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
             {/* Alerts */}
             {isSplitReservation && (
               <div className="flex gap-1.5 mt-2 pt-2 border-t">
-                <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-700 rounded-full">
+                <span className="text-[10px] px-1.5 py-0.5 bg-info/20 text-info-foreground border border-info/50 rounded-full">
                   Extended Stay
                 </span>
               </div>
