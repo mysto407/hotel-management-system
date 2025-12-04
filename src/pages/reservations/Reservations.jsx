@@ -605,8 +605,16 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                     {primaryReservation.guests?.name || 'Unknown'}
                   </h3>
                   {isMultiRoom && (
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
-                      {group.length}R
+                    <span className={cn(
+                      "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                      unassignedCount > 0 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"
+                    )}>
+                      {unassignedCount === 0
+                        ? `${group.length} rooms`
+                        : unassignedCount === group.length
+                          ? `${group.length} unassigned rooms`
+                          : `${unassignedCount} of ${group.length} unassigned`
+                      }
                     </span>
                   )}
                 </div>
@@ -751,18 +759,11 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
             </div>
 
             {/* Alerts */}
-            {(unassignedCount > 0 || isSplitReservation) && (
+            {isSplitReservation && (
               <div className="flex gap-1.5 mt-2 pt-2 border-t">
-                {unassignedCount > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">
-                    {unassignedCount} Unassigned
-                  </span>
-                )}
-                {isSplitReservation && (
-                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                    Extended Stay
-                  </span>
-                )}
+                <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                  Extended Stay
+                </span>
               </div>
             )}
 
