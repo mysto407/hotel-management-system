@@ -900,7 +900,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       {groupReservations(filteredReservations).length === 0 ? (
         <>
           {/* Empty state header with filter */}
-          <div className="flex items-center justify-between sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Reservations</h2>
             <FilterPopover />
           </div>
@@ -941,10 +941,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
               return (
                 <div key={monthKey}>
-                  <div className={cn(
-                    "flex items-center justify-between mb-3",
-                    monthIndex === 0 && "sticky top-0 z-10 py-2 -mx-1 px-1 bg-background/80 backdrop-blur-sm"
-                  )}>
+                  <div className="flex items-center justify-between mb-3">
                     <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
                       {monthName}
                     </h2>
