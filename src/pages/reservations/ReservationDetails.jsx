@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { CalendarPlus, Calendar, Users, MoreVertical, Trash2, ArrowRight, Plus, UtensilsCrossed } from 'lucide-react'
+import { CalendarPlus, Calendar, Users, MoreVertical, Trash2, ArrowRight, Plus, UtensilsCrossed, DoorOpen } from 'lucide-react'
 import { useReservations } from '../../context/ReservationContext'
 import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
 import { useAgents } from '../../context/AgentContext'
 import { useMealPlans } from '../../context/MealPlanContext'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
-import { getActiveReservationNotes, getTotalTaxRate, getFoliosByReservation, getFolioBalance } from '../../lib/supabase'
+import { getActiveReservationNotes, getTotalTaxRate, getFoliosByReservation, getFolioBalance, getAvailableRooms, assignRoomToReservation } from '../../lib/supabase'
 import { groupConsecutiveReservations, formatRoomChangeSequence } from '../../utils/bookingUtils'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
@@ -55,6 +55,9 @@ export default function ReservationDetails({ onNavigate }) {
   const [selectedReservationForExtend, setSelectedReservationForExtend] = useState(null)
   const [mealPlanModalOpen, setMealPlanModalOpen] = useState(false)
   const [selectedReservationForMealPlan, setSelectedReservationForMealPlan] = useState(null)
+  const [roomAssignmentOpen, setRoomAssignmentOpen] = useState(null) // reservation.id when open
+  const [availableRoomsForAssignment, setAvailableRoomsForAssignment] = useState([])
+  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState(false)
   const [folioTotals, setFolioTotals] = useState({
     totalCharges: null,
     totalPayments: null,
@@ -334,6 +337,60 @@ export default function ReservationDetails({ onNavigate }) {
     fetchFolioTotals()
   }
 
+  // Handle opening room assignment dropdown
+  const handleOpenRoomAssignment = async (reservation) => {
+    if (roomAssignmentOpen === reservation.id) {
+      setRoomAssignmentOpen(null)
+      return
+    }
+
+    setRoomAssignmentOpen(reservation.id)
+    setLoadingAvailableRooms(true)
+
+    try {
+      const { data: available, error } = await getAvailableRooms(
+        reservation.check_in_date,
+        reservation.check_out_date
+      )
+
+      if (error) {
+        console.error('Error fetching available rooms:', error)
+        setAvailableRoomsForAssignment([])
+      } else {
+        // Filter to only rooms of the same type as the reservation
+        const sameTypeRooms = available?.filter(r => r.room_type_id === reservation.room_type_id) || []
+        setAvailableRoomsForAssignment(sameTypeRooms)
+      }
+    } catch (error) {
+      console.error('Error fetching available rooms:', error)
+      setAvailableRoomsForAssignment([])
+    } finally {
+      setLoadingAvailableRooms(false)
+    }
+  }
+
+  // Handle assigning a room to a reservation
+  const handleAssignRoom = async (reservationId, roomId) => {
+    try {
+      const { error } = await assignRoomToReservation(reservationId, roomId)
+
+      if (error) {
+        console.error('Error assigning room:', error)
+        alert('Failed to assign room: ' + error.message)
+        return
+      }
+
+      // Close the dropdown
+      setRoomAssignmentOpen(null)
+
+      // The reservation context should update automatically via real-time or we can force refresh
+      // For now, we'll rely on the page to refresh or the user to see the update
+    } catch (error) {
+      console.error('Error assigning room:', error)
+      alert('Failed to assign room: ' + error.message)
+    }
+  }
+
   return (
     <div className="w-full">
       <div className="max-w-[85rem] mx-auto py-6 space-y-6">
@@ -516,7 +573,46 @@ export default function ReservationDetails({ onNavigate }) {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">Room {roomInfo.number}</Badge>
+                          {roomInfo.number === 'Unassigned' ? (
+                            <DropdownMenu
+                              open={roomAssignmentOpen === reservation.id}
+                              onOpenChange={(open) => {
+                                if (open) {
+                                  handleOpenRoomAssignment(reservation)
+                                } else {
+                                  setRoomAssignmentOpen(null)
+                                }
+                              }}
+                            >
+                              <DropdownMenuTrigger asChild>
+                                <button className="cursor-pointer">
+                                  <Badge variant="secondary" className="hover:bg-secondary/80">
+                                    Room Unassigned
+                                  </Badge>
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                {loadingAvailableRooms ? (
+                                  <DropdownMenuItem disabled>Loading rooms...</DropdownMenuItem>
+                                ) : availableRoomsForAssignment.length === 0 ? (
+                                  <DropdownMenuItem disabled>No available rooms</DropdownMenuItem>
+                                ) : (
+                                  availableRoomsForAssignment.map((room) => (
+                                    <DropdownMenuItem
+                                      key={room.id}
+                                      onClick={() => handleAssignRoom(reservation.id, room.id)}
+                                    >
+                                      <DoorOpen className="h-4 w-4 mr-2" />
+                                      Room {room.room_number}
+                                      {room.floor && <span className="text-muted-foreground ml-2">(Floor {room.floor})</span>}
+                                    </DropdownMenuItem>
+                                  ))
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <Badge variant="outline">Room {roomInfo.number}</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm">
                           {new Date(reservation.check_in_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
@@ -549,6 +645,12 @@ export default function ReservationDetails({ onNavigate }) {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {!reservation.room_id && (
+                                <DropdownMenuItem onClick={() => handleOpenRoomAssignment(reservation)}>
+                                  <DoorOpen className="h-4 w-4 mr-2" />
+                                  Assign Room
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => handleExtendNights(reservation)}>
                                 <CalendarPlus className="h-4 w-4 mr-2" />
                                 Extend/Shorten Stay
