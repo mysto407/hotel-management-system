@@ -595,12 +595,8 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     const roomDisplay = getRoomDisplay();
 
     return (
-      <Card className="hover:shadow-lg transition-all duration-200 overflow-hidden">
-        <CardContent className="p-0">
-          {/* Top Status Bar */}
-          <div className={cn("h-1.5", getStatusBgColor(primaryReservation.status))} />
-
-          <div className="p-3">
+      <Card className="rounded-none hover:shadow-md transition-all duration-200">
+        <CardContent className="p-3">
             {/* Header: Name + Room + Actions */}
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1 min-w-0">
@@ -811,7 +807,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                 )}
               </div>
             )}
-          </div>
         </CardContent>
       </Card>
     );
