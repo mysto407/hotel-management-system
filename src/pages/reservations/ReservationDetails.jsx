@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { CalendarPlus, Calendar, Users, MoreVertical, Trash2, ArrowRight, Plus } from 'lucide-react'
+import { CalendarPlus, Calendar, Users, MoreVertical, Trash2, ArrowRight, Plus, UtensilsCrossed } from 'lucide-react'
 import { useReservations } from '../../context/ReservationContext'
 import { useRooms } from '../../context/RoomContext'
 import { useGuests } from '../../context/GuestContext'
@@ -552,6 +552,10 @@ export default function ReservationDetails({ onNavigate }) {
                               <DropdownMenuItem onClick={() => handleExtendNights(reservation)}>
                                 <CalendarPlus className="h-4 w-4 mr-2" />
                                 Extend/Shorten Stay
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditMealPlan(reservation)}>
+                                <UtensilsCrossed className="h-4 w-4 mr-2" />
+                                Change Meal Plan
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Calendar className="h-4 w-4 mr-2" />
