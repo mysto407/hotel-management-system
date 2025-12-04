@@ -878,10 +878,46 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {groupReservations(filteredReservations).map((group, groupIndex) => (
-            <ReservationCard key={groupIndex} group={group} groupIndex={groupIndex} />
-          ))}
+        <div className="space-y-6">
+          {(() => {
+            const groups = groupReservations(filteredReservations);
+            // Group by month based on earliest check-in date
+            const byMonth = {};
+            groups.forEach((group, groupIndex) => {
+              const earliestCheckIn = group.reduce((earliest, r) =>
+                (!earliest || r.check_in_date < earliest ? r.check_in_date : earliest), null);
+              const date = new Date(earliestCheckIn);
+              const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              if (!byMonth[monthKey]) {
+                byMonth[monthKey] = [];
+              }
+              byMonth[monthKey].push({ group, groupIndex });
+            });
+
+            // Sort months chronologically
+            const sortedMonths = Object.keys(byMonth).sort();
+
+            return sortedMonths.map(monthKey => {
+              const [year, month] = monthKey.split('-');
+              const monthName = new Date(year, parseInt(month) - 1).toLocaleDateString('en-IN', {
+                month: 'long',
+                year: 'numeric'
+              });
+
+              return (
+                <div key={monthKey}>
+                  <h2 className="text-lg font-semibold text-muted-foreground mb-3 pb-2 border-b">
+                    {monthName}
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {byMonth[monthKey].map(({ group, groupIndex }) => (
+                      <ReservationCard key={groupIndex} group={group} groupIndex={groupIndex} />
+                    ))}
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       )}
 
