@@ -4569,6 +4569,8 @@ export const calculateAndApplyTaxes = async (
  * @param {string} roomNumber - Room number for description
  * @param {string} userId - The user ID
  * @param {boolean} applyTaxes - Whether to automatically apply taxes (default: true)
+ * @param {string} roomTypeName - Room type name for description (default: '')
+ * @param {boolean} isExtended - Whether these are extended stay nights (default: false)
  * @returns {Promise<{data: object, error: Error}>}
  */
 export const generateDailyRoomChargesWithTax = async (
@@ -4580,7 +4582,8 @@ export const generateDailyRoomChargesWithTax = async (
     roomNumber,
     userId,
     applyTaxes = true,
-    roomTypeName = ''
+    roomTypeName = '',
+    isExtended = false
 ) => {
     const roomCharges = []
     const taxCharges = []
@@ -4600,9 +4603,11 @@ export const generateDailyRoomChargesWithTax = async (
         scheduledPostDate.setHours(0, 0, 0, 0)
 
         // Include room type name in description (e.g., "Deluxe Double Night 1 of 2")
+        // Add "Extended" suffix for extended stay nights
+        const extendedSuffix = isExtended ? ' (Extended)' : ''
         const description = roomTypeName
-            ? `${roomTypeName} Night ${i + 1} of ${nights}`
-            : `Night ${i + 1} of ${nights}`
+            ? `${roomTypeName} Night ${i + 1} of ${nights}${extendedSuffix}`
+            : `Night ${i + 1} of ${nights}${extendedSuffix}`
 
         // Create room charge
         const { data: roomCharge, error: chargeError } = await createRoomCharge({

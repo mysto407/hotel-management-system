@@ -187,6 +187,25 @@ export default function ExtendNightsModal({
     }
   }
 
+  // Check if selected dates would create a gap
+  const wouldCreateGap = (newSelectedDates) => {
+    if (newSelectedDates.length === 0) return false
+
+    // Combine booked dates with new selections
+    const allDatesSet = new Set([...bookedDates.keys(), ...newSelectedDates])
+    const allDatesSorted = Array.from(allDatesSet).sort()
+
+    // Check if all dates are consecutive
+    for (let i = 1; i < allDatesSorted.length; i++) {
+      const prevDate = new Date(allDatesSorted[i - 1])
+      prevDate.setDate(prevDate.getDate() + 1)
+      if (prevDate.toISOString().split('T')[0] !== allDatesSorted[i]) {
+        return true // Gap found
+      }
+    }
+    return false
+  }
+
   // Toggle date selection
   const toggleDateSelection = (dateStr) => {
     // Don't allow selecting unavailable dates
@@ -195,11 +214,29 @@ export default function ExtendNightsModal({
       return
     }
 
+    // Don't allow selecting already booked dates (for removal, use the Remove button)
+    if (bookedDates.has(dateStr)) {
+      setSelectedDates(prev => {
+        if (prev.includes(dateStr)) {
+          return prev.filter(d => d !== dateStr)
+        } else {
+          return [...prev, dateStr]
+        }
+      })
+      return
+    }
+
+    // For new dates, check if selection would create a gap
     setSelectedDates(prev => {
       if (prev.includes(dateStr)) {
         return prev.filter(d => d !== dateStr)
       } else {
-        return [...prev, dateStr]
+        const newSelection = [...prev, dateStr]
+        if (wouldCreateGap(newSelection)) {
+          showAlert('Non-Consecutive Dates', 'Please select dates that are consecutive with the existing booking. You can only extend from the start or end of the stay.')
+          return prev
+        }
+        return newSelection
       }
     })
   }
@@ -426,7 +463,8 @@ export default function ExtendNightsModal({
             room?.room_number || 'TBD',
             null,
             true,
-            roomType?.name || ''
+            roomType?.name || '',
+            true  // isExtended - mark as extended nights in folio
           )
 
           // Generate meal charges if applicable
