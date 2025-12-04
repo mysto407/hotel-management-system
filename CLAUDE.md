@@ -42,10 +42,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - ❌ NEVER work directly on the `main` branch
    - See the "Git Workflow" section below for detailed instructions
 
-7. **Do NOT use number input spinners** - Never use the default browser number input arrows/spinners:
-   - The `Input` component in `src/components/ui/input.jsx` already hides spinners for `type="number"` inputs
-   - If using native `<input type="number">`, add these classes to hide spinners: `[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`
-   - Users should type values directly, not use increment/decrement arrows
+7. **Do NOT use `type="number"` inputs** - Never use number inputs with browser spinners:
+   - ❌ BAD: `<Input type="number" />` - Has ugly spinner arrows
+   - ✅ GOOD: `<Input type="text" inputMode="decimal" />` - For decimal numbers (amounts, prices)
+   - ✅ GOOD: `<Input type="text" inputMode="numeric" />` - For integers (quantity, count)
+   - Add validation in onChange to only allow numeric input: `/^\d*\.?\d*$/` for decimals, `/^\d*$/` for integers
+   - This gives numeric keyboard on mobile without the spinner arrows
 
 ## Git Workflow (Branch-Per-Task Strategy)
 

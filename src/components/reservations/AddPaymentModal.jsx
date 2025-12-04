@@ -221,11 +221,15 @@ export default function AddPaymentModal({
               <Label htmlFor="amount">Amount (₹)</Label>
               <Input
                 id="amount"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setAmount(val)
+                  }
+                }}
                 placeholder="0.00"
                 className="text-lg h-12"
               />

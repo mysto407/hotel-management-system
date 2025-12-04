@@ -383,11 +383,15 @@ export default function AddChargeModal({
                 </Label>
                 <Input
                   id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                      setAmount(val)
+                    }
+                  }}
                   placeholder="0.00"
                 />
               </div>
@@ -396,11 +400,15 @@ export default function AddChargeModal({
                   <Label htmlFor="quantity">Quantity</Label>
                   <Input
                     id="quantity"
-                    type="number"
-                    step="1"
-                    min="1"
+                    type="text"
+                    inputMode="numeric"
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === '' || /^\d*$/.test(val)) {
+                        setQuantity(val)
+                      }
+                    }}
                     placeholder="1"
                   />
                 </div>
