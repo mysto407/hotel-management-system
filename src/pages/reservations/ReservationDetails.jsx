@@ -759,14 +759,24 @@ export default function ReservationDetails({ onNavigate }) {
       <Dialog open={roomAssignmentModalOpen} onOpenChange={setRoomAssignmentModalOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              {selectedReservationForRoomAssignment?.room_id ? 'Change Room' : 'Assign Room'}
-            </DialogTitle>
-            {selectedReservationForRoomAssignment && (
-              <p className="text-sm text-muted-foreground">
-                {getRoomInfo(null, selectedReservationForRoomAssignment.room_type_id).type} • {availableRoomsForAssignment.length} available
-              </p>
-            )}
+            <div className="flex items-start justify-between">
+              <div>
+                <DialogTitle>
+                  {selectedReservationForRoomAssignment?.room_id ? 'Change Room' : 'Assign Room'}
+                </DialogTitle>
+                {selectedReservationForRoomAssignment && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {getRoomInfo(null, selectedReservationForRoomAssignment.room_type_id).type} • {availableRoomsForAssignment.length} available
+                  </p>
+                )}
+              </div>
+              {selectedReservationForRoomAssignment?.room_id && (
+                <div className="text-right text-sm">
+                  <span className="text-muted-foreground">Assigned to room:</span>
+                  <span className="ml-1 font-medium">{getRoomInfo(selectedReservationForRoomAssignment.room_id).number}</span>
+                </div>
+              )}
+            </div>
           </DialogHeader>
           {loadingAvailableRooms ? (
             <div className="py-4 text-center text-muted-foreground">Loading...</div>
@@ -797,7 +807,7 @@ export default function ReservationDetails({ onNavigate }) {
                   className="w-full"
                   onClick={() => handleUnassignRoom(selectedReservationForRoomAssignment.id)}
                 >
-                  Unassign current room ({getRoomInfo(selectedReservationForRoomAssignment.room_id).number})
+                  Unassign current room
                 </Button>
               )}
             </div>
