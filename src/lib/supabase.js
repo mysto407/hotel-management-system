@@ -465,9 +465,6 @@ export const generateDailyMealChargesWithTax = async (
     // Build included meals string for description
     const includedMeals = mealPlan.included_meals?.join(' + ') || mealPlan.name
 
-    // Add extended suffix for extended stay charges
-    const extendedSuffix = isExtended ? ' (Extended)' : ''
-
     for (let i = 0; i < nights; i++) {
         const chargeDate = new Date(startDate)
         chargeDate.setDate(chargeDate.getDate() + i)
@@ -478,8 +475,8 @@ export const generateDailyMealChargesWithTax = async (
 
         // Include room type name in description (e.g., "Full Board - Deluxe Double - Day 1 of 2")
         const description = roomTypeName
-            ? `${mealPlan.name} (${includedMeals}) - ${roomTypeName} - Day ${i + 1} of ${nights} (${totalGuests} guests)${extendedSuffix}`
-            : `${mealPlan.name} (${includedMeals}) - Day ${i + 1} of ${nights} (${totalGuests} guests)${extendedSuffix}`
+            ? `${mealPlan.name} (${includedMeals}) - ${roomTypeName} - Day ${i + 1} of ${nights} (${totalGuests} guests)`
+            : `${mealPlan.name} (${includedMeals}) - Day ${i + 1} of ${nights} (${totalGuests} guests)`
 
         // Create service charge for this day's meals
         const { data: mealCharge, error: chargeError } = await createServiceCharge({
@@ -493,6 +490,7 @@ export const generateDailyMealChargesWithTax = async (
             scheduled_post_date: scheduledPostDate.toISOString(),
             auto_posted: true,
             created_by: userId,
+            notes: isExtended ? 'Extended night' : null,
             metadata: {
                 meal_plan_code: mealPlan.code,
                 meal_plan_name: mealPlan.name,
@@ -4607,11 +4605,9 @@ export const generateDailyRoomChargesWithTax = async (
         scheduledPostDate.setHours(0, 0, 0, 0)
 
         // Include room type name in description (e.g., "Deluxe Double Night 1 of 2")
-        // Add "Extended" suffix for extended stay nights
-        const extendedSuffix = isExtended ? ' (Extended)' : ''
         const description = roomTypeName
-            ? `${roomTypeName} Night ${i + 1} of ${nights}${extendedSuffix}`
-            : `Night ${i + 1} of ${nights}${extendedSuffix}`
+            ? `${roomTypeName} Night ${i + 1} of ${nights}`
+            : `Night ${i + 1} of ${nights}`
 
         // Create room charge
         const { data: roomCharge, error: chargeError } = await createRoomCharge({
@@ -4623,7 +4619,8 @@ export const generateDailyRoomChargesWithTax = async (
             description: description,
             scheduled_post_date: scheduledPostDate.toISOString(),
             auto_posted: true,
-            created_by: userId
+            created_by: userId,
+            notes: isExtended ? 'Extended night' : null
         })
 
         if (chargeError) {
