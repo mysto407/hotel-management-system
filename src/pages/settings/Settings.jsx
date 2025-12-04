@@ -449,7 +449,7 @@ const Settings = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Settings</h1>
         {successMessage && (
-          <Alert className="w-auto py-2 px-4 border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400">
+          <Alert className="w-auto py-2 px-4 border-success/30 bg-success/10 text-success">
             <AlertDescription>{successMessage}</AlertDescription>
           </Alert>
         )}
@@ -926,17 +926,17 @@ const Settings = () => {
                             {plan.is_meal_plan !== false && (plan.includes_breakfast || plan.includes_lunch || plan.includes_dinner) && (
                               <div className="flex gap-1 mt-2">
                                 {plan.includes_breakfast && (
-                                  <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded">
+                                  <span className="text-xs bg-orange/20 text-orange px-2 py-1 rounded">
                                     Breakfast (₹{parseFloat(plan.breakfast_price || 0).toFixed(0)})
                                   </span>
                                 )}
                                 {plan.includes_lunch && (
-                                  <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded">
+                                  <span className="text-xs bg-success/20 text-success px-2 py-1 rounded">
                                     Lunch (₹{parseFloat(plan.lunch_price || 0).toFixed(0)})
                                   </span>
                                 )}
                                 {plan.includes_dinner && (
-                                  <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded">
+                                  <span className="text-xs bg-purple/20 text-purple px-2 py-1 rounded">
                                     Dinner (₹{parseFloat(plan.dinner_price || 0).toFixed(0)})
                                   </span>
                                 )}
@@ -973,7 +973,7 @@ const Settings = () => {
                               size="sm"
                               onClick={() => handleDeleteMealPlan(plan.id)}
                               disabled={loading}
-                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-accent"
+                              className="text-destructive hover:text-destructive/80 hover:bg-accent"
                             >
                               <Trash2 size={16} />
                             </Button>

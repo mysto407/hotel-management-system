@@ -385,7 +385,7 @@ const Dashboard = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Arrivals</CardTitle>
-            <LogIn className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <LogIn className="h-5 w-5 text-info" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{todayArrivals}</div>
@@ -395,7 +395,7 @@ const Dashboard = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Departures</CardTitle>
-            <LogOut className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+            <LogOut className="h-5 w-5 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{todayDepartures}</div>
@@ -405,7 +405,7 @@ const Dashboard = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Accommodations Booked</CardTitle>
-            <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <Calendar className="h-5 w-5 text-purple" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totalAccommodations}</div>
@@ -506,7 +506,7 @@ const Dashboard = () => {
                                         variant="ghost"
                                         onClick={() => handleCheckIn(r)}
                                         title="Check In"
-                                        className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-accent"
+                                        className="text-success hover:text-success/80 hover:bg-accent"
                                       >
                                         <LogIn size={16} />
                                       </Button>
@@ -517,7 +517,7 @@ const Dashboard = () => {
                                         variant="ghost"
                                         onClick={() => handleCheckOut(r)}
                                         title="Check Out"
-                                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-accent"
+                                        className="text-destructive hover:text-destructive/80 hover:bg-accent"
                                       >
                                         <LogOut size={16} />
                                       </Button>
@@ -527,7 +527,7 @@ const Dashboard = () => {
                                       variant="ghost"
                                       onClick={() => handleEdit(r)}
                                       title="Edit"
-                                      className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-accent"
+                                      className="text-info hover:text-info/80 hover:bg-accent"
                                     >
                                       <Edit size={16} />
                                     </Button>

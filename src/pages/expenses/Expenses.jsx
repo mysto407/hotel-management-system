@@ -520,10 +520,10 @@ const Expenses = () => {
                     className="h-9 text-lg font-semibold"
                     autoFocus
                   />
-                  <Button onClick={saveName} size="icon" variant="ghost" className="text-emerald-600 dark:text-emerald-400">
+                  <Button onClick={saveName} size="icon" variant="ghost" className="text-success">
                     <Check size={16} />
                   </Button>
-                  <Button onClick={cancelEditName} size="icon" variant="ghost" className="text-red-600 dark:text-red-400">
+                  <Button onClick={cancelEditName} size="icon" variant="ghost" className="text-destructive">
                     <X size={16} />
                   </Button>
                 </>
@@ -558,7 +558,7 @@ const Expenses = () => {
                             <Button
                               onClick={() => removeColumn(col.id)}
                               variant="ghost" size="icon"
-                              className="h-6 w-6 text-red-600 dark:text-red-400"
+                              className="h-6 w-6 text-destructive"
                               title="Delete column"
                             >
                               <Trash2 size={14} />
@@ -613,7 +613,7 @@ const Expenses = () => {
                                 <Button
                                   onClick={() => removeRow(row.id)}
                                   variant="ghost" size="icon"
-                                  className="h-5 w-5 text-red-600 dark:text-red-400"
+                                  className="h-5 w-5 text-destructive"
                                   title="Delete row"
                                 >
                                   <Trash2 size={10} />
@@ -642,9 +642,9 @@ const Expenses = () => {
 
           {/* Total Row */}
           <CardContent>
-            <div className="flex justify-end items-center mt-4 p-4 bg-amber-100 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-lg">
-              <span className="text-lg font-semibold text-amber-800 dark:text-amber-300">Total:</span>
-              <span className="text-xl font-bold text-amber-900 dark:text-amber-200 ml-4">
+            <div className="flex justify-end items-center mt-4 p-4 bg-orange/10 border border-orange/30 rounded-lg">
+              <span className="text-lg font-semibold text-orange">Total:</span>
+              <span className="text-xl font-bold text-orange ml-4">
                 ₹{calculateTotal().toFixed(2)}
               </span>
             </div>

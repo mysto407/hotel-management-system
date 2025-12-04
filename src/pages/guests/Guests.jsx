@@ -168,8 +168,8 @@ const Guests = () => {
 
   const getGuestTypeIcon = (type) => {
     switch(type) {
-      case 'VIP': return <Star size={16} className="text-yellow-500 dark:text-yellow-400" />;
-      case 'Corporate': return <Briefcase size={16} className="text-blue-600 dark:text-blue-400" />;
+      case 'VIP': return <Star size={16} className="text-warning" />;
+      case 'Corporate': return <Briefcase size={16} className="text-info" />;
       default: return null;
     }
   };
@@ -205,7 +205,7 @@ const Guests = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">VIP Guests</CardTitle>
-            <Star className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
+            <Star className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{getGuestsByType('VIP').length}</div>
@@ -214,7 +214,7 @@ const Guests = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Corporate Guests</CardTitle>
-            <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Briefcase className="h-4 w-4 text-info" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{getGuestsByType('Corporate').length}</div>
@@ -223,7 +223,7 @@ const Guests = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Returning Guests</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{returningGuests.length}</div>
@@ -297,7 +297,7 @@ const Guests = () => {
                   <TableCell className="font-medium">{guest.total_bookings || 0}</TableCell>
                   <TableCell>₹{(guest.total_spent || 0).toLocaleString()}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
+                    <div className="flex items-center gap-1 font-medium text-orange">
                       <Award size={16} />
                       {guest.loyalty_points || 0}
                     </div>
@@ -306,13 +306,13 @@ const Guests = () => {
                   <TableCell>
                     <div className="flex gap-1">
                       <Button onClick={() => viewDetails(guest)} variant="ghost" size="icon" title="View Details">
-                        <Eye size={16} className="text-blue-600 dark:text-blue-400" />
+                        <Eye size={16} className="text-info" />
                       </Button>
                       <Button onClick={() => handleEdit(guest)} variant="ghost" size="icon" title="Edit">
-                        <Edit2 size={16} className="text-blue-600 dark:text-blue-400" />
+                        <Edit2 size={16} className="text-info" />
                       </Button>
                       <Button onClick={() => handleDelete(guest.id)} variant="ghost" size="icon" title="Delete">
-                        <Trash2 size={16} className="text-red-600 dark:text-red-400" />
+                        <Trash2 size={16} className="text-destructive" />
                       </Button>
                     </div>
                   </TableCell>
@@ -338,7 +338,7 @@ const Guests = () => {
                 <div className="font-semibold">{guest.name}</div>
                 <div className="text-sm text-muted-foreground">{guest.total_bookings || 0} bookings</div>
               </div>
-              <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+              <div className="text-lg font-bold text-success">
                 ₹{(guest.total_spent || 0).toLocaleString()}
               </div>
             </div>

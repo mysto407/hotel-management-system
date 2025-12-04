@@ -246,7 +246,7 @@ const Inventory = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Inventory Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{getTotalInventoryValue().toFixed(2)}</div>
@@ -374,10 +374,10 @@ const Inventory = () => {
                           <RefreshCw size={16} className="text-muted-foreground" />
                         </Button>
                         <Button onClick={() => handleEditItem(item)} variant="ghost" size="icon" title="Edit">
-                          <Edit2 size={16} className="text-blue-600 dark:text-blue-400" />
+                          <Edit2 size={16} className="text-info" />
                         </Button>
                         <Button onClick={() => handleDeleteItem(item.id)} variant="ghost" size="icon" title="Delete">
-                          <Trash2 size={16} className="text-red-600 dark:text-red-400" />
+                          <Trash2 size={16} className="text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
@@ -408,7 +408,7 @@ const Inventory = () => {
                     <h4 className="font-semibold">{dept}</h4>
                     <p className="text-sm text-muted-foreground">{deptItems.length} items</p>
                   </div>
-                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                  <div className="text-lg font-bold text-info">
                     ₹{deptValue.toFixed(2)}
                   </div>
                 </div>
