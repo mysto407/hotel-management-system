@@ -766,47 +766,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
               </div>
             )}
 
-            {/* Multi-Room Expansion */}
-            {isMultiRoom && (
-              <div className="mt-2 pt-2 border-t">
-                <button
-                  onClick={() => toggleGroupExpansion(groupId)}
-                  className="flex items-center justify-between w-full text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <span>{group.length} rooms</span>
-                  <ChevronDown size={12} className={cn("transition-transform", isExpanded && "rotate-180")} />
-                </button>
-                {isExpanded && (
-                  <div className="mt-1.5 space-y-1">
-                    {group.map((reservation, roomIndex) => (
-                      <div key={reservation.id} className="flex items-center justify-between py-1 px-1.5 bg-slate-50 rounded text-[10px]">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium w-4">{roomIndex + 1}.</span>
-                          <span className="font-medium">{reservation.rooms?.room_number || 'TBA'}</span>
-                          <span className="text-muted-foreground">{formatDate(reservation.check_in_date)}-{formatDate(reservation.check_out_date)}</span>
-                          <span className="text-muted-foreground">{reservation.number_of_adults}A</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium">₹{(reservation.total_amount || 0).toLocaleString()}</span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="p-0.5 hover:bg-slate-200 rounded">
-                                <MoreVertical size={10} />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-32">
-                              <DropdownMenuItem onClick={() => handleEdit(reservation)} className="text-xs">
-                                <Edit2 size={10} className="mr-1.5" />Edit
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
         </CardContent>
       </Card>
     );
