@@ -38,7 +38,7 @@ import GuestDetailsTab from '../../components/reservations/GuestDetailsTab'
 import FolioTab from '../../components/reservations/FolioTab'
 
 export default function ReservationDetails({ onNavigate }) {
-  const { reservations, updateReservation } = useReservations()
+  const { reservations, updateReservation, fetchReservations } = useReservations()
   const { rooms, roomTypes } = useRooms()
   const { guests } = useGuests()
   const { agents } = useAgents()
@@ -385,8 +385,8 @@ export default function ReservationDetails({ onNavigate }) {
       // Close the dropdown
       setRoomAssignmentOpen(null)
 
-      // The reservation context should update automatically via real-time or we can force refresh
-      // For now, we'll rely on the page to refresh or the user to see the update
+      // Refresh reservations to update the UI
+      await fetchReservations()
     } catch (error) {
       console.error('Error assigning room:', error)
       alert('Failed to assign room: ' + error.message)
