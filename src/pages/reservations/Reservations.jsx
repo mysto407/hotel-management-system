@@ -523,67 +523,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     </Button>
   );
 
-  // Get status color classes for card border
-  const getStatusBorderColor = (status) => {
-    switch(status) {
-      case 'Inquiry': return 'border-l-purple-500';
-      case 'Tentative': return 'border-l-yellow-500';
-      case 'Hold': return 'border-l-orange-500';
-      case 'Confirmed': return 'border-l-blue-500';
-      case 'Checked-in': return 'border-l-green-600';
-      case 'Checked-out': return 'border-l-gray-500';
-      case 'Cancelled': return 'border-l-red-500';
-      default: return 'border-l-gray-300';
-    }
-  };
-
-  // Get booking source badge
-  const getSourceBadge = (reservation) => {
-    if (reservation.booking_source === 'agent') {
-      return (
-        <Badge variant="info" className="text-xs">
-          <User size={10} className="mr-1" />
-          Agent{reservation.agents?.name ? `: ${reservation.agents.name}` : ''}
-        </Badge>
-      );
-    } else if (reservation.booking_source === 'walk-in') {
-      return (
-        <Badge variant="success" className="text-xs">
-          <Building size={10} className="mr-1" />Walk-in
-        </Badge>
-      );
-    } else if (reservation.booking_source === 'phone') {
-      return (
-        <Badge variant="info" className="text-xs">
-          <Phone size={10} className="mr-1" />Phone
-        </Badge>
-      );
-    } else if (reservation.booking_source === 'email') {
-      return (
-        <Badge variant="warning" className="text-xs">
-          <Mail size={10} className="mr-1" />Email
-        </Badge>
-      );
-    } else if (reservation.booking_source === 'website') {
-      return (
-        <Badge variant="purple" className="text-xs">
-          <Building size={10} className="mr-1" />Website
-        </Badge>
-      );
-    } else if (reservation.booking_source === 'direct' && reservation.direct_source) {
-      return (
-        <Badge variant="success" className="text-xs">
-          <Building size={10} className="mr-1" />{reservation.direct_source}
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="success" className="text-xs">
-        <Building size={10} className="mr-1" />Direct
-      </Badge>
-    );
-  };
-
   // Format date for display
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -623,9 +562,6 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                               primaryReservation.booking_reference.startsWith('SPLIT-');
 
     const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
-    const totalGuests = group.reduce((sum, r) =>
-      sum + (r.number_of_adults || 0) + (r.number_of_children || 0) + (r.number_of_infants || 0), 0
-    );
 
     const earliestCheckIn = isMultiRoom
       ? group.reduce((earliest, r) => (!earliest || r.check_in_date < earliest ? r.check_in_date : earliest), null)
@@ -987,7 +923,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {groupReservations(filteredReservations).map((group, groupIndex) => (
             <ReservationCard key={groupIndex} group={group} groupIndex={groupIndex} />
           ))}
