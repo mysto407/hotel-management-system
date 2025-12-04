@@ -85,33 +85,10 @@ export default function MealPlanEditModal({ open, onOpenChange, reservation, onS
               </SelectItem>
               {getActivePlans().map((plan) => (
                 <SelectItem key={plan.code} value={plan.code}>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium">{plan.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ₹{parseFloat(plan.price_per_person || 0).toFixed(0)}/person/day
-                      </span>
-                    </div>
-                    {plan.is_meal_plan !== false && (
-                      <div className="flex gap-1">
-                        {plan.includes_breakfast && (
-                          <Badge variant="outline" className="text-xs py-0 px-1.5 bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
-                            <Coffee className="h-3 w-3 mr-0.5" />B
-                          </Badge>
-                        )}
-                        {plan.includes_lunch && (
-                          <Badge variant="outline" className="text-xs py-0 px-1.5 bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                            <Utensils className="h-3 w-3 mr-0.5" />L
-                          </Badge>
-                        )}
-                        {plan.includes_dinner && (
-                          <Badge variant="outline" className="text-xs py-0 px-1.5 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
-                            <UtensilsCrossed className="h-3 w-3 mr-0.5" />D
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <span>{plan.name}</span>
+                  <span className="text-muted-foreground ml-2">
+                    ₹{parseFloat(plan.price_per_person || 0).toFixed(0)}/person/day
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
