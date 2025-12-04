@@ -509,10 +509,15 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       variant={isActive ? "default" : "outline"}
       size="sm"
       className={cn(
-        // Inactive state - ensure visibility in dark mode
-        !isActive && "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700",
+        // Inactive state - explicit dark mode styling with background
+        !isActive && [
+          "bg-white border-slate-300 text-slate-700",
+          "hover:bg-slate-100",
+          "dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100",
+          "dark:hover:bg-slate-700 dark:hover:text-white"
+        ],
         // Active state base
-        isActive && "text-white",
+        isActive && "text-white border-transparent",
         // Active state variants
         props.variant === 'purple' && isActive && "bg-purple-600 hover:bg-purple-700",
         props.variant === 'warning' && isActive && "bg-yellow-600 hover:bg-yellow-700",
@@ -520,6 +525,8 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
         props.variant === 'info' && isActive && "bg-blue-600 hover:bg-blue-700",
         props.variant === 'success' && isActive && "bg-green-700 hover:bg-green-800",
         props.variant === 'destructive' && isActive && "bg-red-600 hover:bg-red-700",
+        // Default active state (no variant specified)
+        isActive && !props.variant && "bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200",
       )}
     >
       {children}
@@ -793,8 +800,8 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           variant="outline"
           size="sm"
           className={cn(
-            "relative h-8 px-3 gap-1.5 bg-white/70 backdrop-blur-md border-white/20 shadow-md hover:bg-white/90 hover:shadow-lg transition-all duration-200 text-xs font-medium",
-            hasActiveFilters() ? "ring-2 ring-blue-500 ring-offset-1 text-blue-600" : "text-slate-600"
+            "relative h-8 px-3 gap-1.5 bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border-white/20 dark:border-slate-600/50 shadow-md hover:bg-white/90 dark:hover:bg-slate-700/90 hover:shadow-lg transition-all duration-200 text-xs font-medium",
+            hasActiveFilters() ? "ring-2 ring-blue-500 ring-offset-1 text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-200"
           )}
         >
           <Filter size={14} />
