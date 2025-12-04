@@ -432,7 +432,8 @@ export const generateDailyMealChargesWithTax = async (
     roomNumber,
     userId,
     applyTaxes = true,
-    roomTypeName = ''
+    roomTypeName = '',
+    isExtended = false
 ) => {
     // Skip if not a meal plan (Room Only, etc.)
     if (!mealPlan || mealPlan.is_meal_plan === false) {
@@ -464,6 +465,9 @@ export const generateDailyMealChargesWithTax = async (
     // Build included meals string for description
     const includedMeals = mealPlan.included_meals?.join(' + ') || mealPlan.name
 
+    // Add extended suffix for extended stay charges
+    const extendedSuffix = isExtended ? ' (Extended)' : ''
+
     for (let i = 0; i < nights; i++) {
         const chargeDate = new Date(startDate)
         chargeDate.setDate(chargeDate.getDate() + i)
@@ -474,8 +478,8 @@ export const generateDailyMealChargesWithTax = async (
 
         // Include room type name in description (e.g., "Full Board - Deluxe Double - Day 1 of 2")
         const description = roomTypeName
-            ? `${mealPlan.name} (${includedMeals}) - ${roomTypeName} - Day ${i + 1} of ${nights} (${totalGuests} guests)`
-            : `${mealPlan.name} (${includedMeals}) - Day ${i + 1} of ${nights} (${totalGuests} guests)`
+            ? `${mealPlan.name} (${includedMeals}) - ${roomTypeName} - Day ${i + 1} of ${nights} (${totalGuests} guests)${extendedSuffix}`
+            : `${mealPlan.name} (${includedMeals}) - Day ${i + 1} of ${nights} (${totalGuests} guests)${extendedSuffix}`
 
         // Create service charge for this day's meals
         const { data: mealCharge, error: chargeError } = await createServiceCharge({

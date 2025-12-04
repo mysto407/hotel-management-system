@@ -482,7 +482,8 @@ export default function ExtendNightsModal({
                 room?.room_number || 'TBD',
                 null,
                 true,
-                roomType?.name || ''
+                roomType?.name || '',
+                true  // isExtended - mark as extended nights in folio
               )
             }
           }
