@@ -771,7 +771,7 @@ export default function ReservationDetails({ onNavigate }) {
                 )}
               </div>
               {selectedReservationForRoomAssignment?.room_id && (
-                <div className="text-right text-sm">
+                <div className="text-center text-sm mr-6">
                   <div className="text-muted-foreground">Assigned to room</div>
                   <div className="font-medium">{getRoomInfo(selectedReservationForRoomAssignment.room_id).number}</div>
                 </div>
