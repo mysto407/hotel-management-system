@@ -824,7 +824,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
         <div className="p-3 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Date Filters */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Date Range</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Date Range</Label>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton onClick={() => setDatePreset('all')} isActive={dateFilterType === 'all'}>All</FilterButton>
               <FilterButton onClick={() => { setDatePreset('all'); setStartDate(today); setEndDate(today); setDateFilterType('today'); }} isActive={dateFilterType === 'today'}>Today</FilterButton>
@@ -849,7 +849,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
           {/* Status Filters */}
           <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Status</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Status</Label>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton onClick={() => setFilterStatus('all')} isActive={filterStatus === 'all'}>All</FilterButton>
               <FilterButton onClick={() => setFilterStatus('Inquiry')} isActive={filterStatus === 'Inquiry'} variant="purple">Inquiry</FilterButton>
@@ -864,7 +864,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
           {/* Meal Plan Filters */}
           <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Meal Plan</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Meal Plan</Label>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton onClick={() => setFilterMealPlan('all')} isActive={filterMealPlan === 'all'}>All</FilterButton>
               {getActivePlans().map((plan) => (
@@ -881,7 +881,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
 
           {/* Guest Count Filters */}
           <div className="space-y-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-            <Label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Guests</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Guests</Label>
             <div className="flex gap-1.5 flex-wrap">
               <FilterButton onClick={() => setFilterGuestCount('all')} isActive={filterGuestCount === 'all'}>All</FilterButton>
               <FilterButton onClick={() => setFilterGuestCount('1-2')} isActive={filterGuestCount === '1-2'}>1-2</FilterButton>
