@@ -42,6 +42,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - ❌ NEVER work directly on the `main` branch
    - See the "Git Workflow" section below for detailed instructions
 
+7. **Do NOT use number input spinners** - Never use the default browser number input arrows/spinners:
+   - The `Input` component in `src/components/ui/input.jsx` already hides spinners for `type="number"` inputs
+   - If using native `<input type="number">`, add these classes to hide spinners: `[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`
+   - Users should type values directly, not use increment/decrement arrows
+
 ## Git Workflow (Branch-Per-Task Strategy)
 
 This project uses a **Branch-Per-Task** workflow to enable easy review and reversion of changes. Every feature, fix, or refactoring gets its own branch.
