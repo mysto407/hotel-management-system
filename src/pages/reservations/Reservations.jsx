@@ -509,7 +509,11 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
       variant={isActive ? "default" : "outline"}
       size="sm"
       className={cn(
+        // Inactive state - ensure visibility in dark mode
+        !isActive && "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700",
+        // Active state base
         isActive && "text-white",
+        // Active state variants
         props.variant === 'purple' && isActive && "bg-purple-600 hover:bg-purple-700",
         props.variant === 'warning' && isActive && "bg-yellow-600 hover:bg-yellow-700",
         props.variant === 'orange' && isActive && "bg-orange-600 hover:bg-orange-700",
