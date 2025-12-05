@@ -1,20 +1,11 @@
-import { useState, useRef } from 'react'
-import { User, Mail, Phone, UserPlus, Edit, Save, X, Upload, Home, Star, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { User, UserPlus, Edit, Save, X, Home, Star, Trash2 } from 'lucide-react'
 import { useGuests } from '../../context/GuestContext'
-import { Checkbox } from '../ui/checkbox'
 import { useReservations } from '../../context/ReservationContext'
 import { Card, CardContent } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select'
+import GuestFormFields from '../guests/GuestFormFields'
 
 // Helper function to get initials from name
 const getInitials = (name) => {
