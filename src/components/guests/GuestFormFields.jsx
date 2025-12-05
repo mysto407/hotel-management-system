@@ -155,29 +155,35 @@ export default function GuestFormFields({
               )}
             </div>
 
-            {/* Room Assignment Dropdown - always editable as a quick action */}
+            {/* Room Assignment Dropdown */}
             {roomOptions.length > 0 && (
               <div className="flex-shrink-0 border-l pl-4">
                 <Label className="text-xs text-muted-foreground mb-2 block">
                   <Home className="w-3 h-3 inline mr-1" />
                   Room Assignment
                 </Label>
-                <Select
-                  value={selectedRoom || 'unassigned'}
-                  onValueChange={(value) => onRoomChange?.(value === 'unassigned' ? '' : value)}
-                >
-                  <SelectTrigger className="h-9 w-[200px]">
-                    <SelectValue placeholder="Select room" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">No room assigned</SelectItem>
-                    {roomOptions.map(room => (
-                      <SelectItem key={room.id} value={room.id}>
-                        {room.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isEditing ? (
+                  <Select
+                    value={selectedRoom || 'unassigned'}
+                    onValueChange={(value) => onRoomChange?.(value === 'unassigned' ? '' : value)}
+                  >
+                    <SelectTrigger className="h-9 w-[200px]">
+                      <SelectValue placeholder="Select room" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">No room assigned</SelectItem>
+                      {roomOptions.map(room => (
+                        <SelectItem key={room.id} value={room.id}>
+                          {room.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm py-2">
+                    {selectedRoom ? roomOptions.find(r => r.id === selectedRoom)?.label || 'Unknown' : 'No room assigned'}
+                  </p>
+                )}
               </div>
             )}
           </div>
