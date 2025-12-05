@@ -26,16 +26,15 @@ export const GuestProvider = ({ children }) => {
   const guestTypes = ['Regular', 'VIP', 'Corporate'];
   const genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
   const nationalities = [
-    'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France',
-    'Italy', 'Spain', 'Netherlands', 'Belgium', 'Switzerland', 'Austria', 'Sweden',
-    'Norway', 'Denmark', 'Finland', 'Russia', 'China', 'Japan', 'South Korea',
-    'Singapore', 'Malaysia', 'Thailand', 'Indonesia', 'Philippines', 'Vietnam',
-    'Bangladesh', 'Pakistan', 'Sri Lanka', 'Nepal', 'Bhutan', 'Maldives',
-    'Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Kuwait', 'Oman', 'Bahrain',
-    'Israel', 'Turkey', 'Egypt', 'South Africa', 'Nigeria', 'Kenya',
-    'Brazil', 'Mexico', 'Argentina', 'Colombia', 'Chile', 'Peru',
-    'New Zealand', 'Ireland', 'Scotland', 'Wales', 'Portugal', 'Greece', 'Poland',
-    'Czech Republic', 'Hungary', 'Romania', 'Ukraine', 'Other'
+    'Argentina', 'Australia', 'Austria', 'Bahrain', 'Bangladesh', 'Belgium', 'Bhutan',
+    'Brazil', 'Canada', 'Chile', 'China', 'Colombia', 'Czech Republic', 'Denmark',
+    'Egypt', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'India', 'Indonesia',
+    'Ireland', 'Israel', 'Italy', 'Japan', 'Kenya', 'Kuwait', 'Malaysia', 'Maldives',
+    'Mexico', 'Nepal', 'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Oman',
+    'Pakistan', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania',
+    'Russia', 'Saudi Arabia', 'Scotland', 'Singapore', 'South Africa', 'South Korea',
+    'Spain', 'Sri Lanka', 'Sweden', 'Switzerland', 'Thailand', 'Turkey', 'Ukraine',
+    'United Arab Emirates', 'United Kingdom', 'United States', 'Vietnam', 'Wales', 'Other'
   ];
 
   useEffect(() => {
