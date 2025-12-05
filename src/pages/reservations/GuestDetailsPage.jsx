@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone, X, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone, X, Users, Star } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
 import { useRooms } from '../../context/RoomContext'
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select'
+import { Checkbox } from '../../components/ui/checkbox'
 
 export default function GuestDetailsPage({ onNavigate }) {
   const flowContext = useReservationFlow()
@@ -36,7 +37,7 @@ export default function GuestDetailsPage({ onNavigate }) {
     selectedRooms,
     addToExistingBooking
   } = flowContext
-  const { idProofTypes, guests } = guestContext
+  const { idProofTypes, genderOptions, guests } = guestContext
   const { rooms } = roomContext
 
   // Check if we're adding to an existing booking
@@ -69,7 +70,12 @@ export default function GuestDetailsPage({ onNavigate }) {
           country: existingGuest.country || '',
           photo: null,
           photoUrl: existingGuest.photo_url || null,
-          assignedRoomId: ''
+          assignedRoomId: '',
+          gender: existingGuest.gender || '',
+          nationality: existingGuest.nationality || '',
+          emergencyContactName: existingGuest.emergency_contact_name || '',
+          emergencyContactPhone: existingGuest.emergency_contact_phone || '',
+          isVip: existingGuest.is_vip || false
         })
       }
     }
@@ -182,7 +188,12 @@ const handleSelectGuest = (guest) => {
       country: guest.country || '',
       photo: null, // Clear any pending photo file
       photoUrl: guest.photo_url || null,
-      assignedRoomId: ''
+      assignedRoomId: '',
+      gender: guest.gender || '',
+      nationality: guest.nationality || '',
+      emergencyContactName: guest.emergency_contact_name || '',
+      emergencyContactPhone: guest.emergency_contact_phone || '',
+      isVip: guest.is_vip || false
     })
   }
 
@@ -212,7 +223,12 @@ const handleSelectGuest = (guest) => {
       country: '',
       photo: null,
       photoUrl: null,
-      assignedRoomId: ''
+      assignedRoomId: '',
+      gender: '',
+      nationality: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      isVip: false
     })
   }
 
@@ -640,6 +656,34 @@ const handleSelectGuest = (guest) => {
                         className="h-9"
                       />
                     </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="gender" className="text-xs">Gender</Label>
+                      <Select
+                        value={guestDetails.gender}
+                        onValueChange={(value) => setGuestDetails({ ...guestDetails, gender: value })}
+                      >
+                        <SelectTrigger id="gender" className="h-9">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {genderOptions.map(gender => (
+                            <SelectItem key={gender} value={gender}>{gender}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="nationality" className="text-xs">Nationality</Label>
+                      <Input
+                        id="nationality"
+                        value={guestDetails.nationality}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, nationality: e.target.value })}
+                        placeholder="Indian"
+                        className="h-9"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -725,8 +769,50 @@ const handleSelectGuest = (guest) => {
                         className="h-9"
                       />
                     </div>
+                  </div>
+                </div>
 
+                {/* Emergency Contact Section */}
+                <div className="pt-4 border-t">
+                  <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Emergency Contact</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="emergencyContactName" className="text-xs">Contact Name</Label>
+                      <Input
+                        id="emergencyContactName"
+                        value={guestDetails.emergencyContactName}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, emergencyContactName: e.target.value })}
+                        placeholder="Emergency contact name"
+                        className="h-9"
+                      />
+                    </div>
 
+                    <div className="space-y-1">
+                      <Label htmlFor="emergencyContactPhone" className="text-xs">Contact Phone</Label>
+                      <Input
+                        id="emergencyContactPhone"
+                        type="tel"
+                        value={guestDetails.emergencyContactPhone}
+                        onChange={(e) => setGuestDetails({ ...guestDetails, emergencyContactPhone: e.target.value })}
+                        placeholder="Emergency contact phone"
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* VIP Status Section */}
+                <div className="pt-4 border-t">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isVip"
+                      checked={guestDetails.isVip}
+                      onCheckedChange={(checked) => setGuestDetails({ ...guestDetails, isVip: checked })}
+                    />
+                    <Label htmlFor="isVip" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                      <Star className="w-4 h-4 text-warning" />
+                      VIP Guest
+                    </Label>
                   </div>
                 </div>
               </div>
