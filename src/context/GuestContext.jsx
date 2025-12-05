@@ -22,7 +22,7 @@ export const GuestProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const { error: showError } = useAlert();
 
-  const idProofTypes = ['AADHAR', 'PAN', 'Passport', 'Driving License', 'Voter ID'];
+  const idProofTypes = ['CID', 'Drivers License', 'Passport', 'Other'];
   const guestTypes = ['Regular', 'VIP', 'Corporate'];
   const genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
   const nationalities = [

@@ -21,7 +21,7 @@ const getInitialFormData = () => ({
   email: '',
   phone: '',
   dateOfBirth: '',
-  idType: 'AADHAR',
+  idType: 'CID',
   idNumber: '',
   address: '',
   city: '',
