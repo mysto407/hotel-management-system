@@ -472,16 +472,9 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
           <Card>
             {/* Header with Edit/Save buttons */}
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-muted/10">
-              <div>
-                <CardTitle className="text-lg">
-                  {isAddingNewGuest ? 'Add New Guest' : 'Guest Details'}
-                </CardTitle>
-                {selectedGuest && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedGuest.name}
-                  </p>
-                )}
-              </div>
+              <CardTitle className="text-lg">
+                {isAddingNewGuest ? 'Add New Guest' : 'Guest Details'}
+              </CardTitle>
               <div className="flex items-center gap-2">
                 {isAddingNewGuest ? (
                   <>
