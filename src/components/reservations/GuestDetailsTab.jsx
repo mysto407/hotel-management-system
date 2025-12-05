@@ -292,6 +292,9 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
           await updateReservation(targetReservation.id, {
             additional_guest_ids: [...currentAdditionalGuests, newGuest.id]
           })
+
+          // Update selectedRoomForGuest to match where guest was actually assigned
+          setSelectedRoomForGuest(targetReservation.room_id || targetReservation.id)
         }
 
         // Select the newly created guest
