@@ -1106,7 +1106,7 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                 </div>
 
                 {/* VIP Status Section */}
-                <div className="pt-4 border-t">
+                <div className="pt-4">
                   <div className="flex items-center space-x-2">
                     {(isEditMode || isAddingNewGuest) ? (
                       <>

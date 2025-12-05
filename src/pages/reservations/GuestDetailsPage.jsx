@@ -779,7 +779,7 @@ const handleSelectGuest = (guest) => {
                 </div>
 
                 {/* Emergency Contact Section */}
-                <div className="pt-4 border-t">
+                <div className="pt-4">
                   <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Emergency Contact</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
@@ -808,7 +808,7 @@ const handleSelectGuest = (guest) => {
                 </div>
 
                 {/* VIP Status Section */}
-                <div className="pt-4 border-t">
+                <div className="pt-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="isVip"
