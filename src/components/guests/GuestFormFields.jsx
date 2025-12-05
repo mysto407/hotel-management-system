@@ -155,35 +155,29 @@ export default function GuestFormFields({
               )}
             </div>
 
-            {/* Room Assignment Dropdown */}
+            {/* Room Assignment Dropdown - always editable as a quick action */}
             {roomOptions.length > 0 && (
               <div className="flex-shrink-0 border-l pl-4">
                 <Label className="text-xs text-muted-foreground mb-2 block">
                   <Home className="w-3 h-3 inline mr-1" />
                   Room Assignment
                 </Label>
-                {isEditing ? (
-                  <Select
-                    value={selectedRoom || 'unassigned'}
-                    onValueChange={(value) => onRoomChange?.(value === 'unassigned' ? '' : value)}
-                  >
-                    <SelectTrigger className="h-9 w-[200px]">
-                      <SelectValue placeholder="Select room" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">No room assigned</SelectItem>
-                      {roomOptions.map(room => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="h-9 px-3 py-2 border rounded-md bg-muted/30 text-sm">
-                    {roomOptions.find(r => r.id === selectedRoom)?.label || 'No room assigned'}
-                  </div>
-                )}
+                <Select
+                  value={selectedRoom || 'unassigned'}
+                  onValueChange={(value) => onRoomChange?.(value === 'unassigned' ? '' : value)}
+                >
+                  <SelectTrigger className="h-9 w-[200px]">
+                    <SelectValue placeholder="Select room" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">No room assigned</SelectItem>
+                    {roomOptions.map(room => (
+                      <SelectItem key={room.id} value={room.id}>
+                        {room.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>

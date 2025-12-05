@@ -266,6 +266,10 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
   }
 
   const handleCancelEdit = () => {
+    // If we were adding a new guest (including from placeholder), clear selection
+    if (isAddingNewGuest) {
+      setSelectedGuestId(null)
+    }
     setIsEditMode(false)
     setIsAddingNewGuest(false)
     setEditedGuestDetails(null)
