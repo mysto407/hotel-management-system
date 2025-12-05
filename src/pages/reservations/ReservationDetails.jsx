@@ -37,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog'
+import { ScrollArea } from '../../components/ui/scroll-area'
 import NotesTab from '../../components/reservations/NotesTab'
 import ExtendNightsModal from '../../components/reservations/ExtendNightsModal'
 import MealPlanEditModal from '../../components/reservations/MealPlanEditModal'
@@ -228,7 +229,7 @@ export default function ReservationDetails({ onNavigate }) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Loading reservation details...</p>
+          <p className="text-muted-foreground mb-4">Loading reservation details...</p>
           <Button onClick={() => onNavigate('reservations')} variant="outline">
             Back to Reservations
           </Button>
@@ -436,11 +437,11 @@ export default function ReservationDetails({ onNavigate }) {
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="cursor-pointer hover:opacity-80">
+                <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
                   <Badge variant={getStatusBadgeVariant(primaryReservation.status)} className="text-base px-3 py-1">
                     {primaryReservation.status}
                   </Badge>
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => handleStatusChange('Inquiry')}>Inquiry</DropdownMenuItem>
@@ -556,12 +557,10 @@ export default function ReservationDetails({ onNavigate }) {
                                   {isConsecutive ? 'Continuous Stay' : `Stay ${stayIndex + 1}`}
                                 </span>
                                 {isConsecutive && (
-                                  <div className="flex items-center gap-1.5 text-xs bg-orange/10 border border-orange/30 rounded px-2 py-1">
-                                    <ArrowRight className="h-3 w-3 text-orange" />
-                                    <span className="text-orange">
-                                      Room Move: {formatRoomChangeSequence(stayRooms)}
-                                    </span>
-                                  </div>
+                                  <Badge variant="orange" className="text-xs font-normal">
+                                    <ArrowRight className="h-3 w-3 mr-1" />
+                                    Room Move: {formatRoomChangeSequence(stayRooms)}
+                                  </Badge>
                                 )}
                               </div>
                             </TableCell>
@@ -602,25 +601,21 @@ export default function ReservationDetails({ onNavigate }) {
                           )}
                         </TableCell>
                         <TableCell>
-                          {roomInfo.number === 'Unassigned' ? (
-                            <button
-                              className="cursor-pointer"
-                              onClick={() => handleOpenRoomAssignment(reservation)}
-                            >
+                          <Button
+                            variant="ghost"
+                            className="p-0 h-auto hover:bg-transparent"
+                            onClick={() => handleOpenRoomAssignment(reservation)}
+                          >
+                            {roomInfo.number === 'Unassigned' ? (
                               <Badge variant="secondary" className="hover:bg-secondary/80">
                                 Room Unassigned
                               </Badge>
-                            </button>
-                          ) : (
-                            <button
-                              className="cursor-pointer"
-                              onClick={() => handleOpenRoomAssignment(reservation)}
-                            >
+                            ) : (
                               <Badge variant="outline" className="hover:bg-muted">
                                 Room {roomInfo.number}
                               </Badge>
-                            </button>
-                          )}
+                            )}
+                          </Button>
                         </TableCell>
                         <TableCell className="text-sm">
                           {new Date(reservation.check_in_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
@@ -634,12 +629,13 @@ export default function ReservationDetails({ onNavigate }) {
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <button
+                          <Button
+                            variant="link"
+                            className="h-auto p-0 text-sm underline decoration-dotted"
                             onClick={() => handleEditMealPlan(reservation)}
-                            className="text-sm underline decoration-dotted hover:text-primary cursor-pointer"
                           >
                             {getMealPlanName(reservation.meal_plan) || 'N/A'}
-                          </button>
+                          </Button>
                         </TableCell>
                         <TableCell className="text-center">{resNights}</TableCell>
                         <TableCell className="text-right font-semibold">
@@ -778,7 +774,7 @@ export default function ReservationDetails({ onNavigate }) {
               {selectedReservationForRoomAssignment?.room_id && (
                 <div className="text-center text-sm mr-6">
                   <div className="text-muted-foreground">Assigned to room</div>
-                  <div className="font-medium text-blue-600">{getRoomInfo(selectedReservationForRoomAssignment.room_id).number}</div>
+                  <div className="font-medium text-primary">{getRoomInfo(selectedReservationForRoomAssignment.room_id).number}</div>
                 </div>
               )}
             </div>
@@ -790,21 +786,23 @@ export default function ReservationDetails({ onNavigate }) {
               {availableRoomsForAssignment.length === 0 ? (
                 <div className="py-4 text-center text-muted-foreground">No available rooms</div>
               ) : (
-                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-                  {availableRoomsForAssignment.map((room) => (
-                    <Button
-                      key={room.id}
-                      variant="outline"
-                      className="h-auto py-2 px-3 flex-col"
-                      onClick={() => handleAssignRoom(selectedReservationForRoomAssignment.id, room.id)}
-                    >
-                      <div className="font-medium">{room.room_number}</div>
-                      {room.floor && (
-                        <div className="text-[10px] text-muted-foreground">Floor {room.floor}</div>
-                      )}
-                    </Button>
-                  ))}
-                </div>
+                <ScrollArea className="max-h-64">
+                  <div className="grid grid-cols-3 gap-2">
+                    {availableRoomsForAssignment.map((room) => (
+                      <Button
+                        key={room.id}
+                        variant="outline"
+                        className="h-auto py-2 px-3 flex-col"
+                        onClick={() => handleAssignRoom(selectedReservationForRoomAssignment.id, room.id)}
+                      >
+                        <div className="font-medium">{room.room_number}</div>
+                        {room.floor && (
+                          <div className="text-[10px] text-muted-foreground">Floor {room.floor}</div>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
               {selectedReservationForRoomAssignment?.room_id && (
                 <Button
