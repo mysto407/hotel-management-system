@@ -16,6 +16,12 @@ import {
   SelectValue,
 } from '../ui/select'
 
+// Helper function to get initials from name
+const getInitials = (name) => {
+  if (!name) return '?'
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
 export default function GuestDetailsTab({ groupedReservations, guests, getRoomInfo }) {
   const { idProofTypes, genderOptions, nationalities, updateGuest, addGuest } = useGuests()
   const { updateReservation } = useReservations()
@@ -104,10 +110,11 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
       }
     })
 
-    return [...existingGuests, ...placeholders]
+    return { actualGuests: existingGuests, placeholders }
   }
 
-  const allGuests = getAllGuestsWithPlaceholders()
+  const { actualGuests, placeholders } = getAllGuestsWithPlaceholders()
+  const allGuests = [...actualGuests, ...placeholders] // Keep for compatibility with selection logic
   const selectedGuest = selectedGuestId && !selectedGuestId.startsWith('placeholder-')
     ? guests.find(g => g.id === selectedGuestId)
     : null
