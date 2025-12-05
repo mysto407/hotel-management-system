@@ -780,6 +780,208 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
     );
   };
 
+  // View Toggle Component
+  const ViewToggle = () => (
+    <div className="flex items-center border rounded-md">
+      <Button
+        variant={viewMode === 'cards' ? 'default' : 'ghost'}
+        size="sm"
+        onClick={() => setViewMode('cards')}
+        className="h-8 px-3 rounded-r-none"
+      >
+        <LayoutGrid size={14} />
+      </Button>
+      <Button
+        variant={viewMode === 'table' ? 'default' : 'ghost'}
+        size="sm"
+        onClick={() => setViewMode('table')}
+        className="h-8 px-3 rounded-l-none border-l"
+      >
+        <List size={14} />
+      </Button>
+    </div>
+  );
+
+  // Reservation Table Component
+  const ReservationTable = ({ groups }) => {
+    // Get source label for a reservation
+    const getSourceLabel = (reservation) => {
+      if (reservation.booking_source === 'agent') {
+        return reservation.agents?.name || 'Agent';
+      }
+      if (reservation.booking_source === 'direct' && reservation.direct_source) {
+        return reservation.direct_source;
+      }
+      return reservation.booking_source?.charAt(0).toUpperCase() + reservation.booking_source?.slice(1) || 'Direct';
+    };
+
+    return (
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[180px]">Guest</TableHead>
+              <TableHead>Room</TableHead>
+              <TableHead>Check-in</TableHead>
+              <TableHead>Check-out</TableHead>
+              <TableHead>Nights</TableHead>
+              <TableHead>Guests</TableHead>
+              <TableHead>Meal</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {groups.map(({ group, groupIndex }) => {
+              const isMultiRoom = group.length > 1;
+              const primaryReservation = group[0];
+              const totalAmount = group.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+              const earliestCheckIn = isMultiRoom
+                ? group.reduce((earliest, r) => (!earliest || r.check_in_date < earliest ? r.check_in_date : earliest), null)
+                : primaryReservation.check_in_date;
+              const latestCheckOut = isMultiRoom
+                ? group.reduce((latest, r) => (!latest || r.check_out_date > latest ? r.check_out_date : latest), null)
+                : primaryReservation.check_out_date;
+              const nights = calculateNights(earliestCheckIn, latestCheckOut);
+              const roomDisplay = isMultiRoom
+                ? group.map(r => r.rooms?.room_number || 'TBA').join(', ')
+                : (primaryReservation.room_id ? primaryReservation.rooms?.room_number : null);
+
+              return (
+                <TableRow key={groupIndex} className="cursor-pointer" onClick={() => handleViewDetails(group)}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium text-sm">{primaryReservation.guests?.name || 'Unknown'}</p>
+                      <p className="text-xs text-muted-foreground">{primaryReservation.guests?.phone || '—'}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {roomDisplay ? (
+                      <span className="font-medium text-sm">{roomDisplay}</span>
+                    ) : (
+                      <span className="text-warning text-sm font-medium">Unassigned</span>
+                    )}
+                    {isMultiRoom && (
+                      <span className="ml-1 text-xs text-muted-foreground">({group.length})</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">{formatDate(earliestCheckIn)}</TableCell>
+                  <TableCell className="text-sm">{formatDate(latestCheckOut)}</TableCell>
+                  <TableCell className="text-sm">{nights}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {isMultiRoom ? (
+                      <>{group.reduce((sum, r) => sum + (r.number_of_adults || 0), 0)}A {group.reduce((sum, r) => sum + (r.number_of_children || 0), 0)}C</>
+                    ) : (
+                      <>{primaryReservation.number_of_adults || 0}A {primaryReservation.number_of_children || 0}C</>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {primaryReservation.meal_plan && primaryReservation.meal_plan !== 'NM' && (
+                      <span className="text-xs font-medium px-1.5 py-0.5 bg-purple/20 text-purple-foreground rounded">
+                        {primaryReservation.meal_plan}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{getSourceLabel(primaryReservation)}</TableCell>
+                  <TableCell className="text-right font-medium">₹{totalAmount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <span className={cn(
+                      "text-xs font-medium px-1.5 py-0.5 rounded",
+                      primaryReservation.payment_status === 'Paid' ? 'bg-success/20 text-success-foreground' :
+                      primaryReservation.payment_status === 'Partial' ? 'bg-warning/20 text-warning-foreground' :
+                      'bg-destructive/20 text-destructive'
+                    )}>
+                      {primaryReservation.payment_status}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={cn(
+                      "text-xs font-medium px-1.5 py-0.5 rounded text-white",
+                      getStatusBgColor(primaryReservation.status)
+                    )}>
+                      {primaryReservation.status}
+                    </span>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-0.5">
+                      {(primaryReservation.status === 'Confirmed' || primaryReservation.status === 'Hold') && (
+                        <Button
+                          variant="ghost" size="icon"
+                          onClick={async () => {
+                            if (isMultiRoom) {
+                              const unassignedInGroup = group.filter(r => !r.room_id);
+                              if (unassignedInGroup.length > 0) {
+                                await showAlert({ variant: 'warning', title: 'Room Assignment Required', message: `${unassignedInGroup.length} room(s) need assignment.` });
+                                return;
+                              }
+                              const confirmed = await confirm({ variant: 'info', title: 'Check In', message: `Check in all ${group.length} rooms?`, confirmText: 'Check In All'});
+                              if (confirmed) group.forEach(r => checkIn(r.id));
+                            } else handleCheckIn(primaryReservation);
+                          }}
+                          className="h-6 w-6 hover:bg-success/20 rounded-full"
+                        >
+                          <CheckCircle size={14} className="text-success" />
+                        </Button>
+                      )}
+                      {primaryReservation.status === 'Checked-in' && (
+                        <Button
+                          variant="ghost" size="icon"
+                          onClick={async () => {
+                            if (isMultiRoom) {
+                              const confirmed = await confirm({ variant: 'info', title: 'Check Out', message: `Check out all ${group.length} rooms?`, confirmText: 'Check Out All'});
+                              if (confirmed) group.forEach(r => checkOut(r.id));
+                            } else handleCheckOut(primaryReservation);
+                          }}
+                          className="h-6 w-6 hover:bg-info/20 rounded-full"
+                        >
+                          <LogOut size={14} className="text-info" />
+                        </Button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full">
+                            <MoreVertical size={14} className="text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onClick={() => handleViewDetails(group)} className="text-xs">
+                            <Eye size={12} className="mr-2" />View Details
+                          </DropdownMenuItem>
+                          {primaryReservation.status !== 'Cancelled' && primaryReservation.status !== 'Checked-out' && (
+                            <>
+                              <DropdownMenuItem onClick={() => isMultiRoom ? handleEditGroup(group) : handleEdit(primaryReservation)} className="text-xs">
+                                <Edit2 size={12} className="mr-2 text-info" />Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={async () => {
+                                if (isMultiRoom) {
+                                  const confirmed = await confirm({ variant: 'warning', title: 'Cancel Reservations', message: `Cancel all ${group.length} rooms?`, confirmText: 'Cancel All'});
+                                  if (confirmed) group.forEach(r => handleCancel(r));
+                                } else handleCancel(primaryReservation);
+                              }} className="text-xs">
+                                <XOctagon size={12} className="mr-2 text-orange" />Cancel
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => isMultiRoom ? handleDeleteGroup(group) : handleDelete(primaryReservation)} className="text-xs text-red-600">
+                            <Trash2 size={12} className="mr-2" />Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+    );
+  };
+
   // Count active filters for badge
   const activeFilterCount = () => {
     let count = 0;
@@ -908,7 +1110,10 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
           {/* Empty state header with filter */}
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Reservations</h2>
-            <FilterPopover />
+            <div className="flex items-center gap-2">
+              <ViewToggle />
+              <FilterPopover />
+            </div>
           </div>
           <Card>
             <CardContent className="p-12 text-center">
@@ -938,6 +1143,26 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
             // Sort months chronologically
             const sortedMonths = Object.keys(byMonth).sort();
 
+            // Table view - single table for all reservations
+            if (viewMode === 'table') {
+              const allGroups = sortedMonths.flatMap(monthKey => byMonth[monthKey]);
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xl font-semibold">
+                      Reservations ({allGroups.length})
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <ViewToggle />
+                      <FilterPopover />
+                    </div>
+                  </div>
+                  <ReservationTable groups={allGroups} />
+                </div>
+              );
+            }
+
+            // Card view - grouped by month
             return sortedMonths.map((monthKey, monthIndex) => {
               const [year, month] = monthKey.split('-');
               const monthName = new Date(year, parseInt(month) - 1).toLocaleDateString('en-IN', {
@@ -951,7 +1176,12 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
                     <h2 className="text-xl font-semibold">
                       {monthName}
                     </h2>
-                    {monthIndex === 0 && <FilterPopover />}
+                    {monthIndex === 0 && (
+                      <div className="flex items-center gap-2">
+                        <ViewToggle />
+                        <FilterPopover />
+                      </div>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {byMonth[monthKey].map(({ group, groupIndex }) => (
