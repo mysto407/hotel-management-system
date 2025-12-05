@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
-import { User, Mail, Phone, UserPlus, Edit, Save, X, Upload, Home } from 'lucide-react'
+import { User, Mail, Phone, UserPlus, Edit, Save, X, Upload, Home, Star, Trash2 } from 'lucide-react'
 import { useGuests } from '../../context/GuestContext'
+import { Checkbox } from '../ui/checkbox'
 import { useReservations } from '../../context/ReservationContext'
 import { Card, CardContent } from '../ui/card'
 import { Badge } from '../ui/badge'
@@ -16,7 +17,7 @@ import {
 } from '../ui/select'
 
 export default function GuestDetailsTab({ groupedReservations, guests, getRoomInfo }) {
-  const { idProofTypes, updateGuest, addGuest } = useGuests()
+  const { idProofTypes, genderOptions, updateGuest, addGuest } = useGuests()
   const { updateReservation } = useReservations()
   const [selectedGuestId, setSelectedGuestId] = useState(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -145,7 +146,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         country: '',
         photo: null,
         photoUrl: null,
-        placeholderReservationId: guest.reservationId
+        placeholderReservationId: guest.reservationId,
+        gender: '',
+        nationality: '',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        isVip: false
       })
     } else {
       // Handle real guest selection
@@ -177,7 +183,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
       state: '',
       country: '',
       photo: null,
-      photoUrl: null
+      photoUrl: null,
+      gender: '',
+      nationality: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      isVip: false
     })
   }
 
@@ -246,7 +257,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         state: selectedGuest.state || '',
         country: selectedGuest.country || '',
         photo: null,
-        photoUrl: selectedGuest.photo_url || null
+        photoUrl: selectedGuest.photo_url || null,
+        gender: selectedGuest.gender || '',
+        nationality: selectedGuest.nationality || '',
+        emergencyContactName: selectedGuest.emergency_contact_name || '',
+        emergencyContactPhone: selectedGuest.emergency_contact_phone || '',
+        isVip: selectedGuest.is_vip || false
       })
       setIsEditMode(true)
     }
@@ -272,7 +288,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         address: editedGuestDetails.address,
         city: editedGuestDetails.city,
         state: editedGuestDetails.state,
-        country: editedGuestDetails.country
+        country: editedGuestDetails.country,
+        gender: editedGuestDetails.gender || null,
+        nationality: editedGuestDetails.nationality || null,
+        emergency_contact_name: editedGuestDetails.emergencyContactName || null,
+        emergency_contact_phone: editedGuestDetails.emergencyContactPhone || null,
+        is_vip: editedGuestDetails.isVip || false
       }
 
       await updateGuest(selectedGuest.id, updatedData)
@@ -304,7 +325,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         address: editedGuestDetails.address || '',
         city: editedGuestDetails.city || '',
         state: editedGuestDetails.state || '',
-        country: editedGuestDetails.country || ''
+        country: editedGuestDetails.country || '',
+        gender: editedGuestDetails.gender || '',
+        nationality: editedGuestDetails.nationality || '',
+        emergency_contact_name: editedGuestDetails.emergencyContactName || '',
+        emergency_contact_phone: editedGuestDetails.emergencyContactPhone || '',
+        is_vip: editedGuestDetails.isVip || false
       }
 
       const newGuest = await addGuest(newGuestData)
@@ -416,6 +442,37 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
     }
   }
 
+  // Handle removing an additional guest from the booking
+  const handleRemoveGuest = async (guestId, reservationId) => {
+    if (!confirm('Are you sure you want to remove this guest from the booking?')) return
+
+    try {
+      const reservation = groupedReservations.find(r => r.id === reservationId)
+      if (!reservation) return
+
+      // Remove guest from additional_guest_ids
+      const updatedAdditionalGuests = (reservation.additional_guest_ids || []).filter(id => id !== guestId)
+
+      // Decrement guest count (assume adult if we can't determine type)
+      const guest = guests.find(g => g.id === guestId)
+      const updateData = {
+        additional_guest_ids: updatedAdditionalGuests,
+        number_of_adults: Math.max(0, (reservation.number_of_adults || 0) - 1)
+      }
+
+      await updateReservation(reservationId, updateData)
+
+      // Clear selection if this guest was selected
+      if (selectedGuestId === guestId) {
+        setSelectedGuestId(null)
+        setEditedGuestDetails(null)
+      }
+    } catch (error) {
+      console.error('Error removing guest:', error)
+      alert('Failed to remove guest: ' + error.message)
+    }
+  }
+
   const displayGuest = (isEditMode || isAddingNewGuest) ? editedGuestDetails : (selectedGuest ? {
     firstName: parseGuestName(selectedGuest.name).firstName,
     surname: parseGuestName(selectedGuest.name).surname,
@@ -428,7 +485,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
     city: selectedGuest.city || '',
     state: selectedGuest.state || '',
     country: selectedGuest.country || '',
-    photoUrl: selectedGuest.photo_url || null
+    photoUrl: selectedGuest.photo_url || null,
+    gender: selectedGuest.gender || '',
+    nationality: selectedGuest.nationality || '',
+    emergencyContactName: selectedGuest.emergency_contact_name || '',
+    emergencyContactPhone: selectedGuest.emergency_contact_phone || '',
+    isVip: selectedGuest.is_vip || false
   } : null)
 
   return (
@@ -475,10 +537,15 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                     }`}
                   >
                     <div className="space-y-1.5">
-                      <div className={`font-medium text-sm truncate ${
-                        guest.isPlaceholder ? 'text-amber-700 dark:text-amber-400 italic' : ''
-                      }`}>
-                        {guest.name}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-medium text-sm truncate ${
+                          guest.isPlaceholder ? 'text-amber-700 dark:text-amber-400 italic' : ''
+                        }`}>
+                          {guest.name}
+                        </span>
+                        {!guest.isPlaceholder && guest.is_vip && (
+                          <Star className="w-3.5 h-3.5 text-warning fill-warning flex-shrink-0" />
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5">
                         {guest.isPrimary && (
@@ -502,6 +569,19 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                             <Home className="w-3 h-3 mr-1" />
                             Room {guest.assignedRoomNumber}
                           </Badge>
+                        )}
+                        {/* Remove button for additional guests (not primary, not placeholder) */}
+                        {!guest.isPrimary && !guest.isPlaceholder && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveGuest(guest.id, guest.reservationId)
+                            }}
+                            className="ml-auto p-1 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Remove guest from booking"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -801,6 +881,46 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                       )}
                     </div>
 
+                    <div className="space-y-1">
+                      <Label htmlFor="gender" className="text-xs">Gender</Label>
+                      {(isEditMode || isAddingNewGuest) ? (
+                        <Select
+                          value={displayGuest.gender}
+                          onValueChange={(value) => setEditedGuestDetails({ ...editedGuestDetails, gender: value })}
+                        >
+                          <SelectTrigger id="gender" className="h-9">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {genderOptions.map(gender => (
+                              <SelectItem key={gender} value={gender}>{gender}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="h-9 px-3 py-2 border rounded-md bg-muted/30 text-sm">
+                          {displayGuest.gender || '-'}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="nationality" className="text-xs">Nationality</Label>
+                      {(isEditMode || isAddingNewGuest) ? (
+                        <Input
+                          id="nationality"
+                          value={displayGuest.nationality}
+                          onChange={(e) => setEditedGuestDetails({ ...editedGuestDetails, nationality: e.target.value })}
+                          className="h-9"
+                          placeholder="Indian"
+                        />
+                      ) : (
+                        <div className="h-9 px-3 py-2 border rounded-md bg-muted/30 text-sm">
+                          {displayGuest.nationality || '-'}
+                        </div>
+                      )}
+                    </div>
+
                     {isAddingNewGuest && !editedGuestDetails?.placeholderReservationId && (
                       <div className="space-y-1">
                         <Label htmlFor="guestType" className="text-xs">Guest Type *</Label>
@@ -935,6 +1055,73 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                {/* Emergency Contact Section */}
+                <div className="pt-4 border-t">
+                  <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Emergency Contact</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="emergencyContactName" className="text-xs">Contact Name</Label>
+                      {(isEditMode || isAddingNewGuest) ? (
+                        <Input
+                          id="emergencyContactName"
+                          value={displayGuest.emergencyContactName}
+                          onChange={(e) => setEditedGuestDetails({ ...editedGuestDetails, emergencyContactName: e.target.value })}
+                          className="h-9"
+                          placeholder="Emergency contact name"
+                        />
+                      ) : (
+                        <div className="h-9 px-3 py-2 border rounded-md bg-muted/30 text-sm">
+                          {displayGuest.emergencyContactName || '-'}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="emergencyContactPhone" className="text-xs">Contact Phone</Label>
+                      {(isEditMode || isAddingNewGuest) ? (
+                        <Input
+                          id="emergencyContactPhone"
+                          type="tel"
+                          value={displayGuest.emergencyContactPhone}
+                          onChange={(e) => setEditedGuestDetails({ ...editedGuestDetails, emergencyContactPhone: e.target.value })}
+                          className="h-9"
+                          placeholder="Emergency contact phone"
+                        />
+                      ) : (
+                        <div className="h-9 px-3 py-2 border rounded-md bg-muted/30 text-sm">
+                          {displayGuest.emergencyContactPhone || '-'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* VIP Status Section */}
+                <div className="pt-4 border-t">
+                  <div className="flex items-center space-x-2">
+                    {(isEditMode || isAddingNewGuest) ? (
+                      <>
+                        <Checkbox
+                          id="isVip"
+                          checked={displayGuest.isVip}
+                          onCheckedChange={(checked) => setEditedGuestDetails({ ...editedGuestDetails, isVip: checked })}
+                        />
+                        <Label htmlFor="isVip" className="text-sm font-medium cursor-pointer flex items-center gap-2">
+                          <Star className="w-4 h-4 text-warning" />
+                          VIP Guest
+                        </Label>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Star className={`w-4 h-4 ${displayGuest.isVip ? 'text-warning fill-warning' : 'text-muted-foreground'}`} />
+                        <span className="text-sm">
+                          {displayGuest.isVip ? 'VIP Guest' : 'Regular Guest'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

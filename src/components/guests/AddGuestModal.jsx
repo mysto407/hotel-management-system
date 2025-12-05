@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/select";
 
 export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
-  const { addGuest, idProofTypes, guestTypes } = useGuests();
+  const { addGuest, idProofTypes, guestTypes, genderOptions } = useGuests();
   const { error: showError, warning: showWarning } = useAlert();
   const [guestFormData, setGuestFormData] = useState({
     name: '',
@@ -37,14 +38,21 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
     state: '',
     country: 'India',
     date_of_birth: '',
-    guest_type: 'Regular'
+    guest_type: 'Regular',
+    gender: '',
+    nationality: '',
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    is_vip: false
   });
 
   const resetForm = () => {
     setGuestFormData({
       name: '', email: '', phone: '', id_proof_type: 'AADHAR',
       id_proof_number: '', address: '', city: '', state: '',
-      country: 'India', date_of_birth: '', guest_type: 'Regular'
+      country: 'India', date_of_birth: '', guest_type: 'Regular',
+      gender: '', nationality: '', emergency_contact_name: '',
+      emergency_contact_phone: '', is_vip: false
     });
     onClose();
   };
@@ -111,6 +119,31 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
               type="date"
               value={guestFormData.date_of_birth}
               onChange={(e) => setGuestFormData({ ...guestFormData, date_of_birth: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gender">Gender</Label>
+            <Select
+              value={guestFormData.gender}
+              onValueChange={(value) => setGuestFormData({ ...guestFormData, gender: value })}
+            >
+              <SelectTrigger id="gender">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent>
+                {genderOptions.map(gender => (
+                  <SelectItem key={gender} value={gender}>{gender}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="nationality">Nationality</Label>
+            <Input
+              id="nationality"
+              value={guestFormData.nationality}
+              onChange={(e) => setGuestFormData({ ...guestFormData, nationality: e.target.value })}
+              placeholder="Indian"
             />
           </div>
            <div className="space-y-2">
@@ -189,6 +222,38 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
               value={guestFormData.country}
               onChange={(e) => setGuestFormData({ ...guestFormData, country: e.target.value })}
               placeholder="India"
+            />
+          </div>
+          <div className="flex items-center space-x-2 pt-6">
+            <Checkbox
+              id="is_vip"
+              checked={guestFormData.is_vip}
+              onCheckedChange={(checked) => setGuestFormData({ ...guestFormData, is_vip: checked })}
+            />
+            <Label htmlFor="is_vip" className="text-sm font-medium cursor-pointer">
+              VIP Guest
+            </Label>
+          </div>
+          <div className="md:col-span-2 pt-4 border-t">
+            <Label className="text-sm font-semibold text-muted-foreground">Emergency Contact</Label>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="emergency_contact_name">Contact Name</Label>
+            <Input
+              id="emergency_contact_name"
+              value={guestFormData.emergency_contact_name}
+              onChange={(e) => setGuestFormData({ ...guestFormData, emergency_contact_name: e.target.value })}
+              placeholder="Emergency contact name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="emergency_contact_phone">Contact Phone</Label>
+            <Input
+              id="emergency_contact_phone"
+              type="tel"
+              value={guestFormData.emergency_contact_phone}
+              onChange={(e) => setGuestFormData({ ...guestFormData, emergency_contact_phone: e.target.value })}
+              placeholder="Emergency contact phone"
             />
           </div>
         </div>

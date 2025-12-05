@@ -41,12 +41,14 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Guests = () => {
   const {
     guests,
     idProofTypes,
     guestTypes,
+    genderOptions,
     addGuest,
     updateGuest,
     deleteGuest,
@@ -79,7 +81,12 @@ const Guests = () => {
     date_of_birth: '',
     guest_type: 'Regular',
     preferences: '',
-    notes: ''
+    notes: '',
+    gender: '',
+    nationality: '',
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    is_vip: false
   });
 
   // Filter guests
@@ -117,7 +124,12 @@ const Guests = () => {
       date_of_birth: '',
       guest_type: 'Regular',
       preferences: '',
-      notes: ''
+      notes: '',
+      gender: '',
+      nationality: '',
+      emergency_contact_name: '',
+      emergency_contact_phone: '',
+      is_vip: false
     });
     setEditingGuest(null);
     setIsModalOpen(false);
@@ -138,7 +150,12 @@ const Guests = () => {
       date_of_birth: guest.date_of_birth || '',
       guest_type: guest.guest_type,
       preferences: guest.preferences || '',
-      notes: guest.notes || ''
+      notes: guest.notes || '',
+      gender: guest.gender || '',
+      nationality: guest.nationality || '',
+      emergency_contact_name: guest.emergency_contact_name || '',
+      emergency_contact_phone: guest.emergency_contact_phone || '',
+      is_vip: guest.is_vip || false
     });
     setIsModalOpen(true);
   };
@@ -281,6 +298,7 @@ const Guests = () => {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{guest.name}</span>
+                      {guest.is_vip && <Star size={14} className="text-warning fill-warning" />}
                       {guest.guest_type !== 'Regular' && getGuestTypeIcon(guest.guest_type)}
                     </div>
                     <div className="text-xs text-muted-foreground">{guest.city}, {guest.state}</div>
@@ -393,6 +411,29 @@ const Guests = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="guestGender">Gender</Label>
+              <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
+                <SelectTrigger id="guestGender">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  {genderOptions.map(gender => (
+                    <SelectItem key={gender} value={gender}>{gender}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="guestNationality">Nationality</Label>
+              <Input
+                id="guestNationality"
+                type="text"
+                value={formData.nationality}
+                onChange={(e) => setFormData({...formData, nationality: e.target.value})}
+                placeholder="Indian"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="guestIdType">ID Proof Type *</Label>
               <Select value={formData.id_proof_type} onValueChange={(value) => setFormData({...formData, id_proof_type: value})}>
                 <SelectTrigger id="guestIdType">
@@ -488,6 +529,39 @@ const Guests = () => {
                 placeholder="Additional notes about the guest"
               />
             </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="guestIsVip"
+                checked={formData.is_vip}
+                onCheckedChange={(checked) => setFormData({...formData, is_vip: checked})}
+              />
+              <Label htmlFor="guestIsVip" className="text-sm font-medium cursor-pointer">
+                VIP Guest
+              </Label>
+            </div>
+            <div className="col-span-2 pt-4 border-t">
+              <Label className="text-sm font-semibold text-muted-foreground">Emergency Contact</Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emergencyName">Contact Name</Label>
+              <Input
+                id="emergencyName"
+                type="text"
+                value={formData.emergency_contact_name}
+                onChange={(e) => setFormData({...formData, emergency_contact_name: e.target.value})}
+                placeholder="Emergency contact name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emergencyPhone">Contact Phone</Label>
+              <Input
+                id="emergencyPhone"
+                type="tel"
+                value={formData.emergency_contact_phone}
+                onChange={(e) => setFormData({...formData, emergency_contact_phone: e.target.value})}
+                placeholder="Emergency contact phone"
+              />
+            </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -512,7 +586,14 @@ const Guests = () => {
             <div className="space-y-4 py-4">
               <div className="flex justify-between items-start p-4 bg-accent rounded-lg">
                 <div>
-                  <h2 className="text-xl font-bold">{selectedGuest.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold">{selectedGuest.name}</h2>
+                    {selectedGuest.is_vip && (
+                      <Badge variant="warning" className="text-xs">
+                        <Star size={12} className="mr-1" /> VIP
+                      </Badge>
+                    )}
+                  </div>
                   <Badge variant={getGuestTypeVariant(selectedGuest.guest_type)}>
                     {selectedGuest.guest_type}
                   </Badge>
@@ -540,6 +621,15 @@ const Guests = () => {
                     <p><strong>Phone:</strong> {selectedGuest.phone}</p>
                     <p><strong>Email:</strong> {selectedGuest.email || 'N/A'}</p>
                     <p><strong>Date of Birth:</strong> {selectedGuest.date_of_birth || 'Not provided'}</p>
+                    <p><strong>Gender:</strong> {selectedGuest.gender || 'Not provided'}</p>
+                    <p><strong>Nationality:</strong> {selectedGuest.nationality || 'Not provided'}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Emergency Contact</CardTitle></CardHeader>
+                  <CardContent className="text-sm space-y-1">
+                    <p><strong>Name:</strong> {selectedGuest.emergency_contact_name || 'N/A'}</p>
+                    <p><strong>Phone:</strong> {selectedGuest.emergency_contact_phone || 'N/A'}</p>
                   </CardContent>
                 </Card>
                 <Card>

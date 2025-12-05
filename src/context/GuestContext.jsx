@@ -24,6 +24,7 @@ export const GuestProvider = ({ children }) => {
 
   const idProofTypes = ['AADHAR', 'PAN', 'Passport', 'Driving License', 'Voter ID'];
   const guestTypes = ['Regular', 'VIP', 'Corporate'];
+  const genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
   useEffect(() => {
     loadGuests();
@@ -115,6 +116,7 @@ export const GuestProvider = ({ children }) => {
       loading,
       idProofTypes,
       guestTypes,
+      genderOptions,
       addGuest,
       updateGuest,
       deleteGuest,
