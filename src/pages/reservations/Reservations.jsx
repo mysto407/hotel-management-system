@@ -1,5 +1,5 @@
 // src/pages/reservations/Reservations.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Edit2, XOctagon, CheckCircle, LogOut, Filter, Calendar, Trash2, MoreVertical, Eye, Clock, Users, BedDouble, CalendarDays, LayoutGrid, List } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
@@ -63,7 +63,14 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   const [filterMealPlan, setFilterMealPlan] = useState('all');
   const [filterGuestCount, setFilterGuestCount] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('reservationsViewMode') || 'cards';
+  });
+
+  // Persist view mode to localStorage
+  useEffect(() => {
+    localStorage.setItem('reservationsViewMode', viewMode);
+  }, [viewMode]);
 
   // Room assignment modal state for unassigned reservations
   const [isRoomAssignmentModalOpen, setIsRoomAssignmentModalOpen] = useState(false);
