@@ -1,6 +1,6 @@
 // src/pages/reservations/Reservations.jsx
 import { useState } from 'react';
-import { Edit2, XOctagon, CheckCircle, LogOut, Filter, Calendar, Trash2, MoreVertical, Eye, Clock, Users, BedDouble, CalendarDays } from 'lucide-react';
+import { Edit2, XOctagon, CheckCircle, LogOut, Filter, Calendar, Trash2, MoreVertical, Eye, Clock, Users, BedDouble, CalendarDays, LayoutGrid, List } from 'lucide-react';
 import { EditBookingModal } from '../../components/reservations/EditBookingModal';
 import RoomAssignmentModal from '../../components/reservations/RoomAssignmentModal';
 import { useReservations } from '../../context/ReservationContext';
@@ -22,6 +22,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +63,7 @@ const Reservations = ({ onNavigate, searchTerm = '' }) => {
   const [filterMealPlan, setFilterMealPlan] = useState('all');
   const [filterGuestCount, setFilterGuestCount] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
 
   // Room assignment modal state for unassigned reservations
   const [isRoomAssignmentModalOpen, setIsRoomAssignmentModalOpen] = useState(false);
