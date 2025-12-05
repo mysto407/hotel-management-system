@@ -1,10 +1,11 @@
 // src/pages/guests/Guests.jsx
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Save, XCircle, Search, Filter, Eye, Star, Award, Briefcase, TrendingUp, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, XCircle, Search, Eye, Star, Award, Briefcase, TrendingUp, Users } from 'lucide-react';
 import { useGuests } from '../../context/GuestContext';
 import { useReservations } from '../../context/ReservationContext';
 import { useRooms } from '../../context/RoomContext';
 import { useConfirm } from '@/context/AlertContext';
+import GuestFormFields from '../../components/guests/GuestFormFields';
 
 // Import shadcn components
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 
 const Guests = () => {
   const {
@@ -69,26 +69,31 @@ const Guests = () => {
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [formData, setFormData] = useState({
-    name: '',
+  // Form data uses camelCase to work with GuestFormFields
+  const getInitialFormData = () => ({
+    firstName: '',
+    surname: '',
     email: '',
     phone: '',
-    id_proof_type: 'AADHAR',
-    id_proof_number: '',
+    dateOfBirth: '',
+    idType: 'AADHAR',
+    idNumber: '',
     address: '',
     city: '',
     state: '',
     country: 'India',
-    date_of_birth: '',
-    guest_type: 'Regular',
-    preferences: '',
-    notes: '',
     gender: '',
     nationality: '',
-    emergency_contact_name: '',
-    emergency_contact_phone: '',
-    is_vip: false
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    isVip: false,
+    // Guest-specific fields (not in GuestFormFields)
+    guestType: 'Regular',
+    preferences: '',
+    notes: '',
   });
+
+  const [formData, setFormData] = useState(getInitialFormData());
 
   // Filter guests
   const filteredGuests = guests
@@ -103,60 +108,73 @@ const Guests = () => {
   const topGuests = getTopGuests(5);
 
   const handleSubmit = async () => {
+    // Combine firstName and surname into name for database
+    const fullName = `${formData.firstName} ${formData.surname}`.trim();
+
+    // Transform camelCase form data to snake_case for database
+    const guestData = {
+      name: fullName,
+      email: formData.email || '',
+      phone: formData.phone || '',
+      date_of_birth: formData.dateOfBirth || null,
+      id_proof_type: formData.idType !== 'N/A' ? formData.idType : '',
+      id_proof_number: formData.idNumber || '',
+      address: formData.address || '',
+      city: formData.city || '',
+      state: formData.state || '',
+      country: formData.country || '',
+      gender: formData.gender || '',
+      nationality: formData.nationality || '',
+      emergency_contact_name: formData.emergencyContactName || '',
+      emergency_contact_phone: formData.emergencyContactPhone || '',
+      is_vip: formData.isVip || false,
+      guest_type: formData.guestType || 'Regular',
+      preferences: formData.preferences || '',
+      notes: formData.notes || '',
+    };
+
     if (editingGuest) {
-      await updateGuest(editingGuest.id, formData);
+      await updateGuest(editingGuest.id, guestData);
     } else {
-      await addGuest(formData);
+      await addGuest(guestData);
     }
     resetForm();
   };
 
   const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      id_proof_type: 'AADHAR',
-      id_proof_number: '',
-      address: '',
-      city: '',
-      state: '',
-      country: 'India',
-      date_of_birth: '',
-      guest_type: 'Regular',
-      preferences: '',
-      notes: '',
-      gender: '',
-      nationality: '',
-      emergency_contact_name: '',
-      emergency_contact_phone: '',
-      is_vip: false
-    });
+    setFormData(getInitialFormData());
     setEditingGuest(null);
     setIsModalOpen(false);
   };
 
   const handleEdit = (guest) => {
     setEditingGuest(guest);
+    // Split name into firstName and surname
+    const nameParts = (guest.name || '').split(' ');
+    const firstName = nameParts[0] || '';
+    const surname = nameParts.slice(1).join(' ') || '';
+
+    // Transform snake_case database data to camelCase for form
     setFormData({
-      name: guest.name,
+      firstName,
+      surname,
       email: guest.email || '',
-      phone: guest.phone,
-      id_proof_type: guest.id_proof_type,
-      id_proof_number: guest.id_proof_number,
+      phone: guest.phone || '',
+      dateOfBirth: guest.date_of_birth || '',
+      idType: guest.id_proof_type || 'AADHAR',
+      idNumber: guest.id_proof_number || '',
       address: guest.address || '',
       city: guest.city || '',
       state: guest.state || '',
       country: guest.country || 'India',
-      date_of_birth: guest.date_of_birth || '',
-      guest_type: guest.guest_type,
-      preferences: guest.preferences || '',
-      notes: guest.notes || '',
       gender: guest.gender || '',
       nationality: guest.nationality || '',
-      emergency_contact_name: guest.emergency_contact_name || '',
-      emergency_contact_phone: guest.emergency_contact_phone || '',
-      is_vip: guest.is_vip || false
+      emergencyContactName: guest.emergency_contact_name || '',
+      emergencyContactPhone: guest.emergency_contact_phone || '',
+      isVip: guest.is_vip || false,
+      guestType: guest.guest_type || 'Regular',
+      preferences: guest.preferences || '',
+      notes: guest.notes || '',
     });
     setIsModalOpen(true);
   };
@@ -367,206 +385,59 @@ const Guests = () => {
 
       {/* Add/Edit Guest Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingGuest ? 'Edit Guest' : 'Add New Guest'}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="guestName">Full Name *</Label>
-              <Input
-                id="guestName"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="John Doe"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestPhone">Phone *</Label>
-              <Input
-                id="guestPhone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                placeholder="9876543210"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestEmail">Email</Label>
-              <Input
-                id="guestEmail"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                placeholder="john@example.com"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestDob">Date of Birth</Label>
-              <Input
-                id="guestDob"
-                type="date"
-                value={formData.date_of_birth}
-                onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestGender">Gender</Label>
-              <Select value={formData.gender} onValueChange={(value) => setFormData({...formData, gender: value})}>
-                <SelectTrigger id="guestGender">
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  {genderOptions.map(gender => (
-                    <SelectItem key={gender} value={gender}>{gender}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestNationality">Nationality</Label>
-              <Select value={formData.nationality} onValueChange={(value) => setFormData({...formData, nationality: value})}>
-                <SelectTrigger id="guestNationality">
-                  <SelectValue placeholder="Select nationality" />
-                </SelectTrigger>
-                <SelectContent>
-                  {nationalities.map(nationality => (
-                    <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestIdType">ID Proof Type *</Label>
-              <Select value={formData.id_proof_type} onValueChange={(value) => setFormData({...formData, id_proof_type: value})}>
-                <SelectTrigger id="guestIdType">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {idProofTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestIdNumber">ID Proof Number *</Label>
-              <Input
-                id="guestIdNumber"
-                type="text"
-                value={formData.id_proof_number}
-                onChange={(e) => setFormData({...formData, id_proof_number: e.target.value})}
-                placeholder="AADHAR-1234"
-              />
-            </div>
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="guestAddress">Address</Label>
-              <Input
-                id="guestAddress"
-                type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
-                placeholder="123 Main Street"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestCity">City</Label>
-              <Input
-                id="guestCity"
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({...formData, city: e.target.value})}
-                placeholder="Mumbai"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestState">State</Label>
-              <Input
-                id="guestState"
-                type="text"
-                value={formData.state}
-                onChange={(e) => setFormData({...formData, state: e.target.value})}
-                placeholder="Maharashtra"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestCountry">Country</Label>
-              <Input
-                id="guestCountry"
-                type="text"
-                value={formData.country}
-                onChange={(e) => setFormData({...formData, country: e.target.value})}
-                placeholder="India"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="guestType">Guest Type</Label>
-              <Select value={formData.guest_type} onValueChange={(value) => setFormData({...formData, guest_type: value})}>
-                <SelectTrigger id="guestType">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {guestTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="guestPreferences">Preferences</Label>
-              <Textarea
-                id="guestPreferences"
-                value={formData.preferences}
-                onChange={(e) => setFormData({...formData, preferences: e.target.value})}
-                rows="2"
-                placeholder="e.g., Non-smoking rooms, Early check-in"
-              />
-            </div>
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="guestNotes">Notes</Label>
-              <Textarea
-                id="guestNotes"
-                value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                rows="2"
-                placeholder="Additional notes about the guest"
-              />
-            </div>
-            <div className="flex items-center space-x-2 pt-2">
-              <Checkbox
-                id="guestIsVip"
-                checked={formData.is_vip}
-                onCheckedChange={(checked) => setFormData({...formData, is_vip: checked})}
-              />
-              <Label htmlFor="guestIsVip" className="text-sm font-medium cursor-pointer">
-                VIP Guest
-              </Label>
-            </div>
-            <div className="col-span-2 pt-4 border-t">
-              <Label className="text-sm font-semibold text-muted-foreground">Emergency Contact</Label>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="emergencyName">Contact Name</Label>
-              <Input
-                id="emergencyName"
-                type="text"
-                value={formData.emergency_contact_name}
-                onChange={(e) => setFormData({...formData, emergency_contact_name: e.target.value})}
-                placeholder="Emergency contact name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="emergencyPhone">Contact Phone</Label>
-              <Input
-                id="emergencyPhone"
-                type="tel"
-                value={formData.emergency_contact_phone}
-                onChange={(e) => setFormData({...formData, emergency_contact_phone: e.target.value})}
-                placeholder="Emergency contact phone"
-              />
+
+          <GuestFormFields
+            guestDetails={formData}
+            onChange={setFormData}
+            isEditing={true}
+            showPhoto={false}
+            dropdownOptions={{ idProofTypes, genderOptions, nationalities }}
+          />
+
+          {/* Guest-specific fields not in GuestFormFields */}
+          <div className="space-y-4 pt-4 border-t">
+            <h3 className="text-sm font-semibold text-muted-foreground">Guest Classification & Notes</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="guestType">Guest Type</Label>
+                <Select value={formData.guestType} onValueChange={(value) => setFormData({...formData, guestType: value})}>
+                  <SelectTrigger id="guestType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {guestTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="guestPreferences">Preferences</Label>
+                <Textarea
+                  id="guestPreferences"
+                  value={formData.preferences}
+                  onChange={(e) => setFormData({...formData, preferences: e.target.value})}
+                  rows={2}
+                  placeholder="e.g., Non-smoking rooms, Early check-in"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="guestNotes">Notes</Label>
+                <Textarea
+                  id="guestNotes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  rows={2}
+                  placeholder="Additional notes about the guest"
+                />
+              </div>
             </div>
           </div>
+
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={resetForm}>
