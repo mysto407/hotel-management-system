@@ -1,22 +1,14 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Upload, User, Search, UserPlus, Mail, Phone, X, Users, Star } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { ChevronLeft, ChevronRight, User, Search, UserPlus, Mail, Phone, X, Users } from 'lucide-react'
 import { useReservationFlow } from '../../context/ReservationFlowContext'
 import { useGuests } from '../../context/GuestContext'
 import { useRooms } from '../../context/RoomContext'
 import { useAlert } from '@/context/AlertContext'
 import StepIndicator from '../../components/reservations/StepIndicator'
 import { AddGuestModal } from '../../components/guests/AddGuestModal'
+import GuestFormFields from '../../components/guests/GuestFormFields'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select'
-import { Checkbox } from '../../components/ui/checkbox'
 
 export default function GuestDetailsPage({ onNavigate }) {
   const flowContext = useReservationFlow()
