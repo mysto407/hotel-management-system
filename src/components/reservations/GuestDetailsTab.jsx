@@ -276,7 +276,10 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         let targetReservation = null
 
         if (selectedRoomForGuest) {
-          targetReservation = groupedReservations.find(r => r.room_id === selectedRoomForGuest)
+          // Check both room_id and reservation id (roomOptions uses room_id || id)
+          targetReservation = groupedReservations.find(r =>
+            r.room_id === selectedRoomForGuest || r.id === selectedRoomForGuest
+          )
         } else {
           targetReservation = groupedReservations[0]
         }
@@ -377,14 +380,22 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
             ) : (
               <div className="divide-y">
                 {allGuests.map((guest) => (
-                  <button
+                  <div
                     key={guest.id}
                     onClick={() => handleSelectGuest(guest)}
-                    className={`w-full text-left p-3 transition-colors hover:bg-muted/30 ${
+                    className={`w-full text-left p-3 transition-colors hover:bg-muted/30 cursor-pointer ${
                       selectedGuestId === guest.id
                         ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-400'
                         : ''
                     }`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleSelectGuest(guest)
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       {/* Avatar - photo or initials fallback */}
@@ -435,7 +446,7 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                         </button>
                       )}
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
