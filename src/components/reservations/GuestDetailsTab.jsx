@@ -1065,7 +1065,7 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                 </div>
 
                 {/* Emergency Contact Section */}
-                <div className="pt-4 border-t">
+                <div className="pt-4">
                   <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Emergency Contact</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
