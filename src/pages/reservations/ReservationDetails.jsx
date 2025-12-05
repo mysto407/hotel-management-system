@@ -46,7 +46,7 @@ import FolioTab from '../../components/reservations/FolioTab'
 export default function ReservationDetails({ onNavigate }) {
   const { reservations, updateReservation, fetchReservations } = useReservations()
   const { rooms, roomTypes } = useRooms()
-  const { guests } = useGuests()
+  const { guests, refreshGuests } = useGuests()
   const { agents } = useAgents()
   const { getMealPlanName, calculateMealPlanCost } = useMealPlans()
   const { setAddToExistingBooking } = useReservationFlow()
@@ -71,6 +71,11 @@ export default function ReservationDetails({ onNavigate }) {
     balance: null
   })
   const [roomTaxRate, setRoomTaxRate] = useState(0)
+
+  // Refresh guest data when component mounts to ensure we have latest data
+  useEffect(() => {
+    refreshGuests()
+  }, [])
 
   // Load reservation details when component mounts
   useEffect(() => {

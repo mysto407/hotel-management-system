@@ -137,7 +137,8 @@ export const GuestProvider = ({ children }) => {
       updateGuestStats,
       getGuestsByType,
       getReturningGuests,
-      getTopGuests
+      getTopGuests,
+      refreshGuests: loadGuests
     }}>
       {children}
     </GuestContext.Provider>
