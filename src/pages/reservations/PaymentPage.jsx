@@ -124,20 +124,24 @@ export default function PaymentPage({ onNavigate }) {
    * The 'id' will be handled by the logic in handleConfirmReservation.
    */
   const prepareGuestDataForSave = (details) => {
-    const { 
-      firstName, 
-      surname, 
-      email, 
-      phone, 
-      idType, 
-      idNumber, 
-      address, 
-      city, 
-      state, 
-      country
-      // 'pincode' removed as it's not in the DB schema
+    const {
+      firstName,
+      surname,
+      email,
+      phone,
+      idType,
+      idNumber,
+      address,
+      city,
+      state,
+      country,
+      gender,
+      nationality,
+      emergencyContactName,
+      emergencyContactPhone,
+      isVip
     } = details;
-    
+
     return {
       name: `${firstName || ''} ${surname || ''}`.trim(),
       email: email || '',
@@ -148,7 +152,12 @@ export default function PaymentPage({ onNavigate }) {
       city: city || '',
       state: state || '',
       country: country || 'India',
-      guest_type: 'Regular'
+      guest_type: 'Regular',
+      gender: gender || null,
+      nationality: nationality || null,
+      emergency_contact_name: emergencyContactName || null,
+      emergency_contact_phone: emergencyContactPhone || null,
+      is_vip: isVip || false
     };
   };
 
