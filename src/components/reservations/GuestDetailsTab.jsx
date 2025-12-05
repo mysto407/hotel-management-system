@@ -131,8 +131,10 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         (r.additional_guest_ids && r.additional_guest_ids.includes(selectedGuestId))
       )
 
-      // Find the new reservation to assign to
-      const newReservation = groupedReservations.find(r => r.room_id === newRoomId)
+      // Find the new reservation to assign to (check both room_id and reservation id)
+      const newReservation = groupedReservations.find(r =>
+        r.room_id === newRoomId || r.id === newRoomId
+      )
 
       if (!newReservation) {
         setSelectedRoomForGuest(newRoomId)
