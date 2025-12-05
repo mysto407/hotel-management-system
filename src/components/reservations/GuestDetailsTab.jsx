@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { User, UserPlus, Edit, Save, X, Home, Star, Trash2 } from 'lucide-react'
 import { useGuests } from '../../context/GuestContext'
 import { useReservations } from '../../context/ReservationContext'
-import { Card, CardContent } from '../ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar'
+import { ScrollArea } from '../ui/scroll-area'
 import GuestFormFields from '../guests/GuestFormFields'
 
 // Helper function to get initials from name
@@ -364,98 +366,94 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
       {/* Left Sidebar - Guest List */}
       <div className="w-80 flex-shrink-0">
         <Card>
-          <div className="p-4 border-b flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Guests in Booking</h3>
+          <CardHeader className="p-4 pb-3 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-semibold">Guests in Booking</CardTitle>
             <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               title="Add Guest"
               onClick={handleAddGuestClick}
             >
               <UserPlus className="h-4 w-4" />
             </Button>
-          </div>
+          </CardHeader>
 
-          <div>
+          <CardContent className="p-0">
             {allGuests.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
                 No guests found
               </div>
             ) : (
-              <div className="divide-y">
-                {allGuests.map((guest) => (
-                  <div
-                    key={guest.id}
-                    onClick={() => handleSelectGuest(guest)}
-                    className={`w-full text-left p-3 transition-colors hover:bg-muted/30 cursor-pointer ${
-                      selectedGuestId === guest.id
-                        ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-400'
-                        : ''
-                    }`}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        handleSelectGuest(guest)
-                      }
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Avatar - photo or initials fallback */}
-                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {guest.photo_url ? (
-                          <img src={guest.photo_url} alt={guest.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-sm font-medium text-muted-foreground">
+              <ScrollArea className="h-[500px]">
+                <div className="divide-y divide-border">
+                  {allGuests.map((guest) => (
+                    <Button
+                      key={guest.id}
+                      variant="ghost"
+                      className={`w-full h-auto justify-start rounded-none px-4 py-3 ${
+                        selectedGuestId === guest.id
+                          ? 'bg-accent border-l-4 border-l-primary'
+                          : 'border-l-4 border-l-transparent'
+                      }`}
+                      onClick={() => handleSelectGuest(guest)}
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        {/* Avatar - photo or initials fallback */}
+                        <Avatar className="h-10 w-10 flex-shrink-0">
+                          {guest.photo_url && (
+                            <AvatarImage src={guest.photo_url} alt={guest.name} />
+                          )}
+                          <AvatarFallback>
                             {getInitials(guest.name)}
-                          </span>
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Name and badges beside avatar */}
+                        <div className="flex-1 min-w-0 text-left">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-sm truncate">
+                              {guest.name}
+                            </span>
+                            {guest.is_vip && (
+                              <Star className="w-3.5 h-3.5 text-warning fill-warning flex-shrink-0" />
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            {guest.isPrimary && (
+                              <Badge variant="info" className="text-xs">Primary</Badge>
+                            )}
+                            {guest.assignedRoomNumber && guest.assignedRoomNumber !== 'N/A' ? (
+                              <Badge variant="outline" className="text-xs">
+                                <Home className="w-3 h-3 mr-1" />
+                                Room {guest.assignedRoomNumber}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">No room</span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Remove button for additional guests (not primary) */}
+                        {!guest.isPrimary && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveGuest(guest.id, guest.reservationId)
+                            }}
+                            title="Remove guest from booking"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         )}
                       </div>
-                      {/* Name and badges beside avatar */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-sm truncate">
-                            {guest.name}
-                          </span>
-                          {guest.is_vip && (
-                            <Star className="w-3.5 h-3.5 text-warning fill-warning flex-shrink-0" />
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          {guest.isPrimary && (
-                            <Badge variant="info" className="text-xs">Primary</Badge>
-                          )}
-                          {guest.assignedRoomNumber && guest.assignedRoomNumber !== 'N/A' ? (
-                            <Badge variant="outline" className="text-xs">
-                              <Home className="w-3 h-3 mr-1" />
-                              Room {guest.assignedRoomNumber}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground italic">No room</span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Remove button for additional guests (not primary) */}
-                      {!guest.isPrimary && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleRemoveGuest(guest.id, guest.reservationId)
-                          }}
-                          className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
-                          title="Remove guest from booking"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
-          </div>
+          </CardContent>
         </Card>
       </div>
 
@@ -473,13 +471,13 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         ) : (
           <Card>
             {/* Header with Edit/Save buttons */}
-            <div className="flex items-center justify-between border-b bg-muted/10 px-4 py-3">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 bg-muted/10">
               <div>
-                <h3 className="text-lg font-semibold">
+                <CardTitle className="text-lg">
                   {isAddingNewGuest ? 'Add New Guest' : 'Guest Details'}
-                </h3>
+                </CardTitle>
                 {selectedGuest && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {selectedGuest.name}
                   </p>
                 )}
@@ -532,7 +530,7 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                   </>
                 )}
               </div>
-            </div>
+            </CardHeader>
 
             <CardContent className="p-0">
               <GuestFormFields
