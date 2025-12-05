@@ -519,81 +519,103 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
           </div>
 
           <div>
-            {allGuests.length === 0 ? (
+            {actualGuests.length === 0 && placeholders.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
                 No guests found
               </div>
             ) : (
               <div className="divide-y">
-                {allGuests.map((guest) => (
+                {/* Render actual guests with avatars */}
+                {actualGuests.map((guest) => (
                   <button
                     key={guest.id}
                     onClick={() => handleSelectGuest(guest)}
-                    className={`w-full text-left p-3 transition-colors ${
-                      guest.isPlaceholder
-                        ? 'bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/70 dark:hover:bg-amber-950/40 border-l-2 border-amber-300 dark:border-amber-700'
-                        : 'hover:bg-muted/30'
-                    } ${
-                      selectedGuestId === guest.id && !guest.isPlaceholder
+                    className={`w-full text-left p-3 transition-colors hover:bg-muted/30 ${
+                      selectedGuestId === guest.id
                         ? 'bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-400'
-                        : ''
-                    } ${
-                      selectedGuestId === guest.id && guest.isPlaceholder
-                        ? 'bg-amber-100 dark:bg-amber-950/50 border-l-4 border-amber-500 dark:border-amber-400'
                         : ''
                     }`}
                   >
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`font-medium text-sm truncate ${
-                          guest.isPlaceholder ? 'text-amber-700 dark:text-amber-400 italic' : ''
-                        }`}>
-                          {guest.name}
-                        </span>
-                        {!guest.isPlaceholder && guest.is_vip && (
-                          <Star className="w-3.5 h-3.5 text-warning fill-warning flex-shrink-0" />
+                    <div className="flex items-center gap-3">
+                      {/* Avatar - photo or initials fallback */}
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {guest.photo_url ? (
+                          <img src={guest.photo_url} alt={guest.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {getInitials(guest.name)}
+                          </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {guest.isPrimary && (
-                          <Badge variant="info" className="text-xs">Primary</Badge>
-                        )}
-                        {guest.isPlaceholder && (
-                          <Badge className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 border-amber-300 dark:border-amber-700">
-                            Click to add details
-                          </Badge>
-                        )}
-                        {!guest.isPlaceholder && guest.assignedRoomNumber && guest.assignedRoomNumber !== 'N/A' ? (
-                          <Badge variant="outline" className="text-xs">
-                            <Home className="w-3 h-3 mr-1" />
-                            Room {guest.assignedRoomNumber}
-                          </Badge>
-                        ) : !guest.isPlaceholder && (
-                          <span className="text-xs text-muted-foreground italic">No room</span>
-                        )}
-                        {guest.isPlaceholder && guest.assignedRoomNumber && (
-                          <Badge variant="outline" className="text-xs">
-                            <Home className="w-3 h-3 mr-1" />
-                            Room {guest.assignedRoomNumber}
-                          </Badge>
-                        )}
-                        {/* Remove button for additional guests (not primary, not placeholder) */}
-                        {!guest.isPrimary && !guest.isPlaceholder && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleRemoveGuest(guest.id, guest.reservationId)
-                            }}
-                            className="ml-auto p-1 text-muted-foreground hover:text-destructive transition-colors"
-                            title="Remove guest from booking"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                      {/* Name and badges beside avatar */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-sm truncate">
+                            {guest.name}
+                          </span>
+                          {guest.is_vip && (
+                            <Star className="w-3.5 h-3.5 text-warning fill-warning flex-shrink-0" />
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          {guest.isPrimary && (
+                            <Badge variant="info" className="text-xs">Primary</Badge>
+                          )}
+                          {guest.assignedRoomNumber && guest.assignedRoomNumber !== 'N/A' ? (
+                            <Badge variant="outline" className="text-xs">
+                              <Home className="w-3 h-3 mr-1" />
+                              Room {guest.assignedRoomNumber}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">No room</span>
+                          )}
+                        </div>
                       </div>
+                      {/* Remove button for additional guests (not primary) */}
+                      {!guest.isPrimary && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveGuest(guest.id, guest.reservationId)
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+                          title="Remove guest from booking"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </button>
                 ))}
+
+                {/* Consolidated placeholder row */}
+                {placeholders.length > 0 && (
+                  <div className="p-3 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <UserPlus className="h-4 w-4" />
+                        <span>
+                          {placeholders.length} guest{placeholders.length > 1 ? 's' : ''} not added
+                          <span className="text-xs ml-1.5">
+                            ({[...new Set(placeholders.map(p => `Room ${p.assignedRoomNumber}`))].join(', ')})
+                          </span>
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Select the first placeholder to start adding
+                          if (placeholders.length > 0) {
+                            handleSelectGuest(placeholders[0])
+                          }
+                        }}
+                      >
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
