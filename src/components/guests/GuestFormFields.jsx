@@ -164,13 +164,17 @@ export default function GuestFormFields({
                 </Label>
                 {isEditing ? (
                   <Select
-                    value={selectedRoom || (selectedRoom === '' ? 'unassigned' : roomOptions[0]?.id || 'unassigned')}
+                    value={selectedRoom || 'unassigned'}
                     onValueChange={(value) => onRoomChange?.(value === 'unassigned' ? '' : value)}
                   >
                     <SelectTrigger className="h-9 w-[200px]">
                       <SelectValue placeholder="Select room" />
                     </SelectTrigger>
                     <SelectContent>
+                      {/* Only show "No room assigned" option if guest doesn't already have a room */}
+                      {!selectedRoom && (
+                        <SelectItem value="unassigned">No room assigned</SelectItem>
+                      )}
                       {roomOptions.map(room => (
                         <SelectItem key={room.id} value={room.id}>
                           {room.label}
