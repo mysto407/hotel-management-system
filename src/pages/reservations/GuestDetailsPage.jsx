@@ -37,7 +37,7 @@ export default function GuestDetailsPage({ onNavigate }) {
     selectedRooms,
     addToExistingBooking
   } = flowContext
-  const { idProofTypes, genderOptions, guests } = guestContext
+  const { idProofTypes, genderOptions, nationalities, guests } = guestContext
   const { rooms } = roomContext
 
   // Check if we're adding to an existing booking
@@ -676,13 +676,19 @@ const handleSelectGuest = (guest) => {
 
                     <div className="space-y-1">
                       <Label htmlFor="nationality" className="text-xs">Nationality</Label>
-                      <Input
-                        id="nationality"
+                      <Select
                         value={guestDetails.nationality}
-                        onChange={(e) => setGuestDetails({ ...guestDetails, nationality: e.target.value })}
-                        placeholder="Indian"
-                        className="h-9"
-                      />
+                        onValueChange={(value) => setGuestDetails({ ...guestDetails, nationality: value })}
+                      >
+                        <SelectTrigger id="nationality" className="h-9">
+                          <SelectValue placeholder="Select nationality" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {nationalities.map(nationality => (
+                            <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>

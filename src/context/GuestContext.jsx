@@ -25,6 +25,18 @@ export const GuestProvider = ({ children }) => {
   const idProofTypes = ['AADHAR', 'PAN', 'Passport', 'Driving License', 'Voter ID'];
   const guestTypes = ['Regular', 'VIP', 'Corporate'];
   const genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
+  const nationalities = [
+    'Indian', 'American', 'British', 'Canadian', 'Australian', 'German', 'French',
+    'Italian', 'Spanish', 'Dutch', 'Belgian', 'Swiss', 'Austrian', 'Swedish',
+    'Norwegian', 'Danish', 'Finnish', 'Russian', 'Chinese', 'Japanese', 'Korean',
+    'Singaporean', 'Malaysian', 'Thai', 'Indonesian', 'Filipino', 'Vietnamese',
+    'Bangladeshi', 'Pakistani', 'Sri Lankan', 'Nepali', 'Bhutanese', 'Maldivian',
+    'Saudi Arabian', 'Emirati', 'Qatari', 'Kuwaiti', 'Omani', 'Bahraini',
+    'Israeli', 'Turkish', 'Egyptian', 'South African', 'Nigerian', 'Kenyan',
+    'Brazilian', 'Mexican', 'Argentine', 'Colombian', 'Chilean', 'Peruvian',
+    'New Zealander', 'Irish', 'Scottish', 'Welsh', 'Portuguese', 'Greek', 'Polish',
+    'Czech', 'Hungarian', 'Romanian', 'Ukrainian', 'Other'
+  ];
 
   useEffect(() => {
     loadGuests();
@@ -117,6 +129,7 @@ export const GuestProvider = ({ children }) => {
       idProofTypes,
       guestTypes,
       genderOptions,
+      nationalities,
       addGuest,
       updateGuest,
       deleteGuest,

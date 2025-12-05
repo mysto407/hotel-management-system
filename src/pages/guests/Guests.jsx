@@ -49,6 +49,7 @@ const Guests = () => {
     idProofTypes,
     guestTypes,
     genderOptions,
+    nationalities,
     addGuest,
     updateGuest,
     deleteGuest,
@@ -425,13 +426,16 @@ const Guests = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="guestNationality">Nationality</Label>
-              <Input
-                id="guestNationality"
-                type="text"
-                value={formData.nationality}
-                onChange={(e) => setFormData({...formData, nationality: e.target.value})}
-                placeholder="Indian"
-              />
+              <Select value={formData.nationality} onValueChange={(value) => setFormData({...formData, nationality: value})}>
+                <SelectTrigger id="guestNationality">
+                  <SelectValue placeholder="Select nationality" />
+                </SelectTrigger>
+                <SelectContent>
+                  {nationalities.map(nationality => (
+                    <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="guestIdType">ID Proof Type *</Label>

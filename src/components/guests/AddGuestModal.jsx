@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 
 export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
-  const { addGuest, idProofTypes, guestTypes, genderOptions } = useGuests();
+  const { addGuest, idProofTypes, guestTypes, genderOptions, nationalities } = useGuests();
   const { error: showError, warning: showWarning } = useAlert();
   const [guestFormData, setGuestFormData] = useState({
     name: '',
@@ -139,12 +139,19 @@ export const AddGuestModal = ({ isOpen, onClose, onGuestAdded }) => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="nationality">Nationality</Label>
-            <Input
-              id="nationality"
+            <Select
               value={guestFormData.nationality}
-              onChange={(e) => setGuestFormData({ ...guestFormData, nationality: e.target.value })}
-              placeholder="Indian"
-            />
+              onValueChange={(value) => setGuestFormData({ ...guestFormData, nationality: value })}
+            >
+              <SelectTrigger id="nationality">
+                <SelectValue placeholder="Select nationality" />
+              </SelectTrigger>
+              <SelectContent>
+                {nationalities.map(nationality => (
+                  <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
            <div className="space-y-2">
             <Label htmlFor="guest_type">Guest Type</Label>

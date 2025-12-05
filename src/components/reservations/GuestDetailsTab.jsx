@@ -17,7 +17,7 @@ import {
 } from '../ui/select'
 
 export default function GuestDetailsTab({ groupedReservations, guests, getRoomInfo }) {
-  const { idProofTypes, genderOptions, updateGuest, addGuest } = useGuests()
+  const { idProofTypes, genderOptions, nationalities, updateGuest, addGuest } = useGuests()
   const { updateReservation } = useReservations()
   const [selectedGuestId, setSelectedGuestId] = useState(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -907,13 +907,19 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                     <div className="space-y-1">
                       <Label htmlFor="nationality" className="text-xs">Nationality</Label>
                       {(isEditMode || isAddingNewGuest) ? (
-                        <Input
-                          id="nationality"
+                        <Select
                           value={displayGuest.nationality}
-                          onChange={(e) => setEditedGuestDetails({ ...editedGuestDetails, nationality: e.target.value })}
-                          className="h-9"
-                          placeholder="Indian"
-                        />
+                          onValueChange={(value) => setEditedGuestDetails({ ...editedGuestDetails, nationality: value })}
+                        >
+                          <SelectTrigger id="nationality" className="h-9">
+                            <SelectValue placeholder="Select nationality" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {nationalities.map(nationality => (
+                              <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <div className="h-9 px-3 py-2 border rounded-md bg-muted/30 text-sm">
                           {displayGuest.nationality || '-'}
