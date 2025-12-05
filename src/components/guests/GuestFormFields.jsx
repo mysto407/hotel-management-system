@@ -6,6 +6,8 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Checkbox } from '../ui/checkbox'
+import { Badge } from '../ui/badge'
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar'
 import {
   Select,
   SelectContent,
@@ -94,28 +96,23 @@ export default function GuestFormFields({
         <div className="border-b bg-muted/30 px-4 py-3">
           <div className="flex items-center gap-4">
             {/* Photo Preview */}
-            <div className="relative flex-shrink-0">
+            <Avatar className="h-16 w-16 rounded-md flex-shrink-0 border-2 border-border">
               {guestDetails.photoUrl ? (
-                <img
-                  src={guestDetails.photoUrl}
-                  alt="Guest"
-                  className="w-16 h-16 object-cover rounded-md border-2 border-border"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-muted rounded-md border-2 border-dashed border-border flex items-center justify-center">
-                  <User className="w-7 h-7 text-muted-foreground" />
-                </div>
-              )}
-            </div>
+                <AvatarImage src={guestDetails.photoUrl} alt="Guest" className="object-cover" />
+              ) : null}
+              <AvatarFallback className="rounded-md bg-muted border-dashed">
+                <User className="w-7 h-7 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
 
             {/* Upload Controls */}
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Label className="text-sm font-semibold">{displayName}</Label>
                 {primaryLabel && (
-                  <span className="px-2 py-0.5 text-xs font-medium bg-info/20 text-info rounded-full">
+                  <Badge variant="info" className="text-xs">
                     {primaryLabel}
-                  </span>
+                  </Badge>
                 )}
               </div>
               {isEditing && (
