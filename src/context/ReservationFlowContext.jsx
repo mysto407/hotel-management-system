@@ -55,7 +55,13 @@ export function ReservationFlowProvider({ children }) {
     idNumber: '',
     photo: null,
     photoUrl: null,
-    assignedRoomId: ''
+    assignedRoomId: '',
+    dateOfBirth: '',
+    gender: '',
+    nationality: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    isVip: false
   })
 
   // Multiple guests support (allGuestsDetails[0] is always the primary guest)
@@ -459,7 +465,13 @@ export function ReservationFlowProvider({ children }) {
       idNumber: '',
       photo: null,
       photoUrl: null,
-      assignedRoomId: ''
+      assignedRoomId: '',
+      dateOfBirth: '',
+      gender: '',
+      nationality: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      isVip: false
     })
     setAllGuestsDetails([]) // Clear all guests array
     setPaymentInfo({
