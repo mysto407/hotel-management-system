@@ -164,26 +164,18 @@ export default function GuestFormFields({
                 </Label>
                 {isEditing ? (
                   <Select
-                    value={selectedRoom || 'unassigned'}
-                    onValueChange={(value) => {
-                      console.log('GuestFormFields room select onValueChange:', value)
-                      console.log('roomOptions:', roomOptions)
-                      onRoomChange?.(value === 'unassigned' ? '' : value)
-                    }}
+                    value={selectedRoom || (selectedRoom === '' ? 'unassigned' : roomOptions[0]?.id || 'unassigned')}
+                    onValueChange={(value) => onRoomChange?.(value === 'unassigned' ? '' : value)}
                   >
                     <SelectTrigger className="h-9 w-[200px]">
                       <SelectValue placeholder="Select room" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="unassigned">No room assigned</SelectItem>
-                      {roomOptions.map(room => {
-                        console.log('Rendering SelectItem with id:', room.id, 'type:', typeof room.id)
-                        return (
-                          <SelectItem key={room.id} value={room.id}>
-                            {room.label}
-                          </SelectItem>
-                        )
-                      })}
+                      {roomOptions.map(room => (
+                        <SelectItem key={room.id} value={room.id}>
+                          {room.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 ) : (
