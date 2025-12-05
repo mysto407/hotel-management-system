@@ -38,7 +38,8 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
             isPrimary: true,
             assignedRoomNumber: roomInfo.number,
             assignedRoomType: roomInfo.type,
-            assignedRoomId: reservation.room_id,
+            // Use same ID format as roomOptions (room_id || id)
+            assignedRoomId: reservation.room_id || reservation.id,
             reservationId: reservation.id
           }
 
@@ -60,7 +61,8 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
               isPrimary: false,
               assignedRoomNumber: roomInfo.number,
               assignedRoomType: roomInfo.type,
-              assignedRoomId: reservation.room_id,
+              // Use same ID format as roomOptions (room_id || id)
+              assignedRoomId: reservation.room_id || reservation.id,
               reservationId: reservation.id
             }
             existingGuests.push(guestEntry)
@@ -122,7 +124,14 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
   }
 
   const handleRoomAssignmentChange = async (newRoomId) => {
-    if (!selectedGuestId) return
+    console.log('handleRoomAssignmentChange called with:', newRoomId)
+    console.log('selectedGuestId:', selectedGuestId)
+    console.log('groupedReservations:', groupedReservations.map(r => ({ id: r.id, room_id: r.room_id })))
+
+    if (!selectedGuestId) {
+      console.log('No selectedGuestId, returning early')
+      return
+    }
 
     try {
       // Find current reservation where this guest is assigned
@@ -136,7 +145,11 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         r.room_id === newRoomId || r.id === newRoomId
       )
 
+      console.log('currentReservation:', currentReservation ? { id: currentReservation.id, room_id: currentReservation.room_id, guest_id: currentReservation.guest_id } : null)
+      console.log('newReservation:', newReservation ? { id: newReservation.id, room_id: newReservation.room_id } : null)
+
       if (!newReservation) {
+        console.log('No newReservation found, just updating local state')
         setSelectedRoomForGuest(newRoomId)
         return
       }
@@ -159,13 +172,18 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
       if (newRoomId && newReservation) {
         const currentAdditionalGuests = newReservation.additional_guest_ids || []
         if (!currentAdditionalGuests.includes(selectedGuestId) && newReservation.guest_id !== selectedGuestId) {
+          console.log('Adding guest to new reservation:', newReservation.id)
           await updateReservation(newReservation.id, {
             additional_guest_ids: [...currentAdditionalGuests, selectedGuestId]
           })
+          console.log('Successfully updated reservation')
+        } else {
+          console.log('Guest already in target reservation or is primary guest')
         }
       }
 
       setSelectedRoomForGuest(newRoomId)
+      console.log('Room assignment complete, selectedRoomForGuest set to:', newRoomId)
     } catch (error) {
       console.error('Error updating room assignment:', error)
       alert('Failed to update room assignment: ' + error.message)
