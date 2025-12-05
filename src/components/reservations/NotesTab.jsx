@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Textarea } from '../ui/textarea'
 import { Badge } from '../ui/badge'
 import { Alert, AlertDescription } from '../ui/alert'
+import { ScrollArea } from '../ui/scroll-area'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -196,13 +197,10 @@ export default function NotesTab({ reservationId }) {
           </CardHeader>
           <CardContent className="p-0 overflow-hidden">
             <div className="flex flex-col">
-              <button
+              <Button
+                variant={selectedView === 'active' ? 'default' : 'ghost'}
                 onClick={() => setSelectedView('active')}
-                className={`flex items-center justify-between px-4 py-3 text-sm transition-colors border-b ${
-                  selectedView === 'active'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
-                }`}
+                className="flex items-center justify-between px-4 py-3 h-auto rounded-none border-b"
               >
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -211,14 +209,11 @@ export default function NotesTab({ reservationId }) {
                 <Badge variant={selectedView === 'active' ? 'secondary' : 'outline'}>
                   {activeNotes.length}
                 </Badge>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={selectedView === 'archived' ? 'default' : 'ghost'}
                 onClick={() => setSelectedView('archived')}
-                className={`flex items-center justify-between px-4 py-3 text-sm transition-colors rounded-b-lg ${
-                  selectedView === 'archived'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
-                }`}
+                className="flex items-center justify-between px-4 py-3 h-auto rounded-none rounded-b-lg"
               >
                 <div className="flex items-center gap-2">
                   <Archive className="h-4 w-4" />
@@ -227,7 +222,7 @@ export default function NotesTab({ reservationId }) {
                 <Badge variant={selectedView === 'archived' ? 'secondary' : 'outline'}>
                   {archivedNotes.length}
                 </Badge>
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>

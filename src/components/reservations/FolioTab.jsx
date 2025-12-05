@@ -765,10 +765,11 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                   const canDeleteFolio = folio.folio_type !== 'master' && folios.length > 1
                   return (
                     <div key={folio.id} className="relative group flex-shrink-0">
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => setActiveFolioId(folio.id)}
                         className={`
-                          flex items-center gap-3 px-5 py-3 border-b-2 transition-all
+                          flex items-center gap-3 px-5 py-3 h-auto rounded-none border-b-2 transition-all
                           ${isActive
                             ? 'border-primary bg-muted/50'
                             : 'border-transparent hover:bg-muted/30'
@@ -782,14 +783,14 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                               {folio.name}
                             </span>
                             {folio.folio_type === 'master' && folio.booking_id && (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary border-0">
                                 Master
-                              </span>
+                              </Badge>
                             )}
                             {folio.folio_type === 'room' && (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
                                 Room
-                              </span>
+                              </Badge>
                             )}
                           </div>
                           <span className={`text-xs tabular-nums ${balance > 0 ? 'text-orange' : 'text-success'}`}>
@@ -798,30 +799,34 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         </div>
                         {/* Delete button */}
                         {canDeleteFolio && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={(e) => {
                               e.stopPropagation()
                               setSelectedFolioForDelete(folio)
                               setDeleteFolioOpen(true)
                             }}
-                            className="ml-1 p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+                            className="ml-1 h-6 w-6 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
                             title="Delete folio"
                           >
                             <Trash2 className="h-3 w-3" />
-                          </button>
+                          </Button>
                         )}
-                      </button>
+                      </Button>
                     </div>
                   )
                 })}
                 {/* Add Folio Button - sits beside the last tab */}
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setCreateFolioOpen(true)}
-                  className="flex-shrink-0 flex items-center justify-center w-8 h-8 mx-3 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted hover:shadow-sm transition-all"
+                  className="flex-shrink-0 w-8 h-8 mx-3 text-muted-foreground/50 hover:text-foreground"
                   title="New Folio"
                 >
                   <Plus className="h-5 w-5" />
-                </button>
+                </Button>
               </div>
 
               {/* Manage Dropdown - for folio operations */}
@@ -1140,9 +1145,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                               {txn.notes ? (
                                 <Popover>
                                   <PopoverTrigger asChild>
-                                    <button className="text-sm text-muted-foreground truncate max-w-[150px] block text-left hover:text-foreground hover:underline cursor-pointer">
+                                    <Button variant="link" className="h-auto p-0 text-sm text-muted-foreground truncate max-w-[150px] block text-left hover:text-foreground">
                                       {txn.notes}
-                                    </button>
+                                    </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-80 max-h-60 overflow-y-auto" align="start">
                                     <div className="space-y-2">
@@ -1216,7 +1221,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                           setSelectedTransaction(txn)
                                           setReverseConfirmOpen(true)
                                         }}
-                                        className="text-orange-600"
+                                        className="text-orange"
                                       >
                                         <RotateCcw className="h-4 w-4 mr-2" />
                                         Reverse
@@ -1320,9 +1325,9 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                         {txn.notes ? (
                           <Popover>
                             <PopoverTrigger asChild>
-                              <button className="text-sm text-muted-foreground truncate max-w-[150px] block text-left hover:text-foreground hover:underline cursor-pointer">
+                              <Button variant="link" className="h-auto p-0 text-sm text-muted-foreground truncate max-w-[150px] block text-left hover:text-foreground">
                                 {txn.notes}
-                              </button>
+                              </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-80 max-h-60 overflow-y-auto" align="start">
                               <div className="space-y-2">
@@ -1400,7 +1405,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
                                     setSelectedTransaction(txn)
                                     setReverseConfirmOpen(true)
                                   }}
-                                  className="text-orange-600"
+                                  className="text-orange"
                                 >
                                   <RotateCcw className="h-4 w-4 mr-2" />
                                   Reverse
@@ -1530,7 +1535,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-orange-600" />
+              <RotateCcw className="h-5 w-5 text-orange" />
               Reverse Transaction
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -1548,7 +1553,7 @@ export default function FolioTab({ reservationIds, primaryReservation, groupedRe
             <AlertDialogAction
               onClick={handleReverse}
               disabled={actionLoading}
-              className="bg-orange-600 text-white hover:bg-orange-700"
+              className="bg-orange text-orange-foreground hover:bg-orange/90"
             >
               {actionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Reverse Transaction
