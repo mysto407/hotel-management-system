@@ -282,13 +282,9 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
         if (targetReservation) {
           const currentAdditionalGuests = targetReservation.additional_guest_ids || []
 
-          const updateData = {
-            additional_guest_ids: [...currentAdditionalGuests, newGuest.id],
-            // Increment guest count (default to adult)
-            number_of_adults: (targetReservation.number_of_adults || 0) + 1
-          }
-
-          await updateReservation(targetReservation.id, updateData)
+          await updateReservation(targetReservation.id, {
+            additional_guest_ids: [...currentAdditionalGuests, newGuest.id]
+          })
         }
 
         // Select the newly created guest
