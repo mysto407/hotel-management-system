@@ -22,22 +22,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
   const [editedGuestDetails, setEditedGuestDetails] = useState(null)
   const [selectedRoomForGuest, setSelectedRoomForGuest] = useState('')
 
-  // Get all guests including placeholders for missing ones
-  const getAllGuestsWithPlaceholders = () => {
+  // Get all guests for this booking
+  const getAllGuests = () => {
     const existingGuests = []
-    const placeholders = []
-    let placeholderId = 1
 
     groupedReservations.forEach((reservation) => {
       const roomInfo = getRoomInfo(reservation.room_id, reservation.room_type_id)
-
-      // Calculate expected guest count for this reservation
-      const expectedGuestCount =
-        (reservation.number_of_adults || 0) +
-        (reservation.number_of_children || 0)
-
-      // Track existing guests for this reservation
-      const guestsInThisReservation = []
 
       // Add primary guest
       if (reservation.guest_id) {
@@ -46,7 +36,6 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
           const guestEntry = {
             ...guest,
             isPrimary: true,
-            isPlaceholder: false,
             assignedRoomNumber: roomInfo.number,
             assignedRoomType: roomInfo.type,
             assignedRoomId: reservation.room_id,
@@ -56,7 +45,6 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
           // Only add if not already in existingGuests
           if (!existingGuests.find(g => g.id === guest.id)) {
             existingGuests.push(guestEntry)
-            guestsInThisReservation.push(guestEntry)
           }
         }
       }
@@ -70,47 +58,22 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
             const guestEntry = {
               ...guest,
               isPrimary: false,
-              isPlaceholder: false,
               assignedRoomNumber: roomInfo.number,
               assignedRoomType: roomInfo.type,
               assignedRoomId: reservation.room_id,
               reservationId: reservation.id
             }
             existingGuests.push(guestEntry)
-            guestsInThisReservation.push(guestEntry)
           }
-        })
-      }
-
-      // Calculate how many placeholder guests are needed for this reservation
-      const missingGuestCount = expectedGuestCount - guestsInThisReservation.length
-
-      // Create placeholders for missing guests
-      for (let i = 0; i < missingGuestCount; i++) {
-        placeholders.push({
-          id: `placeholder-${placeholderId++}`,
-          name: 'Guest details not added',
-          isPrimary: false,
-          isPlaceholder: true,
-          assignedRoomNumber: roomInfo.number,
-          assignedRoomType: roomInfo.type,
-          assignedRoomId: reservation.room_id,
-          reservationId: reservation.id
         })
       }
     })
 
-    return { actualGuests: existingGuests, placeholders }
+    return existingGuests
   }
 
-  const { actualGuests, placeholders } = getAllGuestsWithPlaceholders()
-  const allGuests = [...actualGuests, ...placeholders] // Keep for compatibility with selection logic
-  const selectedGuest = selectedGuestId && !selectedGuestId.startsWith('placeholder-')
-    ? guests.find(g => g.id === selectedGuestId)
-    : null
-  const selectedPlaceholder = selectedGuestId && selectedGuestId.startsWith('placeholder-')
-    ? allGuests.find(g => g.id === selectedGuestId)
-    : null
+  const allGuests = getAllGuests()
+  const selectedGuest = selectedGuestId ? guests.find(g => g.id === selectedGuestId) : null
 
   // Parse guest name into firstName and surname
   const parseGuestName = (name) => {
@@ -122,43 +85,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
   }
 
   const handleSelectGuest = (guest) => {
-    if (guest.isPlaceholder) {
-      // Handle placeholder selection - start adding a new guest
-      setSelectedGuestId(guest.id)
-      setIsEditMode(false)
-      setIsAddingNewGuest(true)
-      setSelectedRoomForGuest(guest.assignedRoomId || '')
-      setEditedGuestDetails({
-        firstName: '',
-        surname: '',
-        email: '',
-        phone: '',
-        dateOfBirth: '',
-        guestType: 'Adult',
-        idType: 'N/A',
-        idNumber: '',
-        address: '',
-        city: '',
-        state: '',
-        country: '',
-        photo: null,
-        photoUrl: null,
-        placeholderReservationId: guest.reservationId,
-        gender: '',
-        nationality: '',
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-        isVip: false
-      })
-    } else {
-      // Handle real guest selection
-      setSelectedGuestId(guest.id)
-      setIsEditMode(false)
-      setIsAddingNewGuest(false)
-      setEditedGuestDetails(null)
-      // Set the room assignment for this guest
-      setSelectedRoomForGuest(guest.assignedRoomId || '')
-    }
+    setSelectedGuestId(guest.id)
+    setIsEditMode(false)
+    setIsAddingNewGuest(false)
+    setEditedGuestDetails(null)
+    // Set the room assignment for this guest
+    setSelectedRoomForGuest(guest.assignedRoomId || '')
   }
 
   const handleAddGuestClick = () => {
@@ -338,18 +270,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
 
       if (newGuest) {
         // Determine which reservation to update
-        // Priority: 1) selectedRoomForGuest (user's current choice) 2) placeholderReservationId (original) 3) first reservation
+        // Priority: 1) selectedRoomForGuest (user's current choice) 2) first reservation
         let targetReservation = null
-        const isFillingPlaceholder = !!editedGuestDetails.placeholderReservationId
 
         if (selectedRoomForGuest) {
-          // Use the currently selected room
           targetReservation = groupedReservations.find(r => r.room_id === selectedRoomForGuest)
-        } else if (editedGuestDetails.placeholderReservationId) {
-          // Fall back to original placeholder reservation
-          targetReservation = groupedReservations.find(r => r.id === editedGuestDetails.placeholderReservationId)
         } else {
-          // Fall back to first reservation
           targetReservation = groupedReservations[0]
         }
 
@@ -357,45 +283,12 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
           const currentAdditionalGuests = targetReservation.additional_guest_ids || []
 
           const updateData = {
-            additional_guest_ids: [...currentAdditionalGuests, newGuest.id]
-          }
-
-          // Check if room was changed from the original placeholder assignment
-          const originalReservation = editedGuestDetails.placeholderReservationId
-            ? groupedReservations.find(r => r.id === editedGuestDetails.placeholderReservationId)
-            : null
-          const roomWasChanged = isFillingPlaceholder && originalReservation && targetReservation.id !== originalReservation.id
-
-          // Only increment guest counts if:
-          // - NOT filling a placeholder, OR
-          // - Filling a placeholder but room was changed to a different reservation
-          if (!isFillingPlaceholder || roomWasChanged) {
-            if (editedGuestDetails.guestType === 'Adult') {
-              updateData.number_of_adults = (targetReservation.number_of_adults || 0) + 1
-            } else if (editedGuestDetails.guestType === 'Child') {
-              updateData.number_of_children = (targetReservation.number_of_children || 0) + 1
-            } else if (editedGuestDetails.guestType === 'Infant') {
-              updateData.number_of_infants = (targetReservation.number_of_infants || 0) + 1
-            }
+            additional_guest_ids: [...currentAdditionalGuests, newGuest.id],
+            // Increment guest count (default to adult)
+            number_of_adults: (targetReservation.number_of_adults || 0) + 1
           }
 
           await updateReservation(targetReservation.id, updateData)
-
-          // If room was changed, we need to decrement the original reservation's count
-          // (but only if it's not the primary guest of that reservation)
-          if (roomWasChanged && originalReservation) {
-            const originalUpdateData = {}
-            if (editedGuestDetails.guestType === 'Adult') {
-              originalUpdateData.number_of_adults = Math.max(0, (originalReservation.number_of_adults || 0) - 1)
-            } else if (editedGuestDetails.guestType === 'Child') {
-              originalUpdateData.number_of_children = Math.max(0, (originalReservation.number_of_children || 0) - 1)
-            } else if (editedGuestDetails.guestType === 'Infant') {
-              originalUpdateData.number_of_infants = Math.max(0, (originalReservation.number_of_infants || 0) - 1)
-            }
-            if (Object.keys(originalUpdateData).length > 0) {
-              await updateReservation(originalReservation.id, originalUpdateData)
-            }
-          }
         }
 
         // Select the newly created guest
@@ -479,14 +372,13 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
           </div>
 
           <div>
-            {actualGuests.length === 0 && placeholders.length === 0 ? (
+            {allGuests.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
                 No guests found
               </div>
             ) : (
               <div className="divide-y">
-                {/* Render actual guests with avatars */}
-                {actualGuests.map((guest) => (
+                {allGuests.map((guest) => (
                   <button
                     key={guest.id}
                     onClick={() => handleSelectGuest(guest)}
@@ -547,35 +439,6 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                     </div>
                   </button>
                 ))}
-
-                {/* Consolidated placeholder row */}
-                {placeholders.length > 0 && (
-                  <div className="p-3 bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <UserPlus className="h-4 w-4" />
-                        <span>
-                          {placeholders.length} guest{placeholders.length > 1 ? 's' : ''} not added
-                          <span className="text-xs ml-1.5">
-                            ({[...new Set(placeholders.map(p => `Room ${p.assignedRoomNumber}`))].join(', ')})
-                          </span>
-                        </span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // Select the first placeholder to start adding
-                          if (placeholders.length > 0) {
-                            handleSelectGuest(placeholders[0])
-                          }
-                        }}
-                      >
-                        + Add
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -584,7 +447,7 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
 
       {/* Right Content - Guest Details Form */}
       <div className="flex-1">
-        {!selectedGuest && !selectedPlaceholder && !isAddingNewGuest ? (
+        {!selectedGuest && !isAddingNewGuest ? (
           <Card>
             <CardContent className="flex items-center justify-center min-h-[400px]">
               <div className="text-center text-muted-foreground">
@@ -599,20 +462,11 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
             <div className="flex items-center justify-between border-b bg-muted/10 px-4 py-3">
               <div>
                 <h3 className="text-lg font-semibold">
-                  {isAddingNewGuest
-                    ? selectedPlaceholder
-                      ? 'Add Guest Details'
-                      : 'Add New Guest'
-                    : 'Guest Details'}
+                  {isAddingNewGuest ? 'Add New Guest' : 'Guest Details'}
                 </h3>
                 {selectedGuest && (
                   <p className="text-xs text-muted-foreground">
                     {selectedGuest.name}
-                  </p>
-                )}
-                {selectedPlaceholder && isAddingNewGuest && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Fill in details for Room {selectedPlaceholder.assignedRoomNumber}
                   </p>
                 )}
               </div>
@@ -688,7 +542,6 @@ export default function GuestDetailsTab({ groupedReservations, guests, getRoomIn
                   }
                 }}
                 dropdownOptions={{ idProofTypes, genderOptions, nationalities }}
-                showGuestType={isAddingNewGuest && !editedGuestDetails?.placeholderReservationId}
               />
             </CardContent>
           </Card>
